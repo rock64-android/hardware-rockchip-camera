@@ -692,11 +692,11 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
     info->orientation = gCamInfos[camera_id].facing_info.orientation;
     #else
     if (camera_id) {
-        info->facing = CAMERA_FACING_BACK;
-        info->orientation = 90;
-    } else {
         info->facing = CAMERA_FACING_FRONT;
         info->orientation = 270;
+    } else {
+        info->facing = CAMERA_FACING_BACK;
+        info->orientation = 90;
     }
     #endif
 
