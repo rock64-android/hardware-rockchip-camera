@@ -51,7 +51,7 @@ namespace android {
 
 #define CAMERA_PREVIEWBUF_DISPING_BITPOS   0x01
 #define CAMERA_PREVIEWBUF_ENCING_BITPOS    0x02
-#define CAMERA_PREVIEWBUF_WRITING_BITPOS   0x03
+#define CAMERA_PREVIEWBUF_WRITING_BITPOS   0x03 
 
 #define CAMERA_PREVIEWBUF_ALLOW_WRITE(a)   ((a&0x3)==0x00)
 
@@ -91,7 +91,7 @@ static int cameraPixFmt2HalPixFmt(unsigned int fmt)
         }
         default:
             hal_pixel_format = -EINVAL;
-            LOGE("Camera pixel format(%c%c%c%c) is unknow in %s!",fmt & 0xFF, (fmt >> 8) & 0xFF,
+            LOGE("%s(%d): pixel format(%c%c%c%c) is unknow!",__FUNCTION__,__LINE__,fmt & 0xFF, (fmt >> 8) & 0xFF,
 				(fmt >> 16) & 0xFF, ((fmt >> 24) & 0xFF));
             break;
     }
@@ -141,7 +141,7 @@ CameraHal::CameraHal(int cameraId)
 {
     int fp,i;
     
-    cameraCallProcess[0] = 0x00;
+    cameraCallProcess[0] = 0x00; 
     sprintf(cameraCallProcess,"/proc/%d/cmdline",getCallingPid());
     fp = open(cameraCallProcess, O_RDONLY);
     if (fp < 0) {
@@ -1030,7 +1030,7 @@ display_receive_cmd:
         if (mDisplayRuning == STA_DISPLAY_PAUSE) {
             LOGD("%s(%d): display thread pause here... ", __FUNCTION__,__LINE__);
             mDisplayCond.wait(mDisplayLock);   
-            LOGD("%s(%d): wake up for mDisplayRuning:0x%x ", __FUNCTION__,__LINE__,mDisplayRuning);
+            LOGD("%s(%d): display thread wake up... ", __FUNCTION__,__LINE__);
             goto display_receive_cmd;
         }
         
@@ -1283,7 +1283,7 @@ void CameraHal::commandThread()
     				err = cameraStart();
                 } else {
                     err = -1;
-                    LOGD("%s(%d): preview thread is already run", __FUNCTION__,__LINE__,mPreviewRunning);
+                    LOGD("%s(%d): preview thread is already run", __FUNCTION__,__LINE__);
                 }
 
                 msg.command = err ? CMD_NACK : CMD_ACK;
@@ -1322,7 +1322,7 @@ void CameraHal::commandThread()
                 } else {
                     mPreviewLock.unlock();
                     msg.command = CMD_ACK;
-                    LOGD("%s(%d): preview thread is already pause",__FUNCTION__,__LINE__,mPreviewRunning);
+                    LOGD("%s(%d): preview thread is already pause",__FUNCTION__,__LINE__);
                 }
                  
                 LOGD("%s(%d): CMD_PREVIEW_STOP %s", __FUNCTION__,__LINE__, msg.command == CMD_NACK ? "NACK" : "ACK");
@@ -1630,8 +1630,8 @@ int CameraHal::cameraPreviewBufferCreate(int width, int height, unsigned int fmt
             if (ioctl(mPreviewBufferMap[i].priv_hnd->fd,PMEM_GET_PHYS,&sub) == 0) {                    
                 mPreviewBufferMap[i].phy_addr = sub.offset + mPreviewBufferMap[i].priv_hnd->offset;    /* phy address */ 
             } else {
-                LOGE("s(%d): %s(err:%d) obtain buffer %d phy address failed!",__FUNCTION__,__LINE__,
-                        strerror(errno),errno);
+                LOGE("%s(%d): %s(err:%d) obtain buffer %d phy address failed!",__FUNCTION__,__LINE__,
+                        strerror(errno),errno, i);
             }
         } else {   
             private_handle_t *phnd = (private_handle_t*)*hnd;

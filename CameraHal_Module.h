@@ -3,9 +3,19 @@
 #include <linux/videodev2.h>
 
 #define CONFIG_AUTO_DETECT_FRAMERATE    0
-
+#if CONFIG_AUTO_DETECT_FRAMERATE
+#define CAMERA_DEFAULT_PREVIEW_FPS_MIN    8000        //8 fps
+#define CAMERA_DEFAULT_PREVIEW_FPS_MAX    15000
+#else
+#define CAMERA_FRONT_PREVIEW_FPS_MIN    8000        //8 fps
+#define CAMERA_FRONT_PREVIEW_FPS_MAX    15000
+#define CAMERA_BACK_PREVIEW_FPS_MIN     8000
+#define CAMERA_BACK_PREVIEW_FPS_MAX     15000
+#endif
 #define CAMERAS_SUPPORT_MAX             2
 #define CAMERAS_SUPPORTED_SIMUL_MAX     1
+#define CAMERA_DEVICE_NAME              "/dev/video"
+#define CAMERA_MODULE_NAME              "RK29_ICS_CameraHal_Module"
 
 typedef struct rk_cam_info_s {
     char device_path[30];

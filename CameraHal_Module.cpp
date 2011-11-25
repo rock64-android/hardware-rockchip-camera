@@ -21,7 +21,7 @@
 *
 */
 
-#define LOG_TAG "CameraHAL"
+#define LOG_TAG "CameraHal_Module"
 
 #include <utils/threads.h>
 
@@ -594,6 +594,7 @@ int camera_get_number_of_cameras(void)
     int cam_cnt=0,fd=-1,rk29_cam[CAMERAS_SUPPORT_MAX];
     struct v4l2_capability capability;
     rk_cam_info_t camInfoTmp[CAMERAS_SUPPORT_MAX];
+    char *ptr,**ptrr;
 
     if (gCamerasNumber > 0)
         goto camera_get_number_of_cameras_end;
@@ -624,6 +625,18 @@ int camera_get_number_of_cameras(void)
             memset(camInfoTmp[cam_cnt&0x01].fival_list,0x00, sizeof(camInfoTmp[cam_cnt&0x01].fival_list));
             memcpy(camInfoTmp[cam_cnt&0x01].driver,capability.driver, sizeof(camInfoTmp[cam_cnt&0x01].driver));
             camInfoTmp[cam_cnt&0x01].version = capability.version;
+            if (strstr((char*)&capability.card[0], "front") != NULL) {
+                camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_FRONT;
+            } else {
+                camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_BACK;
+            }  
+            ptr = strstr((char*)&capability.card[0],"-");
+            if (ptr != NULL) {
+                ptr++;
+                camInfoTmp[cam_cnt&0x01].facing_info.orientation = atoi(ptr);
+            } else {
+                camInfoTmp[cam_cnt&0x01].facing_info.orientation = 0;
+            }
             cam_cnt++;
             if (cam_cnt >= CAMERAS_SUPPORT_MAX)
                 i = 10;
@@ -687,18 +700,9 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
         rv = -EINVAL;
         goto end;
     }
-    #if 0
+
     info->facing = gCamInfos[camera_id].facing_info.facing;
-    info->orientation = gCamInfos[camera_id].facing_info.orientation;
-    #else
-    if (camera_id) {
-        info->facing = CAMERA_FACING_FRONT;
-        info->orientation = 270;
-    } else {
-        info->facing = CAMERA_FACING_BACK;
-        info->orientation = 90;
-    }
-    #endif
+    info->orientation = gCamInfos[camera_id].facing_info.orientation;    
 
     LOGD("%s(%d): camera_%d facing(%d), orientation(%d)",__FUNCTION__,__LINE__,camera_id,info->facing,info->orientation);
 end:

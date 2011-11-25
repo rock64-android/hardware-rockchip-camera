@@ -73,7 +73,8 @@ extern "C" int capturePicture_cacheflush(int buf_type, int offset, int len)
         region.len = len;
         ret = ioctl(iPicturePmemFd,PMEM_CACHE_FLUSH, &region);
     }
-    LOGD("capturePicture_cacheflush buf_type:0x%x  offset:0x%x  len:0x%x ret:0x%x",buf_type,region.offset,region.len,ret);
+    LOGD("%s(%d): capturePicture_cacheflush buf_type:0x%x  offset:0x%lx  len:0x%lx ret:0x%x",
+        __FUNCTION__,__LINE__,buf_type,region.offset,region.len,ret);
 
 capture_cacheflush_end:
     return ret;
@@ -179,7 +180,7 @@ int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo)
         fract = modf(fract*60,&min);
         modf(fract*60,&sec);
         
-        LOGD("latitude: deg = %f;min = %f;sec =%f",deg,min,sec);
+        //LOGD("latitude: deg = %f;min = %f;sec =%f",deg,min,sec);
 
     	gpsInfo->GPSLatitude[0].num = (uint32_t)deg;
     	gpsInfo->GPSLatitude[0].denom = 1;
@@ -207,7 +208,7 @@ int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo)
         fract = modf(fract*60,&min);
         modf(fract*60,&sec);
         
-        LOGD("longtitude: deg = %f;min = %f;sec =%f",deg,min,sec);
+        //LOGD("longtitude: deg = %f;min = %f;sec =%f",deg,min,sec);
     	gpsInfo->GPSLongitude[0].num = (uint32_t)deg;
     	gpsInfo->GPSLongitude[0].denom = 1;
     	gpsInfo->GPSLongitude[1].num = (uint32_t)min;
@@ -229,13 +230,13 @@ int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo)
         altitude = fabs(altitude);
     	gpsInfo->GPSAltitude.num =(uint32_t)altitude;
     	gpsInfo->GPSAltitude.denom = 0x1;
-        LOGD("altitude =%f",altitude);        
+        //LOGD("altitude =%f",altitude);        
     }
     
     if(timestamp!=-1)
     {
        /*timestamp,has no meaning,only for passing cts*/
-        LOGD("timestamp =%d",timestamp);
+        //LOGD("timestamp =%d",timestamp);
         gpsInfo->GpsTimeStamp[0].num =12;
     	gpsInfo->GpsTimeStamp[0].denom = 1;
     	gpsInfo->GpsTimeStamp[1].num = 12;
@@ -332,7 +333,7 @@ int CameraHal::Jpegfillexifinfo(RkExifInfo *exifInfo)
 int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
 {
     int jpeg_w,jpeg_h,i;
-    int pictureSize;
+    unsigned int pictureSize;
     unsigned long base, offset, picture_format;
     struct v4l2_buffer buffer;
     struct v4l2_format format;
@@ -345,7 +346,7 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     int thumbheight = 0;
 	int err = 0;
 	int rotation = 0;
-    char *camDriverV4l2Buffer;
+    char *camDriverV4l2Buffer = NULL;
     JpegEncInInfo JpegInInfo;
     JpegEncOutInfo JpegOutInfo;  
     
@@ -380,12 +381,12 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     }
 
     if (pictureSize > mRawBuffer->size()) {
-        LOGE("Picture input buffer(size:0x%x) is not enough for this resolution picture(%d*%d, size:0x%x)",
-            mRawBuffer->size(), jpeg_w, jpeg_h, pictureSize);
+        LOGE("%s(%d): mRawBuffer(size:0x%x) is not enough for this resolution picture(%dx%d, size:0x%x)",
+            __FUNCTION__, __LINE__,mRawBuffer->size(), jpeg_w, jpeg_h, pictureSize);
         err = -1;
         goto exit;
     } else {
-        LOGD("Picture Size: Width = %d \tHeight = %d \quality = %d rotation = %d", jpeg_w, jpeg_h,quality,rotation);
+        LOGD("%s(%d): %dx%d quality(%d) rotation(%d)",__FUNCTION__,__LINE__, jpeg_w, jpeg_h,quality,rotation);
     }
 
     i = 0;
@@ -442,10 +443,10 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
                             buffer.length, PROT_READ, MAP_SHARED, iCamFd,
                             buffer.m.offset);
         if (camDriverV4l2Buffer == MAP_FAILED) {
-            LOGE("%s Unable to map buffer(length:0x%x offset:0x%x) [%s]\n",__FUNCTION__, buffer.length,buffer.m.offset,errno);
+            LOGE("%s(%d): %s(err:%d), unable to map buffer(length:0x%x offset:0x%x)",__FUNCTION__,__LINE__,strerror(errno),errno, buffer.length,buffer.m.offset);
             goto exit;
         } else {
-            LOGD("%s camDriverV4l2Buffer:0x%x",__FUNCTION__,(int)camDriverV4l2Buffer);
+            LOGD("%s(%d): camDriverV4l2Buffer:0x%x",__FUNCTION__,__LINE__,(int)camDriverV4l2Buffer);
         }
     }
     

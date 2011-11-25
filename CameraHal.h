@@ -61,26 +61,11 @@ namespace android {
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 0)
 
+/*  */
+#define CONFIG_CAMERA_PRVIEW_BUF_CNT    4           
 
-#define CONFIG_CAMERA_PRVIEW_BUF_CNT    4           /*  */
-
-
-
-#if CONFIG_AUTO_DETECT_FRAMERATE
-#define CAMERA_DEFAULT_PREVIEW_FPS_MIN    8000        //8 fps
-#define CAMERA_DEFAULT_PREVIEW_FPS_MAX    15000
-#else
-#define CAMERA_FRONT_PREVIEW_FPS_MIN    8000        //8 fps
-#define CAMERA_FRONT_PREVIEW_FPS_MAX    15000
-#define CAMERA_BACK_PREVIEW_FPS_MIN     8000
-#define CAMERA_BACK_PREVIEW_FPS_MAX     15000
-#endif
-
-#define CAMERA_DRIVER_SUPPORT_FORMAT_MAX   32
-
-#define CAMERA_DEVICE_NAME              "/dev/video"
 #define CAMERA_PMEM_NAME                "/dev/pmem_cam"
-#define CAMERA_MODULE_NAME              "RK29_ICS_CameraHal_Module"
+#define CAMERA_DRIVER_SUPPORT_FORMAT_MAX   32
 
 #define RAW_BUFFER_SIZE_5M          0x800000
 #define RAW_BUFFER_SIZE_3M          0x500000
@@ -530,8 +515,7 @@ private:
     enum DisplayRunStatus {
         STA_DISPLAY_PAUSE,
         STA_DISPLAY_RUN,
-        STA_DISPLAY_STOP,
-        STA_DISPLAY_DEQUEUE_ONCE
+        STA_DISPLAY_STOP
     };
 
     enum PreviewRunStatus {
@@ -550,7 +534,6 @@ private:
 		CMD_DISPLAY_PAUSE,        
         CMD_DISPLAY_START,
         CMD_DISPLAY_STOP,
-        CMD_DISPLAY_DEQUEUE_ONCE,
         CMD_DISPLAY_INVAL
     };
     enum PreviewThreadCommands {

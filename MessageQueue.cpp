@@ -10,8 +10,6 @@
 #include "CameraHal.h"
 #include "MessageQueue.h"
 
-#define LOG_FUNCTION_NAME           LOGD("%d: %s() ENTER", __LINE__, __FUNCTION__);
-#define LOG_FUNCTION_NAME_EXIT      LOGD("%d: %s() EXIT", __LINE__, __FUNCTION__);
 //#define MLOGD   LOGD
 #define MLOGD
 
@@ -41,7 +39,7 @@ static char gCommandThreadCommands[][30] = {
         {"CMD_NACK"}
  };
 static char gInvalCommands[]={"CMD_UNKNOW"};
-static char* MessageCmdConvert(char* msgQ, int cmd)
+static char* MessageCmdConvert(char* msgQ, unsigned int cmd)
 {    
     char *cmd_name = gInvalCommands;
     if (strcmp(msgQ,"displayCmdQ") == 0) {
@@ -67,7 +65,7 @@ MessageQueue::MessageQueue()
     MsgQueName[0] = 0;
     strcat(MsgQueName, "CamMsgQue");
 }
-MessageQueue::MessageQueue(char *name)
+MessageQueue::MessageQueue(const char *name)
 {
     int fds[2] = {-1,-1};
 
@@ -92,7 +90,7 @@ MessageQueue::~MessageQueue()           /* ddl@rock-chips.com */
 int MessageQueue::get(Message* msg)
 {
     char* p = (char*) msg;
-    int read_bytes = 0;
+    unsigned int read_bytes = 0;
 
     while( read_bytes  < sizeof(msg) )
     {
@@ -114,7 +112,8 @@ int MessageQueue::get(Message* msg)
 int MessageQueue::get(Message* msg, int timeout)
 {
     char* p = (char*) msg;
-    int read_bytes = 0,err;
+    unsigned int read_bytes = 0;
+    int err = 0;
     struct pollfd pfd;
 
     pfd.fd = this->fd_read;
@@ -151,7 +150,7 @@ int MessageQueue::get(Message* msg, int timeout)
 int MessageQueue::put(Message* msg)
 {
     char* p = (char*) msg;
-    int bytes = 0;
+    unsigned int bytes = 0;
 
     MLOGD("%s.put(%s,%p,%p,%p,%p)",this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
 

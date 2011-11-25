@@ -14,7 +14,7 @@ class MessageQueue
 {
 public:
     MessageQueue();
-    MessageQueue(char *name);
+    MessageQueue(const char *name);
 	~MessageQueue();			/* ddl@rock-chips.com */
     int get(Message*);
 	int get(Message*, int);		/* ddl@rock-chips.com : timeout interface */
