@@ -1,16 +1,19 @@
 #ifndef ANDROID_HARDWARE_CAMERA_HARDWARE_MODULE_H
 #define ANDROID_HARDWARE_CAMERA_HARDWARE_MODULE_H
 #include <linux/videodev2.h>
+#include <utils/threads.h>
+
+using namespace android;
 
 #define CONFIG_AUTO_DETECT_FRAMERATE    0
 #if CONFIG_AUTO_DETECT_FRAMERATE
 #define CAMERA_DEFAULT_PREVIEW_FPS_MIN    8000        //8 fps
 #define CAMERA_DEFAULT_PREVIEW_FPS_MAX    15000
 #else
-#define CAMERA_FRONT_PREVIEW_FPS_MIN    8000        //8 fps
-#define CAMERA_FRONT_PREVIEW_FPS_MAX    15000
-#define CAMERA_BACK_PREVIEW_FPS_MIN     8000
-#define CAMERA_BACK_PREVIEW_FPS_MAX     15000
+#define CAMERA_FRONT_PREVIEW_FPS_MIN    30000        //8 fps
+#define CAMERA_FRONT_PREVIEW_FPS_MAX    30000
+#define CAMERA_BACK_PREVIEW_FPS_MIN     30000
+#define CAMERA_BACK_PREVIEW_FPS_MAX     30000
 #endif
 #define CAMERAS_SUPPORT_MAX             2
 #define CAMERAS_SUPPORTED_SIMUL_MAX     1
@@ -30,4 +33,20 @@ typedef struct rk_camera_device {
     camera_device_t base;   
     int cameraid;
 } rk_camera_device_t;
+
+#if CONFIG_AUTO_DETECT_FRAMERATE 
+int camera_famerate_detect_loop(void);
+
+class CameraFpsDetectThread : public Thread {        
+public:
+    CameraFpsDetectThread()
+        : Thread(false){ }
+
+    virtual bool threadLoop() {
+        camera_famerate_detect_loop();
+        return false;
+    }
+};
+#endif
+
 #endif

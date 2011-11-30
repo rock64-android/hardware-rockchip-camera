@@ -35,6 +35,7 @@
 #include <utils/Log.h>
 #include <utils/threads.h>
 #include <cutils/properties.h>
+#include <cutils/atomic.h>
 #include <linux/version.h>
 #include <linux/videodev2.h>
 #include <binder/MemoryBase.h>
@@ -113,24 +114,10 @@ typedef struct rk_previewbuf_info {
     Mutex lock;
     buffer_handle_t* buffer_hnd;
     private_handle_t* priv_hnd;
-    ANativeWindowBuffer* grallocbuf_hnd;
+    camera_memory_t* video_buf;
     int phy_addr;
     int buf_state;
 } rk_previewbuf_info_t;
-
-
-
-int camera_famerate_detect_loop(void);
-class CameraFpsDetectThread : public Thread {        
-    public:
-        CameraFpsDetectThread()
-            : Thread(false){ }
-
-        virtual bool threadLoop() {
-            camera_famerate_detect_loop();
-            return false;
-        }
-};
 
 class CameraHal {
 public:  
@@ -322,6 +309,8 @@ public:
 
     // Destructor of CameraHal
     ~CameraHal();    
+
+    int getCameraFd();
     
 private:
 
@@ -416,7 +405,7 @@ private:
     int cameraPreviewBufferCreate(int width, int height, unsigned int fmt,unsigned int numBufs);
     int cameraPreviewBufferDestory();
     int cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, int set);
-    int cameraFramerateQuery(int format, int w, int h, int *min, int *max);
+    int cameraFramerateQuery(unsigned int format, unsigned int w, unsigned int h, int *min, int *max);
     int cameraFpsInfoSet(CameraParameters &params);
 
     int cameraDisplayThreadStart(int done);
@@ -449,8 +438,13 @@ private:
     int mRawBufferSize;
     int mPreviewFrameSize;    
     int mPmemHeapPhyBase;
-
+    volatile int32_t mPreviewStartTimes;
+    
     rk_previewbuf_info_t mPreviewBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
+
+    camera_memory_t* mPreviewMemory;
+    unsigned char* mPreviewBufs[CONFIG_CAMERA_PRVIEW_BUF_CNT];
+    camera_memory_t* mVideoBufs[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     
     sp<MemoryHeapBase> mMemHeap;
 	sp<MemoryHeapBase> mMemHeapPmem;

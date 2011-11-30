@@ -32,7 +32,9 @@
 
 rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 static android::CameraHal* gCameraHals[CAMERAS_SUPPORT_MAX];
-//static sp<CameraFpsDetectThread> gCameraFpsDetectThread;
+#if CONFIG_AUTO_DETECT_FRAMERATE 
+static sp<CameraFpsDetectThread> gCameraFpsDetectThread;
+#endif
 static unsigned int gCamerasOpen = 0;
 static signed int gCamerasNumber = -1;
 static android::Mutex gCameraHalDeviceLock;
@@ -438,7 +440,7 @@ int camera_device_close(hw_device_t* device)
     LOGD("%s", __FUNCTION__);
 
     android::Mutex::Autolock lock(gCameraHalDeviceLock);
-    LOGD("%s: device:0x%x", __FUNCTION__,device);
+
     if (!device) {
         ret = -EINVAL;
         goto done;
@@ -657,14 +659,7 @@ loop_continue:
     for (i=0; i<cam_cnt; i++) {
         if (strcmp((char*)&camInfoTmp[i].driver[0],"rk29xx-camera") == 0) {
             if (strcmp((char*)&camInfoTmp[i].driver[0],(char*)&gCamInfos[i].driver[0]) != 0) {
-                if (camInfoTmp[i].version >= KERNEL_VERSION(0, 0,3)) {
-                    rk29_cam[i] = i; 
-                } else { 
-                    rk29_cam[i] = 0xff;
-                    LOGD("%s catch driver(%s) version is %d.%d.%d, this version is not support detect framerate",
-                        camInfoTmp[i].device_path, camInfoTmp[i].driver,(camInfoTmp[i].version>>16)&0xff,
-                        (camInfoTmp[i].version>>8)&0xff,camInfoTmp[i].version&0xff);
-                }
+                rk29_cam[i] = i; 
             }
         } else {
             rk29_cam[i] = 0xff;
@@ -708,17 +703,17 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
 end:
     return rv;
 }
-#if 0
-int enumFrameIntervals(struct v4l2_frmivalenum *fival, int count)
+#if CONFIG_AUTO_DETECT_FRAMERATE 
+int camera_framerate_enum(int fd, struct v4l2_frmivalenum *fival,unsigned int w,unsigned int h, unsigned int fmt,int count)
 {
 	int ret,i;
 
     i = 0;
     fival->index = 0;
-    fival->pixel_format = mCamDriverPreviewFmt;
-    fival->width = mPreviewWidth;
-    fival->height = mPreviewHeight;
-	while (count && (ret = ioctl(iCamFd, VIDIOC_ENUM_FRAMEINTERVALS, fival)) == 0) {
+    fival->pixel_format = fmt;
+    fival->width = w;
+    fival->height = h;
+	while (count && (ret = ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, fival)) == 0) {
             	 
 		if (fival->type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
 		    ret = -1;
@@ -733,9 +728,9 @@ int enumFrameIntervals(struct v4l2_frmivalenum *fival, int count)
 
         if (count) {
             fival->index = i;
-            fival->pixel_format = mCamDriverPreviewFmt;
-            fival->width = mPreviewWidth;
-            fival->height = mPreviewHeight;
+            fival->pixel_format = fmt;
+            fival->width = w;
+            fival->height = h;
         }
 	}
 
@@ -744,55 +739,60 @@ int enumFrameIntervals(struct v4l2_frmivalenum *fival, int count)
     
 	return i;
 }
-#endif
+
 int camera_famerate_detect_loop(void)
 {
-#if 0
-    Camrea_Interface *camera;
+    camera_device_t *camera_dev;
     Vector<Size> preview_sizes;
-    Size preview_size;
-    struct CameraSize size_preview;
+    Size preview_size;    
     CameraParameters parameters;
     struct v4l2_frmivalenum *fival;
-    int i,j,w,h,count,ret;
+    unsigned int i,j,w,h,count,ret;
+    char camera_device_name[10]; 
+    char *temp;
 
     LOGD("%s Enter..",__func__);
-#if CONFIG_AUTO_DETECT_FRAMERATE    
+   
     for (i=0; i<2; i++) {        
-        if ((strstr(camInfo[i].device_path, CAMERA_DEVICE_NAME) != NULL) && (strcmp((char*)&camInfo[i].driver[0],"rk29xx-camera") == 0)) {
-            camera = openCameraHardwareEx(i);
-            parameters = camera->getParam();  
-            preview_sizes.clear();
-            parameters.getSupportedPreviewSizes(preview_sizes);            
-            fival = camInfo[i].fival_list;
-            count = 10;            
-            for (j=0; (j<preview_sizes.size()) && (count>0); j++) {
-                preview_size = preview_sizes.itemAt(j);
-                size_preview.w = preview_size.width;
-                size_preview.h = preview_size.height;                                
-                camera->setParam(CamCmd_SetPreviewSize,(void*)&size_preview);
-                camera->startPreview();
-                sleep(2);
-                camera->stopPreview();
-                ret = camera->enumFrameIntervals(fival,count);                
-                if (ret > 0) {
-                    count -= ret;
-                    fival += ret;
-                }                
-            }
+        if ((strstr(gCamInfos[i].device_path, CAMERA_DEVICE_NAME) != NULL) && (strcmp((char*)&gCamInfos[i].driver[0],"rk29xx-camera") == 0)) {
+            snprintf(camera_device_name, sizeof(camera_device_name), "%d", i);
+            if (camera_device_open(NULL, camera_device_name, (hw_device_t**)&camera_dev) == 0) {
+                temp = camera_dev->ops->get_parameters(camera_dev);
+                String8 str_parms(temp);
+                camera_dev->ops->put_parameters(camera_dev, temp);
+                parameters.unflatten(str_parms);  
+                preview_sizes.clear();
+                parameters.getSupportedPreviewSizes(preview_sizes);  
+                camera_dev->ops->set_parameters(camera_dev,parameters.flatten().string());
+                fival = gCamInfos[i].fival_list;
+                count = 10;            
+                for (j=0; (j<preview_sizes.size()) && (count>0); j++) {
+                    preview_size = preview_sizes.itemAt(j);
+                    parameters.setPreviewSize(preview_size.width, preview_size.height);
+                    camera_dev->ops->start_preview(camera_dev);
+                    sleep(2);
+                    camera_dev->ops->stop_preview(camera_dev);
+                    ret = camera_framerate_enum(gCameraHals[i]->getCameraFd(),fival,preview_size.width, preview_size.height,V4L2_PIX_FMT_NV12,count);                
+                    if (ret > 0) {
+                        count -= ret;
+                        fival += ret;
+                    }                
+                }
+                
+                fival = gCamInfos[i].fival_list;
+                while (fival->width) {
+                    LOGD("Camera_%d %dx%d framerate is %d/%d", i,fival->width,fival->height,fival->discrete.denominator,fival->discrete.numerator);
+                    fival++;
+                }
 
-            fival = camInfo[i].fival_list;
-            while (fival->width) {
-                LOGD("Camera_%d %dx%d framerate is %d/%d", i,fival->width,fival->height,fival->discrete.denominator,fival->discrete.numerator);
-                fival++;
+                camera_dev->ops->release(camera_dev);
+                camera_dev->common.close(&camera_dev->common);
             }
-            
-            delete camera;           
         }
     }
-#endif
-#endif
+
     LOGD("%s Exit..",__func__);
     return false;
 }
+#endif
 
