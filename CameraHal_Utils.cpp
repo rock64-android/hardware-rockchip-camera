@@ -110,8 +110,6 @@ extern "C"  int YuvData_Mirror_Flip(int v4l2_fmt_src, char *pdata, char *pline_t
     int *ptop, *pbottom;
     int err = 0,i,j;
 
-    LOG_FUNCTION_NAME
-
     pdata_tmp = (int*)pline_tmp;
     
     // Y mirror and flip
@@ -134,8 +132,6 @@ extern "C"  int YuvData_Mirror_Flip(int v4l2_fmt_src, char *pdata, char *pline_t
         ptop += (w>>2);
         pbottom -= (w>>2);
     }
-
-    LOG_FUNCTION_NAME_EXIT
 YuvData_Mirror_Flip_end:
     return err;
 }

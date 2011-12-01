@@ -92,10 +92,6 @@ namespace android {
                              GRALLOC_USAGE_SW_READ_RARELY | \
                              GRALLOC_USAGE_SW_WRITE_NEVER
 
-
-#define LOG_FUNCTION_NAME           LOGD("%s Enter", __FUNCTION__);
-#define LOG_FUNCTION_NAME_EXIT      LOGD("%s Exit ", __FUNCTION__);
-
 struct CamCaptureInfo_s
 {
 	int input_phy_addr;
