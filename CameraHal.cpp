@@ -210,11 +210,12 @@ CameraHal::CameraHal(int cameraId)
 }
 int CameraHal::cameraFramerateQuery(unsigned int format, unsigned int w, unsigned int h, int *min, int *max)
 {
-    int i,framerate,ret;
-    struct v4l2_frmivalenum *fival;
+    int i,framerate,ret;    
     int preview_data_process_time;
     
-#if CONFIG_AUTO_DETECT_FRAMERATE    
+#if CONFIG_AUTO_DETECT_FRAMERATE   
+    struct v4l2_frmivalenum *fival;
+
     switch (w)
     {
         case 176:
@@ -258,14 +259,45 @@ int CameraHal::cameraFramerateQuery(unsigned int format, unsigned int w, unsigne
     *max = CAMERA_DEFAULT_PREVIEW_FPS_MAX;
     ret = 0;
 #else
-    ret = 0;
-    if (mCamId == 0) {
-        *min = CAMERA_BACK_PREVIEW_FPS_MIN;
-        *max = CAMERA_BACK_PREVIEW_FPS_MAX;
-    } else {
-        *min = CAMERA_FRONT_PREVIEW_FPS_MIN;
-        *max = CAMERA_FRONT_PREVIEW_FPS_MAX;
+    struct v4l2_frmivalenum fival;
+
+    if ((mCamDriverCapability.version & 0xff) < 0x05) {
+        LOGD("Camera driver version: %d.%d.%d isn't support query framerate, Please update to v0.x.5",mCamDriverCapability.driver,
+            (mCamDriverCapability.version>>16) & 0xff,(mCamDriverCapability.version>>8) & 0xff,
+            mCamDriverCapability.version & 0xff);
+        goto default_fps;
     }
+    
+    ret = 0;
+    fival.index = 0;
+    fival.pixel_format = format;
+    fival.width = w;
+    fival.height = h;
+	ret = ioctl(iCamFd, VIDIOC_ENUM_FRAMEINTERVALS, &fival);
+
+    if (ret == 0) {
+        if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
+            *min = (fival.discrete.denominator*1000)/fival.discrete.numerator;
+            *max = (fival.discrete.denominator*1000)/fival.discrete.numerator;
+        } else {
+            LOGE("%s(%d): query framerate type(%d) is not supported",__FUNCTION__,__LINE__, fival.type);
+            goto default_fps;
+        }
+    } else {
+        LOGE("%s(%d): query framerate error(%dx%d@%c%c%c%c index:%d)",__FUNCTION__,__LINE__,
+            fival.width,fival.height,(fival.pixel_format & 0xFF), (fival.pixel_format >> 8) & 0xFF,
+				((fival.pixel_format >> 16) & 0xFF), ((fival.pixel_format >> 24) & 0xFF),fival.index);
+default_fps:    
+        if (mCamId == 0) {
+            *min = CAMERA_BACK_PREVIEW_FPS_MIN;
+            *max = CAMERA_BACK_PREVIEW_FPS_MAX;
+        } else {
+            *min = CAMERA_FRONT_PREVIEW_FPS_MIN;
+            *max = CAMERA_FRONT_PREVIEW_FPS_MAX;
+        }
+        ret = 0;
+    }
+    
 #endif
 cameraFramerateQuery_end:
     return ret;

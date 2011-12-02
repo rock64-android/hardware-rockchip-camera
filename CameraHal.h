@@ -58,9 +58,10 @@
 namespace android {
 
 /*
-*v0.1.0 : CameraHal support for android 4.0(ICS)
+*v0.1.0 : CameraHal support for android 4.0(ICS);
+*v0.1.1 : CameraHal support query framerate from driver, display thread support NativeWindow sync and asyc mode;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 1)
 
 /*  */
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT    4           
