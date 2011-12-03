@@ -940,12 +940,7 @@ int CameraHal::cameraDisplayThreadStart(int done)
         LOGD("%s(%d): display thread is already run",__FUNCTION__,__LINE__);
         goto cameraDisplayThreadStart_end;
     }
-
-    while (NULL == mANativeWindow) {
-        LOGD("%s(%d): camera preview buffer alloc from ANativeWindow, Now mANativeWIndow is NULL, wait for set...",__FUNCTION__,__LINE__);  
-        mANativeWindowCond.wait(mANativeWindowLock);
-    }
-    
+   
     msg.command = CMD_DISPLAY_START;
     displayThreadCommandQ.put(&msg); 
     mDisplayCond.signal();
@@ -977,7 +972,7 @@ int CameraHal::cameraDisplayThreadPause(int done)
     displayThreadCommandQ.put(&msg); 
     mDisplayCond.signal();
     if (done == true) {
-        if (displayThreadAckQ.get(&msg,1000) < 0) {
+        if (displayThreadAckQ.get(&msg,2500) < 0) {
             LOGE("%s(%d): Pause display thread failed, mDisplayRuning(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
         } else {
             if ((msg.command == CMD_DISPLAY_PAUSE) && ((int)msg.arg1 == STA_DISPLAY_PAUSE)) {
@@ -1178,7 +1173,7 @@ void CameraHal::previewThread()
         }
         
         if (mPreviewRunning == STA_PREVIEW_RUN) {
-
+            
             cfilledbuffer1.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             cfilledbuffer1.memory = mCamDriverV4l2MemType;
             cfilledbuffer1.reserved = NULL;
@@ -1212,9 +1207,8 @@ void CameraHal::previewThread()
             }
 
             cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_WRITING, 0);
-            
-            mPreviewLock.lock();
-           
+
+            mPreviewLock.lock();                       
             // Notify mANativeWindow of a new frame.
             if (mANativeWindow && mPreviewBufferMap[cfilledbuffer1.index].priv_hnd) {
                 //DLOGD("%s(%d): enqueue buffer %d to display", __FUNCTION__,__LINE__,cfilledbuffer1.index);
@@ -1318,7 +1312,7 @@ void CameraHal::commandThread()
     LOG_FUNCTION_NAME
 
     while(shouldLive) {
-
+get_command:
         commandThreadCommandQ.get(&msg);
 
         switch(msg.command)
@@ -1326,7 +1320,17 @@ void CameraHal::commandThread()
             case CMD_PREVIEW_START:
             {
                 LOGD("%s(%d): receive CMD_PREVIEW_START, mPreviewRunning(%d) mDisplayRuning(%d)", __FUNCTION__,__LINE__,mPreviewRunning,mDisplayRuning);
-                
+
+                if (NULL == mANativeWindow) {
+                    LOGD("%s(%d): camera preview buffer alloc from ANativeWindow, Now mANativeWIndow is NULL, wait for set...",__FUNCTION__,__LINE__);  
+                    mANativeWindowCond.wait(mANativeWindowLock);
+                } 
+
+                if (commandThreadCommandQ.isEmpty() == false) {
+                    LOGD("%s(%d): wake up for receive command",__FUNCTION__,__LINE__);
+                    goto get_command;    
+                }
+                                
                 err = 0;                
                 cameraDisplayThreadStart(true);                
                 mPreviewLock.lock();
@@ -1338,15 +1342,15 @@ void CameraHal::commandThread()
                     LOGD("%s(%d): preview thread is already run", __FUNCTION__,__LINE__);
                 }
 
-                msg.command = err ? CMD_NACK : CMD_ACK;
+                msg.arg1 = (void*)(err ? CMD_NACK : CMD_ACK);
 
                 if( err == 0 ) {
                     mPreviewRunning = STA_PREVIEW_RUN;
                     mPreviewCond.signal(); 
                     android_atomic_inc(&mPreviewStartTimes);
                 } 
-                mPreviewLock.unlock();
-                LOGD("%s(%d): CMD_PREVIEW_START %s", __FUNCTION__,__LINE__, msg.command == CMD_NACK ? "NACK" : "ACK");
+                mPreviewLock.unlock();                
+                LOGD("%s(%d): CMD_PREVIEW_START %s", __FUNCTION__,__LINE__, (msg.arg1 == (void*)CMD_NACK) ? "NACK" : "ACK");
                 commandThreadAckQ.put(&msg);
                 break;
             }
@@ -1367,18 +1371,21 @@ void CameraHal::commandThread()
                     previewThreadAckQ.get(&msg,1000);  
                     if (msg.command != STA_PREVIEW_PAUSE) {
                         LOGE("%s(%d): Pause preview thread failed!",__FUNCTION__,__LINE__);
-                        msg.command = CMD_NACK;
+                        msg.command = CMD_PREVIEW_STOP;
+                        msg.arg1 = (void*)CMD_NACK;
                     } else {
-                        msg.command = CMD_ACK;
+                        msg.command = CMD_PREVIEW_STOP;
+                        msg.arg1 = (void*)CMD_ACK;
                     } 
                     cameraStop(); 
                 } else {
                     mPreviewLock.unlock();
-                    msg.command = CMD_ACK;
+                    msg.command = CMD_PREVIEW_STOP;
+                    msg.arg1 = (void*)CMD_ACK;
                     LOGD("%s(%d): preview thread is already pause",__FUNCTION__,__LINE__);
                 }
                  
-                LOGD("%s(%d): CMD_PREVIEW_STOP %s", __FUNCTION__,__LINE__, msg.command == CMD_NACK ? "NACK" : "ACK");
+                LOGD("%s(%d): CMD_PREVIEW_STOP %s", __FUNCTION__,__LINE__, (msg.arg1 == (void*)CMD_NACK) ? "NACK" : "ACK");
                 commandThreadAckQ.put(&msg);
                 break;
             }
@@ -1435,35 +1442,42 @@ void CameraHal::commandThread()
                 }
 PREVIEW_CAPTURE_end:
                 if (err < 0) {
-                    msg.command = CMD_NACK;              
+                    msg.command = CMD_PREVIEW_CAPTURE;
+                    msg.arg1 = (void*)CMD_NACK;              
                 } else {
-                    msg.command = CMD_ACK;                        
+                    msg.command = CMD_PREVIEW_CAPTURE;
+                    msg.arg1 = (void*)CMD_ACK;                        
                 }
-                LOGD("%s(%d): CMD_PREVIEW_CAPTURE %s", __FUNCTION__,__LINE__, msg.command == CMD_NACK ? "NACK" : "ACK");
+                LOGD("%s(%d): CMD_PREVIEW_CAPTURE %s", __FUNCTION__,__LINE__, (msg.arg1 == (void*)CMD_NACK) ? "NACK" : "ACK");
                 commandThreadAckQ.put(&msg);
                 break;
             }
             case CMD_PREVIEW_CAPTURE_CANCEL:
             {
                 LOGD("%s(%d): receive CMD_PREVIEW_CAPTURE_CANCEL", __FUNCTION__,__LINE__);
-                msg.command = CMD_ACK;
-                LOGD("%s(%d): CMD_PREVIEW_CAPTURE_CANCEL %s", __FUNCTION__,__LINE__, msg.command == CMD_NACK ? "NACK" : "ACK");
+                msg.command = CMD_PREVIEW_CAPTURE_CANCEL;
+                msg.arg1 = (void*)CMD_ACK;
+                LOGD("%s(%d): CMD_PREVIEW_CAPTURE_CANCEL %s", __FUNCTION__,__LINE__, (msg.arg1 == (void*)CMD_NACK) ? "NACK" : "ACK");
                 commandThreadAckQ.put(&msg);
                 break; 
             }
             case CMD_AF_START:
             {
                 LOGD("%s(%d): receive CMD_AF_START", __FUNCTION__,__LINE__);
-                msg.command = CMD_ACK;
+                msg.command = CMD_AF_START;
+                msg.arg1 = (void*)CMD_ACK;
                 commandThreadAckQ.put(&msg);
                 mAutoFocusCond.signal();
+                LOGD("%s(%d): CMD_AF_START %s", __FUNCTION__,__LINE__, (msg.arg1 == (void*)CMD_NACK) ? "NACK" : "ACK");
                 break;
             }            
             case CMD_AF_CANCEL:
             {
                 LOGD("%s(%d): receive CMD_AF_CANCEL", __FUNCTION__,__LINE__);
-                msg.command = CMD_ACK;                    
+                msg.command = CMD_AF_CANCEL;
+                msg.arg1 = (void*)CMD_ACK;                    
                 commandThreadAckQ.put(&msg);
+                LOGD("%s(%d): CMD_AF_CANCEL %s", __FUNCTION__,__LINE__, (msg.arg1 == (void*)CMD_NACK) ? "NACK" : "ACK");
                 break;
             }
             
@@ -1528,13 +1542,15 @@ CMD_PREVIEW_QBUF_end:
                 previewThreadAckQ.get(&msg,3000);
                 if (msg.command != STA_PREVIEW_STOP){
                     LOGE("%s(%d): Stop preview thread failed!",__FUNCTION__,__LINE__);
-                    msg.command = CMD_NACK;
+                    msg.command = CMD_EXIT;
+                    msg.arg1 = (void*)CMD_NACK;
                 } else {
                     LOG1("%s(%d): Stop preview thread success!",__FUNCTION__,__LINE__);
-                    msg.command = CMD_ACK;
+                    msg.command = CMD_EXIT;
+                    msg.arg1 = (void*)CMD_ACK;
                 }
                 
-                LOGD("%s(%d): CMD_EXIT %s", __FUNCTION__,__LINE__, msg.command == CMD_NACK ? "NACK" : "ACK");
+                LOGD("%s(%d): CMD_EXIT %s", __FUNCTION__,__LINE__, (msg.arg1 == (void*)CMD_NACK) ? "NACK" : "ACK");
                 commandThreadAckQ.put(&msg);  
                 break;
             }                
@@ -2587,13 +2603,26 @@ void CameraHal::stopPreview()
 {
     LOG_FUNCTION_NAME    
     Message msg;
+    int ret = 0;
     Mutex::Autolock lock(mLock);
 
     if ((mPreviewThread != NULL) && (mCommandThread != NULL)) {
         msg.command = CMD_PREVIEW_STOP;
         commandThreadCommandQ.put(&msg);
-        if (commandThreadAckQ.get(&msg,30000))
-            LOGE("%s(%d): PREVIEW_STOP is time out!!!\n",__FUNCTION__,__LINE__);
+
+        if (mANativeWindow == NULL) {
+            mANativeWindowCond.signal();
+            LOGD("%s(%d): wake up command thread for stop preview");
+        }
+        
+        while (ret == 0) {            
+            ret = commandThreadAckQ.get(&msg);
+            if (ret == 0) {
+                if (msg.command == CMD_PREVIEW_STOP) {                    
+                    ret = 1;
+                }
+            }
+        }
     } else {
         LOGE("%s(%d): cancel, because thread (%s %s) is NULL", __FUNCTION__,__LINE__,(mPreviewThread == NULL)?"mPreviewThread":" ",
             (mCommandThread == NULL)?"mCommandThread":" ");
@@ -2605,15 +2634,22 @@ void CameraHal::stopPreview()
 int CameraHal::autoFocus()
 {
     LOG_FUNCTION_NAME
-
+    int ret = 0;
     Message msg;
     Mutex::Autolock lock(mLock);
 
     if ((mPreviewThread != NULL) && (mCommandThread != NULL)) {
         msg.command = CMD_AF_START;
         commandThreadCommandQ.put(&msg);
-        if (commandThreadAckQ.get(&msg, 5000)) {   /* ddl@rock-chips.com: timeout 100ms */
-            LOGE("%s(%d): AutoFocus is timeout! \n",__FUNCTION__,__LINE__);
+        while (ret == 0) {            
+            ret = commandThreadAckQ.get(&msg,5000);
+            if (ret == 0) {
+                if (msg.command == CMD_AF_START) {                    
+                    ret = 1;
+                }
+            } else {
+                LOGE("%s(%d): AutoFocus is time out!!!\n",__FUNCTION__,__LINE__);
+            }
         }
     } else {
         LOGE("%s(%d):  cancel, because thread (%s %s) is NULL", __FUNCTION__,__LINE__,(mPreviewThread == NULL)?"mPreviewThread":" ",
@@ -2716,12 +2752,18 @@ int CameraHal::takePicture()
     msg.command = CMD_PREVIEW_CAPTURE;
     if ((mPreviewThread != NULL) && (mCommandThread != NULL)) {
         commandThreadCommandQ.put(&msg);
-        if (commandThreadAckQ.get(&msg, 5000)) {
-            LOGE("%s(%d): PREVIEW_CAPTURE is time out!!!\n",__FUNCTION__,__LINE__);
-        } else {
-            if (msg.command == CMD_NACK) {
-                LOGE("%s(%d): failed, because command thread response NACK\n",__FUNCTION__,__LINE__);    
-                ret = INVALID_OPERATION;
+        while (ret == 0) {            
+            ret = commandThreadAckQ.get(&msg,5000);
+            if (ret == 0) {
+                if (msg.command == CMD_PREVIEW_CAPTURE) {
+                    ret = 1;
+                    if (msg.arg1 == (void*)CMD_NACK) {
+                        LOGE("%s(%d): failed, because command thread response NACK\n",__FUNCTION__,__LINE__);    
+                        ret = INVALID_OPERATION;
+                    }                    
+                }
+            } else {
+                LOGE("%s(%d): PREVIEW_CAPTURE is time out!!!\n",__FUNCTION__,__LINE__);
             }
         }
     } else {
