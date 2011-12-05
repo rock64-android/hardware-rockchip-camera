@@ -515,9 +515,8 @@ void CameraHal::initDefaultParameters()
                 }
             }
         }
-        
+       
         params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());
-        params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES, parameterString.string());
 
         switch( mCamDriverFrmWidthMax )
         {
@@ -2766,6 +2765,10 @@ int CameraHal::takePicture()
                 LOGE("%s(%d): PREVIEW_CAPTURE is time out!!!\n",__FUNCTION__,__LINE__);
             }
         }
+        
+        if (ret == 1)
+            ret = NO_ERROR;
+        
     } else {
         LOGE("%s(%d):  cancel, because thread (%s %s) is NULL", __FUNCTION__,__LINE__,(mPreviewThread == NULL)?"mPreviewThread":" ",
             (mCommandThread == NULL)?"mCommandThread":" ");
