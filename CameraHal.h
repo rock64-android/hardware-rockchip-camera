@@ -60,6 +60,7 @@ namespace android {
 /*
 *v0.1.0 : CameraHal support for android 4.0(ICS);
 *v0.1.1 : CameraHal support query framerate from driver, display thread support NativeWindow sync and asyc mode;
+*v0.1.2 : CameraHal support video snap
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 1)
 
@@ -96,6 +97,7 @@ namespace android {
 struct CamCaptureInfo_s
 {
 	int input_phy_addr;
+	int input_vir_addr;
 	int output_phy_addr;
 	int output_vir_addr;
 	int output_buflen;
@@ -338,6 +340,7 @@ private:
     };
 
     class PictureThread : public Thread {
+    protected:
         CameraHal* mHardware;
     public:
         PictureThread(CameraHal* hw)
@@ -348,6 +351,20 @@ private:
 
             return false;
         }
+    };
+
+    class VideoPictureThread : public PictureThread {
+    public:
+        VideoPictureThread(CameraHal* hw)
+            : PictureThread(hw),mBufferIndex(-1) { }
+
+        virtual bool threadLoop() {
+            mHardware->videoPictureThread(mBufferIndex);
+
+            return false;
+        }
+    public:
+        int mBufferIndex;
     };
 
     class AutoFocusThread : public Thread {
@@ -380,9 +397,11 @@ private:
     void previewThread();
 	void commandThread();
     void pictureThread();
+    void videoPictureThread(int index);
     void autofocusThread();
     void initDefaultParameters();
     int capturePicture(struct CamCaptureInfo_s *capture);
+    int captureVideoPicture(struct CamCaptureInfo_s *capture);
 	int capturePicturePmemInfoSet(int pmem_fd, int input_offset, int out_offset);
     int cameraCreate(int cameraId);
     int cameraDestroy();
@@ -453,6 +472,7 @@ private:
     sp<PreviewThread>  mPreviewThread;
 	sp<CommandThread>  mCommandThread;
     sp<PictureThread>  mPictureThread;
+    sp<VideoPictureThread>  mVideoPictureThread;
     sp<AutoFocusThread>  mAutoFocusThread;
     int mPreviewRunning;
     Mutex mPreviewLock;
@@ -467,7 +487,8 @@ private:
     Mutex mAutoFocusLock;
     Condition mAutoFocusCond;
     bool mExitAutoFocusThread; 
-    
+    bool mIsVideoSnapshot;
+		
     int iCamFd;
     int iPmemFd;
     int mPmemSize; 
@@ -500,6 +521,7 @@ private:
     enum PreviewBufStatus {
         CMD_PREVIEWBUF_DISPING,
         CMD_PREVIEWBUF_ENCING,
+        CMD_PREVIEWBUF_ENC_PICTURE,
         CMD_PREVIEWBUF_WRITING,
     };
 
@@ -530,6 +552,7 @@ private:
     enum PreviewThreadCommands {
 		// Comands
         CMD_PREVIEW_STAREQ,
+        CMD_PREVIEW_VIDEO_CAPTURE,
         CMD_PREVIEW_INVAL
     };
     enum CommandThreadCommands { 
@@ -537,6 +560,7 @@ private:
         CMD_PREVIEW_START,
         CMD_PREVIEW_STOP,
         CMD_PREVIEW_CAPTURE,
+        CMD_PREVIEW_VIDEOCAPTURE,
         CMD_PREVIEW_CAPTURE_CANCEL,
         CMD_PREVIEW_QBUF,        
         

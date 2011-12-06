@@ -653,6 +653,165 @@ exit:
 
     return err;
 }
+
+int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture)
+{
+    int jpeg_w,jpeg_h,i;
+    unsigned int pictureSize;
+    unsigned long base, offset;
+    int jpegSize;
+    int quality;
+    int thumbquality = 0;
+    int thumbwidth  = 0;
+    int thumbheight = 0;
+	int err = 0;
+	int rotation = 0;
+    char *camDriverV4l2Buffer = NULL;
+    JpegEncInInfo JpegInInfo;
+    JpegEncOutInfo JpegOutInfo;  
+    
+	RkExifInfo exifInfo;
+	RkGPSInfo gpsInfo;
+    char ExifAsciiPrefix[8] = {'A', 'S', 'C', 'I', 'I', '\0', '\0', '\0'};
+    char gpsprocessmethod[45];
+    char *getMethod = NULL;
+    double latitude,longtitude,altitude;
+    long timestamp;
+    bool driver_mirror_fail = false;
+
+     /*get jpeg and thumbnail information*/
+    mParameters.getPreviewSize(&jpeg_w, &jpeg_h); 
+    quality = mParameters.getInt("jpeg-quality");
+    rotation = strtol(mParameters.get(CameraParameters::KEY_ROTATION),0,0);
+    thumbquality = strtol(mParameters.get(CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY),0,0);
+    thumbwidth = strtol(mParameters.get(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH),0,0);
+    thumbheight = strtol(mParameters.get(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT),0,0);
+    /*get gps information*/
+    altitude = mGps_altitude;
+    latitude = mGps_latitude;
+    longtitude = mGps_longitude;
+    timestamp = mGps_timestamp;    
+    getMethod = (char*)mParameters.get(CameraParameters::KEY_GPS_PROCESSING_METHOD);//getMethod : len <= 32
+    
+
+    pictureSize = jpeg_w * jpeg_h * 3/2;
+    if (pictureSize & 0xfff) {
+        pictureSize = (pictureSize & 0xfffff000) + 0x1000;
+    }
+	
+    mPictureLock.lock();
+    if (mPictureRunning != STA_PICTURE_RUN) {
+        mPictureLock.unlock();
+        LOGD("%s(%d): capture cancel, because mPictureRunning(0x%x) dosen't suit capture",
+            __FUNCTION__,__LINE__, mPictureRunning);
+        goto exit;
+    }
+    mPictureLock.unlock();
+
+    if (mCamDriverPreviewFmt != mCamDriverPictureFmt) {
+        cameraFormatConvert(mCamDriverPreviewFmt, mCamDriverPictureFmt, NULL,
+            (char*)capture->input_vir_addr,(char*)mRawBuffer->pointer(), jpeg_w, jpeg_h);
+        capture->input_phy_addr = mPmemHeapPhyBase + mRawBuffer->offset();
+        capture->input_vir_addr = (int)mRawBuffer->pointer();
+    }
+    
+    if (rotation == 180) {
+        if (driver_mirror_fail == true) {
+            YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)capture->input_vir_addr, (char*)mJpegBuffer->pointer(), jpeg_w,jpeg_h);  
+        }
+    }
+
+    iPicturePmemFd = iPmemFd;
+    PicturePmemSize = mPmemSize;
+    PicturePmem_Offset_Output = mJpegBuffer->offset();
+    JpegInInfo.frameHeader = 1;
+    if ((rotation == 0) || (rotation == 180)) {
+        JpegInInfo.rotateDegree = DEGREE_0;        
+    } else if (rotation == 90) {
+        JpegInInfo.rotateDegree = DEGREE_90;
+    } else if (rotation == 270) {
+        JpegInInfo.rotateDegree = DEGREE_270; 
+    }
+    JpegInInfo.yuvaddrfor180 = NULL;
+    JpegInInfo.y_rgb_addr = capture->input_phy_addr;
+    JpegInInfo.uv_addr = capture->input_phy_addr + jpeg_w*jpeg_h;
+    JpegInInfo.inputW = jpeg_w;
+    JpegInInfo.inputH = jpeg_h;
+    JpegInInfo.type = JPEGENC_YUV420_SP;
+    JpegInInfo.qLvl = quality/10;
+    if (JpegInInfo.qLvl < 5) {
+        JpegInInfo.qLvl = 5;
+    }
+
+    JpegInInfo.thumbqLvl = thumbquality /10;
+    if (JpegInInfo.thumbqLvl < 5) {
+        JpegInInfo.thumbqLvl = 5;
+    }
+    if(JpegInInfo.thumbqLvl  >10) {
+        JpegInInfo.thumbqLvl = 9;
+    }
+    
+    if(thumbwidth !=0 && thumbheight !=0) {
+        JpegInInfo.doThumbNail = 1;          //insert thumbnail at APP0 extension
+    	JpegInInfo.thumbData = NULL;         //if thumbData is NULL, do scale, the type above can not be 420_P or 422_UYVY
+    	JpegInInfo.thumbDataLen = -1;
+    	JpegInInfo.thumbW = thumbwidth;
+    	JpegInInfo.thumbH = thumbheight;
+    }else{    
+        JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension   
+    }
+    
+    Jpegfillexifinfo(&exifInfo);
+    JpegInInfo.exifInfo =&exifInfo;
+    if((longtitude!=-1)&& (latitude!=-1)&&(timestamp!=-1)&&(getMethod!=NULL)) {    
+        Jpegfillgpsinfo(&gpsInfo);  
+        memset(gpsprocessmethod,0,45);   
+        memcpy(gpsprocessmethod,ExifAsciiPrefix,8);   
+        memcpy(gpsprocessmethod+8,getMethod,strlen(getMethod)+1);          
+        gpsInfo.GpsProcessingMethodchars = strlen(getMethod)+1+8;
+        gpsInfo.GPSProcessingMethod  = gpsprocessmethod;
+        LOGD("\nGpsProcessingMethodchars =%d",gpsInfo.GpsProcessingMethodchars);
+        JpegInInfo.gpsInfo = &gpsInfo;
+    } else {
+        JpegInInfo.gpsInfo = NULL;
+    }
+
+    JpegOutInfo.outBufPhyAddr = capture->output_phy_addr;
+    JpegOutInfo.outBufVirAddr = (unsigned char*)capture->output_vir_addr;
+    JpegOutInfo.outBuflen = capture->output_buflen;
+    JpegOutInfo.jpegFileLen = 0x00;
+    JpegOutInfo.cacheflush= &capturePicture_cacheflush;
+	
+    mPictureLock.lock();
+    if (mPictureRunning != STA_PICTURE_RUN) {
+        mPictureLock.unlock();
+        LOGD("%s(%d): capture cancel, because mPictureRunning(0x%x) dosen't suit capture",
+            __FUNCTION__,__LINE__, mPictureRunning);
+        goto exit;
+    }
+    mPictureLock.unlock();
+	
+	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);  
+    if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
+        LOGE("hw_jpeg_encode Failed \n");
+        goto exit;
+    } else { 
+        camera_memory_t* picture = NULL;
+        
+    	if (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE) {
+            LOGD("%s success, notify compressed image callback capture success(size:0x%x)!!!\n", __FUNCTION__,JpegOutInfo.jpegFileLen);
+            picture = mRequestMemory(-1, JpegOutInfo.jpegFileLen, 1, NULL);
+            if (picture && picture->data) {
+                memcpy(picture->data,(char*)JpegOutInfo.outBufVirAddr, JpegOutInfo.jpegFileLen);
+            }
+            mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie); 
+    	}        
+    }
+exit:   
+return err;
+
+}
+
 };
 
 

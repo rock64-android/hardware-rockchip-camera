@@ -62,9 +62,11 @@ static volatile int32_t gLogLevel = 0;
 
 #define CAMERA_PREVIEWBUF_DISPING_BITPOS   0x00
 #define CAMERA_PREVIEWBUF_ENCING_BITPOS    0x01
-#define CAMERA_PREVIEWBUF_WRITING_BITPOS   0x02 
+#define CMD_PREVIEWBUF_ENC_PICTURE_BITPOS   0x02
+#define CAMERA_PREVIEWBUF_WRITING_BITPOS   0x03 
 
-#define CAMERA_PREVIEWBUF_ALLOW_WRITE(a)   ((a&0x3)==0x00)
+#define CAMERA_PREVIEWBUF_ALLOW_WRITE(a)   ((a&0x7)==0x00)
+
 
 static int getCallingPid() {
     return IPCThreadState::self()->getCallingPid();
@@ -171,6 +173,7 @@ CameraHal::CameraHal(int cameraId)
     mDriverMirrorSupport = false;
     mDriverFlipSupport = false;
     mPreviewCmdReceived = false;
+    mIsVideoSnapshot = false;
     mPreviewStartTimes = 0x00;    
     memset(mCamDriverV4l2Buffer, 0x00, sizeof(mCamDriverV4l2Buffer));
     for (i=0; i<CONFIG_CAMERA_PRVIEW_BUF_CNT; i++) {
@@ -192,6 +195,7 @@ CameraHal::CameraHal(int cameraId)
         mPreviewThread = new PreviewThread(this);
         mCommandThread = new CommandThread(this);
         mPictureThread = new PictureThread(this);
+	    mVideoPictureThread = new VideoPictureThread(this);
         mAutoFocusThread = new AutoFocusThread(this);
         mDisplayThread->run("CameraDispThread",ANDROID_PRIORITY_DISPLAY);
         mPreviewThread->run("CameraPreviewThread",ANDROID_PRIORITY_DISPLAY);
@@ -204,6 +208,7 @@ CameraHal::CameraHal(int cameraId)
         mDisplayThread = NULL;
         mCommandThread = NULL;
         mPictureThread = NULL;
+	    mVideoPictureThread = NULL;		
         mAutoFocusThread = NULL;
     }
 
@@ -846,7 +851,7 @@ void CameraHal::initDefaultParameters()
     params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_SW, "0");
     params.set(CameraParameters::KEY_RECORDING_HINT,"false");
     params.set(CameraParameters::KEY_VIDEO_STABILIZATION_SUPPORTED,"false");
-    params.set(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED,"false");
+    params.set(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED,"true");
     params.set(CameraParameters::KEY_MAX_NUM_METERING_AREAS,"0");
     
     LOGD ("Support Preview sizes: %s ",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES));
@@ -1169,6 +1174,12 @@ void CameraHal::previewThread()
                 previewThreadAckQ.put(&msg);
                 break;
             }    
+            case CMD_PREVIEW_VIDEO_CAPTURE:
+            {
+                LOGD("%s(%d): get the video capture msg: 0x%x",__FUNCTION__,__LINE__,mPreviewRunning);
+                mIsVideoSnapshot = true;
+                break;
+            }
             default:
                 break;
         }
@@ -1242,6 +1253,22 @@ void CameraHal::previewThread()
                 } else {
                     LOGE("%s(%d): mVideoBufs[%d] is NULL, this frame recording cancel",__FUNCTION__,__LINE__,cfilledbuffer1.index);
                 }
+                
+    		   //in snapshot progress
+                if(mIsVideoSnapshot) {
+                    LOGD("%s(%d): go into video snapshot",__FUNCTION__,__LINE__);
+                    mVideoPictureThread->mBufferIndex = cfilledbuffer1.index;
+                    if (mVideoPictureThread->run("CameraVideoPictureThread", ANDROID_PRIORITY_DISPLAY) != NO_ERROR) {
+                        LOGE("%s(%d): couldn't run video picture thread", __FUNCTION__,__LINE__);
+                    } else {
+                        mPictureLock.lock();
+                        mPictureRunning = STA_PICTURE_RUN;
+                        mPictureLock.unlock();
+                        cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENC_PICTURE, 1);
+                    }
+                    mIsVideoSnapshot = false;
+                    LOGD("%s(%d): leave video snapshot",__FUNCTION__,__LINE__);
+                }
             } 
 
             if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
@@ -1265,7 +1292,7 @@ previewThread_end:
 void CameraHal::pictureThread()
 {
     struct CamCaptureInfo_s capture;
-
+    
     LOG_FUNCTION_NAME
     capture.input_phy_addr = mPmemHeapPhyBase + mRawBuffer->offset();                        
     capture.output_phy_addr = mPmemHeapPhyBase + mJpegBuffer->offset();                        
@@ -1273,7 +1300,7 @@ void CameraHal::pictureThread()
     capture.output_buflen = mJpegBuffer->size();
 
     capturePicture(&capture);
-
+    
     mPictureLock.lock();
     mPictureRunning = STA_PICTURE_STOP;
     mPictureLock.unlock();
@@ -1281,6 +1308,37 @@ void CameraHal::pictureThread()
     return;
 
 }
+void CameraHal::videoPictureThread(int index)
+{
+    struct CamCaptureInfo_s capture;
+    struct Message msg;
+    
+    LOG_FUNCTION_NAME
+
+    capture.input_phy_addr = *(int*)mVideoBufs[index]->data;   
+    capture.input_vir_addr = *(int*)mPreviewBufferMap[index].priv_hnd->base;			  
+    capture.output_phy_addr = mPmemHeapPhyBase + mJpegBuffer->offset();                        
+    capture.output_vir_addr = (int)mJpegBuffer->pointer();                        
+    capture.output_buflen = mJpegBuffer->size();
+    captureVideoPicture(&capture);
+	
+    mPictureLock.lock();
+    mPictureRunning = STA_PICTURE_STOP;
+    mPictureLock.unlock();
+
+    cameraPreviewBufferSetSta(&mPreviewBufferMap[mVideoPictureThread->mBufferIndex], CMD_PREVIEWBUF_ENC_PICTURE, 0);    
+    if (mPreviewRunning == STA_PREVIEW_RUN) {	     
+        msg.command = CMD_PREVIEW_QBUF;     
+        msg.arg1 = (void*)mVideoPictureThread->mBufferIndex;
+        msg.arg2 = (void*)CMD_PREVIEWBUF_ENC_PICTURE;
+        msg.arg3 = (void*)mPreviewStartTimes;
+        commandThreadCommandQ.put(&msg); 
+    }
+    LOG_FUNCTION_NAME_EXIT
+    return;
+
+}
+
 void CameraHal::autofocusThread()
 {
     int err;
@@ -1463,6 +1521,49 @@ PREVIEW_CAPTURE_end:
                 commandThreadAckQ.put(&msg);
                 break;
             }
+            
+	        case CMD_PREVIEW_VIDEOCAPTURE:
+            {
+                LOGD("%s(%d): receive CMD_PREVIEW_VIDEOCAPTURE", __FUNCTION__,__LINE__);
+                if (mVideoPictureThread == NULL) {
+                    LOGE("%s(%d): mVideoPictureThread is NULL",__FUNCTION__,__LINE__);
+                    err = -1;
+                    goto PREVIEW_VIDEO_CAPTURE_end;
+                }
+                
+                mPictureLock.lock();
+                if (mPictureRunning != STA_PICTURE_STOP) {
+                    mPictureLock.unlock();
+                    LOGE("%s(%d): picture thread state doesn't suit capture(mPictureRunning:0x%x)", __FUNCTION__,__LINE__, mPictureRunning);
+                    err = -1;
+                    goto PREVIEW_VIDEO_CAPTURE_end;
+                }
+                mPictureLock.unlock();
+                if (mJpegBuffer == NULL) {
+                    LOGE("%s(%d): cancel, because mJpegBuffer is NULL",__FUNCTION__,__LINE__);
+                    err = -1;
+                    goto PREVIEW_VIDEO_CAPTURE_end;
+                }
+                if (mPreviewRunning  == STA_PREVIEW_RUN && mRecordRunning) {
+                    msg.command = CMD_PREVIEW_VIDEO_CAPTURE;
+                    previewThreadCommandQ.put(&msg);
+            	} else {            	
+                    err = -1;
+            	}
+                
+PREVIEW_VIDEO_CAPTURE_end:
+                if (err < 0) {
+                    msg.command = CMD_PREVIEW_VIDEOCAPTURE;
+                    msg.arg1 = (void*)CMD_NACK;         
+                } else {
+                    msg.command = CMD_PREVIEW_VIDEOCAPTURE;
+                    msg.arg1 = (void*)CMD_ACK;                  
+                }
+                LOGD("%s(%d): CMD_PREVIEW_VIDEOCAPTURE %s", __FUNCTION__,__LINE__, (msg.arg1 == (void*)CMD_NACK) ? "NACK" : "ACK");
+                commandThreadAckQ.put(&msg);
+                break;
+	        }
+            
             case CMD_PREVIEW_CAPTURE_CANCEL:
             {
                 LOGD("%s(%d): receive CMD_PREVIEW_CAPTURE_CANCEL", __FUNCTION__,__LINE__);
@@ -1838,11 +1939,23 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
             }
             break;
         }
-
+        case CMD_PREVIEWBUF_ENC_PICTURE:
+        {
+            if (set) {
+                if (buf_hnd->buf_state & (1<<CAMERA_PREVIEWBUF_WRITING_BITPOS))
+                    LOGE("%s(%d): Set buffer encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+                buf_hnd->buf_state |= (1<<CMD_PREVIEWBUF_ENC_PICTURE_BITPOS);
+            } else {
+                buf_hnd->buf_state &= ~(1<<CMD_PREVIEWBUF_ENC_PICTURE_BITPOS);
+            }
+            break;
+        }
         case CMD_PREVIEWBUF_WRITING:
         {
             if (set) {
-                if (buf_hnd->buf_state & ((1<<CAMERA_PREVIEWBUF_ENCING_BITPOS)|(1<<CAMERA_PREVIEWBUF_DISPING_BITPOS)))
+                if (buf_hnd->buf_state & ((1<<CAMERA_PREVIEWBUF_ENCING_BITPOS)
+					|(1<<CAMERA_PREVIEWBUF_DISPING_BITPOS)
+					|(1<<CMD_PREVIEWBUF_ENC_PICTURE_BITPOS)))
                     LOGE("%s(%d): Set buffer writing, but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
                 buf_hnd->buf_state |= (1<<CAMERA_PREVIEWBUF_WRITING_BITPOS);
             } else { 
@@ -2758,15 +2871,23 @@ int CameraHal::takePicture()
     Message msg;
     Mutex::Autolock lock(mLock);
     int ret = NO_ERROR;
+    int cmd;
     
     LOG_FUNCTION_NAME 
-    msg.command = CMD_PREVIEW_CAPTURE;
+        
+    if(!mRecordRunning) {
+	    cmd = CMD_PREVIEW_CAPTURE;
+    } else {
+	    cmd = CMD_PREVIEW_VIDEOCAPTURE;
+    }
+    
     if ((mPreviewThread != NULL) && (mCommandThread != NULL)) {
+        msg.command = cmd;
         commandThreadCommandQ.put(&msg);
         while (ret == 0) {            
             ret = commandThreadAckQ.get(&msg,5000);
             if (ret == 0) {
-                if (msg.command == CMD_PREVIEW_CAPTURE) {
+                if (msg.command == cmd) {
                     ret = 1;
                     if (msg.arg1 == (void*)CMD_NACK) {
                         LOGE("%s(%d): failed, because command thread response NACK\n",__FUNCTION__,__LINE__);    
@@ -2802,7 +2923,10 @@ int CameraHal::cancelPicture()
     mPictureLock.lock();
     mPictureRunning = STA_PICTURE_WAIT_STOP;
     mPictureLock.unlock();
-    mPictureThread->requestExitAndWait();
+    if(!mRecordRunning)
+	    mPictureThread->requestExitAndWait();
+    else
+	    mVideoPictureThread->requestExitAndWait();
     
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -3038,7 +3162,9 @@ void CameraHal::release()
     mAutoFocusThread.clear();
     mPictureThread->requestExitAndWait();
     mPictureThread.clear();
-    
+    mVideoPictureThread->requestExitAndWait();
+    mVideoPictureThread.clear();
+	
     cameraDestroy();
     
     LOG_FUNCTION_NAME_EXIT
