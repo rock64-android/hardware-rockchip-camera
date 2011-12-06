@@ -504,6 +504,18 @@ void CameraHal::initDefaultParameters()
             }
         }
 
+        if (mCamDriverFrmWidthMax >= 720) {
+            fmt.fmt.pix.width = 720;
+         	fmt.fmt.pix.height = 480;
+            if (ioctl(iCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
+                if ((fmt.fmt.pix.width == 720) && (fmt.fmt.pix.height == 480)) {
+                    parameterString.append(",720x480");
+                    previewFrameSizeMax =  PAGE_ALIGN(720*480*3/2)*2;          // 720*480*1.5*2
+                    params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"720x480");
+                }
+            }
+        }
+
         if (mCamDriverFrmWidthMax >= 1280) {
             fmt.fmt.pix.width = 1280;
          	fmt.fmt.pix.height = 720;
