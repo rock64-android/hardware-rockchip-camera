@@ -62,7 +62,7 @@ namespace android {
 *v0.1.1 : CameraHal support query framerate from driver, display thread support NativeWindow sync and asyc mode;
 *v0.1.2 : CameraHal support video snap
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 2)
 
 /*  */
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT    4           
