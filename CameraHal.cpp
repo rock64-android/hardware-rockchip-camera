@@ -197,7 +197,7 @@ CameraHal::CameraHal(int cameraId)
         mPictureThread = new PictureThread(this);
 	    mVideoPictureThread = new VideoPictureThread(this);
         mAutoFocusThread = new AutoFocusThread(this);
-        mDisplayThread->run("CameraDispThread",ANDROID_PRIORITY_DISPLAY);
+        mDisplayThread->run("CameraDispThread",ANDROID_PRIORITY_URGENT_DISPLAY);
         mPreviewThread->run("CameraPreviewThread",ANDROID_PRIORITY_DISPLAY);
         mCommandThread->run("CameraCmdThread", ANDROID_PRIORITY_URGENT_DISPLAY);
         mAutoFocusThread->run("CameraAutoFocusThread", ANDROID_PRIORITY_DISPLAY);
@@ -1234,12 +1234,13 @@ void CameraHal::previewThread()
             // Notify mANativeWindow of a new frame.
             if (mANativeWindow && mPreviewBufferMap[cfilledbuffer1.index].priv_hnd) {
                 //DLOGD("%s(%d): enqueue buffer %d to display", __FUNCTION__,__LINE__,cfilledbuffer1.index);
-                mapper.unlock((buffer_handle_t)mPreviewBufferMap[cfilledbuffer1.index].priv_hnd);                
+                mapper.unlock((buffer_handle_t)mPreviewBufferMap[cfilledbuffer1.index].priv_hnd);
+                cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_DISPING, 1);
                 err = mANativeWindow->enqueue_buffer(mANativeWindow, (buffer_handle_t*)mPreviewBufferMap[cfilledbuffer1.index].buffer_hnd);
                 if (err != 0){
+                    cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_DISPING, 0);
                     LOGE("%s(%d): enqueue_buffer to mANativeWindow failed(%d)", __FUNCTION__,__LINE__,err);
-                }
-                cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_DISPING, 1);
+                }                
                 LOG2("%s(%d): enqueue buffer %d to display", __FUNCTION__,__LINE__,cfilledbuffer1.index);
                 /*ddl@rock-chips.com: wake up display thread dequeue buffer, when ANativeWindow in asynchronous mode*/
                 mDisplayCond.signal();
@@ -1248,8 +1249,9 @@ void CameraHal::previewThread()
             // Send Video Frame 
         	if (mRecordRunning && (mMsgEnabled & CAMERA_MSG_VIDEO_FRAME) && mDataCbTimestamp) {
                 if (mVideoBufs[cfilledbuffer1.index] != NULL) {
-                    mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[cfilledbuffer1.index], 0, mCallbackCookie);                
-                    cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENCING, 1);            
+                    cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENCING, 1);
+                    mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[cfilledbuffer1.index], 0, mCallbackCookie);                                                
+                    LOG2("%s(%d): enqueue buffer %d to encoder", __FUNCTION__,__LINE__,cfilledbuffer1.index);
                 } else {
                     LOGE("%s(%d): mVideoBufs[%d] is NULL, this frame recording cancel",__FUNCTION__,__LINE__,cfilledbuffer1.index);
                 }
@@ -1258,13 +1260,14 @@ void CameraHal::previewThread()
                 if(mIsVideoSnapshot) {
                     LOGD("%s(%d): go into video snapshot",__FUNCTION__,__LINE__);
                     mVideoPictureThread->mBufferIndex = cfilledbuffer1.index;
+                    cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENC_PICTURE, 1);
                     if (mVideoPictureThread->run("CameraVideoPictureThread", ANDROID_PRIORITY_DISPLAY) != NO_ERROR) {
                         LOGE("%s(%d): couldn't run video picture thread", __FUNCTION__,__LINE__);
+                        cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENC_PICTURE, 0);
                     } else {
                         mPictureLock.lock();
                         mPictureRunning = STA_PICTURE_RUN;
                         mPictureLock.unlock();
-                        cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENC_PICTURE, 1);
                     }
                     mIsVideoSnapshot = false;
                     LOGD("%s(%d): leave video snapshot",__FUNCTION__,__LINE__);
@@ -1604,9 +1607,10 @@ PREVIEW_VIDEO_CAPTURE_end:
                 cmd_info = (int)msg.arg2;
                 preview_times = (int)msg.arg3;
                 
-                LOG2("%s(%d): receive CMD_PREVIEW_QBUF from %s",__FUNCTION__,__LINE__, 
+                LOG2("%s(%d): receive CMD_PREVIEW_QBUF %d from %s",__FUNCTION__,__LINE__,index,
                     ((int)msg.arg2 == CMD_PREVIEWBUF_DISPING)?"display":"encoder");
-                
+
+                mPreviewLock.lock();
                 if (mPreviewRunning != STA_PREVIEW_RUN) {
                     LOG1("%s(%d): preview thread is pause, so buffer %d isn't enqueue to camera",__FUNCTION__,__LINE__,index);
                     goto CMD_PREVIEW_QBUF_end;
@@ -1619,23 +1623,36 @@ PREVIEW_VIDEO_CAPTURE_end:
                             vb.memory = mCamDriverV4l2MemType;
                             vb.index = index;                        
                             vb.reserved = NULL;
-                            
+                            cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_WRITING, 1);
                             if (ioctl(iCamFd, VIDIOC_QUERYBUF, &vb) < 0) {
                                 LOGE("%s(%d): VIDIOC_QUERYBUF Failed!!! err[%s]", __FUNCTION__,__LINE__, strerror(errno));            
+                                cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_WRITING, 0);
                             }
                             vb.m.offset = mPreviewBufferMap[index].phy_addr; 
                             if (ioctl(iCamFd, VIDIOC_QBUF, &vb) < 0) {
                                 LOGE("%s(%d): VIDIOC_QBUF Failed!!! err[%s]", __FUNCTION__,__LINE__, strerror(errno));
-                            }  
-
-                            cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_WRITING, 1);
+                                cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_WRITING, 0);
+                            } 
                             LOG2("%s(%d): enqueue buffer %d(addr:0x%x 0x%x) to camera", __FUNCTION__,__LINE__,index,vb.m.offset,mPreviewBufferMap[index].phy_addr);
                         } else {
                             LOG1("%s(%d): this message(CMD_PREVIEW_QBUF) is invaliade, camera have restart", __FUNCTION__,__LINE__);
                         }
+                    } else {
+                        LOG2("%s(%d): buffer %d state 0x%x",__FUNCTION__,__LINE__, index, mPreviewBufferMap[index].buf_state);
+                    }
+                } else {
+                    if (mANativeWindow == NULL) {
+                        LOGE("%s(%d): mANativeWindow_hnd is NULL, enqueue buffer %d to camera failed",
+                            __FUNCTION__,__LINE__, index);
+                    }
+
+                    if (mPreviewBufferMap[index].priv_hnd == NULL) {
+                        LOGE("%s(%d): mPreviewBufferMap[%d].priv_hnd is NULL, enqueue buffer %d to camera failed",
+                            __FUNCTION__,__LINE__, index, index);
                     }
                 }
-CMD_PREVIEW_QBUF_end:        
+CMD_PREVIEW_QBUF_end:  
+                mPreviewLock.unlock();
                 break;
             }
 
@@ -1923,6 +1940,8 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
                     LOGE("%s(%d): Set buffer displaying, but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
                 buf_hnd->buf_state |= (1<<CAMERA_PREVIEWBUF_DISPING_BITPOS);
             } else { 
+                if ((buf_hnd->buf_state & (1<<CAMERA_PREVIEWBUF_DISPING_BITPOS)) == 0)
+                    LOGE("%s(%d): Clear buffer displaying,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
                 buf_hnd->buf_state &= ~(1<<CAMERA_PREVIEWBUF_DISPING_BITPOS);
             }
             break;
@@ -1935,6 +1954,8 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
                     LOGE("%s(%d): Set buffer encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
                 buf_hnd->buf_state |= (1<<CAMERA_PREVIEWBUF_ENCING_BITPOS);
             } else {
+                if ((buf_hnd->buf_state & (1<<CAMERA_PREVIEWBUF_ENCING_BITPOS)) == 0)
+                    LOGE("%s(%d): Clear buffer encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
                 buf_hnd->buf_state &= ~(1<<CAMERA_PREVIEWBUF_ENCING_BITPOS);
             }
             break;
@@ -1943,9 +1964,11 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
         {
             if (set) {
                 if (buf_hnd->buf_state & (1<<CAMERA_PREVIEWBUF_WRITING_BITPOS))
-                    LOGE("%s(%d): Set buffer encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+                    LOGE("%s(%d): Set buffer picture encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
                 buf_hnd->buf_state |= (1<<CMD_PREVIEWBUF_ENC_PICTURE_BITPOS);
             } else {
+                if ((buf_hnd->buf_state & (1<<CMD_PREVIEWBUF_ENC_PICTURE_BITPOS)) == 0)
+                    LOGE("%s(%d): Clear buffer picture encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
                 buf_hnd->buf_state &= ~(1<<CMD_PREVIEWBUF_ENC_PICTURE_BITPOS);
             }
             break;
@@ -1959,6 +1982,8 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
                     LOGE("%s(%d): Set buffer writing, but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
                 buf_hnd->buf_state |= (1<<CAMERA_PREVIEWBUF_WRITING_BITPOS);
             } else { 
+                if ((buf_hnd->buf_state & (1<<CAMERA_PREVIEWBUF_WRITING_BITPOS)) == 0)
+                    LOGE("%s(%d): Clear buffer writing,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
                 buf_hnd->buf_state &= ~(1<<CAMERA_PREVIEWBUF_WRITING_BITPOS);
             }
             break;
@@ -2445,12 +2470,14 @@ int CameraHal::cameraStart()
                 } 
             }
             mCamDriverV4l2BufferLen = buffer.length;
+            
+            cameraPreviewBufferSetSta(&mPreviewBufferMap[i], CMD_PREVIEWBUF_WRITING, 1);
             err = ioctl(iCamFd, VIDIOC_QBUF, &buffer);
             if (err < 0) {
                 LOGE("%s(%d): VIDIOC_QBUF Failed,err=%d[%s]\n",__FUNCTION__,__LINE__,err, strerror(errno));
+                 cameraPreviewBufferSetSta(&mPreviewBufferMap[i], CMD_PREVIEWBUF_WRITING, 0);
                 goto fail_bufalloc;
-            }     
-            cameraPreviewBufferSetSta(&mPreviewBufferMap[i], CMD_PREVIEWBUF_WRITING, 1);
+            }           
         } else {
 
             if (mPreviewBufferMap[i].buf_state & (1<<CAMERA_PREVIEWBUF_DISPING_BITPOS)) {
@@ -2466,8 +2493,14 @@ int CameraHal::cameraStart()
         LOGE("%s(%d): VIDIOC_STREAMON Failed",__FUNCTION__,__LINE__);
         goto fail_bufalloc;
     }
-
-    mPreviewMemory = mRequestMemory(-1, mPreviewFrameSize, CONFIG_CAMERA_PRVIEW_BUF_CNT, NULL);
+	
+    if(!mPreviewMemory) {
+	    mPreviewMemory = mRequestMemory(-1, mPreviewFrameSize, CONFIG_CAMERA_PRVIEW_BUF_CNT, NULL);
+    } else if(mPreviewMemory->size != mPreviewFrameSize) {
+        mPreviewMemory->release(mPreviewMemory);
+        mPreviewMemory = mRequestMemory(-1, mPreviewFrameSize, CONFIG_CAMERA_PRVIEW_BUF_CNT, NULL);
+    }
+    
     if (mPreviewMemory) {
         for (int i=0; i < CONFIG_CAMERA_PRVIEW_BUF_CNT; i++) {
             mPreviewBufs[i] = (unsigned char*) mPreviewMemory->data + (i*mPreviewFrameSize);
@@ -2478,7 +2511,8 @@ int CameraHal::cameraStart()
     
     int *addr;
     for (int i=0; i < CONFIG_CAMERA_PRVIEW_BUF_CNT; i++) {
-        mVideoBufs[i] = mRequestMemory(-1, 4, 1, NULL);
+        if(!mVideoBufs[i])
+            mVideoBufs[i] = mRequestMemory(-1, 4, 1, NULL);
         if( (NULL == mVideoBufs[i]) || ( NULL == mVideoBufs[i]->data)) {
             mVideoBufs[i] = NULL;
             LOGE("%s(%d): video buffer %d create failed",__FUNCTION__,__LINE__,i);
@@ -2855,8 +2889,10 @@ void CameraHal::releaseRecordingFrame(const void *opaque)
         return;
     }
     
-    if (mANativeWindow && mPreviewBufferMap[index].priv_hnd)
-        cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_ENCING, 0);
+    if (mANativeWindow && mPreviewBufferMap[index].priv_hnd) {
+        cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_ENCING, 0);        
+    }
+    
     if (mPreviewRunning == STA_PREVIEW_RUN) {
         msg.command = CMD_PREVIEW_QBUF;     
         msg.arg1 = (void*)index;
@@ -3120,12 +3156,23 @@ int CameraHal::sendCommand(int32_t cmd, int32_t arg1, int32_t arg2)
 }
 int CameraHal::dump(int fd)
 {   
+    int i;
+    
     if (gLogLevel < 2) 
         android_atomic_inc(&gLogLevel);
     else 
         android_atomic_write(0,&gLogLevel);
 
     LOGD("Set camera hardware log level to %d",gLogLevel);
+
+    for (i=0; i<CONFIG_CAMERA_PRVIEW_BUF_CNT; i++) {
+        if (mPreviewBufferMap[i].priv_hnd) {
+            LOGD("%s(%d): buffer %d state is 0x%x", __FUNCTION__,__LINE__,i, mPreviewBufferMap[i].buf_state);
+        }
+    }
+    LOGD("%s(%d): mPreviewRunning:0x%x, mDisplayRuning:0x%x, mPictureRunning:0x%x,mIsVideoSnapshot:0x%x",
+        __FUNCTION__,__LINE__,mPreviewRunning, mDisplayRuning, mPictureRunning,mIsVideoSnapshot);
+    
     return 0;
 }
 int CameraHal::getCameraFd()
