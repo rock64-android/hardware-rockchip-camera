@@ -644,8 +644,10 @@ capturePicture_streamoff:
             picture = mRequestMemory(-1, JpegOutInfo.jpegFileLen, 1, NULL);
             if (picture && picture->data) {
                 memcpy(picture->data,(char*)JpegOutInfo.outBufVirAddr, JpegOutInfo.jpegFileLen);
-            }
-            mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie); 
+                mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie);
+                picture->release(picture);
+                picture = NULL;
+            }            
     	}        
     }
 
@@ -654,7 +656,7 @@ exit:
     return err;
 }
 
-int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture)
+int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
 {
     int jpeg_w,jpeg_h,i;
     unsigned int pictureSize;
@@ -678,7 +680,8 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture)
     double latitude,longtitude,altitude;
     long timestamp;
     bool driver_mirror_fail = false;
-
+    struct Message msg;
+    
      /*get jpeg and thumbnail information*/
     mParameters.getPreviewSize(&jpeg_w, &jpeg_h); 
     quality = mParameters.getInt("jpeg-quality");
@@ -698,15 +701,6 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture)
     if (pictureSize & 0xfff) {
         pictureSize = (pictureSize & 0xfffff000) + 0x1000;
     }
-	
-    mPictureLock.lock();
-    if (mPictureRunning != STA_PICTURE_RUN) {
-        mPictureLock.unlock();
-        LOGD("%s(%d): capture cancel, because mPictureRunning(0x%x) dosen't suit capture",
-            __FUNCTION__,__LINE__, mPictureRunning);
-        goto exit;
-    }
-    mPictureLock.unlock();
 
     if (mCamDriverPreviewFmt != mCamDriverPictureFmt) {
         cameraFormatConvert(mCamDriverPreviewFmt, mCamDriverPictureFmt, NULL,
@@ -782,18 +776,22 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture)
     JpegOutInfo.jpegFileLen = 0x00;
     JpegOutInfo.cacheflush= &capturePicture_cacheflush;
 	
-    mPictureLock.lock();
-    if (mPictureRunning != STA_PICTURE_RUN) {
-        mPictureLock.unlock();
-        LOGD("%s(%d): capture cancel, because mPictureRunning(0x%x) dosen't suit capture",
-            __FUNCTION__,__LINE__, mPictureRunning);
-        goto exit;
-    }
-    mPictureLock.unlock();
-	
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);  
+
+    cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_SNAPSHOT_ENCING, 0);    
+    if (mPreviewRunning == STA_PREVIEW_RUN) {	     
+        msg.command = CMD_PREVIEW_QBUF;     
+        msg.arg1 = (void*)index;
+        msg.arg2 = (void*)CMD_PREVIEWBUF_SNAPSHOT_ENCING;
+        msg.arg3 = (void*)mPreviewStartTimes;
+        commandThreadCommandQ.put(&msg); 
+    }
+    
     if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
-        LOGE("hw_jpeg_encode Failed \n");
+        LOGE("%s(%d): hw_jpeg_encode Failed, err: %d  JpegOutInfo.jpegFileLen:0x%x\n",__FUNCTION__,__LINE__,
+            err, JpegOutInfo.jpegFileLen);
+
+        LOGE("%s(%d): JpegOutInfo.outBuflen:0x%x",__FUNCTION__,__LINE__,JpegOutInfo.outBuflen);
         goto exit;
     } else { 
         camera_memory_t* picture = NULL;
@@ -803,8 +801,10 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture)
             picture = mRequestMemory(-1, JpegOutInfo.jpegFileLen, 1, NULL);
             if (picture && picture->data) {
                 memcpy(picture->data,(char*)JpegOutInfo.outBufVirAddr, JpegOutInfo.jpegFileLen);
-            }
-            mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie); 
+                mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie);
+                picture->release(picture);
+                picture = NULL;
+            }            
     	}        
     }
 exit:   

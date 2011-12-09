@@ -20,6 +20,11 @@ static char gDisplayThreadCommands[][30] = {
 };
 static char gPreviewThreadCommands[][30] = {
         {"CMD_PREVIEW_STAREQ"},
+        {"CMD_PREVIEW_VIDEOSNAPSHOT"}
+};
+static char gSnapshotThreadCommands[][30] = {
+        {"CMD_SNAPSHOT_SNAPSHOT"},
+        {"CMD_SNAPSHOT_EXIT"}
 };
 static char gCommandThreadCommands[][30] = {
 		// Comands
@@ -51,6 +56,9 @@ static char* MessageCmdConvert(char* msgQ, unsigned int cmd)
     } else if (strcmp(msgQ,"commandCmdQ") == 0) {
         if (cmd < sizeof(gCommandThreadCommands)/30) 
             cmd_name = (char*)gCommandThreadCommands[cmd];
+    } else if (strcmp(msgQ,"snapshotCmdQ") == 0) {
+        if (cmd < sizeof(gSnapshotThreadCommands)/30) 
+            cmd_name = (char*)gSnapshotThreadCommands[cmd];
     }
     return cmd_name;
 }

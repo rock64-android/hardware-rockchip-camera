@@ -60,12 +60,24 @@ static volatile int32_t gLogLevel = 0;
 #define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
 #define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
 
-#define CAMERA_PREVIEWBUF_DISPING_BITPOS   0x00
-#define CAMERA_PREVIEWBUF_ENCING_BITPOS    0x01
-#define CMD_PREVIEWBUF_ENC_PICTURE_BITPOS   0x02
-#define CAMERA_PREVIEWBUF_WRITING_BITPOS   0x03 
 
-#define CAMERA_PREVIEWBUF_ALLOW_WRITE(a)   ((a&0x7)==0x00)
+static void debugShowFPS()
+{
+    static int mFrameCount = 0;
+    static int mLastFrameCount = 0;
+    static nsecs_t mLastFpsTime = 0;
+    static float mFps = 0;
+    mFrameCount++;
+    if (!(mFrameCount & 0x1F)) {
+        nsecs_t now = systemTime();
+        nsecs_t diff = now - mLastFpsTime;
+        mFps = ((mFrameCount - mLastFrameCount) * float(s2ns(1))) / diff;
+        mLastFpsTime = now;
+        mLastFrameCount = mFrameCount;
+        LOGD("Camera %d Frames, %2.3f FPS", mFrameCount, mFps);
+    }
+    // XXX: mFPS has the value we want
+}
 
 
 static int getCallingPid() {
@@ -107,6 +119,8 @@ static int cameraPixFmt2HalPixFmt(unsigned int fmt)
 }
 CameraHal::CameraHal(int cameraId)
             :mParameters(),
+            mSnapshotRunning(-1),
+            mCommandRunning(-1),
             mPreviewRunning(STA_PREVIEW_PAUSE),
             mPreviewLock(),
             mPreviewCond(),
@@ -145,7 +159,9 @@ CameraHal::CameraHal(int cameraId)
             previewThreadCommandQ("previewCmdQ"),
             previewThreadAckQ("previewAckQ"),
             commandThreadCommandQ("commandCmdQ"),
-            commandThreadAckQ("commandAckQ")
+            commandThreadAckQ("commandAckQ"),
+            snapshotThreadCommandQ("snapshotCmdQ"),
+            snapshotThreadAckQ("snapshotAckQ")
 {
     int fp,i;
     
@@ -173,7 +189,6 @@ CameraHal::CameraHal(int cameraId)
     mDriverMirrorSupport = false;
     mDriverFlipSupport = false;
     mPreviewCmdReceived = false;
-    mIsVideoSnapshot = false;
     mPreviewStartTimes = 0x00;    
     memset(mCamDriverV4l2Buffer, 0x00, sizeof(mCamDriverV4l2Buffer));
     for (i=0; i<CONFIG_CAMERA_PRVIEW_BUF_CNT; i++) {
@@ -195,12 +210,13 @@ CameraHal::CameraHal(int cameraId)
         mPreviewThread = new PreviewThread(this);
         mCommandThread = new CommandThread(this);
         mPictureThread = new PictureThread(this);
-	    mVideoPictureThread = new VideoPictureThread(this);
+	    mSnapshotThread = new SnapshotThread(this);
         mAutoFocusThread = new AutoFocusThread(this);
         mDisplayThread->run("CameraDispThread",ANDROID_PRIORITY_URGENT_DISPLAY);
         mPreviewThread->run("CameraPreviewThread",ANDROID_PRIORITY_DISPLAY);
         mCommandThread->run("CameraCmdThread", ANDROID_PRIORITY_URGENT_DISPLAY);
         mAutoFocusThread->run("CameraAutoFocusThread", ANDROID_PRIORITY_DISPLAY);
+        mSnapshotThread->run("CameraSnapshotThread", ANDROID_PRIORITY_NORMAL);
 
         LOGD("CameraHal create success!");
     } else {
@@ -208,7 +224,7 @@ CameraHal::CameraHal(int cameraId)
         mDisplayThread = NULL;
         mCommandThread = NULL;
         mPictureThread = NULL;
-	    mVideoPictureThread = NULL;		
+	    mSnapshotThread = NULL;		
         mAutoFocusThread = NULL;
     }
 
@@ -267,7 +283,7 @@ int CameraHal::cameraFramerateQuery(unsigned int format, unsigned int w, unsigne
     struct v4l2_frmivalenum fival;
 
     if ((mCamDriverCapability.version & 0xff) < 0x05) {
-        LOGD("Camera driver version: %d.%d.%d isn't support query framerate, Please update to v0.x.5",mCamDriverCapability.driver,
+        LOGD("Camera driver version: %d.%d.%d isn't support query framerate, Please update to v0.x.5",
             (mCamDriverCapability.version>>16) & 0xff,(mCamDriverCapability.version>>8) & 0xff,
             mCamDriverCapability.version & 0xff);
         goto default_fps;
@@ -1147,6 +1163,8 @@ void CameraHal::previewThread()
     static struct v4l2_buffer cfilledbuffer1;
     Message msg;
     bool camera_device_error;
+    int buffer_log;
+    bool snapshot;
     GraphicBufferMapper &mapper = GraphicBufferMapper::get();
     
     LOG_FUNCTION_NAME
@@ -1164,6 +1182,8 @@ void CameraHal::previewThread()
             if (previewThreadCommandQ.isEmpty() == false ) 
                 previewThreadCommandQ.get(&msg);
         }
+
+        snapshot = false;
         
         switch (msg.command)
         {
@@ -1174,10 +1194,10 @@ void CameraHal::previewThread()
                 previewThreadAckQ.put(&msg);
                 break;
             }    
-            case CMD_PREVIEW_VIDEO_CAPTURE:
+            case CMD_PREVIEW_VIDEOSNAPSHOT:
             {
-                LOGD("%s(%d): get the video capture msg: 0x%x",__FUNCTION__,__LINE__,mPreviewRunning);
-                mIsVideoSnapshot = true;
+                LOGD("%s(%d): receive videoSnapshot, mPreviewRuning:0x%x",__FUNCTION__,__LINE__,mPreviewRunning);
+                snapshot = true;
                 break;
             }
             default:
@@ -1186,6 +1206,10 @@ void CameraHal::previewThread()
         
         if (mPreviewRunning == STA_PREVIEW_STOP) {
             mPreviewLock.unlock();
+
+            msg.command = CMD_SNAPSHOT_EXIT;
+            snapshotThreadCommandQ.put(&msg);
+            
             goto previewThread_end;
         }
         
@@ -1228,14 +1252,29 @@ void CameraHal::previewThread()
                 mPreviewErrorFrameCount = 0;
             }
 
+            if (gLogLevel == 2)
+                debugShowFPS();
+            
             cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_WRITING, 0);
+
+            buffer_log = 0;
+            if (mANativeWindow && mPreviewBufferMap[cfilledbuffer1.index].priv_hnd) {
+                buffer_log |= CMD_PREVIEWBUF_DISPING;
+            }
+
+            if (mRecordRunning && (mMsgEnabled & CAMERA_MSG_VIDEO_FRAME) && mDataCbTimestamp) {
+                buffer_log |= CMD_PREVIEWBUF_ENCING;
+                if (snapshot) {
+                    buffer_log |= CMD_PREVIEWBUF_SNAPSHOT_ENCING;
+                }                
+            }
+
+            cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], buffer_log, 1);
 
             mPreviewLock.lock();                       
             // Notify mANativeWindow of a new frame.
-            if (mANativeWindow && mPreviewBufferMap[cfilledbuffer1.index].priv_hnd) {
-                //DLOGD("%s(%d): enqueue buffer %d to display", __FUNCTION__,__LINE__,cfilledbuffer1.index);
+            if (buffer_log & CMD_PREVIEWBUF_DISPING) {                
                 mapper.unlock((buffer_handle_t)mPreviewBufferMap[cfilledbuffer1.index].priv_hnd);
-                cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_DISPING, 1);
                 err = mANativeWindow->enqueue_buffer(mANativeWindow, (buffer_handle_t*)mPreviewBufferMap[cfilledbuffer1.index].buffer_hnd);
                 if (err != 0){
                     cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_DISPING, 0);
@@ -1247,30 +1286,20 @@ void CameraHal::previewThread()
             }
                         
             // Send Video Frame 
-        	if (mRecordRunning && (mMsgEnabled & CAMERA_MSG_VIDEO_FRAME) && mDataCbTimestamp) {
-                if (mVideoBufs[cfilledbuffer1.index] != NULL) {
-                    cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENCING, 1);
+        	if (buffer_log & CMD_PREVIEWBUF_ENCING) {
+                if (mVideoBufs[cfilledbuffer1.index] != NULL) {                    
                     mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[cfilledbuffer1.index], 0, mCallbackCookie);                                                
                     LOG2("%s(%d): enqueue buffer %d to encoder", __FUNCTION__,__LINE__,cfilledbuffer1.index);
                 } else {
                     LOGE("%s(%d): mVideoBufs[%d] is NULL, this frame recording cancel",__FUNCTION__,__LINE__,cfilledbuffer1.index);
+                    cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENCING, 0);
                 }
                 
-    		   //in snapshot progress
-                if(mIsVideoSnapshot) {
-                    LOGD("%s(%d): go into video snapshot",__FUNCTION__,__LINE__);
-                    mVideoPictureThread->mBufferIndex = cfilledbuffer1.index;
-                    cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENC_PICTURE, 1);
-                    if (mVideoPictureThread->run("CameraVideoPictureThread", ANDROID_PRIORITY_DISPLAY) != NO_ERROR) {
-                        LOGE("%s(%d): couldn't run video picture thread", __FUNCTION__,__LINE__);
-                        cameraPreviewBufferSetSta(&mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENC_PICTURE, 0);
-                    } else {
-                        mPictureLock.lock();
-                        mPictureRunning = STA_PICTURE_RUN;
-                        mPictureLock.unlock();
-                    }
-                    mIsVideoSnapshot = false;
-                    LOGD("%s(%d): leave video snapshot",__FUNCTION__,__LINE__);
+    		    //in snapshot progress
+                if(buffer_log & CMD_PREVIEWBUF_SNAPSHOT_ENCING) {   
+                    msg.command = CMD_SNAPSHOT_SNAPSHOT;
+                    msg.arg1 = (void*)cfilledbuffer1.index;
+                    snapshotThreadCommandQ.put(&msg);
                 }
             } 
 
@@ -1311,31 +1340,57 @@ void CameraHal::pictureThread()
     return;
 
 }
-void CameraHal::videoPictureThread(int index)
+void CameraHal::snapshotThread()
 {
-    struct CamCaptureInfo_s capture;
-    struct Message msg;
-    
+    bool loop = true;
+    Message msg;
+    int index;
+    struct CamCaptureInfo_s capture;    
+
     LOG_FUNCTION_NAME
+    while (loop) {
+        mSnapshotRunning = -1;
+        snapshotThreadCommandQ.get(&msg);
+        mSnapshotRunning = msg.command;
+        
+        switch (msg.command)
+        {
+            case CMD_SNAPSHOT_SNAPSHOT:
+            {
+                index = (int)msg.arg1;
+                
+                LOGD("%s(%d): receive CMD_SNAPSHOT_SNAPSHOT with buffer %d",__FUNCTION__,__LINE__, index);
 
-    capture.input_phy_addr = *(int*)mVideoBufs[index]->data;   
-    capture.input_vir_addr = *(int*)mPreviewBufferMap[index].priv_hnd->base;			  
-    capture.output_phy_addr = mPmemHeapPhyBase + mJpegBuffer->offset();                        
-    capture.output_vir_addr = (int)mJpegBuffer->pointer();                        
-    capture.output_buflen = mJpegBuffer->size();
-    captureVideoPicture(&capture);
-	
-    mPictureLock.lock();
-    mPictureRunning = STA_PICTURE_STOP;
-    mPictureLock.unlock();
+                if ((mJpegBuffer == NULL) || (mRawBuffer == NULL)) {
+                    LOGE("%s(%d): cancel, because mRawBuffer and mJpegBuffer is NULL",__FUNCTION__,__LINE__);
+                    cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_SNAPSHOT_ENCING, 0);
+                    goto CMD_SNAPSHOT_SNAPSHOT_end;
+                }
+                
+                capture.input_phy_addr = mPreviewBufferMap[index].phy_addr;   
+                capture.input_vir_addr = mPreviewBufferMap[index].priv_hnd->base;			  
+                capture.output_phy_addr = mPmemHeapPhyBase + mJpegBuffer->offset();                        
+                capture.output_vir_addr = (int)mJpegBuffer->pointer();                        
+                capture.output_buflen = mJpegBuffer->size();
+                captureVideoPicture(&capture,index);
+                
+CMD_SNAPSHOT_SNAPSHOT_end:
+                break;
+            }
 
-    cameraPreviewBufferSetSta(&mPreviewBufferMap[mVideoPictureThread->mBufferIndex], CMD_PREVIEWBUF_ENC_PICTURE, 0);    
-    if (mPreviewRunning == STA_PREVIEW_RUN) {	     
-        msg.command = CMD_PREVIEW_QBUF;     
-        msg.arg1 = (void*)mVideoPictureThread->mBufferIndex;
-        msg.arg2 = (void*)CMD_PREVIEWBUF_ENC_PICTURE;
-        msg.arg3 = (void*)mPreviewStartTimes;
-        commandThreadCommandQ.put(&msg); 
+            case CMD_SNAPSHOT_EXIT:
+            {
+                LOGD("%s(%d): receive CMD_SNAPSHOT_EXIT",__FUNCTION__,__LINE__);
+                loop = false;
+                break;
+            }
+
+            default:
+            {
+                LOGE("%s(%d): receive unknow command(0x%x)",__FUNCTION__,__LINE__,msg.command);
+                break;
+            }
+        }
     }
     LOG_FUNCTION_NAME_EXIT
     return;
@@ -1385,12 +1440,14 @@ void CameraHal::commandThread()
 
     while(shouldLive) {
 get_command:
+        mCommandRunning = -1;
         commandThreadCommandQ.get(&msg);
 
+        mCommandRunning = msg.command;
         switch(msg.command)
         {
             case CMD_PREVIEW_START:
-            {
+            {                
                 LOGD("%s(%d): receive CMD_PREVIEW_START, mPreviewRunning(%d) mDisplayRuning(%d)", __FUNCTION__,__LINE__,mPreviewRunning,mDisplayRuning);
 
                 if (NULL == mANativeWindow) {
@@ -1474,6 +1531,12 @@ get_command:
                     err = -1;
                     goto PREVIEW_CAPTURE_end;
                 }
+
+                if ((mRawBuffer == NULL) || (mJpegBuffer == NULL)) {
+                    LOGE("%s(%d): cancel, because mRawBuffer and mJpegBuffer is NULL",__FUNCTION__,__LINE__);
+                    err = -1;
+                    goto PREVIEW_CAPTURE_end;
+                }
                 
                 mPictureLock.lock();
                 if (mPictureRunning != STA_PICTURE_STOP) {
@@ -1483,12 +1546,6 @@ get_command:
                     goto PREVIEW_CAPTURE_end;
                 }
                 mPictureLock.unlock();
-
-                if ((mRawBuffer == NULL) || (mJpegBuffer == NULL)) {
-                    LOGE("%s(%d): cancel, because mRawBuffer and mJpegBuffer is NULL",__FUNCTION__,__LINE__);
-                    err = -1;
-                    goto PREVIEW_CAPTURE_end;
-                }
                 
                 if (mPreviewRunning  == STA_PREVIEW_RUN) {
                     mPreviewLock.lock();                        
@@ -1524,49 +1581,6 @@ PREVIEW_CAPTURE_end:
                 commandThreadAckQ.put(&msg);
                 break;
             }
-            
-	        case CMD_PREVIEW_VIDEOCAPTURE:
-            {
-                LOGD("%s(%d): receive CMD_PREVIEW_VIDEOCAPTURE", __FUNCTION__,__LINE__);
-                if (mVideoPictureThread == NULL) {
-                    LOGE("%s(%d): mVideoPictureThread is NULL",__FUNCTION__,__LINE__);
-                    err = -1;
-                    goto PREVIEW_VIDEO_CAPTURE_end;
-                }
-                
-                mPictureLock.lock();
-                if (mPictureRunning != STA_PICTURE_STOP) {
-                    mPictureLock.unlock();
-                    LOGE("%s(%d): picture thread state doesn't suit capture(mPictureRunning:0x%x)", __FUNCTION__,__LINE__, mPictureRunning);
-                    err = -1;
-                    goto PREVIEW_VIDEO_CAPTURE_end;
-                }
-                mPictureLock.unlock();
-                if (mJpegBuffer == NULL) {
-                    LOGE("%s(%d): cancel, because mJpegBuffer is NULL",__FUNCTION__,__LINE__);
-                    err = -1;
-                    goto PREVIEW_VIDEO_CAPTURE_end;
-                }
-                if (mPreviewRunning  == STA_PREVIEW_RUN && mRecordRunning) {
-                    msg.command = CMD_PREVIEW_VIDEO_CAPTURE;
-                    previewThreadCommandQ.put(&msg);
-            	} else {            	
-                    err = -1;
-            	}
-                
-PREVIEW_VIDEO_CAPTURE_end:
-                if (err < 0) {
-                    msg.command = CMD_PREVIEW_VIDEOCAPTURE;
-                    msg.arg1 = (void*)CMD_NACK;         
-                } else {
-                    msg.command = CMD_PREVIEW_VIDEOCAPTURE;
-                    msg.arg1 = (void*)CMD_ACK;                  
-                }
-                LOGD("%s(%d): CMD_PREVIEW_VIDEOCAPTURE %s", __FUNCTION__,__LINE__, (msg.arg1 == (void*)CMD_NACK) ? "NACK" : "ACK");
-                commandThreadAckQ.put(&msg);
-                break;
-	        }
-            
             case CMD_PREVIEW_CAPTURE_CANCEL:
             {
                 LOGD("%s(%d): receive CMD_PREVIEW_CAPTURE_CANCEL", __FUNCTION__,__LINE__);
@@ -1606,11 +1620,15 @@ PREVIEW_VIDEO_CAPTURE_end:
                 index = (int)msg.arg1;
                 cmd_info = (int)msg.arg2;
                 preview_times = (int)msg.arg3;
-                
-                LOG2("%s(%d): receive CMD_PREVIEW_QBUF %d from %s",__FUNCTION__,__LINE__,index,
-                    ((int)msg.arg2 == CMD_PREVIEWBUF_DISPING)?"display":"encoder");
 
-                mPreviewLock.lock();
+                if (cmd_info == CMD_PREVIEWBUF_DISPING) {
+                    LOG2("%s(%d): receive CMD_PREVIEW_QBUF %d from display",__FUNCTION__,__LINE__,index);
+                } else if (cmd_info == CMD_PREVIEWBUF_ENCING) {
+                    LOG2("%s(%d): receive CMD_PREVIEW_QBUF %d from encoder",__FUNCTION__,__LINE__,index);
+                } else if (cmd_info == CMD_PREVIEWBUF_SNAPSHOT_ENCING) {
+                    LOG2("%s(%d): receive CMD_PREVIEW_QBUF %d from videoSnapshot",__FUNCTION__,__LINE__,index);
+                }
+                
                 if (mPreviewRunning != STA_PREVIEW_RUN) {
                     LOG1("%s(%d): preview thread is pause, so buffer %d isn't enqueue to camera",__FUNCTION__,__LINE__,index);
                     goto CMD_PREVIEW_QBUF_end;
@@ -1623,14 +1641,12 @@ PREVIEW_VIDEO_CAPTURE_end:
                             vb.memory = mCamDriverV4l2MemType;
                             vb.index = index;                        
                             vb.reserved = NULL;
-                            cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_WRITING, 1);
-                            if (ioctl(iCamFd, VIDIOC_QUERYBUF, &vb) < 0) {
-                                LOGE("%s(%d): VIDIOC_QUERYBUF Failed!!! err[%s]", __FUNCTION__,__LINE__, strerror(errno));            
-                                cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_WRITING, 0);
-                            }
                             vb.m.offset = mPreviewBufferMap[index].phy_addr; 
+                            
+                            cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_WRITING, 1);
+                            
                             if (ioctl(iCamFd, VIDIOC_QBUF, &vb) < 0) {
-                                LOGE("%s(%d): VIDIOC_QBUF Failed!!! err[%s]", __FUNCTION__,__LINE__, strerror(errno));
+                                LOGE("%s(%d): VIDIOC_QBUF %d Failed!!! err[%s]", __FUNCTION__,__LINE__,index, strerror(errno));
                                 cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_WRITING, 0);
                             } 
                             LOG2("%s(%d): enqueue buffer %d(addr:0x%x 0x%x) to camera", __FUNCTION__,__LINE__,index,vb.m.offset,mPreviewBufferMap[index].phy_addr);
@@ -1651,8 +1667,7 @@ PREVIEW_VIDEO_CAPTURE_end:
                             __FUNCTION__,__LINE__, index, index);
                     }
                 }
-CMD_PREVIEW_QBUF_end:  
-                mPreviewLock.unlock();
+CMD_PREVIEW_QBUF_end: 
                 break;
             }
 
@@ -1773,9 +1788,13 @@ int CameraHal::cameraPreviewBufferCreate(int width, int height, unsigned int fmt
 
         goto fail;
     }
+    /* ddl@rock-chips.com: NativeWindow switch to async mode after v0.1.3 */
+    #if 0
     if (mANativeWindow->set_swap_interval(mANativeWindow, 1) != 0) {
         LOGE("%s(%d): set mANativeWindow run in synchronous mode failed",__FUNCTION__,__LINE__);
     }
+    #endif
+    
     mANativeWindow->get_min_undequeued_buffer_count(mANativeWindow, &undequeued);
     
     ///Set the number of buffers needed for camera preview
@@ -1931,69 +1950,51 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
         
     buf_hnd->lock.lock();
 
-    switch (cmd)
-    {
-        case CMD_PREVIEWBUF_DISPING:
-        {
-            if (set){
-                if (buf_hnd->buf_state & (1<<CAMERA_PREVIEWBUF_WRITING_BITPOS))
-                    LOGE("%s(%d): Set buffer displaying, but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
-                buf_hnd->buf_state |= (1<<CAMERA_PREVIEWBUF_DISPING_BITPOS);
-            } else { 
-                if ((buf_hnd->buf_state & (1<<CAMERA_PREVIEWBUF_DISPING_BITPOS)) == 0)
-                    LOGE("%s(%d): Clear buffer displaying,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
-                buf_hnd->buf_state &= ~(1<<CAMERA_PREVIEWBUF_DISPING_BITPOS);
-            }
-            break;
+    if (cmd & CMD_PREVIEWBUF_DISPING) {
+        if (set){
+            if (CAMERA_PREVIEWBUF_ALLOW_DISPLAY(buf_hnd->buf_state)==false)
+                LOGE("%s(%d): Set buffer displaying, but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            buf_hnd->buf_state |= CMD_PREVIEWBUF_DISPING;
+        } else { 
+            if ((buf_hnd->buf_state & CMD_PREVIEWBUF_DISPING) == 0)
+                LOGE("%s(%d): Clear buffer displaying,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            buf_hnd->buf_state &= ~CMD_PREVIEWBUF_DISPING;
         }
+    }
 
-        case CMD_PREVIEWBUF_ENCING:
-        {
-            if (set) {
-                if (buf_hnd->buf_state & (1<<CAMERA_PREVIEWBUF_WRITING_BITPOS))
-                    LOGE("%s(%d): Set buffer encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
-                buf_hnd->buf_state |= (1<<CAMERA_PREVIEWBUF_ENCING_BITPOS);
-            } else {
-                if ((buf_hnd->buf_state & (1<<CAMERA_PREVIEWBUF_ENCING_BITPOS)) == 0)
-                    LOGE("%s(%d): Clear buffer encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
-                buf_hnd->buf_state &= ~(1<<CAMERA_PREVIEWBUF_ENCING_BITPOS);
-            }
-            break;
+    if (cmd & CMD_PREVIEWBUF_ENCING) {
+        if (set) {
+            if (CAMERA_PREVIEWBUF_ALLOW_ENC(buf_hnd->buf_state)==false)
+                LOGE("%s(%d): Set buffer encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            buf_hnd->buf_state |= CMD_PREVIEWBUF_ENCING;
+        } else {
+            if ((buf_hnd->buf_state & CMD_PREVIEWBUF_ENCING) == 0)
+                LOGE("%s(%d): Clear buffer encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            buf_hnd->buf_state &= ~CMD_PREVIEWBUF_ENCING;
         }
-        case CMD_PREVIEWBUF_ENC_PICTURE:
-        {
-            if (set) {
-                if (buf_hnd->buf_state & (1<<CAMERA_PREVIEWBUF_WRITING_BITPOS))
-                    LOGE("%s(%d): Set buffer picture encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
-                buf_hnd->buf_state |= (1<<CMD_PREVIEWBUF_ENC_PICTURE_BITPOS);
-            } else {
-                if ((buf_hnd->buf_state & (1<<CMD_PREVIEWBUF_ENC_PICTURE_BITPOS)) == 0)
-                    LOGE("%s(%d): Clear buffer picture encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
-                buf_hnd->buf_state &= ~(1<<CMD_PREVIEWBUF_ENC_PICTURE_BITPOS);
-            }
-            break;
+    }
+
+    if (cmd & CMD_PREVIEWBUF_SNAPSHOT_ENCING) {
+        if (set) {
+            if (CAMERA_PREVIEWBUF_ALLOW_ENC_PICTURE(buf_hnd->buf_state)==false)
+                LOGE("%s(%d): Set buffer snapshot encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            buf_hnd->buf_state |= CMD_PREVIEWBUF_SNAPSHOT_ENCING;
+        } else {
+            if ((buf_hnd->buf_state & CMD_PREVIEWBUF_SNAPSHOT_ENCING) == 0)
+                LOGE("%s(%d): Clear buffer snapshot encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            buf_hnd->buf_state &= ~CMD_PREVIEWBUF_SNAPSHOT_ENCING;
         }
-        case CMD_PREVIEWBUF_WRITING:
-        {
-            if (set) {
-                if (buf_hnd->buf_state & ((1<<CAMERA_PREVIEWBUF_ENCING_BITPOS)
-					|(1<<CAMERA_PREVIEWBUF_DISPING_BITPOS)
-					|(1<<CMD_PREVIEWBUF_ENC_PICTURE_BITPOS)))
-                    LOGE("%s(%d): Set buffer writing, but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
-                buf_hnd->buf_state |= (1<<CAMERA_PREVIEWBUF_WRITING_BITPOS);
-            } else { 
-                if ((buf_hnd->buf_state & (1<<CAMERA_PREVIEWBUF_WRITING_BITPOS)) == 0)
-                    LOGE("%s(%d): Clear buffer writing,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
-                buf_hnd->buf_state &= ~(1<<CAMERA_PREVIEWBUF_WRITING_BITPOS);
-            }
-            break;
-        }
-        
-        default:
-        {
-            LOGE("%s(%d): Preview buffer is not support %d status",__FUNCTION__,__LINE__,cmd);
-            err = -EINVAL;
-            break;
+    }
+
+    if (cmd & CMD_PREVIEWBUF_WRITING) {
+        if (set) {
+            if (CAMERA_PREVIEWBUF_ALLOW_WRITE(buf_hnd->buf_state)==false)
+                LOGE("%s(%d): Set buffer writing, but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            buf_hnd->buf_state |= CMD_PREVIEWBUF_WRITING;
+        } else { 
+            if ((buf_hnd->buf_state & CMD_PREVIEWBUF_WRITING) == 0)
+                LOGE("%s(%d): Clear buffer writing,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            buf_hnd->buf_state &= ~CMD_PREVIEWBUF_WRITING;
         }
     }
     
@@ -2479,8 +2480,7 @@ int CameraHal::cameraStart()
                 goto fail_bufalloc;
             }           
         } else {
-
-            if (mPreviewBufferMap[i].buf_state & (1<<CAMERA_PREVIEWBUF_DISPING_BITPOS)) {
+            if (mPreviewBufferMap[i].buf_state & CMD_PREVIEWBUF_DISPING) {
                 LOGD("%s(%d): preview buffer %d is displaying, so wait it dequeueed from display for enqueue to camera",
                         __FUNCTION__,__LINE__,i);                
             }
@@ -2770,7 +2770,7 @@ void CameraHal::stopPreview()
 
         if (mANativeWindow == NULL) {
             mANativeWindowCond.signal();
-            LOGD("%s(%d): wake up command thread for stop preview");
+            LOGD("%s(%d): wake up command thread for stop preview",__FUNCTION__,__LINE__);
         }
         
         while (ret == 0) {            
@@ -2907,41 +2907,44 @@ int CameraHal::takePicture()
     Message msg;
     Mutex::Autolock lock(mLock);
     int ret = NO_ERROR;
-    int cmd;
-    
-    LOG_FUNCTION_NAME 
         
     if(!mRecordRunning) {
-	    cmd = CMD_PREVIEW_CAPTURE;
-    } else {
-	    cmd = CMD_PREVIEW_VIDEOCAPTURE;
-    }
-    
-    if ((mPreviewThread != NULL) && (mCommandThread != NULL)) {
-        msg.command = cmd;
-        commandThreadCommandQ.put(&msg);
-        while (ret == 0) {            
-            ret = commandThreadAckQ.get(&msg,5000);
-            if (ret == 0) {
-                if (msg.command == cmd) {
-                    ret = 1;
-                    if (msg.arg1 == (void*)CMD_NACK) {
-                        LOGE("%s(%d): failed, because command thread response NACK\n",__FUNCTION__,__LINE__);    
-                        ret = INVALID_OPERATION;
-                    }                    
+        LOG1("%s Enter for picture",__FUNCTION__);
+        if ((mPreviewThread != NULL) && (mCommandThread != NULL)) {
+            msg.command = CMD_PREVIEW_CAPTURE;
+            commandThreadCommandQ.put(&msg);
+            while (ret == 0) {            
+                ret = commandThreadAckQ.get(&msg,5000);
+                if (ret == 0) {
+                    if (msg.command == CMD_PREVIEW_CAPTURE) {
+                        ret = 1;
+                        if (msg.arg1 == (void*)CMD_NACK) {
+                            LOGE("%s(%d): failed, because command thread response NACK\n",__FUNCTION__,__LINE__);    
+                            ret = INVALID_OPERATION;
+                        }                    
+                    }
+                } else {
+                    LOGE("%s(%d): PREVIEW_CAPTURE is time out! mCommandRunning 0x%x\n",__FUNCTION__,__LINE__,mCommandRunning);
                 }
-            } else {
-                LOGE("%s(%d): PREVIEW_CAPTURE is time out!!!\n",__FUNCTION__,__LINE__);
             }
+            
+            if (ret == 1)
+                ret = NO_ERROR;
+            
+        } else {
+            LOGE("%s(%d):  cancel, because thread (%s %s) is NULL", __FUNCTION__,__LINE__,(mPreviewThread == NULL)?"mPreviewThread":" ",
+                (mCommandThread == NULL)?"mCommandThread":" ");
+            ret = INVALID_OPERATION;
         }
-        
-        if (ret == 1)
-            ret = NO_ERROR;
-        
     } else {
-        LOGE("%s(%d):  cancel, because thread (%s %s) is NULL", __FUNCTION__,__LINE__,(mPreviewThread == NULL)?"mPreviewThread":" ",
-            (mCommandThread == NULL)?"mCommandThread":" ");
-        ret = INVALID_OPERATION;
+        LOG1("%s Enter for videoSnapshot",__FUNCTION__);
+        if (mPreviewThread != NULL) {
+            msg.command = CMD_PREVIEW_VIDEOSNAPSHOT;
+            previewThreadCommandQ.put(&msg);
+        } else {
+            LOGE("%s(%d): videoSnapshot cancel, because preview thread is NULL", __FUNCTION__,__LINE__);
+            ret = INVALID_OPERATION;
+        }
     }
 
     if (ret)
@@ -2959,10 +2962,9 @@ int CameraHal::cancelPicture()
     mPictureLock.lock();
     mPictureRunning = STA_PICTURE_WAIT_STOP;
     mPictureLock.unlock();
-    if(!mRecordRunning)
-	    mPictureThread->requestExitAndWait();
-    else
-	    mVideoPictureThread->requestExitAndWait();
+    
+	mPictureThread->requestExitAndWait();
+    
     
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -3170,8 +3172,8 @@ int CameraHal::dump(int fd)
             LOGD("%s(%d): buffer %d state is 0x%x", __FUNCTION__,__LINE__,i, mPreviewBufferMap[i].buf_state);
         }
     }
-    LOGD("%s(%d): mPreviewRunning:0x%x, mDisplayRuning:0x%x, mPictureRunning:0x%x,mIsVideoSnapshot:0x%x",
-        __FUNCTION__,__LINE__,mPreviewRunning, mDisplayRuning, mPictureRunning,mIsVideoSnapshot);
+    LOGD("%s(%d): mPreviewRunning:0x%x, mDisplayRuning:0x%x, mPictureRunning:0x%x, mCommandRunning:0x%x mSnapshotRunning:0x%x",
+        __FUNCTION__,__LINE__,mPreviewRunning, mDisplayRuning, mPictureRunning,mCommandRunning,mSnapshotRunning);
     
     return 0;
 }
@@ -3209,8 +3211,8 @@ void CameraHal::release()
     mAutoFocusThread.clear();
     mPictureThread->requestExitAndWait();
     mPictureThread.clear();
-    mVideoPictureThread->requestExitAndWait();
-    mVideoPictureThread.clear();
+    mSnapshotThread->requestExitAndWait();
+    mSnapshotThread.clear();
 	
     cameraDestroy();
     

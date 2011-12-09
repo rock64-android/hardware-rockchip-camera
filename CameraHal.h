@@ -61,8 +61,9 @@ namespace android {
 *v0.1.0 : CameraHal support for android 4.0(ICS);
 *v0.1.1 : CameraHal support query framerate from driver, display thread support NativeWindow sync and asyc mode;
 *v0.1.2 : CameraHal support video snap
+*v0.1.3 : CameraHal display NativeWindow in async mode
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 2)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 3)
 
 /*  */
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT    4           
@@ -117,6 +118,19 @@ typedef struct rk_previewbuf_info {
     int phy_addr;
     int buf_state;
 } rk_previewbuf_info_t;
+
+enum PreviewBufStatus {
+    CMD_PREVIEWBUF_DISPING = 0x01,
+    CMD_PREVIEWBUF_ENCING = 0x02,
+    CMD_PREVIEWBUF_SNAPSHOT_ENCING = 0x04,
+    CMD_PREVIEWBUF_WRITING = 0x08,
+};
+
+#define CAMERA_PREVIEWBUF_ALLOW_DISPLAY(a) ((a&CMD_PREVIEWBUF_WRITING)==0x00)
+#define CAMERA_PREVIEWBUF_ALLOW_ENC(a) ((a&CMD_PREVIEWBUF_WRITING)==0x00)
+#define CAMERA_PREVIEWBUF_ALLOW_ENC_PICTURE(a) ((a&CMD_PREVIEWBUF_WRITING)==0x00)
+#define CAMERA_PREVIEWBUF_ALLOW_WRITE(a)   ((a&(CMD_PREVIEWBUF_DISPING|CMD_PREVIEWBUF_ENCING|CMD_PREVIEWBUF_SNAPSHOT_ENCING))==0x00)
+
 
 class CameraHal {
 public:  
@@ -353,18 +367,18 @@ private:
         }
     };
 
-    class VideoPictureThread : public PictureThread {
+    class SnapshotThread : public Thread {
+    protected:
+        CameraHal* mHardware;
     public:
-        VideoPictureThread(CameraHal* hw)
-            : PictureThread(hw),mBufferIndex(-1) { }
+        SnapshotThread(CameraHal* hw)
+            : Thread(false),mHardware(hw) { }
 
         virtual bool threadLoop() {
-            mHardware->videoPictureThread(mBufferIndex);
+            mHardware->snapshotThread();
 
             return false;
         }
-    public:
-        int mBufferIndex;
     };
 
     class AutoFocusThread : public Thread {
@@ -397,11 +411,11 @@ private:
     void previewThread();
 	void commandThread();
     void pictureThread();
-    void videoPictureThread(int index);
+    void snapshotThread();
     void autofocusThread();
     void initDefaultParameters();
     int capturePicture(struct CamCaptureInfo_s *capture);
-    int captureVideoPicture(struct CamCaptureInfo_s *capture);
+    int captureVideoPicture(struct CamCaptureInfo_s *capture, int index);
 	int capturePicturePmemInfoSet(int pmem_fd, int input_offset, int out_offset);
     int cameraCreate(int cameraId);
     int cameraDestroy();
@@ -472,8 +486,10 @@ private:
     sp<PreviewThread>  mPreviewThread;
 	sp<CommandThread>  mCommandThread;
     sp<PictureThread>  mPictureThread;
-    sp<VideoPictureThread>  mVideoPictureThread;
+    sp<SnapshotThread>  mSnapshotThread;
     sp<AutoFocusThread>  mAutoFocusThread;
+    int mSnapshotRunning;
+    int mCommandRunning;
     int mPreviewRunning;
     Mutex mPreviewLock;
     Condition mPreviewCond;
@@ -487,7 +503,6 @@ private:
     Mutex mAutoFocusLock;
     Condition mAutoFocusCond;
     bool mExitAutoFocusThread; 
-    bool mIsVideoSnapshot;
 		
     int iCamFd;
     int iPmemFd;
@@ -518,13 +533,6 @@ private:
     double mGps_altitude;
     long mGps_timestamp;
 
-    enum PreviewBufStatus {
-        CMD_PREVIEWBUF_DISPING,
-        CMD_PREVIEWBUF_ENCING,
-        CMD_PREVIEWBUF_ENC_PICTURE,
-        CMD_PREVIEWBUF_WRITING,
-    };
-
     enum DisplayRunStatus {
         STA_DISPLAY_PAUSE,
         STA_DISPLAY_RUN,
@@ -542,6 +550,10 @@ private:
         STA_PICTURE_RUN,
         STA_PICTURE_WAIT_STOP,
     };
+    enum SnapshotThreadCommands {
+        CMD_SNAPSHOT_SNAPSHOT,
+        CMD_SNAPSHOT_EXIT
+    };
     enum DisplayThreadCommands {
 		// Comands
 		CMD_DISPLAY_PAUSE,        
@@ -552,15 +564,14 @@ private:
     enum PreviewThreadCommands {
 		// Comands
         CMD_PREVIEW_STAREQ,
-        CMD_PREVIEW_VIDEO_CAPTURE,
+        CMD_PREVIEW_VIDEOSNAPSHOT,
         CMD_PREVIEW_INVAL
     };
     enum CommandThreadCommands { 
 		// Comands
         CMD_PREVIEW_START,
         CMD_PREVIEW_STOP,
-        CMD_PREVIEW_CAPTURE,
-        CMD_PREVIEW_VIDEOCAPTURE,
+        CMD_PREVIEW_CAPTURE,        
         CMD_PREVIEW_CAPTURE_CANCEL,
         CMD_PREVIEW_QBUF,        
         
@@ -573,13 +584,16 @@ private:
         CMD_ACK,
         CMD_NACK,
     };
+    
     MessageQueue    displayThreadCommandQ;
     MessageQueue    displayThreadAckQ;
     MessageQueue    previewThreadCommandQ;
+    MessageQueue    snapshotThreadAckQ;
+    MessageQueue    snapshotThreadCommandQ;
     MessageQueue    previewThreadAckQ;
     MessageQueue    commandThreadCommandQ;
     MessageQueue    commandThreadAckQ;
-
+    
     camera_notify_callback mNotifyCb;
     camera_data_callback mDataCb;    
     camera_data_timestamp_callback mDataCbTimestamp;
