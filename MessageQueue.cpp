@@ -16,7 +16,8 @@
 static char gDisplayThreadCommands[][30] = {
 		{"CMD_DISPLAY_PAUSE"},
         {"CMD_DISPLAY_START"},
-        {"CMD_DISPLAY_STOP"}
+        {"CMD_DISPLAY_STOP"},
+		{"CMD_DISPLAY_FRAME"}
 };
 static char gPreviewThreadCommands[][30] = {
         {"CMD_PREVIEW_STAREQ"},
@@ -149,8 +150,7 @@ int MessageQueue::get(Message* msg, int timeout)
             }
         }
     }
-
-    MLOGD("%s.get_timeout(%s,%p,%p,%p,%p)",this->MsgQueName,  MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+        MLOGD("%s.get_timeout(%s,%p,%p,%p,%p)",this->MsgQueName,  MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
 
     return 0;
 }

@@ -526,7 +526,7 @@ capturePicture_streamoff:
     mPictureLock.unlock();
     
     cameraFormatConvert(picture_format, mCamDriverPictureFmt, NULL,
-        (char*)camDriverV4l2Buffer,(char*)mRawBuffer->pointer(), jpeg_w, jpeg_h);
+        (char*)camDriverV4l2Buffer,(char*)mRawBuffer->pointer(),0,0, jpeg_w, jpeg_h);
 
     if (mCamDriverV4l2MemType == V4L2_MEMORY_MMAP) {
         if (camDriverV4l2Buffer != NULL) {
@@ -704,7 +704,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
 
     if (mCamDriverPreviewFmt != mCamDriverPictureFmt) {
         cameraFormatConvert(mCamDriverPreviewFmt, mCamDriverPictureFmt, NULL,
-            (char*)capture->input_vir_addr,(char*)mRawBuffer->pointer(), jpeg_w, jpeg_h);
+            (char*)capture->input_vir_addr,(char*)mRawBuffer->pointer(),0,0, jpeg_w, jpeg_h);
         capture->input_phy_addr = mPmemHeapPhyBase + mRawBuffer->offset();
         capture->input_vir_addr = (int)mRawBuffer->pointer();
     }
@@ -778,7 +778,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
 	
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);  
 
-    cameraPreviewBufferSetSta(&mPreviewBufferMap[index], CMD_PREVIEWBUF_SNAPSHOT_ENCING, 0);    
+    cameraPreviewBufferSetSta(mPreviewBufferMap[index], CMD_PREVIEWBUF_SNAPSHOT_ENCING, 0);    
     if (mPreviewRunning == STA_PREVIEW_RUN) {	     
         msg.command = CMD_PREVIEW_QBUF;     
         msg.arg1 = (void*)index;

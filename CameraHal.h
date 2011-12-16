@@ -62,8 +62,9 @@ namespace android {
 *v0.1.1 : CameraHal support query framerate from driver, display thread support NativeWindow sync and asyc mode;
 *v0.1.2 : CameraHal support video snap
 *v0.1.3 : CameraHal display NativeWindow in async mode
+*v0.1.5 : CameraHal support send rgb565 to NativeWindow for display, facelock activity fix rgb565;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 3)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 5)
 
 /*  */
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT    4           
@@ -111,11 +112,12 @@ struct CamMemHeapInfo_s
 };
 
 typedef struct rk_previewbuf_info {
-    Mutex lock;
+    Mutex *lock;
     buffer_handle_t* buffer_hnd;
     private_handle_t* priv_hnd;
     camera_memory_t* video_buf;
     int phy_addr;
+    int vir_addr;
     int buf_state;
 } rk_previewbuf_info_t;
 
@@ -431,8 +433,9 @@ private:
     int cameraHeapBufferCreate(int rawBufferSize, int jpegBufferSize);
     int cameraHeapBufferDestory();
     int cameraPmemBufferFlush(sp<MemoryHeapBase> heap, sp<IMemory> buf);
-    int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, char *srcbuf, char *dstbuf, int w, int h);
-    int cameraPreviewBufferCreate(int width, int height, unsigned int fmt,unsigned int numBufs);
+    int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, char *srcbuf, char *dstbuf, 
+                                    int srcphy,int dstphy,int w, int h);
+    int cameraPreviewBufferCreate(int width, int height, const char *fmt,int numBufs);
     int cameraPreviewBufferDestory();
     int cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, int set);
     int cameraFramerateQuery(unsigned int format, unsigned int w, unsigned int h, int *min, int *max);
@@ -468,9 +471,11 @@ private:
     int mRawBufferSize;
     int mPreviewFrameSize;    
     int mPmemHeapPhyBase;
-    volatile int32_t mPreviewStartTimes;
+    volatile int32_t mPreviewStartTimes;   
     
-    rk_previewbuf_info_t mPreviewBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
+    rk_previewbuf_info_t *mPreviewBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
+    rk_previewbuf_info_t *mDisplayBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
+    rk_previewbuf_info_t mGrallocBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
 
     camera_memory_t* mPreviewMemory;
     unsigned char* mPreviewBufs[CONFIG_CAMERA_PRVIEW_BUF_CNT];
@@ -480,7 +485,9 @@ private:
 	sp<MemoryHeapBase> mMemHeapPmem;
     sp<IMemory> mJpegBuffer; 
     sp<IMemory> mRawBuffer;  
+    sp<IMemory> mPreviewBuffer[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     unsigned int CameraHal_SupportFmt[5];
+    char mDisplayFormat[30];
     
     sp<DisplayThread>  mDisplayThread;
     sp<PreviewThread>  mPreviewThread;
@@ -559,6 +566,7 @@ private:
 		CMD_DISPLAY_PAUSE,        
         CMD_DISPLAY_START,
         CMD_DISPLAY_STOP,
+        CMD_DISPLAY_FRAME,
         CMD_DISPLAY_INVAL
     };
     enum PreviewThreadCommands {
