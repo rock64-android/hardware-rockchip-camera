@@ -85,74 +85,15 @@ static int getCallingPid() {
     return IPCThreadState::self()->getCallingPid();
 }
 
-static void yuv420sp2rgb565(int width, int height, unsigned char *src, unsigned short *dst)
-{
-	int line, col, linewidth;
-	int y, u, v, yy, vr, ug, vg, ub;
-	int r, g, b;
-	const unsigned char *py, *pu, *pv;
-	
-	linewidth = width >> 1;
-	py = src;
-	pu = py + (width * height);
-	//pv = pu + (width * height) / 4;
-	pv = pu+1; 
-	
-	y = *py++;
-	yy = y << 8;
-	u = *pu - 128;
-	ug = 88 * u;
-	ub = 454 * u;
-	v = *pv - 128;
-	vg = 183 * v;
-	vr = 359 * v;
-	
-	for (line = 0; line < height; line++) {
-		for (col = 0; col < width; col++) {
-			r = (yy + vr) >> 8;
-			g = (yy - ug - vg) >> 8;
-			b = (yy + ub ) >> 8;
-			
-			if (r < 0) r = 0;
-			if (r > 255) r = 255;
-			if (g < 0) g = 0;
-			if (g > 255) g = 255;
-			if (b < 0) b = 0;
-			if (b > 255) b = 255;
-			*dst++ = (((unsigned short)r>>3)<<11) | (((unsigned short)g>>2)<<5) | (((unsigned short)b>>3)<<0); 
-			
-			y = *py++;
-            yy = y << 8;
-			if (col & 1) {
-				pu++;
-				//pv++;
-				pv=pu+1;
-				
-				u = *pu - 128;
-				ug = 88 * u;
-				ub = 454 * u;
-				v = *pv - 128;
-				vg = 183 * v;
-				vr = 359 * v;
-			}
-		} 
-		if ((line & 1) == 0) { 
-			pu -= linewidth;
-			//pv -= linewidth;
-			pv = pu+1;
-		}
-	} 
-}
-
 static int cameraPixFmt2HalPixFmt(const char *fmt)
 {
     int hal_pixel_format=HAL_PIXEL_FORMAT_YCrCb_NV12;
     
-    if (strcmp(fmt,"rgb565") == 0) {
+    if (strcmp(fmt,CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
         hal_pixel_format = HAL_PIXEL_FORMAT_RGB_565;        
-    } else if (strcmp(fmt,"yuv420sp") == 0) {
+    } else if (strcmp(fmt,CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
         hal_pixel_format = HAL_PIXEL_FORMAT_YCrCb_NV12;
-    } else if (strcmp(fmt,"yuv422sp") == 0) {
+    } else if (strcmp(fmt,CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
         hal_pixel_format = HAL_PIXEL_FORMAT_YCbCr_422_SP;
     } else {
         hal_pixel_format = -EINVAL;
@@ -524,7 +465,7 @@ void CameraHal::initDefaultParameters()
                 if ((fmt.fmt.pix.width == 176) && (fmt.fmt.pix.height == 144)) {
                     parameterString.append("176x144");
                     params.setPreviewSize(176, 144);
-                    previewFrameSizeMax =  PAGE_ALIGN(176*144*3/2)*2;          // 176*144*1.5*2
+                    previewFrameSizeMax =  PAGE_ALIGN(176*144*2)*2;          // 176*144*2     rgb565
                     params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"176x144");
                 }
             }
@@ -538,7 +479,7 @@ void CameraHal::initDefaultParameters()
                     if ((fmt.fmt.pix.width == 320) && (fmt.fmt.pix.height == 240)) {
                         parameterString.append(",320x240");
                         params.setPreviewSize(320, 240);
-                        previewFrameSizeMax =  PAGE_ALIGN(320*240*3/2)*2;          // 320*240*1.5*2
+                        previewFrameSizeMax =  PAGE_ALIGN(320*240*2)*2;          // 320*240*2
                         params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"320x240");
                     }
                 }
@@ -552,7 +493,7 @@ void CameraHal::initDefaultParameters()
                 if ((fmt.fmt.pix.width == 352) && (fmt.fmt.pix.height == 288)) {
                     parameterString.append(",352x288");
                     params.setPreviewSize(352, 288);
-                    previewFrameSizeMax =  PAGE_ALIGN(352*288*3/2)*2;          // 352*288*1.5*2
+                    previewFrameSizeMax =  PAGE_ALIGN(352*288*2)*2;          // 352*288*1.5*2
                     params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"352x288");
                 }
             }
@@ -565,7 +506,7 @@ void CameraHal::initDefaultParameters()
                 if ((fmt.fmt.pix.width == 640) && (fmt.fmt.pix.height == 480)) {
                     parameterString.append(",640x480");
                     params.setPreviewSize(640, 480);
-                    previewFrameSizeMax =  PAGE_ALIGN(640*480*3/2)*2;          // 640*480*1.5*2
+                    previewFrameSizeMax =  PAGE_ALIGN(640*480*2)*2;          // 640*480*1.5*2
                     params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
                 }
             }
@@ -577,7 +518,7 @@ void CameraHal::initDefaultParameters()
             if (ioctl(iCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
                 if ((fmt.fmt.pix.width == 720) && (fmt.fmt.pix.height == 480)) {
                     parameterString.append(",720x480");
-                    previewFrameSizeMax =  PAGE_ALIGN(720*480*3/2)*2;          // 720*480*1.5*2
+                    previewFrameSizeMax =  PAGE_ALIGN(720*480*2)*2;          // 720*480*1.5*2
                     params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"720x480");
                 }
             }
@@ -589,7 +530,7 @@ void CameraHal::initDefaultParameters()
             if (ioctl(iCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
                 if ((fmt.fmt.pix.width == 1280) && (fmt.fmt.pix.height == 720)) {
                     parameterString.append(",1280x720");
-                    previewFrameSizeMax =  PAGE_ALIGN(1280*720*3/2)*2;          // 1280*720*1.5*2
+                    previewFrameSizeMax =  PAGE_ALIGN(1280*720*2)*2;          // 1280*720*1.5*2
                     params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"1280x720");
                 }
             }
@@ -670,9 +611,12 @@ void CameraHal::initDefaultParameters()
 
     /*preview format setting*/
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS, "yuv420sp,yuv422sp,rgb565");
-    params.set(CameraParameters::KEY_VIDEO_FRAME_FORMAT,"yuv420sp");
-
-    params.setPreviewFormat(CameraParameters::PIXEL_FORMAT_YUV420SP);   
+    params.set(CameraParameters::KEY_VIDEO_FRAME_FORMAT,CameraParameters::PIXEL_FORMAT_YUV420SP);
+    if (strcmp(cameraCallProcess,"com.android.camera")==0) {    //for PanoramaActivity
+        params.setPreviewFormat(CameraParameters::PIXEL_FORMAT_RGB565);   
+    } else {
+        params.setPreviewFormat(CameraParameters::PIXEL_FORMAT_YUV420SP);   
+    }
 
 	params.set(CameraParameters::KEY_VIDEO_FRAME_FORMAT,CameraParameters::PIXEL_FORMAT_YUV420SP);
 
@@ -1226,7 +1170,7 @@ display_receive_cmd:
                     }
 
                     if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
-                        if (strcmp(mParameters.getPreviewFormat(),"rgb565") == 0) {
+                        if (strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
                             if (mPreviewMemory) {
                                 /* ddl@rock-chips.com : preview frame rate may be too high, CTS testPreviewCallback may be fail*/                    
                                 memcpy((char*)mPreviewBufs[queue_display_index], (char*)mDisplayBufferMap[queue_display_index]->vir_addr, mPreviewFrameSize);                                                             
@@ -1448,7 +1392,7 @@ void CameraHal::previewThread()
             } 
 
             if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
-                if (strcmp(mParameters.getPreviewFormat(),"rgb565")) {
+                if (strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420SP)==0) {
                     if (mPreviewMemory) {
                         cameraFormatConvert(mCamDriverPreviewFmt,V4L2_PIX_FMT_NV21,NULL,
                             (char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBufs[cfilledbuffer1.index], 0,0,mPreviewWidth, mPreviewHeight);                                                               
@@ -1944,11 +1888,11 @@ int CameraHal::cameraPreviewBufferCreate(int width, int height, const char *fmt,
         goto fail;
     }
     /* ddl@rock-chips.com: NativeWindow switch to async mode after v0.1.3 */
-    #if 0
+    /*
     if (mANativeWindow->set_swap_interval(mANativeWindow, 1) != 0) {
         LOGE("%s(%d): set mANativeWindow run in synchronous mode failed",__FUNCTION__,__LINE__);
     }
-    #endif
+    */
     
     mANativeWindow->get_min_undequeued_buffer_count(mANativeWindow, &undequeued);
     
@@ -2052,7 +1996,7 @@ int CameraHal::cameraPreviewBufferCreate(int width, int height, const char *fmt,
         mDisplayBufferMap[i] = &mGrallocBufferMap[i];        
     }
     
-    if (strcmp(fmt,"rgb565")) {
+    if (strcmp(fmt,CameraParameters::PIXEL_FORMAT_RGB565)) {
         for (i=0; i<numBufs; i++)
             mPreviewBufferMap[i] = &mGrallocBufferMap[i];
     } else { 
@@ -2090,10 +2034,11 @@ int CameraHal::cameraPreviewBufferCreate(int width, int height, const char *fmt,
  fail:
     if (mPreviewBufferCount) {
         for (i = 0; i<mPreviewBufferCount; i++) {
-            err = mANativeWindow->cancel_buffer(mANativeWindow, (buffer_handle_t*)mGrallocBufferMap[i].buffer_hnd);
-            if (err != 0) {
-              LOGE("%s(%d): cancelBuffer failed w/ error 0x%08x",__FUNCTION__,__LINE__, err);
-              break;
+            if (mGrallocBufferMap[i].buffer_hnd) {
+                err = mANativeWindow->cancel_buffer(mANativeWindow, (buffer_handle_t*)mGrallocBufferMap[i].buffer_hnd);
+                if (err != 0) {
+                  LOGE("%s(%d): cancelBuffer failed w/ error 0x%08x",__FUNCTION__,__LINE__, err);                  
+                }
             }
         }
     }
@@ -2870,9 +2815,6 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                     src_uv++;
                 }
             } else if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_RGB565)==0)) {
-                #if 0
-                yuv420sp2rgb565(w,h, (unsigned char*)srcbuf, (unsigned short*)dstbuf);
-                #else
                 YUV2RGBParams  para;
             	
             	para.yuvAddr = srcphy;
@@ -2885,7 +2827,6 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                 para.outColor  = PP_OUT_RGB565;
 
                 doYuvToRgb(&para);
-                #endif
             }
             break;
         }
@@ -3267,9 +3208,7 @@ int CameraHal::setParameters(const CameraParameters &params_set)
         }
     }  
     
-    if ((strcmp(params.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_YUV420SP) == 0)
-        || (strcmp(params.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_YUV422SP) == 0)
-        || (strcmp(params.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_RGB565) == 0) ) {
+    if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),params.getPreviewFormat())) {
         
         /* ddl@rock-chips.com : CameraHal_SupportFmt[0] : V4L2_PIX_FMT_NV12 OR V4L2_PIX_FMT_YUV420(rk29xx_camera 0.0.1) */
         if (mCamDriverPreviewFmt != CameraHal_SupportFmt[0]) {
@@ -3283,11 +3222,11 @@ int CameraHal::setParameters(const CameraParameters &params_set)
             }        
         }
 
-        if ((strcmp(cameraCallProcess,"com.android.facelock") == 0)
-            || (strcmp(params.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_RGB565) == 0)) {        
-            strcpy(mDisplayFormat,"rgb565");
-        } else {
-            strcpy(mDisplayFormat,"yuv420sp");            
+        if ((strcmp(params.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_RGB565)==0)
+            || (strcmp(cameraCallProcess,"com.android.facelock")==0)) {
+            strcpy(mDisplayFormat,CameraParameters::PIXEL_FORMAT_RGB565);
+        } else { 
+            strcpy(mDisplayFormat,CameraParameters::PIXEL_FORMAT_YUV420SP);
         }
         
     } else {

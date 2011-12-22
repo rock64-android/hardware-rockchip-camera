@@ -60,22 +60,23 @@ namespace android {
 /*
 *v0.1.0 : CameraHal support for android 4.0(ICS);
 *v0.1.1 : CameraHal support query framerate from driver, display thread support NativeWindow sync and asyc mode;
-*v0.1.2 : CameraHal support video snap
-*v0.1.3 : CameraHal display NativeWindow in async mode
+*v0.1.2 : CameraHal support video snap;
+*v0.1.3 : CameraHal display NativeWindow in async mode;
 *v0.1.5 : CameraHal support send rgb565 to NativeWindow for display, facelock activity fix rgb565;
+*v0.1.6 : Camera and Facelock activity fix rgb565 display, but send yuv420 to JAVA for Facelock;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 5)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 6)
 
 /*  */
-#define CONFIG_CAMERA_PRVIEW_BUF_CNT    4           
+#define CONFIG_CAMERA_PRVIEW_BUF_CNT    3           
 
 #define CAMERA_PMEM_NAME                "/dev/pmem_cam"
 #define CAMERA_DRIVER_SUPPORT_FORMAT_MAX   32
 
-#define RAW_BUFFER_SIZE_5M          0x800000
-#define RAW_BUFFER_SIZE_3M          0x500000
-#define RAW_BUFFER_SIZE_2M          0x300000
-#define RAW_BUFFER_SIZE_1M          0x200000
+#define RAW_BUFFER_SIZE_5M          0x740000
+#define RAW_BUFFER_SIZE_3M          0x480000
+#define RAW_BUFFER_SIZE_2M          0x2c0000
+#define RAW_BUFFER_SIZE_1M          0x120000
 #define RAW_BUFFER_SIZE_0M3          0x100000
 
 #define JPEG_BUFFER_SIZE_5M          0x400000
