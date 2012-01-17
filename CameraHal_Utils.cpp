@@ -84,8 +84,8 @@ extern "C"  int YData_Mirror_Line(int v4l2_fmt_src, int *psrc, int *pdst, int w)
     int i;
 
     for (i=0; i<(w>>2); i++) {
-        *pdst = ((*psrc>>24)&0x000000ff) | ((*psrc>>16)&0x0000ff00)
-                | ((*psrc>>8)&0x00ff0000) | ((*psrc<<24)&0xff000000);
+        *pdst = ((*psrc>>24)&0x000000ff) | ((*psrc>>8)&0x0000ff00)
+                | ((*psrc<<8)&0x00ff0000) | ((*psrc<<24)&0xff000000);
         psrc++;
         pdst--;
     }
@@ -148,7 +148,7 @@ int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo)
     char date[12];
     
     if(gpsInfo==NULL) {    
-        LOGE( "..%s..%d..argument error ! ",__FUNCTION__,__LINE__);
+        LOGE( "%s(%d): gpsInfo is NULL ",__FUNCTION__,__LINE__);
         return 0;
     }
 
@@ -174,7 +174,8 @@ int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo)
         latitude = fabs(latitude);
         fract = modf(latitude,&deg);
         fract = modf(fract*60,&min);
-        modf(fract*60,&sec);
+        fract = modf(fract*60,&sec);
+        if(fract >= 0.5)sec+=1;
         
         //LOGD("latitude: deg = %f;min = %f;sec =%f",deg,min,sec);
 
@@ -213,33 +214,31 @@ int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo)
     	gpsInfo->GPSLongitude[2].denom = 1;
     }
     
-    if(altitude > 0){
-        gpsInfo->GPSAltitudeRef = 1;
-    }else if((altitude <0 )&&(altitude!=-1)) {
-        gpsInfo->GPSAltitudeRef = -1;
-    }else {
+    if(altitude >= 0){
         gpsInfo->GPSAltitudeRef = 0;
-    }  
+    }else if((altitude <0 )&&(altitude!=-1)) {
+        gpsInfo->GPSAltitudeRef = 1;
+    } 
     
     if(altitude!=-1)
     {
         altitude = fabs(altitude);
     	gpsInfo->GPSAltitude.num =(uint32_t)altitude;
     	gpsInfo->GPSAltitude.denom = 0x1;
-        //LOGD("altitude =%f",altitude);        
+        //LOGD("altitude =%f  GPSAltitudeRef: %d",altitude,gpsInfo->GPSAltitudeRef);        
     }
     
     if(timestamp!=-1)
     {
        /*timestamp,has no meaning,only for passing cts*/
         //LOGD("timestamp =%d",timestamp);
-        gpsInfo->GpsTimeStamp[0].num =12;
+        gpsInfo->GpsTimeStamp[0].num =0;
     	gpsInfo->GpsTimeStamp[0].denom = 1;
-    	gpsInfo->GpsTimeStamp[1].num = 12;
+    	gpsInfo->GpsTimeStamp[1].num = 0;
     	gpsInfo->GpsTimeStamp[1].denom = 1;
-    	gpsInfo->GpsTimeStamp[2].num = 12;
+    	gpsInfo->GpsTimeStamp[2].num = timestamp&0x03;
     	gpsInfo->GpsTimeStamp[2].denom = 1;         
-    	memcpy(gpsInfo->GpsDateStamp,"2011:07:06",11);//"YYYY:MM:DD\0"
+    	memcpy(gpsInfo->GpsDateStamp,"2008:01:01\0",11);//"YYYY:MM:DD\0"
     }    
     return 1;
 }
@@ -298,10 +297,15 @@ int CameraHal::Jpegfillexifinfo(RkExifInfo *exifInfo)
 	exifInfo->MaxApertureValue.num = 0x02f8;
 	exifInfo->MaxApertureValue.denom = 0x100;
 	exifInfo->MeteringMode = 02;
-    if ((strcmp(CameraParameters::FLASH_MODE_OFF, mParameters.get(CameraParameters::KEY_FLASH_MODE)) == 0)) {
-	    exifInfo->Flash = 0;
+
+    if (mParameters.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES)) {
+        if (!strcmp(CameraParameters::FLASH_MODE_OFF, mParameters.get(CameraParameters::KEY_FLASH_MODE))) {
+	        exifInfo->Flash = 0;
+        } else {
+            exifInfo->Flash = 0;
+        }    
     } else {
-        exifInfo->Flash = 1;
+        exifInfo->Flash = 0;
     }
     
 	exifInfo->FocalLength.num = (uint32_t)focalen;
@@ -315,15 +319,61 @@ int CameraHal::Jpegfillexifinfo(RkExifInfo *exifInfo)
 	exifInfo->FileSource = 3;
 	exifInfo->CustomRendered = 1;
 	exifInfo->ExposureMode = 0;
-    if (strcmp(CameraParameters::WHITE_BALANCE_AUTO, mParameters.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE)) == 0) {
-	    exifInfo->WhiteBalance = 0;
+    if (mParameters.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE)) {
+        if (!strcmp(CameraParameters::WHITE_BALANCE_AUTO, mParameters.get(CameraParameters::KEY_WHITE_BALANCE))) {
+	        exifInfo->WhiteBalance = 0;
+        } else {
+            exifInfo->WhiteBalance = 1;
+        }    
     } else {
-        exifInfo->WhiteBalance = 1;
+        exifInfo->WhiteBalance = 0;
     }
 	exifInfo->DigitalZoomRatio.num = jpeg_w;
 	exifInfo->DigitalZoomRatio.denom = jpeg_w;
 	exifInfo->SceneCaptureType = 0x01;   
     return 1;
+}
+
+int CameraHal::copyAndSendRawImage(void *raw_image, int size)
+{
+    camera_memory_t* picture = NULL;
+    void *dest = NULL, *src = NULL;
+
+    if(msgTypeEnabled(CAMERA_MSG_RAW_IMAGE)) { 
+        picture = mRequestMemory(-1, size, 1, NULL);
+        if (NULL != picture) {
+            dest = picture->data;
+            if (NULL != dest) {
+                memcpy(dest, raw_image, size);
+                mDataCb(CAMERA_MSG_RAW_IMAGE, picture, 0, NULL, mCallbackCookie);
+            }
+            picture->release(picture);
+        } else if (msgTypeEnabled(CAMERA_MSG_RAW_IMAGE_NOTIFY)) {
+            mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
+        }
+    } else if (msgTypeEnabled(CAMERA_MSG_RAW_IMAGE_NOTIFY)) {
+        mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
+    }
+    return 0;
+}
+
+int CameraHal::copyAndSendCompressedImage(void *compressed_image, int size)
+{
+    camera_memory_t* picture = NULL;
+    void *dest = NULL, *src = NULL;
+
+    if(msgTypeEnabled(CAMERA_MSG_COMPRESSED_IMAGE)) { 
+        picture = mRequestMemory(-1, size, 1, NULL);
+        if (NULL != picture) {
+            dest = picture->data;
+            if (NULL != dest) {
+                memcpy(dest, compressed_image, size);
+                mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie);
+            }
+            picture->release(picture);
+        } 
+    }
+    return 0;
 }
 
 int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
@@ -491,7 +541,7 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     }
     mPictureLock.unlock();
 
-    if (strcmp((char*)&mCamDriverCapability.driver[0],"uvcvideo") == 0) {
+    if (CAMERA_IS_UVC_CAMERA()) {
         for (i=0; i<4; i++) {
             ioctl(iCamFd, VIDIOC_DQBUF, &buffer);
             ioctl(iCamFd, VIDIOC_QBUF, &buffer);
@@ -537,7 +587,7 @@ capturePicture_streamoff:
     }
 
     /* ddl@rock-chips.com: Release v4l2 buffer must by close device, buffer isn't release in VIDIOC_STREAMOFF ioctl */
-    if (strcmp((char*)&mCamDriverCapability.driver[0],"uvcvideo") == 0) {
+    if (CAMERA_IS_UVC_CAMERA()) {
         close(iCamFd);
         iCamFd = open(cameraDevicePathCur, O_RDWR);
         if (iCamFd < 0) {
@@ -562,6 +612,8 @@ capturePicture_streamoff:
         } 
     }
 
+    copyAndSendRawImage((void*)mRawBuffer->pointer(), pictureSize);
+
     iPicturePmemFd = iPmemFd;
     PicturePmemSize = mPmemSize;
     PicturePmem_Offset_Output = mJpegBuffer->offset();
@@ -569,7 +621,13 @@ capturePicture_streamoff:
     if ((rotation == 0) || (rotation == 180)) {
         JpegInInfo.rotateDegree = DEGREE_0;        
     } else if (rotation == 90) {
-        JpegInInfo.rotateDegree = DEGREE_90;
+        if(jpeg_w %16 != 0 || jpeg_h %16 != 0){
+			YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mRawBuffer->pointer(), 
+					(char*)mJpegBuffer->pointer(), jpeg_w, jpeg_h);
+			JpegInInfo.rotateDegree = DEGREE_270;
+		}else{
+			JpegInInfo.rotateDegree = DEGREE_90;
+		}
     } else if (rotation == 270) {
         JpegInInfo.rotateDegree = DEGREE_270; 
     }
@@ -611,7 +669,7 @@ capturePicture_streamoff:
         memcpy(gpsprocessmethod+8,getMethod,strlen(getMethod)+1);          
         gpsInfo.GpsProcessingMethodchars = strlen(getMethod)+1+8;
         gpsInfo.GPSProcessingMethod  = gpsprocessmethod;
-        LOGD("\nGpsProcessingMethodchars =%d",gpsInfo.GpsProcessingMethodchars);
+        //LOGD("\nGpsProcessingMethodchars =%d",gpsInfo.GpsProcessingMethodchars);
         JpegInInfo.gpsInfo = &gpsInfo;
     } else {
         JpegInInfo.gpsInfo = NULL;
@@ -631,24 +689,16 @@ capturePicture_streamoff:
         goto exit;
     }
     mPictureLock.unlock();
+    int ii;
+    for (ii= 0; ii<3; ii++)
+        LOGD("%s..%d/%d ",__FUNCTION__,gpsInfo.GpsTimeStamp[ii].denom,gpsInfo.GpsTimeStamp[ii].num);
 
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
     if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
         LOGE("hw_jpeg_encode Failed \n");
         goto exit;
-    } else { 
-        camera_memory_t* picture = NULL;
-        
-    	if (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE) {
-            LOGD("%s success, notify compressed image callback capture success(size:0x%x)!!!\n", __FUNCTION__,JpegOutInfo.jpegFileLen);
-            picture = mRequestMemory(-1, JpegOutInfo.jpegFileLen, 1, NULL);
-            if (picture && picture->data) {
-                memcpy(picture->data,(char*)JpegOutInfo.outBufVirAddr, JpegOutInfo.jpegFileLen);
-                mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie);
-                picture->release(picture);
-                picture = NULL;
-            }            
-    	}        
+    } else {         
+        copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);
     }
 
 exit:   
@@ -681,6 +731,9 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     long timestamp;
     bool driver_mirror_fail = false;
     struct Message msg;
+
+    if (mMsgEnabled & CAMERA_MSG_SHUTTER)
+        mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
     
      /*get jpeg and thumbnail information*/
     mParameters.getPreviewSize(&jpeg_w, &jpeg_h); 
@@ -715,6 +768,8 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
         }
     }
 
+    copyAndSendRawImage((void*)capture->input_vir_addr, pictureSize);
+
     iPicturePmemFd = iPmemFd;
     PicturePmemSize = mPmemSize;
     PicturePmem_Offset_Output = mJpegBuffer->offset();
@@ -775,7 +830,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     JpegOutInfo.outBuflen = capture->output_buflen;
     JpegOutInfo.jpegFileLen = 0x00;
     JpegOutInfo.cacheflush= &capturePicture_cacheflush;
-	
+    
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);  
 
     cameraPreviewBufferSetSta(mPreviewBufferMap[index], CMD_PREVIEWBUF_SNAPSHOT_ENCING, 0);    
@@ -794,18 +849,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
         LOGE("%s(%d): JpegOutInfo.outBuflen:0x%x",__FUNCTION__,__LINE__,JpegOutInfo.outBuflen);
         goto exit;
     } else { 
-        camera_memory_t* picture = NULL;
-        
-    	if (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE) {
-            LOGD("%s success, notify compressed image callback capture success(size:0x%x)!!!\n", __FUNCTION__,JpegOutInfo.jpegFileLen);
-            picture = mRequestMemory(-1, JpegOutInfo.jpegFileLen, 1, NULL);
-            if (picture && picture->data) {
-                memcpy(picture->data,(char*)JpegOutInfo.outBufVirAddr, JpegOutInfo.jpegFileLen);
-                mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie);
-                picture->release(picture);
-                picture = NULL;
-            }            
-    	}        
+        copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);       
     }
 exit:   
 return err;

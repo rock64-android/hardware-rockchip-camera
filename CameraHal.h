@@ -64,8 +64,9 @@ namespace android {
 *v0.1.3 : CameraHal display NativeWindow in async mode;
 *v0.1.5 : CameraHal support send rgb565 to NativeWindow for display, facelock activity fix rgb565;
 *v0.1.6 : Camera and Facelock activity fix rgb565 display, but send yuv420 to JAVA for Facelock;
+*v0.2.0 : Camera CTS test PASS(android.hardware.cts.CameraTest) and support usb camera(UVC);
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 1, 6)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0)
 
 /*  */
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT    3           
@@ -94,8 +95,8 @@ namespace android {
 
 #define CAMHAL_GRALLOC_USAGE GRALLOC_USAGE_HW_TEXTURE | \
                              GRALLOC_USAGE_HW_RENDER | \
-                             GRALLOC_USAGE_SW_READ_RARELY | \
-                             GRALLOC_USAGE_SW_WRITE_NEVER
+                             GRALLOC_USAGE_SW_WRITE_MASK| \
+                             GRALLOC_USAGE_SW_READ_RARELY 
 
 struct CamCaptureInfo_s
 {
@@ -134,6 +135,9 @@ enum PreviewBufStatus {
 #define CAMERA_PREVIEWBUF_ALLOW_ENC_PICTURE(a) ((a&CMD_PREVIEWBUF_WRITING)==0x00)
 #define CAMERA_PREVIEWBUF_ALLOW_WRITE(a)   ((a&(CMD_PREVIEWBUF_DISPING|CMD_PREVIEWBUF_ENCING|CMD_PREVIEWBUF_SNAPSHOT_ENCING))==0x00)
 
+
+#define CAMERA_IS_UVC_CAMERA()  (strcmp((char*)&mCamDriverCapability.driver[0],"uvcvideo") == 0)
+#define CAMERA_IS_RKSOC_CAMERA()  (strcmp((char*)&mCamDriverCapability.driver[0],"rk29xx-camera") == 0)
 
 class CameraHal {
 public:  
@@ -430,7 +434,9 @@ private:
 	int cameraAutoFocus(const char *focus);
     int Jpegfillgpsinfo(RkGPSInfo *gpsInfo);
     int Jpegfillexifinfo(RkExifInfo *exifInfo);
-
+    int copyAndSendRawImage(void *raw_image, int size);
+    int copyAndSendCompressedImage(void *compressed_image, int size);
+        
     int cameraHeapBufferCreate(int rawBufferSize, int jpegBufferSize);
     int cameraHeapBufferDestory();
     int cameraPmemBufferFlush(sp<MemoryHeapBase> heap, sp<IMemory> buf);
@@ -468,6 +474,8 @@ private:
 	int mPreviewBufferCount;
     int mPreviewWidth;
     int mPreviewHeight;
+    int mPictureWidth;
+    int mPictureHeight;
     int mJpegBufferSize;
     int mRawBufferSize;
     int mPreviewFrameSize;    
