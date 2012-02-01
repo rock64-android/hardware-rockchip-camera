@@ -650,7 +650,14 @@ loop_continue:
         }
         continue;    
     }
-
+//zyc , change the camera infomation if there is a usb camera
+if((strcmp(camInfoTmp[0].driver,"uvcvideo") == 0)){
+	camInfoTmp[0].facing_info.facing = (camInfoTmp[1].facing_info.facing == CAMERA_FACING_FRONT) ? CAMERA_FACING_BACK:CAMERA_FACING_FRONT;
+	camInfoTmp[0].facing_info.orientation = (camInfoTmp[0].facing_info.facing == CAMERA_FACING_FRONT)?270:90;
+}else if((strcmp(camInfoTmp[1].driver,"uvcvideo") == 0)){
+	camInfoTmp[1].facing_info.facing = (camInfoTmp[0].facing_info.facing == CAMERA_FACING_FRONT) ? CAMERA_FACING_BACK:CAMERA_FACING_FRONT;
+	camInfoTmp[1].facing_info.orientation = (camInfoTmp[1].facing_info.facing == CAMERA_FACING_FRONT)?270:90;
+}
     gCamerasNumber = cam_cnt;
 
 #if CONFIG_AUTO_DETECT_FRAMERATE

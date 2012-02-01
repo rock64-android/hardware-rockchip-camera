@@ -440,6 +440,8 @@ void CameraHal::initDefaultParameters()
         params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, parameterString.string());
         parameterString = "(15000,15000)";
         params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, parameterString.string());
+    	/*not support zoom */
+    	params.set(CameraParameters::KEY_ZOOM_SUPPORTED, "false");
 
     } else if (CAMERA_IS_RKSOC_CAMERA()) {
     
@@ -2451,17 +2453,19 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 	}
 
     /*zoom setting*/
-    const int zoom = params.getInt(CameraParameters::KEY_ZOOM);
-	const int mzoom = mParameters.getInt(CameraParameters::KEY_ZOOM);
-	if (params.get(CameraParameters::KEY_ZOOM_SUPPORTED)) {
-		if ((mzoom < 0) || (zoom != mzoom)) {			
-            control.id = V4L2_CID_ZOOM_ABSOLUTE;
-			control.value = zoom * mZoomStep + mZoomMin;
-			err = ioctl(iCamFd, VIDIOC_S_CTRL, &control);
-			if ( err < 0 ){
-				LOGE ("%s(%d): Set zoom(%d) fail",__FUNCTION__,__LINE__,control.value);
-			} else {
-			    LOGD ("%s(%d): Set zoom(%d)",__FUNCTION__,__LINE__, control.value);
+	if (!CAMERA_IS_UVC_CAMERA()) {
+	    const int zoom = params.getInt(CameraParameters::KEY_ZOOM);
+		const int mzoom = mParameters.getInt(CameraParameters::KEY_ZOOM);
+		if (params.get(CameraParameters::KEY_ZOOM_SUPPORTED)) {
+			if ((mzoom < 0) || (zoom != mzoom)) {			
+	            control.id = V4L2_CID_ZOOM_ABSOLUTE;
+				control.value = zoom * mZoomStep + mZoomMin;
+				err = ioctl(iCamFd, VIDIOC_S_CTRL, &control);
+				if ( err < 0 ){
+					LOGE ("%s(%d): Set zoom(%d) fail",__FUNCTION__,__LINE__,control.value);
+				} else {
+				    LOGD ("%s(%d): Set zoom(%d)",__FUNCTION__,__LINE__, control.value);
+				}
 			}
 		}
 	}
