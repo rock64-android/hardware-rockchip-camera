@@ -270,7 +270,7 @@ int CameraHal::cameraFramerateQuery(unsigned int format, unsigned int w, unsigne
     struct v4l2_frmivalenum fival;
 
     if ((mCamDriverCapability.version & 0xff) < 0x05) {
-        LOGD("Camera driver version: %d.%d.%d isn't support query framerate, Please update to v0.x.5",
+        LOGE("Camera driver version: %d.%d.%d isn't support query framerate, Please update to v0.x.5",
             (mCamDriverCapability.version>>16) & 0xff,(mCamDriverCapability.version>>8) & 0xff,
             mCamDriverCapability.version & 0xff);
         goto default_fps;
@@ -285,6 +285,11 @@ int CameraHal::cameraFramerateQuery(unsigned int format, unsigned int w, unsigne
 
     if (ret == 0) {
         if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
+            /* ddl@rock-chip.com: Compatible for v0.x.5 camera driver*/
+            if ((mCamDriverCapability.version & 0xff) > 0x05) {
+                if ((fival.discrete.denominator < 60) && (fival.discrete.numerator == 1000))
+                    fival.discrete.denominator *= 1000;                
+            }
             *min = (fival.discrete.denominator*1000)/fival.discrete.numerator;
             *max = (fival.discrete.denominator*1000)/fival.discrete.numerator;
         } else {
