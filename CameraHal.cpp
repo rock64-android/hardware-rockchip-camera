@@ -136,6 +136,7 @@ CameraHal::CameraHal(int cameraId)
             mEffect_number(0),
             mScene_number(0),
             mWhiteBalance_number(0),
+            mFlashMode_number(0),
             mGps_latitude(-1),
             mGps_longitude(-1),
             mGps_altitude(-1),
