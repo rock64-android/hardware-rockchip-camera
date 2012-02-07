@@ -118,6 +118,7 @@ CameraHal::CameraHal(int cameraId)
             mANativeWindow(NULL),
             mPreviewErrorFrameCount(0),
 	        mPreviewFrameSize(0),
+	        mPreviewFrameDiv(1),
 	        mCamDriverFrmHeightMax(0),
 	        mCamDriverFrmWidthMax(0),
 	        mPreviewBufferCount(0),
@@ -1106,7 +1107,7 @@ display_receive_cmd:
                 }
 
                 case CMD_DISPLAY_FRAME:
-                {
+                {                    
                     if (mDisplayRuning != STA_DISPLAY_RUN) 
                         goto display_receive_cmd;
                         
@@ -1117,7 +1118,7 @@ display_receive_cmd:
                         continue;
                     }
                     
-                    queue_buf_index = (int)msg.arg1;
+                    queue_buf_index = (int)msg.arg1;                    
                     queue_display_index = CONFIG_CAMERA_PRVIEW_BUF_CNT;
                     if (mDisplayBufferMap[queue_buf_index] != mPreviewBufferMap[queue_buf_index]) {
                         
@@ -1201,7 +1202,7 @@ display_receive_cmd:
                             if (mPreviewMemory) {
                                 /* ddl@rock-chips.com : preview frame rate may be too high, CTS testPreviewCallback may be fail*/                    
                                 memcpy((char*)mPreviewBufs[queue_display_index], (char*)mDisplayBufferMap[queue_display_index]->vir_addr, mPreviewFrameSize);                                                             
-                                mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, queue_display_index,NULL,mCallbackCookie); 
+                                mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, queue_display_index,NULL,mCallbackCookie);                                 
                             } else {
                                 LOGE("%s(%d): mPreviewMemory is NULL, preview data could not send to application",__FUNCTION__,__LINE__);
                             }    
@@ -1371,6 +1372,11 @@ void CameraHal::previewThread()
             } else {
                 mPreviewErrorFrameCount = 0;
             }
+            mPreviewFrameIndex++;
+            if (mPreviewFrameIndex%mPreviewFrameDiv) {
+                ioctl(iCamFd, VIDIOC_QBUF, &cfilledbuffer1);
+                continue;
+            }
 
             if (gLogLevel == 2)
                 debugShowFPS();
@@ -1381,6 +1387,8 @@ void CameraHal::previewThread()
                 cameraFormatConvert(mCamDriverPreviewFmt,V4L2_PIX_FMT_NV12,NULL,
                 	(char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBuffer[cfilledbuffer1.index]->pointer(), 0,0,mPreviewWidth, mPreviewHeight);															  
             }
+
+            
             buffer_log = 0;
             if (mANativeWindow) {
                 buffer_log |= CMD_PREVIEWBUF_DISPING;
@@ -1413,9 +1421,10 @@ void CameraHal::previewThread()
                     snapshotThreadCommandQ.put(&msg);
                 }
              
-                if (mVideoBufs[cfilledbuffer1.index] != NULL) {                    
-                    mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[cfilledbuffer1.index], 0, mCallbackCookie);                                                
-                    LOG2("%s(%d): enqueue buffer %d to encoder", __FUNCTION__,__LINE__,cfilledbuffer1.index);
+                if (mVideoBufs[cfilledbuffer1.index] != NULL) { 
+                        mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[cfilledbuffer1.index], 0, mCallbackCookie);                                                
+                        LOG2("%s(%d): enqueue buffer %d to encoder", __FUNCTION__,__LINE__,cfilledbuffer1.index);
+                    
                 } else {
                     LOGE("%s(%d): mVideoBufs[%d] is NULL, this frame recording cancel",__FUNCTION__,__LINE__,cfilledbuffer1.index);
                     cameraPreviewBufferSetSta(mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENCING, 0);
@@ -1425,10 +1434,10 @@ void CameraHal::previewThread()
             if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
                 if (!strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420SP) ||
                     !strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420P)) {
-                    if (mPreviewMemory) {
+                    if (mPreviewMemory) {                        
                         cameraFormatConvert(mCamDriverPreviewFmt,0x00,mParameters.getPreviewFormat(),
                             (char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBufs[cfilledbuffer1.index], 0,0,mPreviewWidth, mPreviewHeight);                                                               
-                        mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, cfilledbuffer1.index,NULL,mCallbackCookie); 
+                        mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, cfilledbuffer1.index,NULL,mCallbackCookie);                         
                     } else {
                         LOGE("%s(%d): mPreviewMemory is NULL, preview data could not send to application",__FUNCTION__,__LINE__);
                     }
@@ -2747,7 +2756,7 @@ int CameraHal::cameraStart()
         }
     }
     mPreviewErrorFrameCount = 0;
-
+    mPreviewFrameIndex = 0;
     LOG_FUNCTION_NAME_EXIT
     return 0;
 
@@ -3320,10 +3329,32 @@ int CameraHal::setParameters(const CameraParameters &params_set)
     }
 
     if (CAMERA_IS_RKSOC_CAMERA()) {
+        mPreviewFrameDiv = 1;
         cameraFpsInfoSet(params);
         if (strstr(params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE), params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE)) == NULL) {
-            LOGE("%s(%d): PreviewFpsRange(%s) not supported, so switch to (%s)",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE),
-                params.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
+            int min_fps, min_fps_set, max_fps, max_fps_set;
+
+            params.getPreviewFpsRange(&min_fps, &max_fps);
+            params_set.getPreviewFpsRange(&min_fps_set, &max_fps_set);
+
+            if (min_fps_set != max_fps_set) {            
+                LOGE("%s(%d): PreviewFpsRange(%s) not supported, so switch to (%s)",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE),
+                    params.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
+            } else {
+                if (min_fps > min_fps_set) {
+                    if ((min_fps/1000)%(min_fps_set/1000) == 0) {
+                        mPreviewFrameDiv = min_fps/min_fps_set;
+                        params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
+                        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, params_set.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE));
+                    } else {
+                        LOGE("%s(%d): PreviewFpsRange(%s) not supported, so switch to (%s)",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE),
+                            params.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
+                    }
+                } else {
+                    LOGE("%s(%d): PreviewFpsRange(%s) not supported, so switch to (%s)",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE),
+                        params.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
+                }
+            }
         } 
     } 
     

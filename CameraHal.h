@@ -65,11 +65,12 @@ namespace android {
 *v0.1.5 : CameraHal support send rgb565 to NativeWindow for display, facelock activity fix rgb565;
 *v0.1.6 : Camera and Facelock activity fix rgb565 display, but send yuv420 to JAVA for Facelock;
 *v0.2.0 : Camera CTS test PASS(android.hardware.cts.CameraTest) and support usb camera(UVC);
+*v0.2.1 : Camera CTS test PASS(android.hardware.cts.CameraGLTest);
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 1)
 
 /*  */
-#define CONFIG_CAMERA_PRVIEW_BUF_CNT    3           
+#define CONFIG_CAMERA_PRVIEW_BUF_CNT    4           
 
 #define CAMERA_PMEM_NAME                "/dev/pmem_cam"
 #define CAMERA_DRIVER_SUPPORT_FORMAT_MAX   32
@@ -480,7 +481,9 @@ private:
     int mRawBufferSize;
     int mPreviewFrameSize;    
     int mPmemHeapPhyBase;
-    volatile int32_t mPreviewStartTimes;   
+    volatile int32_t mPreviewStartTimes;  
+    int mPreviewFrameDiv;
+    int mPreviewFrameIndex;
     
     rk_previewbuf_info_t *mPreviewBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     rk_previewbuf_info_t *mDisplayBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
