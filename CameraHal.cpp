@@ -411,19 +411,24 @@ void CameraHal::initDefaultParameters()
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, str_picturesize);        
         params.setPictureSize(mCamDriverFrmWidthMax,  mCamDriverFrmHeightMax);        
 
-        if (mCamDriverFrmWidthMax <= 2592) {                    			
-            mRawBufferSize = RAW_BUFFER_SIZE_5M;
-            mJpegBufferSize = JPEG_BUFFER_SIZE_5M;
+        if (mCamDriverFrmWidthMax <= 1024) {
+    		mRawBufferSize = RAW_BUFFER_SIZE_1M;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_1M;
+        } else if (mCamDriverFrmWidthMax <= 1600) {
+    		mRawBufferSize = RAW_BUFFER_SIZE_2M;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_2M;
         } else if (mCamDriverFrmWidthMax <= 2048) {
     		mRawBufferSize = RAW_BUFFER_SIZE_3M;
             mJpegBufferSize = JPEG_BUFFER_SIZE_3M;
-    	} else if (mCamDriverFrmWidthMax <= 1600) {
-    		mRawBufferSize = RAW_BUFFER_SIZE_2M;
-            mJpegBufferSize = JPEG_BUFFER_SIZE_2M;
-    	} else if (mCamDriverFrmWidthMax <= 1024) {
-    		mRawBufferSize = RAW_BUFFER_SIZE_1M;
-            mJpegBufferSize = JPEG_BUFFER_SIZE_1M;
-        }
+        } else if (mCamDriverFrmWidthMax <= 2592) {                    			
+            mRawBufferSize = RAW_BUFFER_SIZE_5M;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_5M;
+    	} else {
+    	    LOGE("%s(%d):Camera Hal is only support 5Mega camera, but the uvc camera is %dx%d",
+                 __FUNCTION__,__LINE__,mCamDriverFrmWidthMax, mCamDriverFrmHeightMax);
+            mRawBufferSize = RAW_BUFFER_SIZE_5M;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_5M;
+    	}
         
         /* set framerate */
         struct v4l2_streamparm setfps;          
