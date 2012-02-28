@@ -66,6 +66,11 @@ namespace android {
 *v0.1.6 : Camera and Facelock activity fix rgb565 display, but send yuv420 to JAVA for Facelock;
 *v0.2.0 : Camera CTS test PASS(android.hardware.cts.CameraTest) and support usb camera(UVC);
 *v0.2.1 : Camera CTS test PASS(android.hardware.cts.CameraGLTest);
+*v0.2.2 : 
+*         1) CameraHal fix send yuv data to app error when attach usb camera(UVC);
+*         2) CameraHal add support exposure,but sensor driver must support it;
+*         3) CameraHal fix send 160x120 resolution to facelock for speed up facelock;
+*
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 1)
 
@@ -442,7 +447,7 @@ private:
     int cameraHeapBufferDestory();
     int cameraPmemBufferFlush(sp<MemoryHeapBase> heap, sp<IMemory> buf);
     int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, char *srcbuf, char *dstbuf, 
-                                    int srcphy,int dstphy,int w, int h);
+                            int srcphy,int dstphy,int src_w, int src_h,int dst_w, int dst_h);
     int cameraPreviewBufferCreate(int width, int height, const char *fmt,int numBufs);
     int cameraPreviewBufferDestory();
     int cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, int set);
@@ -470,16 +475,20 @@ private:
     Mutex mANativeWindowLock;
     Condition mANativeWindowCond;
     preview_stream_ops_t *mANativeWindow;
+    String8 mSupportPreviewSizeReally;
     int mMsgEnabled;
     int mPreviewErrorFrameCount;
 	int mPreviewBufferCount;
     int mPreviewWidth;
     int mPreviewHeight;
+    int mPreviewFrame2AppWidth;
+    int mPreviewFrame2AppHeight;
     int mPictureWidth;
     int mPictureHeight;
     int mJpegBufferSize;
     int mRawBufferSize;
-    int mPreviewFrameSize;    
+    int mPreviewFrameSize;
+    int mPreviewFrame2AppSize;
     int mPmemHeapPhyBase;
     volatile int32_t mPreviewStartTimes;  
     int mPreviewFrameDiv;

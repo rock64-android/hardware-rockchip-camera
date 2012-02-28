@@ -483,7 +483,6 @@ void CameraHal::initDefaultParameters()
                 }
             }
         }
-        
         if (strcmp(cameraCallProcess,"com.tencent.android.pad")) {
             if (mCamDriverFrmWidthMax >= 320) {            
              	fmt.fmt.pix.width = 320;
@@ -498,7 +497,6 @@ void CameraHal::initDefaultParameters()
                 }
             }
         }
-        
         if (mCamDriverFrmWidthMax >= 352) {            
          	fmt.fmt.pix.width = 352;
          	fmt.fmt.pix.height = 288;
@@ -548,7 +546,15 @@ void CameraHal::initDefaultParameters()
                 }
             }
         }
-       
+        mSupportPreviewSizeReally = parameterString;
+        /* ddl@rock-chips.com: Facelock speed is low, so scale down preview data to facelock for speed up */
+        if ((strcmp(cameraCallProcess,"com.android.facelock")==0)) {            
+            if (strstr(mSupportPreviewSizeReally.string(),"640x480")||
+                strstr(mSupportPreviewSizeReally.string(),"320x240")) {
+                parameterString = "160x120";
+                params.setPreviewSize(160, 120);    
+            }
+        }
         params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());
         
         strcat(str_picturesize,parameterString.string());
@@ -871,13 +877,22 @@ void CameraHal::initDefaultParameters()
     LOGD ("Support Preview FPS range: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE));
     LOGD ("Support Preview framerate: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES)); 
     LOGD ("Support Picture sizes: %s ",params.get(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES));
-    LOGD ("Support white balance: %s",params.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE));
-    LOGD ("Support color effect: %s",params.get(CameraParameters::KEY_SUPPORTED_EFFECTS));
-    LOGD ("Support scene: %s",params.get(CameraParameters::KEY_SUPPORTED_SCENE_MODES));
-    LOGD ("Support flash: %s",params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES));
+    if (params.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE))
+        LOGD ("Support white balance: %s",params.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE));
+    if (params.get(CameraParameters::KEY_SUPPORTED_EFFECTS))
+        LOGD ("Support color effect: %s",params.get(CameraParameters::KEY_SUPPORTED_EFFECTS));
+    if (params.get(CameraParameters::KEY_SUPPORTED_SCENE_MODES))
+        LOGD ("Support scene: %s",params.get(CameraParameters::KEY_SUPPORTED_SCENE_MODES));
+    if (params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES))
+        LOGD ("Support flash: %s",params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES));
     LOGD ("Support focus: %s",params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES));
     LOGD ("Support zoom: %s(ratios: %s)",params.get(CameraParameters::KEY_ZOOM_SUPPORTED),
         params.get(CameraParameters::KEY_ZOOM_RATIOS));
+    if (strcmp("0", params.get(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION))
+		|| strcmp("0", params.get(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION))) {
+        LOGD ("Support exposure: (%s -> %s)",params.get(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION),
+            params.get(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION));
+    }
     LOGD ("Support hardware faces detecte: %s",params.get(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW));
     LOGD ("Support software faces detecte: %s",params.get(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_SW));
     LOGD ("Support video stabilization: %s",params.get(CameraParameters::KEY_VIDEO_STABILIZATION_SUPPORTED));
@@ -1163,11 +1178,13 @@ display_receive_cmd:
                         
                         if(CAMERA_IS_RKSOC_CAMERA()) {                            
                             cameraFormatConvert(mCamDriverPreviewFmt, 0,mDisplayFormat,NULL,NULL,
-                                mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr, mPreviewWidth, mPreviewHeight);
+                                mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,
+                                mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight);
                         } else {
                         	/* zyc@rock-chips.com: for usb camera */
                         	cameraFormatConvert(V4L2_PIX_FMT_NV12, 0,mDisplayFormat,NULL,NULL,
-                        		mPmemHeapPhyBase + mPreviewBuffer[queue_buf_index]->offset(), mDisplayBufferMap[queue_display_index]->phy_addr, mPreviewWidth, mPreviewHeight);
+                        		mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,
+                        		mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight);
                         }
                         
                     } else {
@@ -1206,7 +1223,7 @@ display_receive_cmd:
                         if (strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
                             if (mPreviewMemory) {
                                 /* ddl@rock-chips.com : preview frame rate may be too high, CTS testPreviewCallback may be fail*/                    
-                                memcpy((char*)mPreviewBufs[queue_display_index], (char*)mDisplayBufferMap[queue_display_index]->vir_addr, mPreviewFrameSize);                                                             
+                                memcpy((char*)mPreviewBufs[queue_display_index], (char*)mDisplayBufferMap[queue_display_index]->vir_addr, mPreviewFrame2AppSize);                                                             
                                 mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, queue_display_index,NULL,mCallbackCookie);                                 
                             } else {
                                 LOGE("%s(%d): mPreviewMemory is NULL, preview data could not send to application",__FUNCTION__,__LINE__);
@@ -1390,9 +1407,9 @@ void CameraHal::previewThread()
             //zyc ,convert the format for usb camera
             if (CAMERA_IS_UVC_CAMERA()) {
                 cameraFormatConvert(mCamDriverPreviewFmt,V4L2_PIX_FMT_NV12,NULL,
-                	(char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBuffer[cfilledbuffer1.index]->pointer(), 0,0,mPreviewWidth, mPreviewHeight);															  
-            }
-
+                	(char*)mCamDriverV4l2Buffer[cfilledbuffer1.index],(char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr, 
+                	0,0,mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight);															  
+            }      
             
             buffer_log = 0;
             if (mANativeWindow) {
@@ -1439,9 +1456,16 @@ void CameraHal::previewThread()
             if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
                 if (!strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420SP) ||
                     !strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420P)) {
-                    if (mPreviewMemory) {                        
-                        cameraFormatConvert(mCamDriverPreviewFmt,0x00,mParameters.getPreviewFormat(),
-                            (char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBufs[cfilledbuffer1.index], 0,0,mPreviewWidth, mPreviewHeight);                                                               
+                    if (mPreviewMemory) {
+                        if (CAMERA_IS_UVC_CAMERA()) {
+                            cameraFormatConvert(V4L2_PIX_FMT_NV12,0x00,mParameters.getPreviewFormat(),
+                                (char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBufs[cfilledbuffer1.index],
+                                0,0,mPreviewWidth, mPreviewHeight,mPreviewFrame2AppWidth, mPreviewFrame2AppHeight);
+                        } else {
+                            cameraFormatConvert(mCamDriverPreviewFmt,0x00,mParameters.getPreviewFormat(),
+                                (char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBufs[cfilledbuffer1.index],
+                                0,0,mPreviewWidth, mPreviewHeight,mPreviewFrame2AppWidth, mPreviewFrame2AppHeight);
+                        }
                         mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, cfilledbuffer1.index,NULL,mCallbackCookie);                         
                     } else {
                         LOGE("%s(%d): mPreviewMemory is NULL, preview data could not send to application",__FUNCTION__,__LINE__);
@@ -2041,32 +2065,34 @@ int CameraHal::cameraPreviewBufferCreate(int width, int height, const char *fmt,
         mGrallocBufferMap[i].vir_addr = mGrallocBufferMap[i].priv_hnd->base;
         mDisplayBufferMap[i] = &mGrallocBufferMap[i];        
     }
+
+    int frame_size;
+
+    switch (mCamDriverPreviewFmt)
+    {
+        case V4L2_PIX_FMT_NV12:
+        case V4L2_PIX_FMT_YUV420:
+            frame_size = mPreviewWidth*mPreviewHeight*3/2;
+            break;
+        case V4L2_PIX_FMT_NV16:
+        case V4L2_PIX_FMT_YUV422P:
+        default:
+            frame_size = mPreviewWidth*mPreviewHeight*2;
+            break;            
+    }
+    for (i=0; i<numBufs; i++) {
+        mPreviewBuffer[i] = (static_cast<MemoryHeapPmem*>(mMemHeapPmem.get()))->mapMemory(PAGE_ALIGN(frame_size)*i,PAGE_ALIGN(frame_size));
+    }
     
     if (strcmp(fmt,CameraParameters::PIXEL_FORMAT_RGB565)) {
         for (i=0; i<numBufs; i++)
             mPreviewBufferMap[i] = &mGrallocBufferMap[i];
-    } else { 
-        int frame_size;
-
-        switch (mCamDriverPreviewFmt)
-        {
-            case V4L2_PIX_FMT_NV12:
-            case V4L2_PIX_FMT_YUV420:
-                frame_size = mPreviewWidth*mPreviewHeight*3/2;
-                break;
-            case V4L2_PIX_FMT_NV16:
-            case V4L2_PIX_FMT_YUV422P:
-            default:
-                frame_size = mPreviewWidth*mPreviewHeight*2;
-                break;            
-        }
+    } else {         
         for (i=0; i<numBufs; i++) {
             mPreviewBufferMap[i] = (rk_previewbuf_info_t*)malloc(sizeof(rk_previewbuf_info_t));            
             if (mPreviewBufferMap[i]) {
                 memset((char*)mPreviewBufferMap[i],0x00,sizeof(rk_previewbuf_info_t));
-                mPreviewBufferMap[i]->lock = new Mutex();
-                
-                mPreviewBuffer[i] = (static_cast<MemoryHeapPmem*>(mMemHeapPmem.get()))->mapMemory(PAGE_ALIGN(frame_size)*i,PAGE_ALIGN(frame_size));
+                mPreviewBufferMap[i]->lock = new Mutex();                
                 mPreviewBufferMap[i]->vir_addr = (int)mPreviewBuffer[i]->pointer();
                 mPreviewBufferMap[i]->phy_addr = mPmemHeapPhyBase + mPreviewBuffer[i]->offset();
             } else {
@@ -2578,9 +2604,30 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 	}
     
     mParameters = params;
-    mParameters.getPreviewSize(&mPreviewWidth, &mPreviewHeight); 
+    mParameters.getPreviewSize(&mPreviewFrame2AppWidth, &mPreviewFrame2AppHeight); 
+    if (strcmp(cameraCallProcess,"com.android.facelock")==0) {        
+        if ((mPreviewFrame2AppWidth==160) && (mPreviewFrame2AppHeight==120)) {
+            if (strstr(mSupportPreviewSizeReally.string(),"640x480")) {
+                mPreviewWidth = 640;
+                mPreviewHeight = 480;
+            } else if (strstr(mSupportPreviewSizeReally.string(),"320x240")) {
+                mPreviewWidth = 320;
+                mPreviewHeight = 240;
+            } else {
+                LOGE("%s(%d): CameraHal isn't support 160x120 preview size for facelock",__FUNCTION__,__LINE__);
+                err = -1;
+            }
+        } else {
+            mPreviewWidth = mPreviewFrame2AppWidth;
+            mPreviewHeight = mPreviewFrame2AppHeight;
+        }        
+    } else {
+        mPreviewWidth = mPreviewFrame2AppWidth;
+        mPreviewHeight = mPreviewFrame2AppHeight;
+    }
     mParameters.getPictureSize(&mPictureWidth, &mPictureHeight);
-    
+    LOGD("%s(%d): Display and preview size is %dx%d, but facelock receive framesize is %dx%d",
+           __FUNCTION__,__LINE__, mPreviewWidth,mPreviewHeight,mPreviewFrame2AppWidth,mPreviewFrame2AppHeight);
 end:  
     return err;
 }
@@ -2649,9 +2696,11 @@ int CameraHal::cameraStart()
     if (!strcmp(mParameters.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_YUV420SP) ||
         !strcmp(mParameters.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_YUV420P)) {
         mPreviewFrameSize = (mPreviewWidth * mPreviewHeight * 3)/2;
+        mPreviewFrame2AppSize = (mPreviewFrame2AppWidth * mPreviewFrame2AppHeight * 3)/2;
     } else if ((!strcmp(mParameters.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_YUV422SP)) ||
        (!strcmp(mParameters.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_RGB565))) {
         mPreviewFrameSize = mPreviewWidth * mPreviewHeight * 2;
+        mPreviewFrame2AppSize = mPreviewFrame2AppWidth * mPreviewFrame2AppHeight*2;
     } else {
         LOGE("%s(%d): cameraStart failed, because %s is not supported for preview",__FUNCTION__,__LINE__,mParameters.getPreviewFormat());
         return -1;
@@ -2695,8 +2744,6 @@ int CameraHal::cameraStart()
                 mCamDriverV4l2Buffer[i] = (char*)mmap(0 /* start anywhere */ ,
                                     buffer.length, PROT_READ, MAP_SHARED, iCamFd,
                                     buffer.m.offset);
-        		mPreviewBufferMap[i]->phy_addr = buffer.m.offset;
-        		mPreviewBufferMap[i]->vir_addr = (int)mCamDriverV4l2Buffer[i];
                 if (mCamDriverV4l2Buffer[i] == MAP_FAILED) {
                     LOGE("%s(%d): Unable to map buffer(length:0x%x offset:0x%x) %s(err:%d)\n",__FUNCTION__,__LINE__, buffer.length,buffer.m.offset,strerror(errno),errno);
                     goto fail_bufalloc;
@@ -2727,15 +2774,15 @@ int CameraHal::cameraStart()
     }
 	
     if(!mPreviewMemory) {
-	    mPreviewMemory = mRequestMemory(-1, mPreviewFrameSize, CONFIG_CAMERA_PRVIEW_BUF_CNT, NULL);
-    } else if (mPreviewMemory->size != (unsigned int)(mPreviewFrameSize*CONFIG_CAMERA_PRVIEW_BUF_CNT)) {
+	    mPreviewMemory = mRequestMemory(-1, mPreviewFrame2AppSize, CONFIG_CAMERA_PRVIEW_BUF_CNT, NULL);
+    } else if (mPreviewMemory->size != (unsigned int)(mPreviewFrame2AppSize*CONFIG_CAMERA_PRVIEW_BUF_CNT)) {
         mPreviewMemory->release(mPreviewMemory);
-        mPreviewMemory = mRequestMemory(-1, mPreviewFrameSize, CONFIG_CAMERA_PRVIEW_BUF_CNT, NULL);
+        mPreviewMemory = mRequestMemory(-1, mPreviewFrame2AppSize, CONFIG_CAMERA_PRVIEW_BUF_CNT, NULL);
     }
     
     if (mPreviewMemory) {
         for (int i=0; i < CONFIG_CAMERA_PRVIEW_BUF_CNT; i++) {
-            mPreviewBufs[i] = (unsigned char*) mPreviewMemory->data + (i*mPreviewFrameSize);
+            mPreviewBufs[i] = (unsigned char*) mPreviewMemory->data + (i*mPreviewFrame2AppSize);
         }
     } else {
         LOGE("%s(%d): mPreviewMemory create failed",__FUNCTION__,__LINE__);
@@ -2869,28 +2916,29 @@ cameraAutoFocus_end:
     return err;
 }
 int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, char *srcbuf, char *dstbuf, 
-                                    int srcphy,int dstphy,int w, int h)
+                                    int srcphy,int dstphy,int src_w, int src_h, int dst_w, int dst_h)
 {
     int y_size,i,j;
 
     /*
     if (v4l2_fmt_dst) {    
-        LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->'%c%c%c%c'@(0x%x,0x%x) %dx%d",
+        LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x,%dx%d)->'%c%c%c%c'@(0x%x,0x%x,%dx%d) ",
     				v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
     				(v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF,
+    				(int)srcbuf, srcphy,src_w,src_h,
     				v4l2_fmt_dst & 0xFF, (v4l2_fmt_dst >> 8) & 0xFF,
     				(v4l2_fmt_dst >> 16) & 0xFF, (v4l2_fmt_dst >> 24) & 0xFF,
-    				(int)srcbuf, srcphy, (int)dstbuf,dstphy,w,h);
+    				 (int)dstbuf,dstphy,dst_w,dst_h);
     } else if (android_fmt_dst) {
-        LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->%s@(0x%x,0x%x) %dx%d",
+        LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x,%dx%d)->%s@(0x%x,0x%x,%dx%d)",
     				v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
     				(v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF
-    				, (int)srcbuf, srcphy,android_fmt_dst, (int)dstbuf,dstphy,
-    				 w,h);
+    				, (int)srcbuf, srcphy,src_w,src_h,android_fmt_dst, (int)dstbuf,dstphy,
+    				 dst_w,dst_h);
     }
     */  
     
-    y_size = w*h;
+    y_size = src_w*src_h;
     switch (v4l2_fmt_src)
     {
         case V4L2_PIX_FMT_YUV420:
@@ -2905,25 +2953,75 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
             int *dst_vu, *src_uv;
             
             if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV21) || 
-                (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_YUV420SP)==0))) { 
-                if (dstbuf != srcbuf)
-                    memcpy(dstbuf,srcbuf, y_size);
-                src_uv = (int*)(srcbuf + y_size); 
-                dst_vu = (int*)(dstbuf+y_size);
-                for (i=0; i<(y_size>>3); i++) {
-                    *dst_vu = ((*src_uv&0x00ff00ff)<<8) | ((*src_uv&0xff00ff00)>>8);
-                    dst_vu++;
-                    src_uv++;
+                (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_YUV420SP)==0))) {
+                if ((src_w == dst_w) && (src_h == dst_h)) {
+                    if (dstbuf != srcbuf)
+                        memcpy(dstbuf,srcbuf, y_size);
+                    src_uv = (int*)(srcbuf + y_size); 
+                    dst_vu = (int*)(dstbuf+y_size);
+                    for (i=0; i<(y_size>>3); i++) {
+                        *dst_vu = ((*src_uv&0x00ff00ff)<<8) | ((*src_uv&0xff00ff00)>>8);
+                        dst_vu++;
+                        src_uv++;
+                    }
+                } else {
+                    if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV21) || 
+                        (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_YUV420SP)==0))) {
+                        int *dst_y,*src_y,*dst_uv,*src_uv; 
+                        if ((src_w == dst_w*4) && (src_h == dst_h*4)) {
+                            dst_y = (int*)dstbuf;
+                            src_y = (int*)srcbuf;                            
+                            for (i=0; i<dst_h; i++) {
+                                for(j=0; j<dst_w/4; j++) {
+                                    *dst_y++ = (*src_y&0xff000000)|((*(src_y+1)&0xff000000)>>8)|
+                                                ((*(src_y+2)&0xff000000)>>16)|((*(src_y+3)&0xff000000)>>24);
+                                    src_y += 4;
+                                }
+                                //dst_y = (int*)(srcbuf+src_w*(i+1));
+                                src_y += (src_w*3)/4;
+                            }
+                            dst_uv = (int*)(dstbuf+dst_w*dst_h);
+                            //dst_uv = (int*)(srcbuf+y_size);
+                            src_uv = (int*)(srcbuf+y_size);
+                            for (i=0; i<dst_h/2; i++) {
+                                for(j=0; j<dst_w/4; j++) {
+                                    *dst_uv = (*src_uv&0xffff0000)|((*(src_uv+2)&0xffff0000)>>16);
+                                    *dst_uv = ((*dst_uv&0x00ff00ff)<<8)|((*dst_uv&0xff00ff00)>>8);
+                                    dst_uv++;
+                                    src_uv += 4;
+                                }
+                                //dst_uv = (int*)(srcbuf+y_size+src_w*(i+1));
+                                src_uv += src_w*3/4;
+                            }
+                        }                   
+                    } else {
+                        if (v4l2_fmt_dst) {    
+                            LOGE("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->'%c%c%c%c'@(0x%x,0x%x), %dx%d->%dx%d "
+                                 "scale isn't support",
+                        				v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
+                        				(v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF,
+                        				v4l2_fmt_dst & 0xFF, (v4l2_fmt_dst >> 8) & 0xFF,
+                        				(v4l2_fmt_dst >> 16) & 0xFF, (v4l2_fmt_dst >> 24) & 0xFF,
+                        				(int)srcbuf, srcphy, (int)dstbuf,dstphy,src_w,src_h,dst_w,dst_h);
+                        } else if (android_fmt_dst) {
+                            LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->%s@(0x%x,0x%x) %dx%d->%dx%d "
+                                 "scale isn't support",
+                        				v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
+                        				(v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF
+                        				, (int)srcbuf, srcphy,android_fmt_dst, (int)dstbuf,dstphy,
+                        				 src_w,src_h,dst_w,dst_h);
+                        }
+                    }          
                 }
             } else if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_RGB565)==0)) {
                 YUV2RGBParams  para;
             	
             	para.yuvAddr = srcphy;
             	para.outAddr = dstphy;
-            	para.inwidth  = (w + 15)&(~15);
-            	para.inheight = (h + 15)&(~15);
-            	para.outwidth  = (w + 15)&(~15);
-            	para.outheight = (h + 15)&(~15);
+            	para.inwidth  = (src_w + 15)&(~15);
+            	para.inheight = (src_h + 15)&(~15);
+            	para.outwidth  = (dst_w + 15)&(~15);
+            	para.outheight = (dst_h + 15)&(~15);
                 para.inColor  = PP_IN_YUV420sp;
                 para.outColor  = PP_OUT_RGB565;
 
@@ -2949,45 +3047,83 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
             
             if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV12) || 
                 ((v4l2_fmt_dst == V4L2_PIX_FMT_YUV420) && CAMERA_IS_RKSOC_CAMERA() 
-                && (mCamDriverCapability.version == KERNEL_VERSION(0, 0, 1)))) {                
-                dstint_y = (int*)dstbuf;                
-                srcint = (int*)srcbuf;
-                for(i=0;i<(y_size>>2);i++) {
-                    *dstint_y++ = ((*(srcint+1)&0x00ff0000)<<8)|((*(srcint+1)&0x000000ff)<<16)
-                                |((*srcint&0x00ff0000)>>8)|(*srcint&0x000000ff);
-                    
-                    srcint += 2;
-                }
-                dstint_uv =  (int*)(dstbuf + y_size);
-                srcint = (int*)srcbuf;
-                for(i=0;i<h/2; i++) {
-                    for (j=0; j<(w>>2); j++) {
-                        *dstint_uv++ = (*(srcint+1)&0xff000000)|((*(srcint+1)&0x0000ff00)<<8)
-                                    |((*srcint&0xff000000)>>16)|((*srcint&0x0000ff00)>>8); 
+                && (mCamDriverCapability.version == KERNEL_VERSION(0, 0, 1)))) { 
+                if ((src_w == dst_w) && (src_h == dst_h)) {
+                    dstint_y = (int*)dstbuf;                
+                    srcint = (int*)srcbuf;
+                    for(i=0;i<(y_size>>2);i++) {
+                        *dstint_y++ = ((*(srcint+1)&0x00ff0000)<<8)|((*(srcint+1)&0x000000ff)<<16)
+                                    |((*srcint&0x00ff0000)>>8)|(*srcint&0x000000ff);
+                        
                         srcint += 2;
                     }
-                    srcint += (w>>1);  
+                    dstint_uv =  (int*)(dstbuf + y_size);
+                    srcint = (int*)srcbuf;
+                    for(i=0;i<src_h/2; i++) {
+                        for (j=0; j<(src_w>>2); j++) {
+                            *dstint_uv++ = (*(srcint+1)&0xff000000)|((*(srcint+1)&0x0000ff00)<<8)
+                                        |((*srcint&0xff000000)>>16)|((*srcint&0x0000ff00)>>8); 
+                            srcint += 2;
+                        }
+                        srcint += (src_w>>1);  
+                    }
+                } else {
+                    if (v4l2_fmt_dst) {    
+                        LOGE("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->'%c%c%c%c'@(0x%x,0x%x), %dx%d->%dx%d "
+                             "scale isn't support",
+                    				v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
+                    				(v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF,
+                    				v4l2_fmt_dst & 0xFF, (v4l2_fmt_dst >> 8) & 0xFF,
+                    				(v4l2_fmt_dst >> 16) & 0xFF, (v4l2_fmt_dst >> 24) & 0xFF,
+                    				(int)srcbuf, srcphy, (int)dstbuf,dstphy,src_w,src_h,dst_w,dst_h);
+                    } else if (android_fmt_dst) {
+                        LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->%s@(0x%x,0x%x) %dx%d->%dx%d "
+                             "scale isn't support",
+                    				v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
+                    				(v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF
+                    				, (int)srcbuf, srcphy,android_fmt_dst, (int)dstbuf,dstphy,
+                    				 src_w,src_h,dst_w,dst_h);
+                    }
                 }
-                 
-            } else if (v4l2_fmt_dst == V4L2_PIX_FMT_NV21) {
-                dstint_y = (int*)dstbuf;                
-                srcint = (int*)srcbuf;
-                for(i=0;i<(y_size>>2);i++) {
-                    *dstint_y++ = ((*(srcint+1)&0x00ff0000)<<8)|((*(srcint+1)&0x000000ff)<<16)
-                                |((*srcint&0x00ff0000)>>8)|(*srcint&0x000000ff);
-                    
-                    srcint += 2;
-                }
-                dstint_uv =  (int*)(dstbuf + y_size);
-                srcint = (int*)srcbuf;
-                for(i=0;i<h/2; i++) {
-                    for (j=0; j<(w>>2); j++) {
-                        *dstint_uv++ = ((*(srcint+1)&0xff000000)>>8)|((*(srcint+1)&0x0000ff00)<<16)
-                                    |((*srcint&0xff000000)>>24)|(*srcint&0x0000ff00); 
+
+            } else if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV21)|| 
+                       (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_YUV420SP)==0))) {
+                if ((src_w==dst_w) && (src_h==dst_h)) {
+                    dstint_y = (int*)dstbuf;                
+                    srcint = (int*)srcbuf;
+                    for(i=0;i<(y_size>>2);i++) {
+                        *dstint_y++ = ((*(srcint+1)&0x00ff0000)<<8)|((*(srcint+1)&0x000000ff)<<16)
+                                    |((*srcint&0x00ff0000)>>8)|(*srcint&0x000000ff);
                         srcint += 2;
                     }
-                    srcint += (w>>1);  
-                }                  
+                    dstint_uv =  (int*)(dstbuf + y_size);
+                    srcint = (int*)srcbuf;
+                    for(i=0;i<src_h/2; i++) {
+                        for (j=0; j<(src_w>>2); j++) {
+                            *dstint_uv++ = ((*(srcint+1)&0xff000000)>>8)|((*(srcint+1)&0x0000ff00)<<16)
+                                        |((*srcint&0xff000000)>>24)|(*srcint&0x0000ff00); 
+                            srcint += 2;
+                        }
+                        srcint += (src_w>>1);  
+                    }                  
+                } else {
+                    if (v4l2_fmt_dst) {    
+                        LOGE("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->'%c%c%c%c'@(0x%x,0x%x), %dx%d->%dx%d "
+                             "scale isn't support",
+                    				v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
+                    				(v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF,
+                    				v4l2_fmt_dst & 0xFF, (v4l2_fmt_dst >> 8) & 0xFF,
+                    				(v4l2_fmt_dst >> 16) & 0xFF, (v4l2_fmt_dst >> 24) & 0xFF,
+                    				(int)srcbuf, srcphy, (int)dstbuf,dstphy,src_w,src_h,dst_w,dst_h);
+                    } else if (android_fmt_dst) {
+                        LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->%s@(0x%x,0x%x) %dx%d->%dx%d "
+                             "scale isn't support",
+                    				v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
+                    				(v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF
+                    				, (int)srcbuf, srcphy,android_fmt_dst, (int)dstbuf,dstphy,
+                    				 src_w,src_h,dst_w,dst_h);
+                    }
+                }
             }            
             break;
         }
