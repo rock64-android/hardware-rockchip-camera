@@ -2616,7 +2616,7 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
     
 	if (strcmp("0", params.get(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION))
 		|| strcmp("0", params.get(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION))) {
-	    if (!mexposure && !exposure && strcmp(exposure,mexposure)) {
+	    if (!mexposure && !exposure && !strcmp(exposure,mexposure)) {
     		control.id = V4L2_CID_EXPOSURE;
     		control.value = atoi(exposure);
     		err = ioctl(iCamFd, VIDIOC_S_CTRL, &control);
