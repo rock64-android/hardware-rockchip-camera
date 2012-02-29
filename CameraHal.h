@@ -72,7 +72,7 @@ namespace android {
 *         3) CameraHal fix send 160x120 resolution to facelock for speed up facelock;
 *
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 2)
 
 /*  */
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT    4           

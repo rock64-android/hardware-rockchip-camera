@@ -824,6 +824,26 @@ void CameraHal::initDefaultParameters()
 		mDriverFlipSupport = false;
 	}
 
+
+    /*Exposure setting*/
+    struct v4l2_queryctrl exposure;
+    char str_exposure[16];
+    exposure.id = V4L2_CID_EXPOSURE;
+    if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &exposure)) {
+        sprintf(str_exposure,"%d",exposure.default_value);
+    	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, str_exposure);
+        sprintf(str_exposure,"%d",exposure.maximum);        
+    	params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, str_exposure);
+        sprintf(str_exposure,"%d",exposure.minimum);        
+    	params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, str_exposure);
+        sprintf(str_exposure,"%d",exposure.step); 
+    	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, str_exposure);
+    } else {
+    	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, "0");
+    	params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "0");
+    	params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "0");
+    	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, "1");
+    }
     /*rotation setting*/
     params.set(CameraParameters::KEY_ROTATION, "0");
 
@@ -840,19 +860,6 @@ void CameraHal::initDefaultParameters()
     /*vertical angle of view setting ,no much meaning ,only for passing cts */
     parameterString = "100";
     params.set(CameraParameters::KEY_VERTICAL_VIEW_ANGLE, parameterString.string());
-
-    /*exposure compensation setting ,no much meaning ,only for passing cts */
-    parameterString = "0";
-    params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, parameterString.string());
-    
-    parameterString = "0";
-    params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, parameterString.string());
-
-    parameterString = "0";
-    params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, parameterString.string());
-
-    parameterString = "0.000001";
-    params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, parameterString.string());
 
    /*quality of the EXIF thumbnail in Jpeg picture setting */
     parameterString = "50";
@@ -2602,6 +2609,24 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 			}
 		}
 	}
+
+    /*exposure setting*/
+	const char *exposure = params.get(CameraParameters::KEY_EXPOSURE_COMPENSATION);
+    const char *mexposure = mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION);
+    
+	if (strcmp("0", params.get(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION))
+		|| strcmp("0", params.get(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION))) {
+	    if (!mexposure && !exposure && strcmp(exposure,mexposure)) {
+    		control.id = V4L2_CID_EXPOSURE;
+    		control.value = atoi(exposure);
+    		err = ioctl(iCamFd, VIDIOC_S_CTRL, &control);
+    		if ( err < 0 ){
+    		    LOGE("%s(%d): Set exposure(%s) failed",__FUNCTION__,__LINE__,exposure);
+    		} else {	    
+		        LOGD("%s(%d): Set exposure %s",__FUNCTION__,__LINE__,exposure);
+    		}
+	    }
+	}    
     
     mParameters = params;
     mParameters.getPreviewSize(&mPreviewFrame2AppWidth, &mPreviewFrame2AppHeight); 
@@ -2740,6 +2765,7 @@ int CameraHal::cameraStart()
 
             if (buffer.memory == V4L2_MEMORY_OVERLAY) {                
                 buffer.m.offset = mPreviewBufferMap[i]->phy_addr;
+                mCamDriverV4l2Buffer[i] = (char*)mPreviewBufferMap[i]->vir_addr;
             } else if (buffer.memory == V4L2_MEMORY_MMAP) {
                 mCamDriverV4l2Buffer[i] = (char*)mmap(0 /* start anywhere */ ,
                                     buffer.length, PROT_READ, MAP_SHARED, iCamFd,
@@ -2967,18 +2993,36 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                 } else {
                     if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV21) || 
                         (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_YUV420SP)==0))) {
-                        int *dst_y,*src_y,*dst_uv,*src_uv; 
+                        int *dst_uv,*src_uv; 
+						unsigned *dst_y,*src_y,*src_y1;
+						int a, b, c, d;
                         if ((src_w == dst_w*4) && (src_h == dst_h*4)) {
-                            dst_y = (int*)dstbuf;
-                            src_y = (int*)srcbuf;                            
+                            dst_y = (unsigned int*)dstbuf;
+                            src_y = (unsigned int*)srcbuf;      
+							src_y1= src_y + (src_w*3)/4;
                             for (i=0; i<dst_h; i++) {
                                 for(j=0; j<dst_w/4; j++) {
-                                    *dst_y++ = (*src_y&0xff000000)|((*(src_y+1)&0xff000000)>>8)|
-                                                ((*(src_y+2)&0xff000000)>>16)|((*(src_y+3)&0xff000000)>>24);
-                                    src_y += 4;
+									a = (*src_y>>24) + (*src_y&0xff) + (*src_y1>>24) + (*src_y1&0xff);
+									a >>= 2;
+									src_y++;
+									src_y1++;
+									b = (*src_y>>24) + (*src_y&0xff) + (*src_y1>>24) + (*src_y1&0xff);
+									b >>= 2;
+									src_y++;
+									src_y1++;
+									c = (*src_y>>24) + (*src_y&0xff) + (*src_y1>>24) + (*src_y1&0xff);
+									c >>= 2;
+									src_y++;
+									src_y1++;
+									d = (*src_y>>24) + (*src_y&0xff) + (*src_y1>>24) + (*src_y1&0xff);
+									d >>= 2;
+									src_y++;
+									src_y1++;
+                                    *dst_y++ = a | (b<<8) | (c<<16) | (d<<24);
                                 }
                                 //dst_y = (int*)(srcbuf+src_w*(i+1));
                                 src_y += (src_w*3)/4;
+								src_y1= src_y + (src_w*3)/4;
                             }
                             dst_uv = (int*)(dstbuf+dst_w*dst_h);
                             //dst_uv = (int*)(srcbuf+y_size);
@@ -2993,7 +3037,7 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                                 //dst_uv = (int*)(srcbuf+y_size+src_w*(i+1));
                                 src_uv += src_w*3/4;
                             }
-                        }                   
+                        }
                     } else {
                         if (v4l2_fmt_dst) {    
                             LOGE("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->'%c%c%c%c'@(0x%x,0x%x), %dx%d->%dx%d "
