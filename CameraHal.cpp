@@ -842,7 +842,7 @@ void CameraHal::initDefaultParameters()
     	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, "0");
     	params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "0");
     	params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "0");
-    	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, "1");
+    	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, "0.000001f");
     }
     /*rotation setting*/
     params.set(CameraParameters::KEY_ROTATION, "0");
