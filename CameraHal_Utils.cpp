@@ -576,7 +576,7 @@ capturePicture_streamoff:
     mPictureLock.unlock();
     
     cameraFormatConvert(picture_format, mCamDriverPictureFmt, NULL,
-        (char*)camDriverV4l2Buffer,(char*)mRawBuffer->pointer(),0,0, jpeg_w, jpeg_h, jpeg_w, jpeg_h);    
+        (char*)camDriverV4l2Buffer,(char*)mRawBuffer->pointer(),0,0, jpeg_w, jpeg_h, jpeg_w, jpeg_h,false);    
     
     if (mCamDriverV4l2MemType == V4L2_MEMORY_MMAP) {
         if (camDriverV4l2Buffer != NULL) {
@@ -757,7 +757,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
 
     if (mCamDriverPreviewFmt != mCamDriverPictureFmt) {
         cameraFormatConvert(mCamDriverPreviewFmt, mCamDriverPictureFmt, NULL,
-            (char*)capture->input_vir_addr,(char*)mRawBuffer->pointer(),0,0, jpeg_w, jpeg_h, jpeg_w, jpeg_h);
+            (char*)capture->input_vir_addr,(char*)mRawBuffer->pointer(),0,0, jpeg_w, jpeg_h, jpeg_w, jpeg_h,false);
         capture->input_phy_addr = mPmemHeapPhyBase + mRawBuffer->offset();
         capture->input_vir_addr = (int)mRawBuffer->pointer();
     }

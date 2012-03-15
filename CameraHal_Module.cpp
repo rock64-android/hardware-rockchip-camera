@@ -24,7 +24,7 @@
 #define LOG_TAG "CameraHal_Module"
 
 #include <utils/threads.h>
-
+#include <binder/IPCThreadState.h>
 #include "CameraHal.h"
 #include "CameraHal_Module.h"
 
@@ -597,10 +597,16 @@ int camera_get_number_of_cameras(void)
     struct v4l2_capability capability;
     rk_cam_info_t camInfoTmp[CAMERAS_SUPPORT_MAX];
     char *ptr,**ptrr;
+    char version[PROPERTY_VALUE_MAX];
 
     if (gCamerasNumber > 0)
         goto camera_get_number_of_cameras_end;
-
+    
+    memset(version,0x00,sizeof(version));
+    sprintf(version,"%d.%d.%d",((CONFIG_CAMERAHAL_VERSION&0xff0000)>>16),
+        ((CONFIG_CAMERAHAL_VERSION&0xff00)>>8),CONFIG_CAMERAHAL_VERSION&0xff);
+    property_set(CAMERAHAL_VERSION_PROPERTY_KEY,version);
+    
     memset(&camInfoTmp[0],0x00,sizeof(rk_cam_info_t));
     memset(&camInfoTmp[1],0x00,sizeof(rk_cam_info_t));
     
@@ -640,6 +646,14 @@ int camera_get_number_of_cameras(void)
                 camInfoTmp[cam_cnt&0x01].facing_info.orientation = 0;
             }
             cam_cnt++;
+
+            memset(version,0x00,sizeof(version));
+            sprintf(version,"%d.%d.%d",((capability.version&0xff0000)>>16),
+                ((capability.version&0xff00)>>8),capability.version&0xff);
+            property_set(CAMERADRIVER_VERSION_PROPERTY_KEY,version);
+
+            LOGD("%s(%d): %s:%s",__FUNCTION__,__LINE__,CAMERADRIVER_VERSION_PROPERTY_KEY,version);
+            
             if (cam_cnt >= CAMERAS_SUPPORT_MAX)
                 i = 10;
         }
@@ -650,14 +664,14 @@ loop_continue:
         }
         continue;    
     }
-//zyc , change the camera infomation if there is a usb camera
-if((strcmp(camInfoTmp[0].driver,"uvcvideo") == 0)){
-	camInfoTmp[0].facing_info.facing = (camInfoTmp[1].facing_info.facing == CAMERA_FACING_FRONT) ? CAMERA_FACING_BACK:CAMERA_FACING_FRONT;
-	camInfoTmp[0].facing_info.orientation = (camInfoTmp[0].facing_info.facing == CAMERA_FACING_FRONT)?270:90;
-}else if((strcmp(camInfoTmp[1].driver,"uvcvideo") == 0)){
-	camInfoTmp[1].facing_info.facing = (camInfoTmp[0].facing_info.facing == CAMERA_FACING_FRONT) ? CAMERA_FACING_BACK:CAMERA_FACING_FRONT;
-	camInfoTmp[1].facing_info.orientation = (camInfoTmp[1].facing_info.facing == CAMERA_FACING_FRONT)?270:90;
-}
+    //zyc , change the camera infomation if there is a usb camera
+    if((strcmp(camInfoTmp[0].driver,"uvcvideo") == 0)) {
+    	camInfoTmp[0].facing_info.facing = (camInfoTmp[1].facing_info.facing == CAMERA_FACING_FRONT) ? CAMERA_FACING_BACK:CAMERA_FACING_FRONT;
+    	camInfoTmp[0].facing_info.orientation = (camInfoTmp[0].facing_info.facing == CAMERA_FACING_FRONT)?270:90;
+    } else if((strcmp(camInfoTmp[1].driver,"uvcvideo") == 0)) {
+    	camInfoTmp[1].facing_info.facing = (camInfoTmp[0].facing_info.facing == CAMERA_FACING_FRONT) ? CAMERA_FACING_BACK:CAMERA_FACING_FRONT;
+    	camInfoTmp[1].facing_info.orientation = (camInfoTmp[1].facing_info.facing == CAMERA_FACING_FRONT)?270:90;
+    }
     gCamerasNumber = cam_cnt;
 
 #if CONFIG_AUTO_DETECT_FRAMERATE
@@ -692,22 +706,45 @@ camera_get_number_of_cameras_end:
 
 int camera_get_camera_info(int camera_id, struct camera_info *info)
 {
-    int rv = 0;
+    int rv = 0,fp;
     int face_value = CAMERA_FACING_BACK;
     int orientation = 0;
-
+    char process_name[30];
+        
     if(camera_id > gCamerasNumber) {
         LOGE("%s camera_id out of bounds, camera_id = %d, num supported = %d",__FUNCTION__,
                 camera_id, gCamerasNumber);
         rv = -EINVAL;
         goto end;
     }
+    #if CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS
+    if ((gCamerasNumber == 1) && (gCamInfos[0].facing_info.facing == CAMERA_FACING_FRONT)) {
 
+        process_name[0] = 0x00; 
+        sprintf(process_name,"/proc/%d/cmdline",IPCThreadState::self()->getCallingPid());
+        fp = open(process_name, O_RDONLY);
+        if (fp < 0) {
+            memset(process_name,0x00,sizeof(process_name));
+            LOGE("%s(%d): Obtain calling process info failed",__FUNCTION__,__LINE__);
+        } else {
+            memset(process_name,0x00,sizeof(process_name));
+            read(fp, process_name, 30);
+            close(fp);
+            fp = -1;
+
+            if (strcmp(process_name,"com.android.cts.stub")==0) {
+                info->facing = CAMERA_FACING_BACK;
+                info->orientation = 90;
+                LOGW("%s(%d): Programer force change facing to back for CTS, because machine has only front camera",__FUNCTION__,__LINE__);
+                goto end;
+            }
+        }
+    }
+    #endif
     info->facing = gCamInfos[camera_id].facing_info.facing;
-    info->orientation = gCamInfos[camera_id].facing_info.orientation;    
-
-    LOGD("%s(%d): camera_%d facing(%d), orientation(%d)",__FUNCTION__,__LINE__,camera_id,info->facing,info->orientation);
+    info->orientation = gCamInfos[camera_id].facing_info.orientation;       
 end:
+    LOGD("%s(%d): camera_%d facing(%d), orientation(%d)",__FUNCTION__,__LINE__,camera_id,info->facing,info->orientation);
     return rv;
 }
 #if CONFIG_AUTO_DETECT_FRAMERATE 

@@ -70,14 +70,33 @@ namespace android {
 *         1) CameraHal fix send yuv data to app error when attach usb camera(UVC);
 *         2) CameraHal add support exposure,but sensor driver must support it;
 *         3) CameraHal fix send 160x120 resolution to facelock for speed up facelock;
-*
+*v0.2.3 : 
+*         1) CameraHal support 240x160 for fring;
+*         2) CameraHal support query version by getprop sys_graphic.camerahal.version;
+*         3) CameraHal display format add check hwc module version;
+*         4) CameraHal support force single sensor facing is back-face for cts by config
+*            CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS macro;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 2)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 3)
 
 /*  */
-#define CONFIG_CAMERA_PRVIEW_BUF_CNT    4           
+#define CAMERA_DISPLAY_FORMAT_YUV420SP   "yuv420sp"
+#define CAMERA_DISPLAY_FORMAT_RGB565     "rgb565"
+/* 
+*NOTE: 
+*       CONFIG_CAMERA_DISPLAY_FORCE and CONFIG_CAMERA_DISPLAY_FORCE_FORMAT is debug macro, 
+*    CONFIG_CAMERA_DISPLAY_FORCE must equal to 0 in official version.     
+*/
+#define CONFIG_CAMERA_DISPLAY_FORCE     0
+#define CONFIG_CAMERA_DISPLAY_FORCE_FORMAT CAMERA_DISPLAY_FORMAT_RGB565
+#define CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS   0
+#define CONFIG_CAMERA_MIRROR_FOR_FRING  1
+#define CONFIG_CAMERA_PRVIEW_BUF_CNT    4
+ 
 
-#define CAMERA_PMEM_NAME                "/dev/pmem_cam"
+#define CAMERAHAL_VERSION_PROPERTY_KEY       "sys_graphic.cam_hal.ver"
+#define CAMERADRIVER_VERSION_PROPERTY_KEY    "sys_graphic.cam_driver.ver"
+#define CAMERA_PMEM_NAME                     "/dev/pmem_cam"
 #define CAMERA_DRIVER_SUPPORT_FORMAT_MAX   32
 
 #define RAW_BUFFER_SIZE_5M          0x740000
@@ -95,9 +114,6 @@ namespace android {
 #define V4L2_BUFFER_MAX             32
 #define V4L2_BUFFER_MMAP_MAX        16
 #define PAGE_ALIGN(x)   (((x) + 0xFFF) & (~0xFFF)) // Set as multiple of 4K
-
-
-
 
 #define CAMHAL_GRALLOC_USAGE GRALLOC_USAGE_HW_TEXTURE | \
                              GRALLOC_USAGE_HW_RENDER | \
@@ -447,7 +463,7 @@ private:
     int cameraHeapBufferDestory();
     int cameraPmemBufferFlush(sp<MemoryHeapBase> heap, sp<IMemory> buf);
     int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, char *srcbuf, char *dstbuf, 
-                            int srcphy,int dstphy,int src_w, int src_h,int dst_w, int dst_h);
+                            int srcphy,int dstphy,int src_w, int src_h,int dst_w, int dst_h, bool mirror);
     int cameraPreviewBufferCreate(int width, int height, const char *fmt,int numBufs);
     int cameraPreviewBufferDestory();
     int cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, int set);
