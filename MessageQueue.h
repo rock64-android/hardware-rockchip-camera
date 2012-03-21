@@ -20,6 +20,7 @@ public:
 	int get(Message*, int);		/* ddl@rock-chips.com : timeout interface */
     int put(Message*);
     bool isEmpty();
+    int dump();
 private:
     char MsgQueName[30];
     int fd_read;

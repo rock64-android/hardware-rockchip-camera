@@ -10,6 +10,7 @@ LOCAL_SRC_FILES:=\
 	CameraHal.cpp\
 	CameraHal_Utils.cpp\
 	MessageQueue.cpp\
+	CameraHal_Mem.cpp\
 	
 
 LOCAL_C_INCLUDES += \
@@ -26,7 +27,8 @@ LOCAL_SHARED_LIBRARIES:= \
     libgui\
     libjpeghwenc\
     libjpeg\
-    libyuvtorgb
+    libyuvtorgb\
+    libion
 
 LOCAL_CFLAGS := -fno-short-enums -DCOPY_IMAGE_BUFFER
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw

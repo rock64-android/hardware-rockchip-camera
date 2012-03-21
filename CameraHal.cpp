@@ -125,12 +125,7 @@ CameraHal::CameraHal(int cameraId)
 	        mCamDriverPreviewFmt(0),
 	        mCamDriverPictureFmt(0),
 	        mCamDriverV4l2BufferLen(0),
-	        mMemHeap(0),
-            mMemHeapPmem(0),
             mPreviewMemory(NULL),
-            mPmemHeapPhyBase(0),
-            mRawBuffer(NULL),
-            mJpegBuffer(NULL),
             mRawBufferSize(0),
             mJpegBufferSize(0),
             mMsgEnabled(0),
@@ -149,7 +144,8 @@ CameraHal::CameraHal(int cameraId)
             commandThreadCommandQ("commandCmdQ"),
             commandThreadAckQ("commandAckQ"),
             snapshotThreadCommandQ("snapshotCmdQ"),
-            snapshotThreadAckQ("snapshotAckQ")
+            snapshotThreadAckQ("snapshotAckQ"),
+            mCamBuffer(NULL)
 {
     int fp,i;
     
@@ -168,8 +164,6 @@ CameraHal::CameraHal(int cameraId)
     }
     
     iCamFd = -1;
-    iPmemFd = -1;
-    mPmemSize = 0;
     memset(&mCamDriverSupportFmt[0],0, sizeof(mCamDriverSupportFmt));
     mRecordRunning = false;
     mPictureRunning = STA_PICTURE_STOP;
@@ -193,7 +187,7 @@ CameraHal::CameraHal(int cameraId)
     if (cameraCreate(cameraId) == 0) {
         initDefaultParameters();
 
-        cameraHeapBufferCreate(mRawBufferSize,mJpegBufferSize);
+        cameraRawJpegBufferCreate(mRawBufferSize,mJpegBufferSize);
 
         mDisplayThread = new DisplayThread(this);
         mPreviewThread = new PreviewThread(this);
@@ -590,61 +584,36 @@ void CameraHal::initDefaultParameters()
         switch( mCamDriverFrmWidthMax )
         {
             case 2592:	// LARGEST RESULOTION is 5Meag
-                if (mPmemSize >= previewFrameSizeMax + RAW_BUFFER_SIZE_5M + JPEG_BUFFER_SIZE_5M) {
-        			strcat( str_picturesize,"2592x1944,2048x1536,1600x1200,1024x768");
+    			strcat( str_picturesize,"2592x1944,2048x1536,1600x1200,1024x768");
                     params.setPictureSize(2592,  1944);
                     mRawBufferSize = RAW_BUFFER_SIZE_5M;
                     mJpegBufferSize = JPEG_BUFFER_SIZE_5M;
     			    break;
-                } else {
-                    LOGE("Camera driver support 5M pixel, but pmem(size:0x%x) is not enough(preview:0x%x, raw:0x%x,jpeg:0x%x)!"
-                        ,mPmemSize,previewFrameSizeMax,RAW_BUFFER_SIZE_5M,JPEG_BUFFER_SIZE_5M);
-                }
     		case 2048:	// LARGEST RESULOTION is 3Meag
-    		    if (mPmemSize >= previewFrameSizeMax + RAW_BUFFER_SIZE_3M + JPEG_BUFFER_SIZE_3M) {
-        			strcat( str_picturesize,"2048x1536,1600x1200,1024x768");
+    			strcat( str_picturesize,"2048x1536,1600x1200,1024x768");
                     mRawBufferSize = RAW_BUFFER_SIZE_3M;
                     mJpegBufferSize = JPEG_BUFFER_SIZE_3M;  
                     params.setPictureSize(2048,1536);
     			    break;
-                } else {
-                    LOGE("Camera driver support 3M pixel, but pmem(size:0x%x) is not enough(preview:0x%x, raw:0x%x,jpeg:0x%x)!"
-                        ,mPmemSize,previewFrameSizeMax,RAW_BUFFER_SIZE_3M,JPEG_BUFFER_SIZE_3M);
-                }
     		case 1600:	// LARGEST RESULOTION is 2Meag
-    		    if (mPmemSize >= previewFrameSizeMax + RAW_BUFFER_SIZE_2M + JPEG_BUFFER_SIZE_2M) {
-        			strcat( str_picturesize,"1600x1200,1024x768,640x480");
+    			strcat( str_picturesize,"1600x1200,1024x768,640x480");
                     mRawBufferSize = RAW_BUFFER_SIZE_2M;
                     mJpegBufferSize = JPEG_BUFFER_SIZE_2M;
                     params.setPictureSize(1600,1200);
     			    break;
-    		    } else {
-                    LOGE("Camera driver support 2M pixel, but pmem(size:0x%x) is not enough(preview:0x%x, raw:0x%x,jpeg:0x%x)!"
-                        ,mPmemSize,previewFrameSizeMax,RAW_BUFFER_SIZE_2M,JPEG_BUFFER_SIZE_2M);
-                }
             case 1280:  // 1280x1024
     		case 1024:	// LARGEST RESULOTION is 1Meag
-    		    if (mPmemSize >= previewFrameSizeMax + RAW_BUFFER_SIZE_1M + JPEG_BUFFER_SIZE_1M) {
                     strcat( str_picturesize,"1024x768,640x480,320x240");
         		    mRawBufferSize = RAW_BUFFER_SIZE_1M;
                     mJpegBufferSize = JPEG_BUFFER_SIZE_1M;
                     params.setPictureSize(1024,768);
         			break;
-    		    } else {
-                    LOGE("Camera driver support 1M pixel, but pmem(size:0x%x) is not enough(preview:0x%x, raw:0x%x,jpeg:0x%x)!"
-                        ,mPmemSize,previewFrameSizeMax,RAW_BUFFER_SIZE_1M,JPEG_BUFFER_SIZE_1M);
-                }
             case 640:	// LARGEST RESULOTION is 0.3Meag
-    		    if (mPmemSize >= previewFrameSizeMax + RAW_BUFFER_SIZE_0M3 + JPEG_BUFFER_SIZE_0M3) {
                     strcat( str_picturesize,"640x480,320x240");
         		    mRawBufferSize = RAW_BUFFER_SIZE_0M3;
                     mJpegBufferSize = JPEG_BUFFER_SIZE_0M3;
                     params.setPictureSize(640,480);
         			break;
-    		    } else {
-                    LOGE("Camera driver support 0.3M pixel, but pmem(size:0x%x) is not enough(preview:0x%x, raw:0x%x,jpeg:0x%x)!"
-                        ,mPmemSize,previewFrameSizeMax,RAW_BUFFER_SIZE_0M3,JPEG_BUFFER_SIZE_0M3);
-                }
             default:
                 sprintf(str_picturesize, "%dx%d", mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
                 mRawBufferSize = RAW_BUFFER_SIZE_5M;
@@ -1133,8 +1102,8 @@ display_receive_cmd:
                 case CMD_DISPLAY_START:
                 {
                     LOGD("%s(%d): receive CMD_DISPLAY_START", __FUNCTION__,__LINE__);
-                    cameraPreviewBufferDestory();                    
-                    cameraPreviewBufferCreate(mPreviewWidth, mPreviewHeight,mDisplayFormat,CONFIG_CAMERA_PRVIEW_BUF_CNT);
+                    cameraDisplayBufferDestory();                    
+                    cameraDisplayBufferCreate(mPreviewWidth, mPreviewHeight,mDisplayFormat,CONFIG_CAMERA_PRVIEW_BUF_CNT);
                     mDisplayRuning = STA_DISPLAY_RUN;
                     msg.arg1 = (void*)mDisplayRuning;
                     displayThreadAckQ.put(&msg);
@@ -1144,7 +1113,7 @@ display_receive_cmd:
                 case CMD_DISPLAY_PAUSE:
                 {
                     LOGD("%s(%d): receive CMD_DISPLAY_PAUSE", __FUNCTION__,__LINE__);
-                    cameraPreviewBufferDestory();
+                    cameraDisplayBufferDestory();
                     mDisplayRuning = STA_DISPLAY_PAUSE;
                     msg.arg1 = (void*)mDisplayRuning;
                     displayThreadAckQ.put(&msg);                    
@@ -1154,6 +1123,7 @@ display_receive_cmd:
                 case CMD_DISPLAY_STOP:
                 {
                     LOGD("%s(%d): receive CMD_DISPLAY_STOP", __FUNCTION__,__LINE__);
+					cameraDisplayBufferDestory();
                     mDisplayRuning = STA_DISPLAY_STOP;
                     msg.arg1 = (void*)mDisplayRuning;
                     displayThreadAckQ.put(&msg);
@@ -1215,7 +1185,7 @@ display_receive_cmd:
                                 mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,
                                 mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight,false);
                         } else {
-                        	/* zyc@rock-chips.com: for usb camera */
+                        	/* zyc@rock-chips.com: for usb camera */							
                         	cameraFormatConvert(V4L2_PIX_FMT_NV12, 0,mDisplayFormat,NULL,NULL,
                         		mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,
                         		mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight,false);
@@ -1346,6 +1316,7 @@ void CameraHal::previewThread()
     
     LOG_FUNCTION_NAME
     camera_device_error = false;
+    snapshot = false;
     while (loop) {
         msg.command = CMD_PREVIEW_INVAL;
         if (camera_device_error == true){
@@ -1359,8 +1330,6 @@ void CameraHal::previewThread()
             if (previewThreadCommandQ.isEmpty() == false ) 
                 previewThreadCommandQ.get(&msg);
         }
-
-        snapshot = false;
         
         switch (msg.command)
         {
@@ -1373,8 +1342,10 @@ void CameraHal::previewThread()
             }    
             case CMD_PREVIEW_VIDEOSNAPSHOT:
             {
-                LOGD("%s(%d): receive videoSnapshot, mPreviewRuning:0x%x",__FUNCTION__,__LINE__,mPreviewRunning);
                 snapshot = true;
+                LOGD("%s(%d): receive videoSnapshot, mPreviewRuning:0x%x snapshot:%d",__FUNCTION__,__LINE__,
+                    mPreviewRunning,snapshot);
+                
                 break;
             }
             default:
@@ -1439,10 +1410,10 @@ void CameraHal::previewThread()
             
             cameraPreviewBufferSetSta(mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_WRITING, 0);
             //zyc ,convert the format for usb camera
-            if (CAMERA_IS_UVC_CAMERA()) {
+            if (CAMERA_IS_UVC_CAMERA()) {				
                 cameraFormatConvert(mCamDriverPreviewFmt,V4L2_PIX_FMT_NV12,NULL,
                 	(char*)mCamDriverV4l2Buffer[cfilledbuffer1.index],(char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr, 
-                	0,0,mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight,false);															  
+                	0,0,mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight,false);														  
             }      
             
             buffer_log = 0;
@@ -1454,6 +1425,7 @@ void CameraHal::previewThread()
                 buffer_log |= CMD_PREVIEWBUF_ENCING;
                 if (snapshot) {
                     buffer_log |= CMD_PREVIEWBUF_SNAPSHOT_ENCING;
+                    snapshot = false;
                 }                
             }
 
@@ -1531,12 +1503,13 @@ void CameraHal::pictureThread()
 {
     struct CamCaptureInfo_s capture;
     
-    LOG_FUNCTION_NAME
-    capture.input_phy_addr = mPmemHeapPhyBase + mRawBuffer->offset();                        
-    capture.output_phy_addr = mPmemHeapPhyBase + mJpegBuffer->offset();                        
-    capture.output_vir_addr = (int)mJpegBuffer->pointer();                        
-    capture.output_buflen = mJpegBuffer->size();
-
+    LOG_FUNCTION_NAME    
+    capture.input_phy_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy); 
+	capture.output_phy_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_phy);                        
+    capture.output_vir_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir);                        
+    capture.output_buflen = mCamBuffer->getJpegBufInfo().mBufferSizes;
+    LOGD("%s(%d): capture.input_phy:0x%x, output_phy:0x%x vir:0x%x",
+        __FUNCTION__,__LINE__,capture.input_phy_addr,capture.output_phy_addr,capture.output_vir_addr);
     capturePicture(&capture);
     
     mPictureLock.lock();
@@ -1566,8 +1539,8 @@ void CameraHal::snapshotThread()
                 index = (int)msg.arg1;
                 
                 LOGD("%s(%d): receive CMD_SNAPSHOT_SNAPSHOT with buffer %d",__FUNCTION__,__LINE__, index);
-
-                if ((mJpegBuffer == NULL) || (mRawBuffer == NULL)) {
+			
+                if(mCamBuffer->getRawBufInfo().mNumBffers== 0                    || mCamBuffer->getJpegBufInfo().mNumBffers == 0){
                     LOGE("%s(%d): cancel, because mRawBuffer and mJpegBuffer is NULL",__FUNCTION__,__LINE__);
                     cameraPreviewBufferSetSta(mPreviewBufferMap[index], CMD_PREVIEWBUF_SNAPSHOT_ENCING, 0);
                     goto CMD_SNAPSHOT_SNAPSHOT_end;
@@ -1575,9 +1548,9 @@ void CameraHal::snapshotThread()
                 
                 capture.input_phy_addr = mPreviewBufferMap[index]->phy_addr;   
                 capture.input_vir_addr = mPreviewBufferMap[index]->vir_addr;			  
-                capture.output_phy_addr = mPmemHeapPhyBase + mJpegBuffer->offset();                        
-                capture.output_vir_addr = (int)mJpegBuffer->pointer();                        
-                capture.output_buflen = mJpegBuffer->size();
+                capture.output_phy_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_phy);                        
+                capture.output_vir_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir);                        
+                capture.output_buflen = mCamBuffer->getJpegBufInfo().mBufferSizes;
                 captureVideoPicture(&capture,index);
                 
 CMD_SNAPSHOT_SNAPSHOT_end:
@@ -1738,7 +1711,8 @@ get_command:
                     goto PREVIEW_CAPTURE_end;
                 }
 
-                if ((mRawBuffer == NULL) || (mJpegBuffer == NULL)) {
+                if(mCamBuffer->getRawBufInfo().mNumBffers== 0
+                    || mCamBuffer->getJpegBufInfo().mNumBffers == 0){
                     LOGE("%s(%d): cancel, because mRawBuffer and mJpegBuffer is NULL",__FUNCTION__,__LINE__);
                     err = -1;
                     goto PREVIEW_CAPTURE_end;
@@ -1752,7 +1726,7 @@ get_command:
                     goto PREVIEW_CAPTURE_end;
                 }
                 mPictureLock.unlock();
-                
+								   
                 if (mPreviewRunning  == STA_PREVIEW_RUN) {
                     mPreviewLock.lock();                        
                     mPreviewRunning = STA_PREVIEW_PAUSE;
@@ -1907,37 +1881,40 @@ CMD_PREVIEW_QBUF_end:
     LOG_FUNCTION_NAME_EXIT
     return;
 }
-int CameraHal::cameraHeapBufferCreate(int rawBufferSize, int jpegBufferSize)
+int CameraHal::cameraRawJpegBufferCreate(int rawBufferSize, int jpegBufferSize)
 {
     int err = NO_ERROR;
-    struct pmem_region sub;
-
-    LOG_FUNCTION_NAME    
+	struct bufferinfo_s  tmpbufinfo;
     
-    if (mPmemSize < (rawBufferSize + jpegBufferSize)) {
-        LOGE("%s(%d): %s total size(0x%x) is low for rawBuffer(0x%x) and jpegBuffer(0x%x)!!", __FUNCTION__,__LINE__,CAMERA_PMEM_NAME,
-                mPmemSize,rawBufferSize,jpegBufferSize);
-    }
-    
-    cameraHeapBufferDestory();      
+    LOG_FUNCTION_NAME 
 
-    if (rawBufferSize) {
-        mRawBuffer = (static_cast<MemoryHeapPmem*>(mMemHeapPmem.get()))->mapMemory(mPmemSize-jpegBufferSize-rawBufferSize,rawBufferSize);        
-        if (mRawBuffer == NULL) {
-            LOGE("%s(%d): allocate raw buffer from mMemHeapPmem failed", __FUNCTION__,__LINE__);
-            err = -1;
-        }
+    if (mCamBuffer->getRawBufInfo().mBufferSizes) { 
+        mCamBuffer->destroyRawBuffer();        
     }
 
-    if (jpegBufferSize) {
-        mJpegBuffer = (static_cast<MemoryHeapPmem*>(mMemHeapPmem.get()))->mapMemory(mPmemSize-jpegBufferSize,jpegBufferSize);        
-        if (mJpegBuffer == NULL) {
-            LOGE("%s(%d): allocate jpeg buffer from mMemHeapPmem failed", __FUNCTION__,__LINE__);
-            err = -1;
-        }
+    if (mCamBuffer->getJpegBufInfo().mBufferSizes) { 
+        mCamBuffer->destroyJpegBuffer();        
     }
     
-cameraHeapBufferCreate_end:
+	tmpbufinfo.mNumBffers = 1;
+	tmpbufinfo.mPerBuffersize = jpegBufferSize;
+          
+	if(jpegBufferSize) {
+		tmpbufinfo.mBufType = JPEGBUFFER;
+		err = mCamBuffer->createJpegBuffer(&tmpbufinfo);
+		if(err != 0)
+			LOGE("%s(%d): Jpeg buffer malloc failed",__FUNCTION__,__LINE__);
+	}
+	if(rawBufferSize) {
+		tmpbufinfo.mNumBffers = 1;
+		tmpbufinfo.mPerBuffersize = rawBufferSize;
+		tmpbufinfo.mBufType = RAWBUFFER;
+		err = mCamBuffer->createRawBuffer(&tmpbufinfo);
+		if(err != 0)
+			LOGE("%s(%d): Raw buffer malloc failed",__FUNCTION__,__LINE__);
+	}
+    
+cameraRawJpegBufferCreate_end:
     if (err)
         LOGE("%s(%d): exit with error(%d)", __FUNCTION__,__LINE__,err);
     else 
@@ -1945,44 +1922,20 @@ cameraHeapBufferCreate_end:
     return err;
 }
 
-int CameraHal::cameraHeapBufferDestory()
+int CameraHal::cameraRawJpegBufferDestory()
 {
-    int i;
 
     LOG_FUNCTION_NAME 
 
-    for(int i = 0; i < CONFIG_CAMERA_PRVIEW_BUF_CNT; i++) {
-        if (mPreviewBuffer[i] != NULL) {
-            LOGD("mPreviewBuffer.clear");
-            if (mPreviewBufferMap[i]->vir_addr == (int)mPreviewBuffer[i]->pointer()) {
-                if (mPreviewBufferMap[i]->lock) {
-                    delete mPreviewBufferMap[i]->lock;
-                    mPreviewBufferMap[i]->lock = NULL;                    
-                }
-                free(mPreviewBufferMap[i]);
-                mPreviewBufferMap[i] = NULL;
-            }
-            mPreviewBuffer[i].clear();
-            mPreviewBuffer[i] = NULL;
-        }
+    if(mCamBuffer) {
+    	mCamBuffer->destroyJpegBuffer();
+        mCamBuffer->destroyRawBuffer();
     }
-
-    if (mRawBuffer != NULL) {
-        LOG1("mRawBuffer.clear");
-        mRawBuffer.clear();
-        mRawBuffer = NULL;
-    }
-
-    if (mJpegBuffer != NULL) {
-        LOG1("mJpegBuffer.clear");
-        mJpegBuffer.clear();
-        mJpegBuffer = NULL;
-    }    
-    
+	
     LOG_FUNCTION_NAME_EXIT
     return 0;
 }
-int CameraHal::cameraPreviewBufferCreate(int width, int height, const char *fmt,int numBufs)
+int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,int numBufs)
 {
     int err = NO_ERROR,undequeued = 0;
     int i, total;
@@ -2104,7 +2057,6 @@ int CameraHal::cameraPreviewBufferCreate(int width, int height, const char *fmt,
         mapper.lock((buffer_handle_t)mGrallocBufferMap[i].priv_hnd, CAMHAL_GRALLOC_USAGE, bounds, y_uv);   
 
         cameraPreviewBufferSetSta(&mGrallocBufferMap[i], CMD_PREVIEWBUF_DISPING, 0);
-        
     }
 
     for (i=0; i<numBufs; i++) {
@@ -2113,41 +2065,17 @@ int CameraHal::cameraPreviewBufferCreate(int width, int height, const char *fmt,
         mDisplayBufferMap[i] = &mGrallocBufferMap[i];        
     }
 
-    int frame_size;
-
-    switch (mCamDriverPreviewFmt)
-    {
-        case V4L2_PIX_FMT_NV12:
-        case V4L2_PIX_FMT_YUV420:
-            frame_size = mPreviewWidth*mPreviewHeight*3/2;
-            break;
-        case V4L2_PIX_FMT_NV16:
-        case V4L2_PIX_FMT_YUV422P:
-        default:
-            frame_size = mPreviewWidth*mPreviewHeight*2;
-            break;            
-    }
-    for (i=0; i<numBufs; i++) {
-        mPreviewBuffer[i] = (static_cast<MemoryHeapPmem*>(mMemHeapPmem.get()))->mapMemory(PAGE_ALIGN(frame_size)*i,PAGE_ALIGN(frame_size));
-    }
+    cameraPreviewBufferCreate(numBufs);
     
     if (strcmp(fmt,CameraParameters::PIXEL_FORMAT_RGB565)) {
         for (i=0; i<numBufs; i++)
             mPreviewBufferMap[i] = &mGrallocBufferMap[i];
-    } else {         
+    } else {
         for (i=0; i<numBufs; i++) {
-            mPreviewBufferMap[i] = (rk_previewbuf_info_t*)malloc(sizeof(rk_previewbuf_info_t));            
-            if (mPreviewBufferMap[i]) {
-                memset((char*)mPreviewBufferMap[i],0x00,sizeof(rk_previewbuf_info_t));
-                mPreviewBufferMap[i]->lock = new Mutex();                
-                mPreviewBufferMap[i]->vir_addr = (int)mPreviewBuffer[i]->pointer();
-                mPreviewBufferMap[i]->phy_addr = mPmemHeapPhyBase + mPreviewBuffer[i]->offset();
-            } else {
-                LOGE("%s(%d): mPreviewBufferMap[%d] malloc failed",__FUNCTION__,__LINE__,i);
-            }
+            mPreviewBufferMap[i] = mPreviewBuffer[i];
         }
     }
-    
+   
     LOG_FUNCTION_NAME_EXIT    
     return err; 
  fail:
@@ -2166,7 +2094,7 @@ int CameraHal::cameraPreviewBufferCreate(int width, int height, const char *fmt,
     return err;
         
 }
-int CameraHal::cameraPreviewBufferDestory(void)
+int CameraHal::cameraDisplayBufferDestory(void)
 {
     int ret = NO_ERROR,i;
     GraphicBufferMapper &mapper = GraphicBufferMapper::get();
@@ -2195,7 +2123,81 @@ int CameraHal::cameraPreviewBufferDestory(void)
 cameraPreviewBufferDestory_end:
     return ret;    
 }
+int CameraHal::cameraPreviewBufferCreate(int numBufs)
+{
+	LOG_FUNCTION_NAME
+    int frame_size;
+    struct bufferinfo_s previewbuf;
+    int ret = 0,i;
+    
+    switch (mCamDriverPreviewFmt)
+    {
+        case V4L2_PIX_FMT_NV12:
+        case V4L2_PIX_FMT_YUV420:
+            frame_size = mPreviewWidth*mPreviewHeight*3/2;
+            break;
+        case V4L2_PIX_FMT_NV16:
+        case V4L2_PIX_FMT_YUV422P:
+        default:
+            frame_size = mPreviewWidth*mPreviewHeight*2;
+            break;            
+    }
 
+    if ((frame_size == mCamBuffer->getPreviewBufInfo().mPerBuffersize) && 
+        (numBufs == mCamBuffer->getPreviewBufInfo().mNumBffers)) {
+        goto cameraPreviewBufferCreate_end;
+    } else {
+        cameraPreviewBufferDestory();
+    }
+
+    previewbuf.mNumBffers = numBufs;	
+    previewbuf.mPerBuffersize = frame_size;	
+    previewbuf.mBufType = PREVIEWBUFFER;
+
+    if(mCamBuffer->createPreviewBuffer(&previewbuf) !=0) {
+        LOGE("%s(%d):Preview buffer create failed",__FUNCTION__,__LINE__);		
+        ret = -1;	
+    }
+
+    for (i=0; i<numBufs; i++) {
+        mPreviewBuffer[i] = (rk_previewbuf_info_t*)malloc(sizeof(rk_previewbuf_info_t));            
+        if (mPreviewBuffer[i]) {
+            memset((char*)mPreviewBuffer[i],0x00,sizeof(rk_previewbuf_info_t));
+            mPreviewBuffer[i]->lock = new Mutex();                
+            mPreviewBuffer[i]->vir_addr = (int)mCamBuffer->getBufferAddr(PREVIEWBUFFER,i,buffer_addr_vir);
+            mPreviewBuffer[i]->phy_addr = (int)mCamBuffer->getBufferAddr(PREVIEWBUFFER,i,buffer_addr_phy);
+        } else {
+            LOGE("%s(%d): mPreviewBuffer[%d] malloc failed",__FUNCTION__,__LINE__,i);
+        }
+    }
+
+cameraPreviewBufferCreate_end:    
+    LOG_FUNCTION_NAME_EXIT
+	return ret;
+	
+}
+int CameraHal::cameraPreviewBufferDestory(void)
+{
+    unsigned int i;
+    
+	LOG_FUNCTION_NAME
+    
+    for(i = 0; i < mCamBuffer->getPreviewBufInfo().mNumBffers; i++) {
+		if (mPreviewBuffer[i] != NULL) {
+			if (mPreviewBuffer[i]->lock) {
+				delete mPreviewBuffer[i]->lock;
+				mPreviewBuffer[i]->lock = NULL;					  
+			}
+			free(mPreviewBuffer[i]);
+			mPreviewBuffer[i] = NULL;
+		}
+	}
+
+    mCamBuffer->destroyPreviewBuffer();
+    
+	LOG_FUNCTION_NAME_EXIT
+	return 0;
+}
 int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, int set)
 {
     int err = NO_ERROR;   
@@ -2363,37 +2365,16 @@ int CameraHal::cameraCreate(int cameraId)
     
     LOGD("%s(%d): Current driver is %s, v4l2 memory is %s",__FUNCTION__,__LINE__,mCamDriverCapability.driver, 
         (mCamDriverV4l2MemType==V4L2_MEMORY_MMAP)?"V4L2_MEMORY_MMAP":"V4L2_MEMORY_OVERLAY");
-    
-    pmem_fd = open(CAMERA_PMEM_NAME, O_RDWR);
-    if (pmem_fd < 0) {
-        LOGE("%s(%d): open the PMEM device(%s): %s",__FUNCTION__,__LINE__, CAMERA_PMEM_NAME, strerror(errno));
-    }
+   
 
-    ioctl(pmem_fd, PMEM_GET_TOTAL_SIZE, &sub);
-    mPmemSize = sub.len;
-
-    if (pmem_fd > 0) {
-        close(pmem_fd);
-        pmem_fd = 0;
-    } 
-
-    mMemHeap = new MemoryHeapBase(CAMERA_PMEM_NAME,mPmemSize,0);
-    iPmemFd = mMemHeap->getHeapID(); 
-    if (iPmemFd < 0) {
-        LOGE("%s(%d): allocate mMemHeap from %s failed",__FUNCTION__,__LINE__,CAMERA_PMEM_NAME);
-        err = -1;
-        goto exit;
-    }
-    
-    if (ioctl(iPmemFd,PMEM_GET_PHYS, &sub)) {
-        LOGE("%s(%d): obtain %s physical address",__FUNCTION__,__LINE__,CAMERA_PMEM_NAME);
-        err = -1;
+    if(access(CAMERA_PMEM_NAME, O_RDWR) < 0) {
+        mCamBuffer = new IonMemManager();
+        LOGD("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
     } else {
-        mPmemHeapPhyBase = sub.offset;
+        mCamBuffer = new PmemManager((char*)CAMERA_PMEM_NAME);
+        LOGD("%s(%d): Camera Hal memory is alloced from %s device",__FUNCTION__,__LINE__,CAMERA_PMEM_NAME);
     }
     
-    mMemHeapPmem = new MemoryHeapPmem(mMemHeap,0);
-
     mCamId = cameraId;
     
     LOG_FUNCTION_NAME_EXIT 
@@ -2427,8 +2408,8 @@ int CameraHal::cameraDestroy()
             }
         }
     }
-
-    cameraHeapBufferDestory();
+    cameraRawJpegBufferDestory();
+    cameraDisplayBufferDestory();
     cameraPreviewBufferDestory();
     
     if (mPreviewMemory != NULL) {
@@ -2447,22 +2428,11 @@ int CameraHal::cameraDestroy()
         }
     }
     
-    if (mMemHeapPmem != NULL) { 
-        LOG1("mMemHeapPmem.clear");
-        mMemHeapPmem.clear();
-        mMemHeapPmem = NULL;
-    }
-    if (mMemHeap != NULL) {
-        LOG1("mMemHeap.clear");
-        mMemHeap.clear();
-        mMemHeap = NULL;
-    }
-    mPmemHeapPhyBase = 0;
-    
-	if( iPmemFd > 0 ) {
-		close(iPmemFd);
-        iPmemFd = -1;
+	if(mCamBuffer) {
+		delete mCamBuffer;
+		mCamBuffer = NULL;
 	}
+
 	if( iCamFd > 0) {
         close(iCamFd);
         iCamFd = -1;
@@ -2691,8 +2661,10 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
         mPreviewHeight = mPreviewFrame2AppHeight;
     }
     mParameters.getPictureSize(&mPictureWidth, &mPictureHeight);
-    LOGD("%s(%d): Display and preview size is %dx%d, but facelock receive framesize is %dx%d",
-           __FUNCTION__,__LINE__, mPreviewWidth,mPreviewHeight,mPreviewFrame2AppWidth,mPreviewFrame2AppHeight);
+    if ((mPreviewWidth!=mPreviewFrame2AppWidth) || (mPreviewHeight!=mPreviewFrame2AppHeight))
+        LOGD("%s(%d): Display and preview size is %dx%d, but application(%s) receive framesize is %dx%d",
+               __FUNCTION__,__LINE__, mPreviewWidth,mPreviewHeight,
+               cameraCallProcess,mPreviewFrame2AppWidth,mPreviewFrame2AppHeight);
 end:  
     return err;
 }
@@ -2854,7 +2826,8 @@ int CameraHal::cameraStart()
         LOGE("%s(%d): mPreviewMemory create failed",__FUNCTION__,__LINE__);
     }
     
-    int *addr;
+    int *addr;	
+	
     for (int i=0; i < CONFIG_CAMERA_PRVIEW_BUF_CNT; i++) {
         if(!mVideoBufs[i])
             mVideoBufs[i] = mRequestMemory(-1, 4, 1, NULL);
@@ -2867,7 +2840,7 @@ int CameraHal::cameraStart()
 			//zyc , video buffer not same as preview buffer in usb camera,
 			// the format of usb camera is YUYV,video buffer is NV12
 			if (CAMERA_IS_UVC_CAMERA()) {
-				*addr =  mPmemHeapPhyBase + mPreviewBuffer[i]->offset();
+				*addr = mPreviewBuffer[i]->phy_addr;
 			} else {
 	            *addr = mPreviewBufferMap[i]->phy_addr;
 			}
@@ -3620,19 +3593,25 @@ int CameraHal::setParameters(const CameraParameters &params_set)
         cameraFpsInfoSet(params);
         if (strstr(params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE), params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE)) == NULL) {
             int min_fps, min_fps_set, max_fps, max_fps_set;
+            int framerate,framerate_set;
 
             params.getPreviewFpsRange(&min_fps, &max_fps);
             params_set.getPreviewFpsRange(&min_fps_set, &max_fps_set);
+
+            framerate = params.getPreviewFrameRate();
+            framerate_set = params_set.getPreviewFrameRate();
 
             if (min_fps_set != max_fps_set) {            
                 LOGE("%s(%d): PreviewFpsRange(%s) not supported, so switch to (%s)",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE),
                     params.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
             } else {
-                if (min_fps > min_fps_set) {
-                    if ((min_fps/1000)%(min_fps_set/1000) == 0) {
-                        mPreviewFrameDiv = min_fps/min_fps_set;
+                if (framerate > framerate_set) {
+                    if (framerate%framerate_set == 0) {
+                        mPreviewFrameDiv = framerate/framerate_set;
                         params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
                         params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, params_set.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE));
+
+                        params.setPreviewFrameRate(framerate_set);
                     } else {
                         LOGE("%s(%d): PreviewFpsRange(%s) not supported, so switch to (%s)",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE),
                             params.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
@@ -3697,7 +3676,7 @@ int CameraHal::setParameters(const CameraParameters &params_set)
         LOG1("PictureFormat(%s)  mCamDriverPictureFmt(%c%c%c%c)", params.getPictureFormat(),
             mCamDriverPictureFmt & 0xFF, (mCamDriverPictureFmt >> 8) & 0xFF,
 			(mCamDriverPictureFmt >> 16) & 0xFF, (mCamDriverPictureFmt >> 24) & 0xFF);
-        LOG1("Framerate: %d", framerate);
+        LOG1("Framerate: %d  mPreviewFrameDiv:%d", framerate,mPreviewFrameDiv);
         LOG1("WhiteBalance: %s", params.get(CameraParameters::KEY_WHITE_BALANCE));
         LOG1("Flash: %s", params.get(CameraParameters::KEY_FLASH_MODE));
         LOG1("Focus: %s", params.get(CameraParameters::KEY_FOCUS_MODE));
@@ -3758,7 +3737,13 @@ int CameraHal::dump(int fd)
     else 
         android_atomic_write(0,&gLogLevel);
 
-    LOGD("Set camera hardware log level to %d",gLogLevel);
+    LOGD("Set %s log level to %d",LOG_TAG,gLogLevel);
+
+    if (mCamBuffer) {
+        mCamBuffer->dump();
+    }
+    
+    commandThreadCommandQ.dump();
 
     for (i=0; i<CONFIG_CAMERA_PRVIEW_BUF_CNT; i++) {
         if (mPreviewBufferMap[i]->priv_hnd) {

@@ -44,40 +44,30 @@ namespace android {
 #define EXIF_DEF_MAKER          "rockchip"
 #define EXIF_DEF_MODEL          "rk29sdk"
 
-static int iPicturePmemFd;
-static int PicturePmem_Offset_Output;
-static int PicturePmemSize;
 
 static char ExifMaker[32];
 static char ExifModel[32];
 
+
+static MemManagerBase* cachMem =NULL;
 extern "C" int capturePicture_cacheflush(int buf_type, int offset, int len)
 {
-    int ret = 0;
-    struct pmem_region region;
+	int ret = 0;
 
-    region.offset = 0;
-    region.len = 0;
-    if (buf_type == 0) {          //input_buf
-        goto capture_cacheflush_end;
-    } else if (buf_type == 1) {   //output_buf
-        
-        if (offset >=  PicturePmemSize) {
-            ret = -1;
-            goto capture_cacheflush_end;
-        }
-        region.offset = PicturePmem_Offset_Output+offset;
-        if ((len + offset) > PicturePmemSize) {
-            len = PicturePmemSize - region.offset;
-        }        
-        region.len = len;
-        ret = ioctl(iPicturePmemFd,PMEM_CACHE_FLUSH, &region);
+    /* ddl@rock-chips.com notes: 
+     *                     0 : input buffer index for jpeg encoder
+     *                     1 : output buffer index for jpeg encoder
+     */
+
+    if (buf_type == 0) {            
+        buf_type = RAWBUFFER;
+    } else if (buf_type == 1) {
+        buf_type = JPEGBUFFER;
     }
-    LOGD("%s(%d): capturePicture_cacheflush buf_type:0x%x  offset:0x%lx  len:0x%lx ret:0x%x",
-        __FUNCTION__,__LINE__,buf_type,region.offset,region.len,ret);
 
-capture_cacheflush_end:
-    return ret;
+    cachMem->flushCacheMem((buffer_type_enum)buf_type,offset,len);
+
+	return ret;
 }
 extern "C"  int YData_Mirror_Line(int v4l2_fmt_src, int *psrc, int *pdst, int w)
 {
@@ -425,10 +415,11 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     if (pictureSize & 0xfff) {
         pictureSize = (pictureSize & 0xfffff000) + 0x1000;
     }
-
-    if (pictureSize > mRawBuffer->size()) {
+	
+	cachMem = this->mCamBuffer;
+    if (pictureSize > mCamBuffer->getRawBufInfo().mBufferSizes) {
         LOGE("%s(%d): mRawBuffer(size:0x%x) is not enough for this resolution picture(%dx%d, size:0x%x)",
-            __FUNCTION__, __LINE__,mRawBuffer->size(), jpeg_w, jpeg_h, pictureSize);
+            __FUNCTION__, __LINE__,mCamBuffer->getRawBufInfo().mBufferSizes, jpeg_w, jpeg_h, pictureSize);
         err = -1;
         goto exit;
     } else {
@@ -483,7 +474,7 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
 
     if (buffer.memory == V4L2_MEMORY_OVERLAY) {
         buffer.m.offset = capture->input_phy_addr;    /* phy address */ 
-        camDriverV4l2Buffer = (char*)mRawBuffer->pointer();
+        camDriverV4l2Buffer = (char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
     } else if (buffer.memory == V4L2_MEMORY_MMAP) {
         camDriverV4l2Buffer = (char*)mmap(0 /* start anywhere */ ,
                             buffer.length, PROT_READ, MAP_SHARED, iCamFd,
@@ -576,8 +567,8 @@ capturePicture_streamoff:
     mPictureLock.unlock();
     
     cameraFormatConvert(picture_format, mCamDriverPictureFmt, NULL,
-        (char*)camDriverV4l2Buffer,(char*)mRawBuffer->pointer(),0,0, jpeg_w, jpeg_h, jpeg_w, jpeg_h,false);    
-    
+        (char*)camDriverV4l2Buffer,(char*)(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, jpeg_w, jpeg_h,jpeg_w, jpeg_h,false);
+
     if (mCamDriverV4l2MemType == V4L2_MEMORY_MMAP) {
         if (camDriverV4l2Buffer != NULL) {
             if (munmap((void*)camDriverV4l2Buffer, buffer.length) < 0)
@@ -599,7 +590,9 @@ capturePicture_streamoff:
     
     if (rotation == 180) {
         if (driver_mirror_fail == true) {
-            YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mRawBuffer->pointer(), (char*)mJpegBuffer->pointer(), jpeg_w,jpeg_h);  
+            YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
+                (char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w,jpeg_h);
+            mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
         } else {
             if (mDriverFlipSupport && mDriverMirrorSupport) {  
                 control.id = V4L2_CID_HFLIP;
@@ -612,18 +605,16 @@ capturePicture_streamoff:
         } 
     }
 
-    copyAndSendRawImage((void*)mRawBuffer->pointer(), pictureSize);
+    copyAndSendRawImage((void*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), pictureSize);
 
-    iPicturePmemFd = iPmemFd;
-    PicturePmemSize = mPmemSize;
-    PicturePmem_Offset_Output = mJpegBuffer->offset();
     JpegInInfo.frameHeader = 1;
     if ((rotation == 0) || (rotation == 180)) {
         JpegInInfo.rotateDegree = DEGREE_0;        
     } else if (rotation == 90) {
         if(jpeg_w %16 != 0 || jpeg_h %16 != 0){
-			YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mRawBuffer->pointer(), 
-					(char*)mJpegBuffer->pointer(), jpeg_w, jpeg_h);
+			YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
+					(char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w, jpeg_h);
+            mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
 			JpegInInfo.rotateDegree = DEGREE_270;
 		}else{
 			JpegInInfo.rotateDegree = DEGREE_90;
@@ -748,8 +739,8 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     longtitude = mGps_longitude;
     timestamp = mGps_timestamp;    
     getMethod = (char*)mParameters.get(CameraParameters::KEY_GPS_PROCESSING_METHOD);//getMethod : len <= 32
-    
-
+	
+	cachMem = this->mCamBuffer;
     pictureSize = jpeg_w * jpeg_h * 3/2;
     if (pictureSize & 0xfff) {
         pictureSize = (pictureSize & 0xfffff000) + 0x1000;
@@ -757,22 +748,19 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
 
     if (mCamDriverPreviewFmt != mCamDriverPictureFmt) {
         cameraFormatConvert(mCamDriverPreviewFmt, mCamDriverPictureFmt, NULL,
-            (char*)capture->input_vir_addr,(char*)mRawBuffer->pointer(),0,0, jpeg_w, jpeg_h, jpeg_w, jpeg_h,false);
-        capture->input_phy_addr = mPmemHeapPhyBase + mRawBuffer->offset();
-        capture->input_vir_addr = (int)mRawBuffer->pointer();
+            (char*)capture->input_vir_addr,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, jpeg_w, jpeg_h, jpeg_w, jpeg_h,false);
+        capture->input_phy_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy);
+        capture->input_vir_addr = (int)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
     }
     
     if (rotation == 180) {
         if (driver_mirror_fail == true) {
-            YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)capture->input_vir_addr, (char*)mJpegBuffer->pointer(), jpeg_w,jpeg_h);  
+            YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)capture->input_vir_addr, (char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w,jpeg_h);  
         }
     }
 
     copyAndSendRawImage((void*)capture->input_vir_addr, pictureSize);
 
-    iPicturePmemFd = iPmemFd;
-    PicturePmemSize = mPmemSize;
-    PicturePmem_Offset_Output = mJpegBuffer->offset();
     JpegInInfo.frameHeader = 1;
     if ((rotation == 0) || (rotation == 180)) {
         JpegInInfo.rotateDegree = DEGREE_0;        

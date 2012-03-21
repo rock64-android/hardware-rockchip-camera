@@ -10,8 +10,10 @@
 #include "CameraHal.h"
 #include "MessageQueue.h"
 
-//#define MLOGD   LOGD
-#define MLOGD
+static volatile int32_t gLogLevel = 0;
+
+#define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
+#define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
 
 static char gDisplayThreadCommands[][30] = {
 		{"CMD_DISPLAY_PAUSE"},
@@ -113,7 +115,12 @@ int MessageQueue::get(Message* msg)
             read_bytes += err;
     }
 
-    MLOGD("%s.get(%s,%p,%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+    if (((strcmp(this->MsgQueName,"displayCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_DISPLAY_FRAME")==0)) ||
+        ((strcmp(this->MsgQueName,"commandCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
+        LOG2("%s.get(%s,%p,%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+    } else {
+        LOG1("%s.get(%s,%p,%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+    }
 
     return 0;
 }
@@ -150,7 +157,13 @@ int MessageQueue::get(Message* msg, int timeout)
             }
         }
     }
-        MLOGD("%s.get_timeout(%s,%p,%p,%p,%p)",this->MsgQueName,  MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+
+    if (((strcmp(this->MsgQueName,"displayCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_DISPLAY_FRAME")==0)) ||
+        ((strcmp(this->MsgQueName,"commandCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
+        LOG2("%s.get_timeout(%s,%p,%p,%p,%p)",this->MsgQueName,  MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+    } else {
+        LOG1("%s.get_timeout(%s,%p,%p,%p,%p)",this->MsgQueName,  MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+    }
 
     return 0;
 }
@@ -160,7 +173,12 @@ int MessageQueue::put(Message* msg)
     char* p = (char*) msg;
     unsigned int bytes = 0;
 
-    MLOGD("%s.put(%s,%p,%p,%p,%p)",this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+    if (((strcmp(this->MsgQueName,"displayCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_DISPLAY_FRAME")==0)) ||
+        ((strcmp(this->MsgQueName,"commandCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
+        LOG2("%s.put(%s,%p,%p,%p,%p)",this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+    } else {
+        LOG1("%s.put(%s,%p,%p,%p,%p)",this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+    }
 
     while( bytes  < sizeof(msg) )
     {
@@ -191,5 +209,16 @@ bool MessageQueue::isEmpty()
     }
 
     return (pfd.revents & POLLIN) == 0;
+}
+
+int MessageQueue::dump()
+{
+    if (gLogLevel < 2) 
+        android_atomic_inc(&gLogLevel);
+    else 
+        android_atomic_write(0,&gLogLevel);   
+    LOGD("Set %s log level to %d",LOG_TAG,gLogLevel);
+
+    return 0;
 }
 

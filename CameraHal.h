@@ -53,8 +53,7 @@
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
 #include "../libgralloc/gralloc_priv.h"
-
-
+#include "CameraHal_Mem.h"
 namespace android {
 
 /*
@@ -76,8 +75,9 @@ namespace android {
 *         3) CameraHal display format add check hwc module version;
 *         4) CameraHal support force single sensor facing is back-face for cts by config
 *            CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS macro;
+*v0.2.4 : CameraHal support obtain necessary memory(preview/raw/jpeg) from pmem or ion device;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 3)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 4)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   "yuv420sp"
@@ -92,7 +92,6 @@ namespace android {
 #define CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS   0
 #define CONFIG_CAMERA_MIRROR_FOR_FRING  1
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT    4
- 
 
 #define CAMERAHAL_VERSION_PROPERTY_KEY       "sys_graphic.cam_hal.ver"
 #define CAMERADRIVER_VERSION_PROPERTY_KEY    "sys_graphic.cam_driver.ver"
@@ -160,6 +159,7 @@ enum PreviewBufStatus {
 
 #define CAMERA_IS_UVC_CAMERA()  (strcmp((char*)&mCamDriverCapability.driver[0],"uvcvideo") == 0)
 #define CAMERA_IS_RKSOC_CAMERA()  (strcmp((char*)&mCamDriverCapability.driver[0],"rk29xx-camera") == 0)
+
 
 class CameraHal {
 public:  
@@ -459,12 +459,14 @@ private:
     int copyAndSendRawImage(void *raw_image, int size);
     int copyAndSendCompressedImage(void *compressed_image, int size);
         
-    int cameraHeapBufferCreate(int rawBufferSize, int jpegBufferSize);
-    int cameraHeapBufferDestory();
+    int cameraRawJpegBufferCreate(int rawBufferSize, int jpegBufferSize);
+    int cameraRawJpegBufferDestory();
     int cameraPmemBufferFlush(sp<MemoryHeapBase> heap, sp<IMemory> buf);
     int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, char *srcbuf, char *dstbuf, 
                             int srcphy,int dstphy,int src_w, int src_h,int dst_w, int dst_h, bool mirror);
-    int cameraPreviewBufferCreate(int width, int height, const char *fmt,int numBufs);
+     int cameraDisplayBufferCreate(int width, int height, const char *fmt,int numBufs);
+     int cameraDisplayBufferDestory(void);
+     int cameraPreviewBufferCreate(int numBufs);
     int cameraPreviewBufferDestory();
     int cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, int set);
     int cameraFramerateQuery(unsigned int format, unsigned int w, unsigned int h, int *min, int *max);
@@ -505,11 +507,11 @@ private:
     int mRawBufferSize;
     int mPreviewFrameSize;
     int mPreviewFrame2AppSize;
-    int mPmemHeapPhyBase;
     volatile int32_t mPreviewStartTimes;  
     int mPreviewFrameDiv;
     int mPreviewFrameIndex;
-    
+
+    rk_previewbuf_info_t *mPreviewBuffer[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     rk_previewbuf_info_t *mPreviewBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     rk_previewbuf_info_t *mDisplayBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     rk_previewbuf_info_t mGrallocBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
@@ -518,11 +520,6 @@ private:
     unsigned char* mPreviewBufs[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     camera_memory_t* mVideoBufs[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     
-    sp<MemoryHeapBase> mMemHeap;
-	sp<MemoryHeapBase> mMemHeapPmem;
-    sp<IMemory> mJpegBuffer; 
-    sp<IMemory> mRawBuffer;  
-    sp<IMemory> mPreviewBuffer[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     unsigned int CameraHal_SupportFmt[5];
     char mDisplayFormat[30];
     
@@ -549,8 +546,6 @@ private:
     bool mExitAutoFocusThread; 
 		
     int iCamFd;
-    int iPmemFd;
-    int mPmemSize; 
     int mCamId;
     
     bool mDriverMirrorSupport;
@@ -644,6 +639,7 @@ private:
     camera_data_timestamp_callback mDataCbTimestamp;
     camera_request_memory mRequestMemory;
     void  *mCallbackCookie;
+    MemManagerBase* mCamBuffer;
 };
 
 }; // namespace android
