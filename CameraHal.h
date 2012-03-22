@@ -73,8 +73,6 @@ namespace android {
 *         1) CameraHal support 240x160 for fring;
 *         2) CameraHal support query version by getprop sys_graphic.camerahal.version;
 *         3) CameraHal display format add check hwc module version;
-*         4) CameraHal support force single sensor facing is back-face for cts by config
-*            CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS macro;
 *v0.2.4 : CameraHal support obtain necessary memory(preview/raw/jpeg) from pmem or ion device;
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 4)
@@ -97,6 +95,8 @@ namespace android {
 #define CAMERADRIVER_VERSION_PROPERTY_KEY    "sys_graphic.cam_driver.ver"
 #define CAMERA_PMEM_NAME                     "/dev/pmem_cam"
 #define CAMERA_DRIVER_SUPPORT_FORMAT_MAX   32
+
+
 
 #define RAW_BUFFER_SIZE_5M          0x740000
 #define RAW_BUFFER_SIZE_3M          0x480000

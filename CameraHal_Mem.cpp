@@ -1,5 +1,5 @@
 /*
-*Author: zyc@rock-chips.com
+*Author: zyc@rock-chips.co
 */
 #include <sys/stat.h>
 #include <unistd.h>
@@ -12,8 +12,8 @@ namespace android {
 
 static volatile int32_t gLogLevel = 0;
 
-#define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
+#define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__)
+#define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__)
 
 #define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
 #define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
@@ -36,9 +36,9 @@ unsigned int MemManagerBase::getBufferAddr(enum buffer_type_enum buf_type, unsig
 {
     unsigned int addr = 0x00;
     struct bufferinfo_s *buf_info;
-    
+   
     switch(buf_type)
-	{
+    {
 		case PREVIEWBUFFER:
 			buf_info = &mPreviewBufferInfo;
 			break;
@@ -72,12 +72,14 @@ int MemManagerBase::dump()
 {
     if (gLogLevel < 2) 
         android_atomic_inc(&gLogLevel);
-    else 
+    else
         android_atomic_write(0,&gLogLevel);
 
     LOGD("Set %s log level to %d",LOG_TAG,gLogLevel);
     return 0;
 }
+
+#if (CONFIG_CAMERA_MEM == CAMERA_MEM_ION)
 
 IonMemManager::IonMemManager()
 			     :MemManagerBase(),
@@ -87,8 +89,8 @@ IonMemManager::IonMemManager()
 				mIonMemMgr(NULL)
 {
 	mIonMemMgr = new IonAlloc(PAGE_SIZE, ION_MODULE_CAM);
-	
 }
+
 IonMemManager::~IonMemManager()
 {
 	if (mPreviewData) {
@@ -109,8 +111,8 @@ IonMemManager::~IonMemManager()
 	if(mIonMemMgr)
 		delete mIonMemMgr;
 	mIonMemMgr = NULL;
-}
 
+}
 
 int IonMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
 {
@@ -257,13 +259,13 @@ int IonMemManager::destroyPreviewBuffer()
 {
 	LOG_FUNCTION_NAME
 	Mutex::Autolock lock(mLock);
-	
+
 	destroyIonBuffer(PREVIEWBUFFER);
-	
+
 	LOG_FUNCTION_NAME_EXIT
 	return 0;
-}
 
+}
 int IonMemManager::createRawBuffer(struct bufferinfo_s* rawbuf)
 {
 	LOG_FUNCTION_NAME
@@ -290,7 +292,7 @@ int IonMemManager::createRawBuffer(struct bufferinfo_s* rawbuf)
     }
     LOG_FUNCTION_NAME_EXIT
 	return ret;
-	
+
 }
 int IonMemManager::destroyRawBuffer()
 {
@@ -301,7 +303,7 @@ int IonMemManager::destroyRawBuffer()
 	return 0;
 }
  int IonMemManager::createJpegBuffer(struct bufferinfo_s* jpegbuf)
-{
+ {
     LOG_FUNCTION_NAME
     int ret;
     Mutex::Autolock lock(mLock);
@@ -326,8 +328,8 @@ int IonMemManager::destroyRawBuffer()
     }
     LOG_FUNCTION_NAME_EXIT
 	return ret;
-}
 
+ }
 int IonMemManager::destroyJpegBuffer()
 {
 	 LOG_FUNCTION_NAME
@@ -335,8 +337,8 @@ int IonMemManager::destroyJpegBuffer()
 	 destroyIonBuffer(JPEGBUFFER);
 	 LOG_FUNCTION_NAME_EXIT
 	 return 0;
-}
 
+}
 int IonMemManager::flushCacheMem(buffer_type_enum buftype,unsigned int offset, unsigned int len)
 {
     Mutex::Autolock lock(mLock);
@@ -362,7 +364,7 @@ int IonMemManager::flushCacheMem(buffer_type_enum buftype,unsigned int offset, u
 
     return 0;
 }
-
+#endif
 /******************ION BUFFER END*******************/
 
 /*****************pmem buffer start*******************/
@@ -401,23 +403,23 @@ int PmemManager::initPmem(char* devpath)
         err = -1;
         goto exit;
 	}
-	
+
 	ioctl(pmem_fd, PMEM_GET_TOTAL_SIZE, &sub);
 	mPmemSize = sub.len;
-	
+
 	if (pmem_fd > 0) {
 		close(pmem_fd);
 		pmem_fd = -1;
-	} 
-	
+	}
+
 	mMemHeap = new MemoryHeapBase(devpath,mPmemSize,0);
-	mPmemFd = mMemHeap->getHeapID(); 
+	mPmemFd = mMemHeap->getHeapID();
 	if (mPmemFd < 0) {
 		LOGE("%s(%d): allocate mMemHeap from %s failed",__FUNCTION__,__LINE__,devpath);
 		err = -1;		
 		goto exit;
 	}
-	
+
 	if (ioctl(mPmemFd,PMEM_GET_PHYS, &sub)) {
 		LOGE("%s(%d): Obtain %s physical address failed",__FUNCTION__,__LINE__,devpath);
 		err = -1;
@@ -425,7 +427,7 @@ int PmemManager::initPmem(char* devpath)
 	} else {
 		mPmemHeapPhyBase = sub.offset;
 	}
-	
+
 	mMemHeapPmem = new MemoryHeapPmem(mMemHeap,0);
 
 exit:
@@ -445,8 +447,8 @@ exit:
 		pmem_fd = -1;
 	} 
     return err;
-		
-}
+}	
+
 int PmemManager::deinitPmem()
 {
 	Mutex::Autolock lock(mLock);
@@ -460,7 +462,7 @@ int PmemManager::deinitPmem()
 		mMemHeap = NULL;
 	}
 	mPmemHeapPhyBase = 0;
-	
+
 	if( mPmemFd > 0 ) {
 		close(mPmemFd);
 		mPmemFd = -1;
@@ -537,7 +539,6 @@ int PmemManager::destroyPreviewBuffer()
     LOG_FUNCTION_NAME_EXIT
     return 0;
 }
-
 int PmemManager::createRawBuffer(struct bufferinfo_s* rawbuf)
 {
     LOG_FUNCTION_NAME

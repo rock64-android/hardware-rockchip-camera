@@ -2368,8 +2368,14 @@ int CameraHal::cameraCreate(int cameraId)
    
 
     if(access(CAMERA_PMEM_NAME, O_RDWR) < 0) {
+    #if (CONFIG_CAMERA_MEM == CAMERA_MEM_ION)
         mCamBuffer = new IonMemManager();
         LOGD("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
+    #else
+        LOGE("%s(%d): %s isn't registered,CameraHal_Mem current configuration isn't support ION memory!!!",
+            __FUNCTION__,__LINE__,CAMERA_PMEM_NAME);
+        goto exit1;
+    #endif
     } else {
         mCamBuffer = new PmemManager((char*)CAMERA_PMEM_NAME);
         LOGD("%s(%d): Camera Hal memory is alloced from %s device",__FUNCTION__,__LINE__,CAMERA_PMEM_NAME);

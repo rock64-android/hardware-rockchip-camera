@@ -1,8 +1,19 @@
 /*
 *Author: zyc@rock-chips.com
 */
+#define CAMERA_MEM_PMEM 0
+#define CAMERA_MEM_ION  1
+/* 
+*NOTE: 
+*   configuration macro 
+*      
+*/
+#define CONFIG_CAMERA_MEM               CAMERA_MEM_PMEM
 
+#if (CONFIG_CAMERA_MEM == CAMERA_MEM_ION)
 #include <ion/IonAlloc.h>
+#endif
+
 #ifdef HAVE_ANDROID_OS 
 #include <linux/android_pmem.h>
 #include <binder/MemoryHeapPmem.h>
@@ -83,6 +94,7 @@ class PmemManager:public MemManagerBase{
         sp<IMemory> **mPreviewBuffer;
 };
 
+#if (CONFIG_CAMERA_MEM == CAMERA_MEM_ION)
 class IonMemManager:public MemManagerBase{
 	public :
 		IonMemManager();
@@ -104,6 +116,7 @@ class IonMemManager:public MemManagerBase{
 		ion_buffer_t *mJpegData;
 		IonAlloc *mIonMemMgr;
 };
+#endif
 
 /*****************for unified memory manager  end*******************/
 }
