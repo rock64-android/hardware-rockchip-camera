@@ -329,7 +329,7 @@ int CameraHal::copyAndSendRawImage(void *raw_image, int size)
     camera_memory_t* picture = NULL;
     void *dest = NULL, *src = NULL;
 
-    if(msgTypeEnabled(CAMERA_MSG_RAW_IMAGE)) { 
+    if(mMsgEnabled & CAMERA_MSG_RAW_IMAGE) { 
         picture = mRequestMemory(-1, size, 1, NULL);
         if (NULL != picture) {
             dest = picture->data;
@@ -338,10 +338,10 @@ int CameraHal::copyAndSendRawImage(void *raw_image, int size)
                 mDataCb(CAMERA_MSG_RAW_IMAGE, picture, 0, NULL, mCallbackCookie);
             }
             picture->release(picture);
-        } else if (msgTypeEnabled(CAMERA_MSG_RAW_IMAGE_NOTIFY)) {
+        } else if (mMsgEnabled & CAMERA_MSG_RAW_IMAGE_NOTIFY) {
             mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
         }
-    } else if (msgTypeEnabled(CAMERA_MSG_RAW_IMAGE_NOTIFY)) {
+    } else if (mMsgEnabled & CAMERA_MSG_RAW_IMAGE_NOTIFY) {
         mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
     }
     return 0;
@@ -352,7 +352,7 @@ int CameraHal::copyAndSendCompressedImage(void *compressed_image, int size)
     camera_memory_t* picture = NULL;
     void *dest = NULL, *src = NULL;
 
-    if(msgTypeEnabled(CAMERA_MSG_COMPRESSED_IMAGE)) { 
+    if(mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE) { 
         picture = mRequestMemory(-1, size, 1, NULL);
         if (NULL != picture) {
             dest = picture->data;

@@ -74,8 +74,11 @@ namespace android {
 *         2) CameraHal support query version by getprop sys_graphic.camerahal.version;
 *         3) CameraHal display format add check hwc module version;
 *v0.2.4 : CameraHal support obtain necessary memory(preview/raw/jpeg) from pmem or ion device;
+*v0.2.5 : 
+*         1) CameraHal compatible for camera driver v0.x.9
+*         2) CameraHal_Utils don't call msgTypeEnabled,may be deadlock;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 4)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 5) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   "yuv420sp"
@@ -158,7 +161,7 @@ enum PreviewBufStatus {
 
 
 #define CAMERA_IS_UVC_CAMERA()  (strcmp((char*)&mCamDriverCapability.driver[0],"uvcvideo") == 0)
-#define CAMERA_IS_RKSOC_CAMERA()  (strcmp((char*)&mCamDriverCapability.driver[0],"rk29xx-camera") == 0)
+#define CAMERA_IS_RKSOC_CAMERA()  (strstr((char*)&mCamDriverCapability.driver[0],"rk-camera") != NULL)
 
 
 class CameraHal {
