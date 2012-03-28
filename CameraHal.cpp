@@ -103,6 +103,62 @@ static int cameraPixFmt2HalPixFmt(const char *fmt)
     return hal_pixel_format;
 }
 
+static void nv12torgb565(int width, int height, char *src, short int *dst)
+{
+    int line, col;
+    int y, u, v, yy, vr, ug, vg, ub;
+    int r, g, b;
+    char *py, *pu, *pv;    
+
+    py = src;
+    pu = py + (width * height);
+    pv = pu + 1;
+    y = *py++;
+    yy = y << 8;
+    u = *pu - 128;
+    ug = 88 * u;
+    ub = 454 * u;
+    v = *pv - 128;
+    vg = 183 * v;
+    vr = 359 * v;
+    
+    for (line = 0; line < height; line++) {
+        for (col = 0; col < width; col++) {
+            r = (yy +      vr) >> 8;
+            g = (yy - ug - vg) >> 8;
+            b = (yy + ub     ) >> 8;
+            if (r < 0)   r = 0;
+            if (r > 255) r = 255;
+            if (g < 0)   g = 0;
+            if (g > 255) g = 255;
+            if (b < 0)   b = 0;
+            if (b > 255) b = 255;
+            
+            *dst++ = (((__u16)r>>3)<<11) | (((__u16)g>>2)<<5) | (((__u16)b>>3)<<0);
+
+            y = *py++;
+            yy = y << 8;
+            if (col & 1) {
+                pu += 2;
+                pv = pu+1;
+                u = *pu - 128;
+                ug =   88 * u;
+                ub = 454 * u;
+                v = *pv - 128;
+                vg = 183 * v;
+                vr = 359 * v;
+            }
+        }
+        
+        if ((line & 1) == 0) { 
+            //even line: rewind
+            pu -= width;
+            pv = pu+1;
+        }
+    }
+}
+
+
 CameraHal::CameraHal(int cameraId)
             :mParameters(),
             mSnapshotRunning(-1),
@@ -1181,7 +1237,8 @@ display_receive_cmd:
                         } 
                         
                         if(CAMERA_IS_RKSOC_CAMERA()) {                            
-                            cameraFormatConvert(mCamDriverPreviewFmt, 0,mDisplayFormat,NULL,NULL,
+                            cameraFormatConvert(mCamDriverPreviewFmt, 0,mDisplayFormat,
+                                (char*)mPreviewBufferMap[queue_buf_index]->vir_addr,(char*)mDisplayBufferMap[queue_display_index]->vir_addr,
                                 mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,
                                 mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight,false);
                         } else {
@@ -2024,9 +2081,9 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
             mGrallocBufferMap[i].priv_hnd= (private_handle_t*)(*hnd);
             if (ioctl(mGrallocBufferMap[i].priv_hnd->fd,PMEM_GET_PHYS,&sub) == 0) {                    
                 mGrallocBufferMap[i].phy_addr = sub.offset + mGrallocBufferMap[i].priv_hnd->offset;    /* phy address */ 
-            } else {
-                LOGE("%s(%d): %s(err:%d) obtain buffer %d phy address failed!",__FUNCTION__,__LINE__,
-                        strerror(errno),errno, i);
+            } else {   
+                /* ddl@rock-chips.com: gralloc buffer is not continuous in phy */
+                mGrallocBufferMap[i].phy_addr = 0x00;
             }
         } else {   
             private_handle_t *phnd = (private_handle_t*)*hnd;
@@ -2067,13 +2124,21 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
 
     cameraPreviewBufferCreate(numBufs);
     
-    if (strcmp(fmt,CameraParameters::PIXEL_FORMAT_RGB565)) {
-        for (i=0; i<numBufs; i++)
+    if ((strcmp(fmt,CameraParameters::PIXEL_FORMAT_RGB565))
+        && mGrallocBufferMap[0].phy_addr) {
+        /* 
+        * ddl@rock-chips.com : Sensor data is directly stored in gralloc buffer(display buffer),
+        *                      when gralloc buffer is physical continues memory and display format is yuv; 
+        */
+        for (i=0; i<numBufs; i++) {
             mPreviewBufferMap[i] = &mGrallocBufferMap[i];
+        }
+        LOGD("%s(%d): Display buffer is directly used for Preview buffer",__FUNCTION__,__LINE__);
     } else {
         for (i=0; i<numBufs; i++) {
             mPreviewBufferMap[i] = mPreviewBuffer[i];
         }
+        LOGD("%s(%d): Display buffer and Preview buffer is independent",__FUNCTION__,__LINE__);
     }
    
     LOG_FUNCTION_NAME_EXIT    
@@ -2256,6 +2321,17 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
         if (set) {
             if (CAMERA_PREVIEWBUF_ALLOW_WRITE(buf_hnd->buf_state)==false)
                 LOGE("%s(%d): Set buffer writing, but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+
+            int i;
+            for (i=0; i<mPreviewBufferCount; i++) {
+                if (buf_hnd->vir_addr == mPreviewBuffer[i]->vir_addr) {
+                    if (mDisplayBufferMap[i]->phy_addr==0) {
+                        mCamBuffer->flushCacheMem(PREVIEWBUFFER, 
+                            mPreviewBuffer[i]->vir_addr-mPreviewBufferMap[0]->vir_addr, 
+                            mCamBuffer->getPreviewBufInfo().mPerBuffersize);
+                    }   
+                }
+            }
             buf_hnd->buf_state |= CMD_PREVIEWBUF_WRITING;
         } else { 
             if ((buf_hnd->buf_state & CMD_PREVIEWBUF_WRITING) == 0)
@@ -3098,19 +3174,23 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                     }          
                 }
             } else if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_RGB565)==0)) {
-                YUV2RGBParams  para;
+                if (srcphy && dstphy) {
+                    YUV2RGBParams  para;
 
-                memset(&para, 0x00, sizeof(YUV2RGBParams));
-            	para.yuvAddr = srcphy;
-            	para.outAddr = dstphy;
-            	para.inwidth  = (src_w + 15)&(~15);
-            	para.inheight = (src_h + 15)&(~15);
-            	para.outwidth  = (dst_w + 15)&(~15);
-            	para.outheight = (dst_h + 15)&(~15);
-                para.inColor  = PP_IN_YUV420sp;
-                para.outColor  = PP_OUT_RGB565;
+                    memset(&para, 0x00, sizeof(YUV2RGBParams));
+                	para.yuvAddr = srcphy;
+                	para.outAddr = dstphy;
+                	para.inwidth  = (src_w + 15)&(~15);
+                	para.inheight = (src_h + 15)&(~15);
+                	para.outwidth  = (dst_w + 15)&(~15);
+                	para.outheight = (dst_h + 15)&(~15);
+                    para.inColor  = PP_IN_YUV420sp;
+                    para.outColor  = PP_OUT_RGB565;
 
-                doYuvToRgb(&para);
+                    doYuvToRgb(&para);
+                } else if (srcbuf && dstbuf) {
+                    nv12torgb565(src_w,src_h,srcbuf, (short int*)dstbuf);                    
+                }
             }
             break;
         }

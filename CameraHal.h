@@ -161,7 +161,8 @@ enum PreviewBufStatus {
 
 
 #define CAMERA_IS_UVC_CAMERA()  (strcmp((char*)&mCamDriverCapability.driver[0],"uvcvideo") == 0)
-#define CAMERA_IS_RKSOC_CAMERA()  (strstr((char*)&mCamDriverCapability.driver[0],"rk-camera") != NULL)
+#define CAMERA_IS_RKSOC_CAMERA()  ((strstr((char*)&mCamDriverCapability.driver[0],"rk") != NULL)\
+                                    && (strstr((char*)&mCamDriverCapability.driver[0],"-camera") != NULL))
 
 
 class CameraHal {
