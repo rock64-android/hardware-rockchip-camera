@@ -17,11 +17,9 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-
-
 #ifndef ANDROID_HARDWARE_CAMERA_HARDWARE_H
 #define ANDROID_HARDWARE_CAMERA_HARDWARE_H
- 
+
 #include <stdio.h>
 #include <stdlib.h> 
 #include <string.h>
@@ -52,7 +50,14 @@
 
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
+
+#ifdef  TARGET_RK30
+#include "../libgralloc_ump/gralloc_priv.h"
+#else
 #include "../libgralloc/gralloc_priv.h"
+#endif
+
+
 #include "CameraHal_Mem.h"
 namespace android {
 
@@ -77,8 +82,12 @@ namespace android {
 *v0.2.5 : 
 *         1) CameraHal compatible for camera driver v0.x.9
 *         2) CameraHal_Utils don't call msgTypeEnabled,may be deadlock;
+*v0.2.6 :
+*         1) CameraHal compatible for RK30XX and RK29XX;
+*         2) CameraHal support mirror frame which sended by mDataCb and from front camera,
+*            config by CONFIG_CAMERA_FRONT_MIRROR_MDATACB;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 5) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 6) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   "yuv420sp"
@@ -91,7 +100,7 @@ namespace android {
 #define CONFIG_CAMERA_DISPLAY_FORCE     0
 #define CONFIG_CAMERA_DISPLAY_FORCE_FORMAT CAMERA_DISPLAY_FORMAT_RGB565
 #define CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS   0
-#define CONFIG_CAMERA_MIRROR_FOR_FRING  1
+#define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT    4
 
 #define CAMERAHAL_VERSION_PROPERTY_KEY       "sys_graphic.cam_hal.ver"

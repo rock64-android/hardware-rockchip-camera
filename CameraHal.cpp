@@ -1522,11 +1522,10 @@ void CameraHal::previewThread()
                     if (mPreviewMemory) {
                         bool mirror;
 
-                        #if CONFIG_CAMERA_MIRROR_FOR_FRING
-                        if (strcmp(cameraCallProcess,"com.fring")==0)
+                        #if CONFIG_CAMERA_FRONT_MIRROR_MDATACB
+                        if (gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_FRONT) {
                             mirror = true;
-                        else 
-                            mirror = false;
+                        }
                         #else
                         mirror = false;
                         #endif
@@ -3174,6 +3173,7 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                     }          
                 }
             } else if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_RGB565)==0)) {
+                
                 if (srcphy && dstphy) {
                     YUV2RGBParams  para;
 

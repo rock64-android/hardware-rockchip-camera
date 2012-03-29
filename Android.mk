@@ -10,13 +10,20 @@ LOCAL_SRC_FILES:=\
 	CameraHal.cpp\
 	CameraHal_Utils.cpp\
 	MessageQueue.cpp\
-	CameraHal_Mem.cpp\
-	
-
+	CameraHal_Mem.cpp
+  
+ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)	 
 LOCAL_C_INCLUDES += \
 	frameworks/base/include/ui \
   external/jpeg \
-  external/jhead
+  external/jhead\
+	hardware/rk29/libgralloc_ump/ump/include
+else
+  LOCAL_C_INCLUDES += \
+	frameworks/base/include/ui \
+  external/jpeg \
+  external/jhead	
+endif
 
 LOCAL_SHARED_LIBRARIES:= \
     libui \
@@ -30,8 +37,15 @@ LOCAL_SHARED_LIBRARIES:= \
     libyuvtorgb\
 
 LOCAL_CFLAGS := -fno-short-enums -DCOPY_IMAGE_BUFFER
+ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)	
+LOCAL_CFLAGS += -DTARGET_RK30
+endif
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
+ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)
+LOCAL_MODULE:= camera.rk30board
+else
 LOCAL_MODULE:= camera.rk29board
-LOCAL_MODULE_TAGS:= optional
+endif
 
+LOCAL_MODULE_TAGS:= optional
 include $(BUILD_SHARED_LIBRARY)
