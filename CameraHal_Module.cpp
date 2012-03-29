@@ -695,7 +695,14 @@ loop_continue:
         }
     }
 #endif
-
+    #if CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS
+    if ((gCamerasNumber==1) && (camInfoTmp[0].facing_info.facing==CAMERA_FACING_FRONT)) {
+        gCamerasNumber = 2;
+        memcpy(&camInfoTmp[1],&camInfoTmp[0], sizeof(rk_cam_info_t));
+        camInfoTmp[1].facing_info.facing = CAMERA_FACING_BACK;
+    }
+    #endif
+    
     memcpy(&gCamInfos[0], &camInfoTmp[0], sizeof(rk_cam_info_t));
     memcpy(&gCamInfos[1], &camInfoTmp[1], sizeof(rk_cam_info_t));
     
@@ -717,30 +724,7 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
         rv = -EINVAL;
         goto end;
     }
-    #if CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS
-    if ((gCamerasNumber == 1) && (gCamInfos[0].facing_info.facing == CAMERA_FACING_FRONT)) {
 
-        process_name[0] = 0x00; 
-        sprintf(process_name,"/proc/%d/cmdline",IPCThreadState::self()->getCallingPid());
-        fp = open(process_name, O_RDONLY);
-        if (fp < 0) {
-            memset(process_name,0x00,sizeof(process_name));
-            LOGE("%s(%d): Obtain calling process info failed",__FUNCTION__,__LINE__);
-        } else {
-            memset(process_name,0x00,sizeof(process_name));
-            read(fp, process_name, 30);
-            close(fp);
-            fp = -1;
-
-            if (strcmp(process_name,"com.android.cts.stub")==0) {
-                info->facing = CAMERA_FACING_BACK;
-                info->orientation = 90;
-                LOGW("%s(%d): Programer force change facing to back for CTS, because machine has only front camera",__FUNCTION__,__LINE__);
-                goto end;
-            }
-        }
-    }
-    #endif
     info->facing = gCamInfos[camera_id].facing_info.facing;
     info->orientation = gCamInfos[camera_id].facing_info.orientation;       
 end:

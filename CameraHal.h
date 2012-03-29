@@ -86,8 +86,10 @@ namespace android {
 *         1) CameraHal compatible for RK30XX and RK29XX;
 *         2) CameraHal support mirror frame which sended by mDataCb and from front camera,
 *            config by CONFIG_CAMERA_FRONT_MIRROR_MDATACB;
+*v0.2.7 :
+*         1) CameraHal support CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 6) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 7) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   "yuv420sp"

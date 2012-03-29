@@ -679,8 +679,6 @@ int PmemManager::flushCacheMem(buffer_type_enum buftype,unsigned int offset, uns
 	region.len = len;
 	ret = ioctl(mPmemFd,PMEM_CACHE_FLUSH, &region);
     
-    LOGD("%s(%d): offset:0x%lx  len:0x%lx ret:0x%x",
-    	__FUNCTION__,__LINE__,region.offset,region.len,ret);
     return ret;
 }
 /******************* pmem buffer end*****************/
