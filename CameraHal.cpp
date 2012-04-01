@@ -103,7 +103,7 @@ static int cameraPixFmt2HalPixFmt(const char *fmt)
     return hal_pixel_format;
 }
 
-static void nv12torgb565(int width, int height, char *src, short int *dst)
+static void arm_nv12torgb565(int width, int height, char *src, short int *dst)
 {
     int line, col;
     int y, u, v, yy, vr, ug, vg, ub;
@@ -158,6 +158,54 @@ static void nv12torgb565(int width, int height, char *src, short int *dst)
     }
 }
 
+static int rga_nv12torgb565(int fd,int width, int height, char *src, short int *dst)
+{
+#ifdef TARGET_RK30    
+    struct rga_req  Rga_Request;
+    int err = 0;
+    
+    memset(&Rga_Request,0x0,sizeof(Rga_Request));
+
+    Rga_Request.src.yrgb_addr =  (int)src;
+    Rga_Request.src.uv_addr  = (int)src+width*height;
+    Rga_Request.src.v_addr   =  Rga_Request.src.uv_addr;
+    Rga_Request.src.vir_w =  width;
+    Rga_Request.src.vir_h = height;
+    Rga_Request.src.format = RK_FORMAT_YCbCr_420_SP;
+    Rga_Request.src.act_w = width;
+    Rga_Request.src.act_h = height;
+    Rga_Request.src.x_offset = 0;
+    Rga_Request.src.y_offset = 0;
+
+    Rga_Request.dst.yrgb_addr = (int)dst;
+    Rga_Request.dst.uv_addr  = 0;
+    Rga_Request.dst.v_addr   = 0;
+    Rga_Request.dst.vir_w = width;
+    Rga_Request.dst.vir_h = height;
+    Rga_Request.dst.format = RK_FORMAT_RGB_565;
+    Rga_Request.clip.xmin = 0;
+    Rga_Request.clip.xmax = width - 1;
+    Rga_Request.clip.ymin = 0;
+    Rga_Request.clip.ymax = height - 1;
+    Rga_Request.dst.act_w = width;
+    Rga_Request.dst.act_h = height;
+    Rga_Request.dst.x_offset = 0;
+    Rga_Request.dst.y_offset = 0;
+    Rga_Request.rotate_mode = 0;
+    Rga_Request.mmu_info.mmu_en    = 1;
+    Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1;
+    
+    if(ioctl(fd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
+        LOGE("%s(%d):  RGA_BLIT_ASYNC Failed", __FUNCTION__, __LINE__);
+        err = -1;
+    }    
+    return err;
+#else
+    LOGE("%s(%d): rk29 havn't RGA device in chips!!",__FUNCTION__, __LINE__);
+    return -1;
+#endif
+}
+
 
 CameraHal::CameraHal(int cameraId)
             :mParameters(),
@@ -174,7 +222,6 @@ CameraHal::CameraHal(int cameraId)
             mANativeWindow(NULL),
             mPreviewErrorFrameCount(0),
 	        mPreviewFrameSize(0),
-	        mPreviewFrameDiv(1),
 	        mCamDriverFrmHeightMax(0),
 	        mCamDriverFrmWidthMax(0),
 	        mPreviewBufferCount(0),
@@ -240,6 +287,9 @@ CameraHal::CameraHal(int cameraId)
         mPreviewBuffer[i] = NULL;
     }
     
+    //open the rga device,zyc
+    mRGAFd = -1;
+
     if (cameraCreate(cameraId) == 0) {
         initDefaultParameters();
 
@@ -333,7 +383,7 @@ int CameraHal::cameraFramerateQuery(unsigned int format, unsigned int w, unsigne
     fival.pixel_format = format;
     fival.width = w;
     fival.height = h;
-	ret = ioctl(iCamFd, VIDIOC_ENUM_FRAMEINTERVALS, &fival);
+	ret = ioctl(iCamFd, VIDIOC_ENUM_FRAMEINTERVALS, &fival);    
     if (ret == 0) {
         if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
             /* ddl@rock-chip.com: Compatible for v0.x.5 camera driver*/
@@ -361,12 +411,12 @@ int CameraHal::cameraFramerateQuery(unsigned int format, unsigned int w, unsigne
     				((fival.pixel_format >> 16) & 0xFF), ((fival.pixel_format >> 24) & 0xFF),fival.index);
         }
 default_fps:    
-        if (mCamId == 0) {
-            *min = CAMERA_BACK_PREVIEW_FPS_MIN;
-            *max = CAMERA_BACK_PREVIEW_FPS_MAX;
+        if (gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_BACK) {
+            *min = CONFIG_CAMERA_BACK_PREVIEW_FPS_MIN;
+            *max = CONFIG_CAMERA_BACK_PREVIEW_FPS_MAX;
         } else {
-            *min = CAMERA_FRONT_PREVIEW_FPS_MIN;
-            *max = CAMERA_FRONT_PREVIEW_FPS_MAX;
+            *min = CONFIG_CAMERA_FRONT_PREVIEW_FPS_MIN;
+            *max = CONFIG_CAMERA_FRONT_PREVIEW_FPS_MAX;
         }
         ret = 0;
     }
@@ -377,29 +427,49 @@ cameraFramerateQuery_end:
 }
 int CameraHal::cameraFpsInfoSet(CameraParameters &params)
 {
-    int w,h, framerate_min,framerate_max;
+    int i,j,min,max, framerate_min,framerate_max,w,h;
     char fps_str[20];
     String8 parameterString;
+    Vector<Size> sizes;
     
-    params.getPreviewSize(&w,&h);        
-   
-    if (cameraFramerateQuery(mCamDriverPreviewFmt, w,h,&framerate_min,&framerate_max) == 0) { 
-        /*frame per second setting*/
-        memset(fps_str,0x00,sizeof(fps_str));            
-        sprintf(fps_str,"%d",framerate_min);
-        fps_str[strlen(fps_str)] = ',';
-        sprintf(&fps_str[strlen(fps_str)],"%d",framerate_max);
-        params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, fps_str);
-        parameterString = "(";
-        parameterString.append(fps_str);
-        parameterString.append(")");
-        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, parameterString.string());
-        
-        memset(fps_str,0x00,sizeof(fps_str));
-        sprintf(fps_str,"%d",framerate_min/1000);
-        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, fps_str);
-        params.setPreviewFrameRate(framerate_min/1000);
-    }    
+    params.getSupportedPreviewSizes(sizes);   
+    params.getPreviewSize(&w, &h);
+    if (gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_BACK) {
+        framerate_min = CONFIG_CAMERA_BACK_PREVIEW_FPS_MAX;
+        framerate_max = CONFIG_CAMERA_BACK_PREVIEW_FPS_MIN;
+    } else {
+        framerate_min = CONFIG_CAMERA_FRONT_PREVIEW_FPS_MAX;
+        framerate_max = CONFIG_CAMERA_FRONT_PREVIEW_FPS_MIN;
+    }
+    for (i=0; i<sizes.size(); i++) {
+        cameraFramerateQuery(mCamDriverPreviewFmt,sizes[i].width,sizes[i].height,&min,&max);        
+        if (min<framerate_min) {
+            framerate_min = min;
+        }
+
+        if (max>framerate_max) {
+            framerate_max = max;
+        }
+
+        if ((w==sizes[i].width) && (h==sizes[i].height)) {
+            params.setPreviewFrameRate(min/1000);
+        }        
+    }
+    
+    /*frame per second setting*/
+    memset(fps_str,0x00,sizeof(fps_str));            
+    sprintf(fps_str,"%d",framerate_min);
+    fps_str[strlen(fps_str)] = ',';
+    sprintf(&fps_str[strlen(fps_str)],"%d",framerate_max);
+    params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, fps_str);
+    parameterString = "(";
+    parameterString.append(fps_str);
+    parameterString.append(")");
+    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, parameterString.string());
+    
+    memset(fps_str,0x00,sizeof(fps_str));
+    sprintf(fps_str,"%d,%d",framerate_min/1000,framerate_max/1000);
+    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, fps_str);   
 
     return 0;
 }
@@ -1456,11 +1526,7 @@ void CameraHal::previewThread()
             } else {
                 mPreviewErrorFrameCount = 0;
             }
-            mPreviewFrameIndex++;
-            if (mPreviewFrameIndex%mPreviewFrameDiv) {
-                ioctl(iCamFd, VIDIOC_QBUF, &cfilledbuffer1);
-                continue;
-            }
+            mPreviewFrameIndex++;            
 
             if (gLogLevel == 2)
                 debugShowFPS();
@@ -2320,17 +2386,6 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
         if (set) {
             if (CAMERA_PREVIEWBUF_ALLOW_WRITE(buf_hnd->buf_state)==false)
                 LOGE("%s(%d): Set buffer writing, but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
-
-            int i;
-            for (i=0; i<mPreviewBufferCount; i++) {
-                if (buf_hnd->vir_addr == mPreviewBuffer[i]->vir_addr) {
-                    if (mDisplayBufferMap[i]->phy_addr==0) {
-                        mCamBuffer->flushCacheMem(PREVIEWBUFFER, 
-                            mPreviewBuffer[i]->vir_addr-mPreviewBufferMap[0]->vir_addr, 
-                            mCamBuffer->getPreviewBufInfo().mPerBuffersize);
-                    }   
-                }
-            }
             buf_hnd->buf_state |= CMD_PREVIEWBUF_WRITING;
         } else { 
             if ((buf_hnd->buf_state & CMD_PREVIEWBUF_WRITING) == 0)
@@ -2357,6 +2412,13 @@ int CameraHal::cameraCreate(int cameraId)
     
     LOG_FUNCTION_NAME
 
+    #ifdef  TARGET_RK30 
+    if((mRGAFd = open("/dev/rga",O_RDWR)) < 0) {
+    	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
+    	goto exit;
+	}
+    #endif
+	
     cameraDevicePathCur = (char*)&gCamInfos[cameraId].device_path[0];
     iCamFd = open(cameraDevicePathCur, O_RDWR);
     if (iCamFd < 0) {
@@ -2465,7 +2527,12 @@ exit1:
     if (iCamFd > 0) {
         close(iCamFd);
         iCamFd = -1;
-    }    
+    }  
+
+    if (mRGAFd > 0) {
+        close(mRGAFd);
+        mRGAFd = -1;
+    }
 exit:
     LOGE("%s(%d): exit with error -1",__FUNCTION__,__LINE__);
     return -1;
@@ -2518,7 +2585,11 @@ int CameraHal::cameraDestroy()
         close(iCamFd);
         iCamFd = -1;
 	}
-
+	if(mRGAFd > 0){
+        close(mRGAFd);
+        mRGAFd = -1;		
+    }
+		
     LOG_FUNCTION_NAME_EXIT
     return 0;
 }
@@ -3189,7 +3260,11 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 
                     doYuvToRgb(&para);
                 } else if (srcbuf && dstbuf) {
-                    nv12torgb565(src_w,src_h,srcbuf, (short int*)dstbuf);                    
+                	if(mRGAFd > 0) {
+                        rga_nv12torgb565(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);                    	  
+                    } else {
+                    	arm_nv12torgb565(src_w,src_h,srcbuf, (short int*)dstbuf);                 
+                    }
                 }
             }
             break;
@@ -3673,43 +3748,7 @@ int CameraHal::setParameters(const CameraParameters &params_set)
         LOGE("%s(%d): %s is not supported,Only %s and %s preview is supported",__FUNCTION__,__LINE__,params.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420SP,CameraParameters::PIXEL_FORMAT_YUV422SP);
         return BAD_VALUE;
     }
-
-    if (CAMERA_IS_RKSOC_CAMERA()) {
-        mPreviewFrameDiv = 1;
-        cameraFpsInfoSet(params);
-        if (strstr(params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE), params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE)) == NULL) {
-            int min_fps, min_fps_set, max_fps, max_fps_set;
-            int framerate,framerate_set;
-
-            params.getPreviewFpsRange(&min_fps, &max_fps);
-            params_set.getPreviewFpsRange(&min_fps_set, &max_fps_set);
-
-            framerate = params.getPreviewFrameRate();
-            framerate_set = params_set.getPreviewFrameRate();
-
-            if (min_fps_set != max_fps_set) {            
-                LOGE("%s(%d): PreviewFpsRange(%s) not supported, so switch to (%s)",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE),
-                    params.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
-            } else {
-                if (framerate > framerate_set) {
-                    if (framerate%framerate_set == 0) {
-                        mPreviewFrameDiv = framerate/framerate_set;
-                        params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
-                        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, params_set.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE));
-
-                        params.setPreviewFrameRate(framerate_set);
-                    } else {
-                        LOGE("%s(%d): PreviewFpsRange(%s) not supported, so switch to (%s)",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE),
-                            params.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
-                    }
-                } else {
-                    LOGE("%s(%d): PreviewFpsRange(%s) not supported, so switch to (%s)",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE),
-                        params.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
-                }
-            }
-        } 
-    } 
-    
+   
     if (CAMERA_IS_RKSOC_CAMERA()
         && (mCamDriverCapability.version == KERNEL_VERSION(0, 0, 1))) {
         mCamDriverPictureFmt = V4L2_PIX_FMT_YUV420;
@@ -3762,7 +3801,7 @@ int CameraHal::setParameters(const CameraParameters &params_set)
         LOG1("PictureFormat(%s)  mCamDriverPictureFmt(%c%c%c%c)", params.getPictureFormat(),
             mCamDriverPictureFmt & 0xFF, (mCamDriverPictureFmt >> 8) & 0xFF,
 			(mCamDriverPictureFmt >> 16) & 0xFF, (mCamDriverPictureFmt >> 24) & 0xFF);
-        LOG1("Framerate: %d  mPreviewFrameDiv:%d", framerate,mPreviewFrameDiv);
+        LOG1("Framerate: %d  ", framerate);
         LOG1("WhiteBalance: %s", params.get(CameraParameters::KEY_WHITE_BALANCE));
         LOG1("Flash: %s", params.get(CameraParameters::KEY_FLASH_MODE));
         LOG1("Focus: %s", params.get(CameraParameters::KEY_FOCUS_MODE));

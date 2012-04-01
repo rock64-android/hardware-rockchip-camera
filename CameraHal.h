@@ -53,6 +53,7 @@
 
 #ifdef  TARGET_RK30
 #include "../libgralloc_ump/gralloc_priv.h"
+#include "rga.h"
 #else
 #include "../libgralloc/gralloc_priv.h"
 #endif
@@ -88,8 +89,13 @@ namespace android {
 *            config by CONFIG_CAMERA_FRONT_MIRROR_MDATACB;
 *v0.2.7 :
 *         1) CameraHal support CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS
+*v0.2.8 :
+*         1) CameraHal support CONFIG_CAMERA_XXX_PREVIEW_FPS_XXX for cts 
+*            android.hardware.cts.CameraGLTest#testCameraToSurfaceTextureMetadata
+*            android.hardware.cts.CameraTest#testPreviewFpsRange
+*         2) CameraHal support nv12->rgb565 by rga in rk30xx
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 7) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 8) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   "yuv420sp"
@@ -105,12 +111,15 @@ namespace android {
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT    4
 
+#define CONFIG_CAMERA_FRONT_PREVIEW_FPS_MIN    3000        // 3fps
+#define CONFIG_CAMERA_FRONT_PREVIEW_FPS_MAX    30000        //30fps
+#define CONFIG_CAMERA_BACK_PREVIEW_FPS_MIN     3000        
+#define CONFIG_CAMERA_BACK_PREVIEW_FPS_MAX     30000
+
 #define CAMERAHAL_VERSION_PROPERTY_KEY       "sys_graphic.cam_hal.ver"
 #define CAMERADRIVER_VERSION_PROPERTY_KEY    "sys_graphic.cam_driver.ver"
 #define CAMERA_PMEM_NAME                     "/dev/pmem_cam"
 #define CAMERA_DRIVER_SUPPORT_FORMAT_MAX   32
-
-
 
 #define RAW_BUFFER_SIZE_5M          0x740000
 #define RAW_BUFFER_SIZE_3M          0x480000
@@ -523,7 +532,6 @@ private:
     int mPreviewFrameSize;
     int mPreviewFrame2AppSize;
     volatile int32_t mPreviewStartTimes;  
-    int mPreviewFrameDiv;
     int mPreviewFrameIndex;
 
     rk_previewbuf_info_t *mPreviewBuffer[CONFIG_CAMERA_PRVIEW_BUF_CNT];
@@ -562,6 +570,7 @@ private:
 		
     int iCamFd;
     int mCamId;
+    int mRGAFd;
     
     bool mDriverMirrorSupport;
     bool mDriverFlipSupport;

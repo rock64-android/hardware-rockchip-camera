@@ -680,10 +680,6 @@ capturePicture_streamoff:
         goto exit;
     }
     mPictureLock.unlock();
-    int ii;
-    for (ii= 0; ii<3; ii++)
-        LOGD("%s..%d/%d ",__FUNCTION__,gpsInfo.GpsTimeStamp[ii].denom,gpsInfo.GpsTimeStamp[ii].num);
-
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
     if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
         LOGE("hw_jpeg_encode Failed \n");
