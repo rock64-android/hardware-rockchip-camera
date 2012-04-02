@@ -17,6 +17,7 @@ LOCAL_C_INCLUDES += \
 	frameworks/base/include/ui \
   external/jpeg \
   external/jhead\
+  hardware/rk29/hwcomposer_rga\
 	hardware/rk29/libgralloc_ump/ump/include
 else
   LOCAL_C_INCLUDES += \
