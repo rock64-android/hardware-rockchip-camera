@@ -53,7 +53,7 @@
 
 #ifdef  TARGET_RK30
 #include "../libgralloc_ump/gralloc_priv.h"
-#include "rga.h"
+#include <hardware/rga.h>
 #else
 #include "../libgralloc/gralloc_priv.h"
 #endif
