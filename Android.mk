@@ -36,6 +36,8 @@ LOCAL_SHARED_LIBRARIES:= \
     libjpeghwenc\
     libjpeg\
     libyuvtorgb\
+    libion\
+
 
 LOCAL_CFLAGS := -fno-short-enums -DCOPY_IMAGE_BUFFER
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)	

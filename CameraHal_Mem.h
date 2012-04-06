@@ -8,8 +8,11 @@
 *   configuration macro 
 *      
 */
+#ifdef  TARGET_RK30
+#define CONFIG_CAMERA_MEM               CAMERA_MEM_ION
+#else
 #define CONFIG_CAMERA_MEM               CAMERA_MEM_PMEM
-
+#endif
 #if (CONFIG_CAMERA_MEM == CAMERA_MEM_ION)
 #include <ion/IonAlloc.h>
 #endif
