@@ -18,13 +18,7 @@ LOCAL_C_INCLUDES += \
   external/jpeg \
   external/jhead\
   hardware/rk29/hwcomposer_rga\
-	hardware/rk29/libgralloc_ump/ump/include
-else
-  LOCAL_C_INCLUDES += \
-	frameworks/base/include/ui \
-  external/jpeg \
-  external/jhead	
-endif
+	hardware/rk29/libgralloc_ump/ump/include	
 
 LOCAL_SHARED_LIBRARIES:= \
     libui \
@@ -36,7 +30,24 @@ LOCAL_SHARED_LIBRARIES:= \
     libjpeghwenc\
     libjpeg\
     libyuvtorgb\
-    libion\
+    libion
+else
+LOCAL_C_INCLUDES += \
+	frameworks/base/include/ui \
+  external/jpeg \
+  external/jhead	
+  
+LOCAL_SHARED_LIBRARIES:= \
+    libui \
+    libbinder \
+    libutils \
+    libcutils \
+    libcamera_client \
+    libgui\
+    libjpeghwenc\
+    libjpeg\
+    libyuvtorgb
+endif
 
 
 LOCAL_CFLAGS := -fno-short-enums -DCOPY_IMAGE_BUFFER
