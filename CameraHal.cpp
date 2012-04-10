@@ -706,47 +706,38 @@ void CameraHal::initDefaultParameters()
         
         strcat(str_picturesize,parameterString.string());
         strcat(str_picturesize,",");
+        if(mCamDriverFrmWidthMax <= 640){
+            strcat( str_picturesize,"640x480,320x240");
+		    mRawBufferSize = RAW_BUFFER_SIZE_0M3;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_0M3;
+            params.setPictureSize(640,480);
+        }else if (mCamDriverFrmWidthMax <= 1280) {
+            strcat( str_picturesize,"1024x768,640x480,320x240");
+		    mRawBufferSize = RAW_BUFFER_SIZE_1M;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_1M;
+            params.setPictureSize(1024,768);
+        } else if (mCamDriverFrmWidthMax <= 1600) {
+			strcat( str_picturesize,"1600x1200,1024x768,640x480");
+            mRawBufferSize = RAW_BUFFER_SIZE_2M;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_2M;
+            params.setPictureSize(1600,1200);
+        } else if (mCamDriverFrmWidthMax <= 2048) {
+			strcat( str_picturesize,"2048x1536,1600x1200,1024x768");
+            mRawBufferSize = RAW_BUFFER_SIZE_3M;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_3M;  
+            params.setPictureSize(2048,1536);
+        } else if (mCamDriverFrmWidthMax <= 2592) {                    			
+    		strcat( str_picturesize,"2592x1944,2048x1536,1600x1200,1024x768");
+            params.setPictureSize(2592,1944);
+            mRawBufferSize = RAW_BUFFER_SIZE_5M;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_5M;
+    	} else {
+            sprintf(str_picturesize, "%dx%d", mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
+            mRawBufferSize = RAW_BUFFER_SIZE_5M;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_5M;
+            params.setPictureSize(mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
+    	}
         
-        switch( mCamDriverFrmWidthMax )
-        {
-            case 2592:	// LARGEST RESULOTION is 5Meag
-    			strcat( str_picturesize,"2592x1944,2048x1536,1600x1200,1024x768");
-                    params.setPictureSize(2592,  1944);
-                    mRawBufferSize = RAW_BUFFER_SIZE_5M;
-                    mJpegBufferSize = JPEG_BUFFER_SIZE_5M;
-    			    break;
-    		case 2048:	// LARGEST RESULOTION is 3Meag
-    			strcat( str_picturesize,"2048x1536,1600x1200,1024x768");
-                    mRawBufferSize = RAW_BUFFER_SIZE_3M;
-                    mJpegBufferSize = JPEG_BUFFER_SIZE_3M;  
-                    params.setPictureSize(2048,1536);
-    			    break;
-    		case 1600:	// LARGEST RESULOTION is 2Meag
-    			strcat( str_picturesize,"1600x1200,1024x768,640x480");
-                    mRawBufferSize = RAW_BUFFER_SIZE_2M;
-                    mJpegBufferSize = JPEG_BUFFER_SIZE_2M;
-                    params.setPictureSize(1600,1200);
-    			    break;
-            case 1280:  // 1280x1024
-    		case 1024:	// LARGEST RESULOTION is 1Meag
-                    strcat( str_picturesize,"1024x768,640x480,320x240");
-        		    mRawBufferSize = RAW_BUFFER_SIZE_1M;
-                    mJpegBufferSize = JPEG_BUFFER_SIZE_1M;
-                    params.setPictureSize(1024,768);
-        			break;
-            case 640:	// LARGEST RESULOTION is 0.3Meag
-                    strcat( str_picturesize,"640x480,320x240");
-        		    mRawBufferSize = RAW_BUFFER_SIZE_0M3;
-                    mJpegBufferSize = JPEG_BUFFER_SIZE_0M3;
-                    params.setPictureSize(640,480);
-        			break;
-            default:
-                sprintf(str_picturesize, "%dx%d", mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
-                mRawBufferSize = RAW_BUFFER_SIZE_5M;
-                mJpegBufferSize = JPEG_BUFFER_SIZE_5M;
-                params.setPictureSize(mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
-                break;
-        }        
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, str_picturesize);
 
         /*frame rate setting*/

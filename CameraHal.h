@@ -94,8 +94,10 @@ namespace android {
 *            android.hardware.cts.CameraGLTest#testCameraToSurfaceTextureMetadata
 *            android.hardware.cts.CameraTest#testPreviewFpsRange
 *         2) CameraHal support nv12->rgb565 by rga in rk30xx
+*v0.2.9 : modify the condition of raw and jpeg size , avoid the failure of unstandard mCamDriverFrmWidthMax value
+          from driver.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 8) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 9) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   "yuv420sp"
