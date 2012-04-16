@@ -62,6 +62,13 @@ static volatile int32_t gLogLevel = 0;
 #define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
 #define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
 
+#if CONFIG_CAMERA_FRAME_DV_PROC_STAT
+static nsecs_t framebuf_enc_start[CONFIG_CAMERA_PRVIEW_BUF_CNT];
+static nsecs_t framebuf_enc_end[CONFIG_CAMERA_PRVIEW_BUF_CNT];
+static nsecs_t last_disp_time = 0,cur_disp_time=0;
+static long framebuf_disptime_cnt[6], framebuf_enctime_cnt[10];
+#endif
+
 static void debugShowFPS()
 {
     static int mFrameCount = 0;
@@ -1197,6 +1204,7 @@ int CameraHal::cameraDisplayThreadStop(int done)
 cameraDisplayThreadStop_end:
     return err;
 }
+
 void CameraHal::displayThread()
 {
     int err,stride,i,all_dequeue;
@@ -1297,7 +1305,7 @@ display_receive_cmd:
                             }
                         } 
                         
-                        if(CAMERA_IS_RKSOC_CAMERA()) {                            
+                        if(CAMERA_IS_RKSOC_CAMERA()) {                             
                             cameraFormatConvert(mCamDriverPreviewFmt, 0,mDisplayFormat,
                                 (char*)mPreviewBufferMap[queue_buf_index]->vir_addr,(char*)mDisplayBufferMap[queue_display_index]->vir_addr,
                                 mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,
@@ -1313,10 +1321,27 @@ display_receive_cmd:
                         queue_display_index = queue_buf_index;
                     }
                     LOG2("%s(%d): receive buffer %d, queue buffer %d to display", __FUNCTION__,__LINE__,queue_buf_index,queue_display_index);
-                    
+
                     cameraPreviewBufferSetSta(mDisplayBufferMap[queue_display_index], CMD_PREVIEWBUF_DISPING, 1);
                     mapper.unlock((buffer_handle_t)mDisplayBufferMap[queue_display_index]->priv_hnd);
-                    err = mANativeWindow->enqueue_buffer(mANativeWindow, (buffer_handle_t*)mDisplayBufferMap[queue_display_index]->buffer_hnd);
+                    err = mANativeWindow->enqueue_buffer(mANativeWindow, (buffer_handle_t*)mDisplayBufferMap[queue_display_index]->buffer_hnd);                    
+                    #if CONFIG_CAMERA_FRAME_DV_PROC_STAT
+                    cur_disp_time = systemTime();                    
+                    if (last_disp_time!=0) {
+                        if ((cur_disp_time-last_disp_time) < 40000000) {
+                            framebuf_disptime_cnt[0]++;
+                        } else if (((cur_disp_time-last_disp_time) >= 40000000)&&((cur_disp_time-last_disp_time) < 50000000)) {
+                            framebuf_disptime_cnt[1]++;
+                        } else if (((cur_disp_time-last_disp_time) >= 50000000)&&((cur_disp_time-last_disp_time) < 60000000)) {
+                            framebuf_disptime_cnt[2]++;
+                        } else if (((cur_disp_time-last_disp_time) >= 60000000)&&((cur_disp_time-last_disp_time) < 70000000)) {
+                            framebuf_disptime_cnt[3]++;
+                        } else if (((cur_disp_time-last_disp_time) >= 70000000)&&((cur_disp_time-last_disp_time) < 80000000)) {
+                            framebuf_disptime_cnt[4]++;
+                        }
+                    }
+                    last_disp_time = cur_disp_time;
+                    #endif
                     if (err != 0){
                         cameraPreviewBufferSetSta(mDisplayBufferMap[queue_display_index], CMD_PREVIEWBUF_DISPING, 0);
                                                 
@@ -1492,6 +1517,7 @@ void CameraHal::previewThread()
             
             /* De-queue the next avaliable buffer */            
             mPreviewLock.unlock();
+            
             if (ioctl(iCamFd, VIDIOC_DQBUF, &cfilledbuffer1) < 0) {
                 LOGE("%s(%d): VIDIOC_DQBUF Failed!!! err[%s] \n",__FUNCTION__,__LINE__,strerror(errno));
                 if (errno == EIO) {
@@ -1523,6 +1549,7 @@ void CameraHal::previewThread()
                 debugShowFPS();
             
             cameraPreviewBufferSetSta(mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_WRITING, 0);
+            
             //zyc ,convert the format for usb camera
             if (CAMERA_IS_UVC_CAMERA()) {				
                 cameraFormatConvert(mCamDriverPreviewFmt,V4L2_PIX_FMT_NV12,NULL,
@@ -1553,7 +1580,7 @@ void CameraHal::previewThread()
                 displayThreadCommandQ.put(&msg);
                 mDisplayCond.signal();
             }
-                        
+            
             // Send Video Frame 
         	if (buffer_log & CMD_PREVIEWBUF_ENCING) {
                 //in snapshot progress
@@ -1564,8 +1591,11 @@ void CameraHal::previewThread()
                 }
              
                 if (mVideoBufs[cfilledbuffer1.index] != NULL) { 
-                        mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[cfilledbuffer1.index], 0, mCallbackCookie);                                                
-                        LOG2("%s(%d): enqueue buffer %d to encoder", __FUNCTION__,__LINE__,cfilledbuffer1.index);
+                    #if CONFIG_CAMERA_FRAME_DV_PROC_STAT
+                    framebuf_enc_start[cfilledbuffer1.index]=(nsecs_t)systemTime(CLOCK_MONOTONIC);
+                    #endif
+                    mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[cfilledbuffer1.index], 0, mCallbackCookie);                                                
+                    LOG2("%s(%d): enqueue buffer %d to encoder", __FUNCTION__,__LINE__,cfilledbuffer1.index);
                     
                 } else {
                     LOGE("%s(%d): mVideoBufs[%d] is NULL, this frame recording cancel",__FUNCTION__,__LINE__,cfilledbuffer1.index);
@@ -3487,6 +3517,10 @@ int CameraHal::startRecording()
     Mutex::Autolock lock(mLock);
     mParameters.setPictureSize(mPreviewWidth,mPreviewHeight);
     mRecordRunning=true;
+    #if CONFIG_CAMERA_FRAME_DV_PROC_STAT
+    memset(framebuf_disptime_cnt,0x00, sizeof(framebuf_disptime_cnt));
+    memset(framebuf_enctime_cnt,0x00, sizeof(framebuf_enctime_cnt));
+    #endif
     LOG_FUNCTION_NAME_EXIT
 startRecording_end:
     return err;
@@ -3499,6 +3533,12 @@ void CameraHal::stopRecording()
     Mutex::Autolock lock(mLock);
     mParameters.setPictureSize(mPictureWidth,mPictureHeight);
     mRecordRunning=false;
+    #if CONFIG_CAMERA_FRAME_DV_PROC_STAT
+    LOGD("disp frame: %ld(<40ms) %ld(40-50ms) %ld(50-60ms) %ld(60-70ms) %ld(70-80ms)",framebuf_disptime_cnt[0],framebuf_disptime_cnt[1],framebuf_disptime_cnt[2],framebuf_disptime_cnt[3],framebuf_disptime_cnt[4]);
+    LOGD("enc frame: %ld(<40ms) %ld(40-50ms) %ld(50-60ms) %ld(60-70ms) %ld(70-80ms)"
+        " %ld(80-90ms) %ld(90-100ms)",framebuf_enctime_cnt[0],framebuf_enctime_cnt[1],framebuf_enctime_cnt[2],framebuf_enctime_cnt[3],framebuf_enctime_cnt[4],
+        framebuf_enctime_cnt[5],framebuf_enctime_cnt[6]);
+    #endif
     LOG_FUNCTION_NAME_EXIT
 }
 
@@ -3531,7 +3571,25 @@ void CameraHal::releaseRecordingFrame(const void *opaque)
     if (mANativeWindow && mPreviewBufferMap[index]->phy_addr) {
         cameraPreviewBufferSetSta(mPreviewBufferMap[index], CMD_PREVIEWBUF_ENCING, 0);        
     }
-    
+    #if CONFIG_CAMERA_FRAME_DV_PROC_STAT
+    framebuf_enc_end[index] = (nsecs_t)systemTime(CLOCK_MONOTONIC);
+
+    if ((framebuf_enc_end[index]- framebuf_enc_start[index]) < 40000000) {
+        framebuf_enctime_cnt[0]++;
+    } else if (((framebuf_enc_end[index]- framebuf_enc_start[index]) >= 40000000)&&((framebuf_enc_end[index]- framebuf_enc_start[index]) < 50000000)) {
+        framebuf_enctime_cnt[1]++;
+    } else if (((framebuf_enc_end[index]- framebuf_enc_start[index]) >= 50000000)&&((framebuf_enc_end[index]- framebuf_enc_start[index]) < 60000000)) {
+        framebuf_enctime_cnt[2]++;
+    } else if (((framebuf_enc_end[index]- framebuf_enc_start[index]) >= 60000000)&&((framebuf_enc_end[index]- framebuf_enc_start[index]) < 70000000)) {
+        framebuf_enctime_cnt[3]++;
+    } else if (((framebuf_enc_end[index]- framebuf_enc_start[index]) >= 70000000)&&((framebuf_enc_end[index]- framebuf_enc_start[index]) < 80000000)) {
+        framebuf_enctime_cnt[4]++;
+    } else if (((framebuf_enc_end[index]- framebuf_enc_start[index]) >= 80000000)&&((framebuf_enc_end[index]- framebuf_enc_start[index]) < 90000000)) {
+        framebuf_enctime_cnt[5]++;
+    } else if (((framebuf_enc_end[index]- framebuf_enc_start[index]) >= 90000000)&&((framebuf_enc_end[index]- framebuf_enc_start[index]) < 100000000)) {
+        framebuf_enctime_cnt[6]++;
+    }
+    #endif
     if (mPreviewRunning == STA_PREVIEW_RUN) {
         msg.command = CMD_PREVIEW_QBUF;     
         msg.arg1 = (void*)index;
