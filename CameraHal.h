@@ -96,8 +96,11 @@ namespace android {
 *         2) CameraHal support nv12->rgb565 by rga in rk30xx
 *v0.2.9 : modify the condition of raw and jpeg size , avoid the failure of unstandard mCamDriverFrmWidthMax value
           from driver.
+*v0.2.a : 
+*         1) Print all resolution framerate in KEY_SUPPORTED_PREVIEW_FRAME_RATES;
+*         2) CONFIG_CAMERA_XXX_PREVIEW_FPS_XXX direct validate;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 9) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0xa) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   "yuv420sp"

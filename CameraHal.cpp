@@ -434,20 +434,24 @@ cameraFramerateQuery_end:
 }
 int CameraHal::cameraFpsInfoSet(CameraParameters &params)
 {
-    int i,j,min,max, framerate_min,framerate_max,w,h;
+    int min,max, framerate_min,framerate_max,w,h;
     char fps_str[20];
+    char framerates[50];
     String8 parameterString;
     Vector<Size> sizes;
+    unsigned int i;
     
     params.getSupportedPreviewSizes(sizes);   
     params.getPreviewSize(&w, &h);
     if (gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_BACK) {
-        framerate_min = CONFIG_CAMERA_BACK_PREVIEW_FPS_MAX;
-        framerate_max = CONFIG_CAMERA_BACK_PREVIEW_FPS_MIN;
+        framerate_min = CONFIG_CAMERA_BACK_PREVIEW_FPS_MIN;
+        framerate_max = CONFIG_CAMERA_BACK_PREVIEW_FPS_MAX;
     } else {
-        framerate_min = CONFIG_CAMERA_FRONT_PREVIEW_FPS_MAX;
-        framerate_max = CONFIG_CAMERA_FRONT_PREVIEW_FPS_MIN;
+        framerate_min = CONFIG_CAMERA_FRONT_PREVIEW_FPS_MIN;
+        framerate_max = CONFIG_CAMERA_FRONT_PREVIEW_FPS_MAX;
     }
+
+    memset(framerates,0x00,sizeof(framerates));
     for (i=0; i<sizes.size(); i++) {
         cameraFramerateQuery(mCamDriverPreviewFmt,sizes[i].width,sizes[i].height,&min,&max);        
         if (min<framerate_min) {
@@ -460,7 +464,21 @@ int CameraHal::cameraFpsInfoSet(CameraParameters &params)
 
         if ((w==sizes[i].width) && (h==sizes[i].height)) {
             params.setPreviewFrameRate(min/1000);
-        }        
+        } 
+
+        memset(fps_str,0x00,sizeof(fps_str));            
+        sprintf(fps_str,"%d",min/1000);
+        if (strstr(framerates,fps_str) == NULL) {
+            if (strlen(framerates)) 
+                sprintf(&framerates[strlen(framerates)],",");    
+            sprintf(&framerates[strlen(framerates)],"%d",min/1000);
+        }
+
+        memset(fps_str,0x00,sizeof(fps_str));            
+        sprintf(fps_str,"%d",max/1000);
+        if (strstr(framerates,fps_str) == NULL) {
+            sprintf(&framerates[strlen(framerates)],",%d",max/1000);
+        }
     }
     
     /*frame per second setting*/
@@ -473,10 +491,7 @@ int CameraHal::cameraFpsInfoSet(CameraParameters &params)
     parameterString.append(fps_str);
     parameterString.append(")");
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, parameterString.string());
-    
-    memset(fps_str,0x00,sizeof(fps_str));
-    sprintf(fps_str,"%d,%d",framerate_min/1000,framerate_max/1000);
-    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, fps_str);   
+    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, framerates);   
 
     return 0;
 }
@@ -1545,7 +1560,7 @@ void CameraHal::previewThread()
             }
             mPreviewFrameIndex++;            
 
-            if (gLogLevel == 2)
+            //if (gLogLevel == 2)
                 debugShowFPS();
             
             cameraPreviewBufferSetSta(mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_WRITING, 0);
