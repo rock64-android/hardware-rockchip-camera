@@ -99,6 +99,7 @@ namespace android {
 *v0.2.a : 
 *         1) Print all resolution framerate in KEY_SUPPORTED_PREVIEW_FRAME_RATES;
 *         2) CONFIG_CAMERA_XXX_PREVIEW_FPS_XXX direct validate;
+
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0xa) 
 
@@ -496,7 +497,7 @@ private:
                             int srcphy,int dstphy,int src_w, int src_h,int dst_w, int dst_h, bool mirror);
      int cameraDisplayBufferCreate(int width, int height, const char *fmt,int numBufs);
      int cameraDisplayBufferDestory(void);
-     int cameraPreviewBufferCreate(int numBufs);
+     int cameraPreviewBufferCreate(unsigned int numBufs);
     int cameraPreviewBufferDestory();
     int cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, int set);
     int cameraFramerateQuery(unsigned int format, unsigned int w, unsigned int h, int *min, int *max);
@@ -505,6 +506,8 @@ private:
     int cameraDisplayThreadStart(int done);
     int cameraDisplayThreadPause(int done);
     int cameraDisplayThreadStop(int done);
+
+    int cameraPreviewThreadSet(unsigned int setStatus,int done);
     
     char *cameraDevicePathCur;    
     char cameraCallProcess[30];
@@ -560,7 +563,7 @@ private:
     sp<AutoFocusThread>  mAutoFocusThread;
     int mSnapshotRunning;
     int mCommandRunning;
-    int mPreviewRunning;
+    unsigned int mPreviewRunning;
     Mutex mPreviewLock;
     Condition mPreviewCond;
     bool mPreviewCmdReceived;
@@ -609,9 +612,10 @@ private:
     };
 
     enum PreviewRunStatus {
-        STA_PREVIEW_PAUSE,
-        STA_PREVIEW_RUN,
-        STA_PREVIEW_STOP,
+        STA_PREVIEW_PAUSE, // equal to CMD_PREVIEW_PAUSE 
+        STA_PREVIEW_RUN,  // equal to CMD_PREVIEW_START 
+        STA_PREVIEW_STOP, // equal to CMD_PREVIEW_STOP
+        STA_PREVIEW_INVAL = 4
     };
 
     enum PictureRunStatus {
@@ -632,8 +636,10 @@ private:
         CMD_DISPLAY_INVAL
     };
     enum PreviewThreadCommands {
-		// Comands
-        CMD_PREVIEW_STAREQ,
+		// Comands       
+		CMD_PREVIEW_THREAD_PAUSE,        
+        CMD_PREVIEW_THREAD_START,
+        CMD_PREVIEW_THREAD_STOP,
         CMD_PREVIEW_VIDEOSNAPSHOT,
         CMD_PREVIEW_INVAL
     };
@@ -649,10 +655,14 @@ private:
         CMD_AF_CANCEL,
         
         CMD_EXIT,
-        
-        // ACKs
-        CMD_ACK,
-        CMD_NACK,
+
+    };
+
+    enum ThreadCmdArgs {
+        CMDARG_ERR = -1,
+        CMDARG_OK = 0,        
+        CMDARG_ACK = 1,
+        CMDARG_NACK = 2,        
     };
     
     MessageQueue    displayThreadCommandQ;

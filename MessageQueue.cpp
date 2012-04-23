@@ -22,7 +22,9 @@ static char gDisplayThreadCommands[][30] = {
 		{"CMD_DISPLAY_FRAME"}
 };
 static char gPreviewThreadCommands[][30] = {
-        {"CMD_PREVIEW_STAREQ"},
+        {"CMD_PREVIEW_THREAD_PAUSE"},        
+        {"CMD_PREVIEW_THREAD_START"},
+        {"CMD_PREVIEW_THREAD_STOP"},
         {"CMD_PREVIEW_VIDEOSNAPSHOT"}
 };
 static char gSnapshotThreadCommands[][30] = {
@@ -40,32 +42,59 @@ static char gCommandThreadCommands[][30] = {
         {"CMD_AF_START"},
         {"CMD_AF_CANCEL"},
         
-        {"CMD_EXIT"},
-        
-        // ACKs
-        {"CMD_ACK"},
-        {"CMD_NACK"}
+        {"CMD_EXIT"}
+
  };
+static char gThreadCmdArgs[][30] = {
+        {"CMDARG_ERR"},
+        {"CMDARG_OK"},        
+        {"CMDARG_ACK"},
+        {"CMDARG_NACK"}     
+    };
 static char gInvalCommands[]={"CMD_UNKNOW"};
+static char gInvalArg[]={"CMDARG_UNKNOW"};
 static char* MessageCmdConvert(char* msgQ, unsigned int cmd)
 {    
     char *cmd_name = gInvalCommands;
-    if (strcmp(msgQ,"displayCmdQ") == 0) {
+    if (strstr(msgQ,"display")) {
         if (cmd < sizeof(gDisplayThreadCommands)/30) 
             cmd_name = (char*)gDisplayThreadCommands[cmd];
-    } else if (strcmp(msgQ,"previewCmdQ") == 0) {
+    } else if (strstr(msgQ,"preview")) {
         if (cmd < sizeof(gPreviewThreadCommands)/30) 
             cmd_name = (char*)gPreviewThreadCommands[cmd];
-    } else if (strcmp(msgQ,"commandCmdQ") == 0) {
+    } else if (strstr(msgQ,"command")) {
         if (cmd < sizeof(gCommandThreadCommands)/30) 
             cmd_name = (char*)gCommandThreadCommands[cmd];
-    } else if (strcmp(msgQ,"snapshotCmdQ") == 0) {
+    } else if (strstr(msgQ,"snapshot")) {
         if (cmd < sizeof(gSnapshotThreadCommands)/30) 
             cmd_name = (char*)gSnapshotThreadCommands[cmd];
     }
     return cmd_name;
 }
+static char* MessageArg1Convert(char* msgQ, Message *msg)
+{    
+    char *arg_name = gInvalArg,*cmd_name=gInvalCommands;
+    unsigned arg_val = (unsigned int)msg->arg1;
 
+    if (strstr(msgQ,"AckQ")) {
+        if (arg_val<1)
+            arg_name = gThreadCmdArgs[arg_val+1];
+    } else {
+        if (strstr(msgQ,"command")) {
+            if (msg->command < sizeof(gCommandThreadCommands)/30) 
+                cmd_name = (char*)gCommandThreadCommands[msg->command];
+
+            if (strcmp(cmd_name,"CMD_PREVIEW_QBUF")==0)
+                goto MessageArg1Convert_end;
+        }
+
+        if ((arg_val>=1) && ((arg_val+1)<(sizeof(gThreadCmdArgs)/30))) 
+            arg_name = gThreadCmdArgs[arg_val+1];
+    }
+    
+MessageArg1Convert_end:
+    return arg_name;
+}
 MessageQueue::MessageQueue()
 {
     int fds[2] = {-1,-1};
@@ -115,11 +144,12 @@ int MessageQueue::get(Message* msg)
             read_bytes += err;
     }
 
-    if (((strcmp(this->MsgQueName,"displayCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_DISPLAY_FRAME")==0)) ||
-        ((strcmp(this->MsgQueName,"commandCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
+    if (((strstr(this->MsgQueName,"display"))&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_DISPLAY_FRAME")==0)) ||
+        ((strstr(this->MsgQueName,"command"))&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
         LOG2("%s.get(%s,%p,%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     } else {
-        LOG1("%s.get(%s,%p,%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+        LOG1("%s.get(%s(0x%x),%s(%p),%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command),
+            msg->command, MessageArg1Convert(this->MsgQueName,msg),msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     }
 
     return 0;
@@ -158,11 +188,12 @@ int MessageQueue::get(Message* msg, int timeout)
         }
     }
 
-    if (((strcmp(this->MsgQueName,"displayCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_DISPLAY_FRAME")==0)) ||
-        ((strcmp(this->MsgQueName,"commandCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
+    if (((strstr(this->MsgQueName,"display"))&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_DISPLAY_FRAME")==0)) ||
+        ((strstr(this->MsgQueName,"command"))&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
         LOG2("%s.get_timeout(%s,%p,%p,%p,%p)",this->MsgQueName,  MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     } else {
-        LOG1("%s.get_timeout(%s,%p,%p,%p,%p)",this->MsgQueName,  MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+        LOG1("%s.get_timeout(%s(0x%x),%s(%p),%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command),
+            msg->command, MessageArg1Convert(this->MsgQueName,msg),msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     }
 
     return 0;
@@ -173,11 +204,12 @@ int MessageQueue::put(Message* msg)
     char* p = (char*) msg;
     unsigned int bytes = 0;
 
-    if (((strcmp(this->MsgQueName,"displayCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_DISPLAY_FRAME")==0)) ||
-        ((strcmp(this->MsgQueName,"commandCmdQ")==0)&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
+    if (((strstr(this->MsgQueName,"display"))&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_DISPLAY_FRAME")==0)) ||
+        ((strstr(this->MsgQueName,"command"))&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
         LOG2("%s.put(%s,%p,%p,%p,%p)",this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     } else {
-        LOG1("%s.put(%s,%p,%p,%p,%p)",this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
+        LOG1("%s.put(%s(0x%x),%s(%p),%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command),
+            msg->command, MessageArg1Convert(this->MsgQueName,msg),msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     }
 
     while( bytes  < sizeof(msg) )
