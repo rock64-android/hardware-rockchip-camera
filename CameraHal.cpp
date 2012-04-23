@@ -1618,6 +1618,16 @@ void CameraHal::previewThread()
             
             /* De-queue the next avaliable buffer */            
             mPreviewLock.unlock();
+
+            if (CAMERA_IS_UVC_CAMERA()) {
+                if (mPreviewFrameIndex==0) {
+                    for (i=0; i<CONFIG_CAMERA_UVC_INVAL_FRAMECNT; i++) {
+                        if (ioctl(iCamFd, VIDIOC_DQBUF, &cfilledbuffer1) >= 0) {
+                            ioctl(iCamFd, VIDIOC_QBUF, &cfilledbuffer1);
+                        }
+                    }
+                }
+            }
             
             if (ioctl(iCamFd, VIDIOC_DQBUF, &cfilledbuffer1) < 0) {
                 LOGE("%s(%d): VIDIOC_DQBUF Failed!!! err[%s] \n",__FUNCTION__,__LINE__,strerror(errno));
@@ -1640,12 +1650,11 @@ void CameraHal::previewThread()
                         continue;
                     }                    
                 }
-                ioctl(iCamFd, VIDIOC_QBUF, &cfilledbuffer1);
             } else {
                 mPreviewErrorFrameCount = 0;
             }
-            mPreviewFrameIndex++;            
-
+            mPreviewFrameIndex++; 
+            
             if (gLogLevel == 2)
                 debugShowFPS();
             
