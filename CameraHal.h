@@ -99,9 +99,12 @@ namespace android {
 *v0.2.a : 
 *         1) Print all resolution framerate in KEY_SUPPORTED_PREVIEW_FRAME_RATES;
 *         2) CONFIG_CAMERA_XXX_PREVIEW_FPS_XXX direct validate;
-
+*v0.2.b : 
+*         1) fix preview thread may be asynchronous with command thread when take picture frequently in rk30;
+*         2) improve messagequeue between thread communication;
+*         3) fix KEY_ZOOM_SUPPORTED config error in initDefaultParameters when digital zoom isn't supported;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0xa) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0xb) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   "yuv420sp"

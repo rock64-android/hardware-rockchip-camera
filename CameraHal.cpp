@@ -790,8 +790,6 @@ void CameraHal::initDefaultParameters()
         		strcat(str_zoom,str_zoom_element);
         	}
         	params.set(CameraParameters::KEY_ZOOM_RATIOS, str_zoom);
-        } else {
-        	params.set(CameraParameters::KEY_ZOOM_SUPPORTED, "false");
         }
     }
     /*preview format setting*/
