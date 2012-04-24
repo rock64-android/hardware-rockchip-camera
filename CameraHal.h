@@ -103,13 +103,15 @@ namespace android {
 *         1) fix preview thread may be asynchronous with command thread when take picture frequently in rk30;
 *         2) improve messagequeue between thread communication;
 *         3) fix KEY_ZOOM_SUPPORTED config error in initDefaultParameters when digital zoom isn't supported;
-*         4) add CONFIG_CAMERA_UVC_INVAL_FRAMECNT config invaildate first some frame in uvc camera;
+*         4) fix mDisplayFormat is NV21, but mNativeWindow buffer format is NV12;
+*         5) add CONFIG_CAMERA_UVC_INVAL_FRAMECNT config invaildate first some frame in uvc camera;
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0xb) 
 
 /*  */
-#define CAMERA_DISPLAY_FORMAT_YUV420SP   "yuv420sp"
-#define CAMERA_DISPLAY_FORMAT_RGB565     "rgb565"
+#define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
+#define CAMERA_DISPLAY_FORMAT_RGB565     CameraParameters::PIXEL_FORMAT_RGB565
+#define CAMERA_DISPLAY_FORMAT_NV12       "nv12"
 /* 
 *NOTE: 
 *       CONFIG_CAMERA_DISPLAY_FORCE and CONFIG_CAMERA_DISPLAY_FORCE_FORMAT is debug macro, 
@@ -120,7 +122,7 @@ namespace android {
 #define CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS   0
 #define CONFIG_CAMERA_FRAME_DV_PROC_STAT    0
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
-#define CONFIG_CAMERA_PRVIEW_BUF_CNT    4
+#define CONFIG_CAMERA_PRVIEW_BUF_CNT        4
 #define CONFIG_CAMERA_UVC_INVAL_FRAMECNT    5
 
 #define CONFIG_CAMERA_FRONT_PREVIEW_FPS_MIN    3000        // 3fps

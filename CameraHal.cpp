@@ -101,6 +101,8 @@ static int cameraPixFmt2HalPixFmt(const char *fmt)
     if (strcmp(fmt,CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
         hal_pixel_format = HAL_PIXEL_FORMAT_RGB_565;        
     } else if (strcmp(fmt,CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
+        hal_pixel_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
+    } else if (strcmp(fmt,CAMERA_DISPLAY_FORMAT_NV12) == 0) {
         hal_pixel_format = HAL_PIXEL_FORMAT_YCrCb_NV12;
     } else if (strcmp(fmt,CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
         hal_pixel_format = HAL_PIXEL_FORMAT_YCbCr_422_SP;
@@ -793,7 +795,7 @@ void CameraHal::initDefaultParameters()
         }
     }
     /*preview format setting*/
-    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS, "yuv420sp,rgb565,yuv420p");
+    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS, "yuv420sp,rgb565");
     params.set(CameraParameters::KEY_VIDEO_FRAME_FORMAT,CameraParameters::PIXEL_FORMAT_YUV420SP);
     if (strcmp(cameraCallProcess,"com.android.camera")==0) {    //for PanoramaActivity
         params.setPreviewFormat(CameraParameters::PIXEL_FORMAT_RGB565);   
@@ -801,7 +803,7 @@ void CameraHal::initDefaultParameters()
         params.setPreviewFormat(CameraParameters::PIXEL_FORMAT_YUV420SP);   
     }
     /* zyc@rock-chips.com: preset the displayformat for cts */
-	strcpy(mDisplayFormat,CameraParameters::PIXEL_FORMAT_YUV420SP);
+	strcpy(mDisplayFormat,CAMERA_DISPLAY_FORMAT_NV12);
 
 
 	params.set(CameraParameters::KEY_VIDEO_FRAME_FORMAT,CameraParameters::PIXEL_FORMAT_YUV420SP);
@@ -1440,7 +1442,7 @@ display_receive_cmd:
                     }
 
                     if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
-                        if (strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
+                        if (strcmp(mParameters.getPreviewFormat(),mDisplayFormat) == 0) {
                             if (mPreviewMemory) {
                                 /* ddl@rock-chips.com : preview frame rate may be too high, CTS testPreviewCallback may be fail*/                    
                                 memcpy((char*)mPreviewBufs[queue_display_index], (char*)mDisplayBufferMap[queue_display_index]->vir_addr, mPreviewFrame2AppSize);                                                             
@@ -3269,8 +3271,13 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
         case V4L2_PIX_FMT_NV12:
         {
             int *dst_vu, *src_uv;
-            
-            if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV21) || 
+
+            if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV12) || 
+                (android_fmt_dst && (strcmp(android_fmt_dst,CAMERA_DISPLAY_FORMAT_NV12)==0))) {
+                if (dstbuf && (dstbuf != srcbuf)) {
+                    memcpy(dstbuf,srcbuf, y_size*3/2);
+                }
+            } else if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV21) || 
                 (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_YUV420SP)==0))) {
                 if ((src_w == dst_w) && (src_h == dst_h)) {
                     if (mirror == false) {
@@ -3894,7 +3901,7 @@ int CameraHal::setParameters(const CameraParameters &params_set)
                 || (strcmp(cameraCallProcess,"com.android.facelock")==0)) {
                 strcpy(mDisplayFormat,CameraParameters::PIXEL_FORMAT_RGB565);
             } else { 
-                strcpy(mDisplayFormat,CameraParameters::PIXEL_FORMAT_YUV420SP);
+                strcpy(mDisplayFormat,CAMERA_DISPLAY_FORMAT_NV12);
             }
         } else {
             strcpy(mDisplayFormat,CameraParameters::PIXEL_FORMAT_RGB565);
