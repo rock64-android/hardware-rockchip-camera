@@ -795,7 +795,7 @@ void CameraHal::initDefaultParameters()
         }
     }
     /*preview format setting*/
-    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS, "yuv420sp,rgb565");
+    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS, "yuv420sp,rgb565,yuv420p");
     params.set(CameraParameters::KEY_VIDEO_FRAME_FORMAT,CameraParameters::PIXEL_FORMAT_YUV420SP);
     if (strcmp(cameraCallProcess,"com.android.camera")==0) {    //for PanoramaActivity
         params.setPreviewFormat(CameraParameters::PIXEL_FORMAT_RGB565);   
