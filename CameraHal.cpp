@@ -51,7 +51,7 @@ extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 namespace android {
 // Logging support -- this is for debugging only
 // Use "adb shell dumpsys media.camera " to change it.
-static volatile int32_t gLogLevel = 0;
+static volatile int32_t gLogLevel;
 
 #define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
 #define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
@@ -1153,9 +1153,11 @@ int CameraHal::cameraDisplayThreadStart(int done)
    
     msg.command = CMD_DISPLAY_START;
     msg.arg1 = (void*)((done == true) ? CMDARG_ACK : CMDARG_NACK);
-    displayThreadCommandQ.put(&msg); 
+    mDisplayLock.lock();
+    displayThreadCommandQ.put(&msg);
+    mDisplayLock.unlock(); 
     mDisplayCond.signal();
-    if (done == true) {
+	if (done == true) {
         if (displayThreadAckQ.get(&msg) < 0) {
             LOGE("%s(%d): Start display thread failed,mDisplayRunging(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
         } else {
@@ -1182,9 +1184,11 @@ int CameraHal::cameraDisplayThreadPause(int done)
     
     msg.command = CMD_DISPLAY_PAUSE;
     msg.arg1 = (void*)((done == true) ? CMDARG_ACK : CMDARG_NACK);
+    mDisplayLock.lock();
     displayThreadCommandQ.put(&msg); 
+    mDisplayLock.unlock();
     mDisplayCond.signal();
-    if (done == true) {
+	if (done == true) {
         if (displayThreadAckQ.get(&msg,2500) < 0) {
             LOGE("%s(%d): Pause display thread failed, mDisplayRuning(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
         } else {
@@ -1211,9 +1215,11 @@ int CameraHal::cameraDisplayThreadStop(int done)
     
     msg.command = CMD_DISPLAY_STOP;
     msg.arg1 = (void*)((done == true) ? CMDARG_ACK : CMDARG_NACK);
+    mDisplayLock.lock();
     displayThreadCommandQ.put(&msg); 
-    mDisplayCond.signal();
-    if (done == true) {
+    mDisplayLock.unlock();
+	mDisplayCond.signal();    
+if (done == true) {
         if (displayThreadAckQ.get(&msg,1000) < 0) {
             LOGE("%s(%d): Stop display thread failed,mDisplayRuning(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
         } else {
@@ -1249,7 +1255,9 @@ int CameraHal::cameraPreviewThreadSet(unsigned int setStatus,int done)
         
     msg.command = setStatus;
     msg.arg1 = (void*)((done == true) ? CMDARG_ACK : CMDARG_NACK);
+    mPreviewLock.lock();
     previewThreadCommandQ.put(&msg);
+    mPreviewLock.unlock();
     mPreviewCond.signal();
 
     if (done == true) {
@@ -1307,6 +1315,7 @@ display_receive_cmd:
                 case CMD_DISPLAY_PAUSE:
                 {
                     LOGD("%s(%d): receive CMD_DISPLAY_PAUSE", __FUNCTION__,__LINE__);
+                    mDisplayLock.lock();
                     cameraDisplayBufferDestory();
                     mDisplayRuning = STA_DISPLAY_PAUSE;
                     if (CmdAck_Chk(msg)) {
@@ -1375,6 +1384,7 @@ display_receive_cmd:
                                 } else {
                                     LOG2("%s(%d): %s(err:%d) dequeueBuffer failed, so pause here", __FUNCTION__,__LINE__, strerror(-err), -err);
                                     mDisplayCond.wait(mDisplayLock); 
+                                    mDisplayLock.unlock();
                                     LOG2("%s(%d): wake up...", __FUNCTION__,__LINE__);
                                 }
                             }
@@ -1465,9 +1475,10 @@ display_receive_cmd:
         }
 
         if (mDisplayRuning == STA_DISPLAY_PAUSE) {
-            LOG1("%s(%d): display thread pause here... ", __FUNCTION__,__LINE__);
-            mDisplayCond.wait(mDisplayLock);   
-            LOG1("%s(%d): display thread wake up... ", __FUNCTION__,__LINE__);
+            LOGD("%s(%d): display thread pause here... ", __FUNCTION__,__LINE__);
+            mDisplayCond.wait(mDisplayLock);  
+            mDisplayLock.unlock(); 
+            LOGD("%s(%d): display thread wake up... ", __FUNCTION__,__LINE__);
             goto display_receive_cmd;
         }
         
@@ -1510,6 +1521,7 @@ display_receive_cmd:
                 /* ddl@rock-chips.com: dequeueBuffer isn't block, when ANativeWindow in asynchronous mode */
                 LOG2("%s(%d): %s(err:%d) dequeueBuffer failed, so pause here", __FUNCTION__,__LINE__, strerror(-err), -err);
                 mDisplayCond.wait(mDisplayLock); 
+                mDisplayLock.unlock();
                 LOG2("%s(%d): wake up...", __FUNCTION__,__LINE__);
             }
             
@@ -1609,6 +1621,7 @@ void CameraHal::previewThread()
         
         if (mPreviewRunning == STA_PREVIEW_PAUSE) {
             mPreviewCond.wait(mPreviewLock);
+            mPreviewLock.unlock();
             LOG1("%s(%d): wake up for mPreviewRunning:0x%x ",__FUNCTION__,__LINE__,mPreviewRunning);            
         }
         
@@ -1647,7 +1660,7 @@ void CameraHal::previewThread()
                 }
                 if (camera_device_error == true) {
                     if (mNotifyCb && (mMsgEnabled & CAMERA_MSG_ERROR)) {                        
-                        mNotifyCb(CAMERA_MSG_ERROR, 0,0,mCallbackCookie);
+                        mNotifyCb(CAMERA_MSG_ERROR, CAMERA_MSG_ERROR,0,mCallbackCookie);
                         mPreviewErrorFrameCount = 0;                        
                         continue;
                     }                    
@@ -1758,9 +1771,12 @@ void CameraHal::pictureThread()
 {
     struct CamCaptureInfo_s capture;
     
-    LOG_FUNCTION_NAME    
+    LOG_FUNCTION_NAME 
+    mPictureLock.lock();
+    mPictureRunning = STA_PICTURE_RUN;
+    mPictureLock.unlock();   
     capture.input_phy_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy); 
-	capture.output_phy_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_phy);                        
+		capture.output_phy_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_phy);                        
     capture.output_vir_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir);                        
     capture.output_buflen = mCamBuffer->getJpegBufInfo().mBufferSizes;
     LOGD("%s(%d): capture.input_phy:0x%x, output_phy:0x%x vir:0x%x",
@@ -1925,7 +1941,7 @@ get_command:
                 if (mPreviewRunning  == STA_PREVIEW_RUN)
                     cameraDisplayThreadPause(true);                    
                 if( mPreviewRunning  == STA_PREVIEW_RUN) {
-                    if(cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true) < 0){
+                		if(cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true) < 0){
                         LOGE("%s(%d): Pause preview thread failed!",__FUNCTION__,__LINE__);
                         msg.command = CMD_PREVIEW_STOP;
                         err = CMDARG_ERR;
@@ -1979,18 +1995,17 @@ get_command:
                 mPictureLock.unlock();
 								   
                 if (mPreviewRunning  == STA_PREVIEW_RUN) {
-                    cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true);
+                	  cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true);
                     cameraStop();
                 }
                 
                 if (mPictureThread->run("CameraPictureThread", ANDROID_PRIORITY_DISPLAY) != NO_ERROR) {
                     LOGE("%s(%d): couldn't run picture thread", __FUNCTION__,__LINE__);
                     err = -1;
-                    goto PREVIEW_CAPTURE_end;
-                } else {
                     mPictureLock.lock();
-                    mPictureRunning = STA_PICTURE_RUN;
-                    mPictureLock.unlock();
+                    mPictureRunning = STA_PICTURE_STOP;
+                    mPictureLock.unlock();                   
+                    goto PREVIEW_CAPTURE_end;
                 }
 PREVIEW_CAPTURE_end:
                 if (err < 0) {

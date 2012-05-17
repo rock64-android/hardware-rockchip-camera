@@ -105,8 +105,15 @@ namespace android {
 *         3) fix KEY_ZOOM_SUPPORTED config error in initDefaultParameters when digital zoom isn't supported;
 *         4) fix mDisplayFormat is NV21, but mNativeWindow buffer format is NV12;
 *         5) add CONFIG_CAMERA_UVC_INVAL_FRAMECNT config invaildate first some frame in uvc camera;
+
+*v0.2.c:
+*		  1) add lock when display and preview thread receive pause message,ensure that the thread is indeed in pause
+            status before the command thread send start message.
+		  2)  the second parameter of erro callback message is wrong ,fix it
+          3) status of pic thread setting is moved to pic thread before capture, and unset after capture , to avoid the thread 
+			 asynchronous.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0xb) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0xc) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

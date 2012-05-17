@@ -444,6 +444,7 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
         mPictureLock.unlock();
         LOGD("%s(%d): capture cancel, because mPictureRunning(0x%x) dosen't suit capture",
             __FUNCTION__,__LINE__, mPictureRunning);
+        err = -1;
         goto exit;
     }
     mPictureLock.unlock();
@@ -460,6 +461,7 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     creqbuf.count  = 1;
     if (ioctl(iCamFd, VIDIOC_REQBUFS, &creqbuf) < 0) {
         LOGE ("VIDIOC_REQBUFS Failed. errno = %d", errno);
+        err = -1;
         goto exit;
     }
 
@@ -481,6 +483,7 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
                             buffer.m.offset);
         if (camDriverV4l2Buffer == MAP_FAILED) {
             LOGE("%s(%d): %s(err:%d), unable to map buffer(length:0x%x offset:0x%x)",__FUNCTION__,__LINE__,strerror(errno),errno, buffer.length,buffer.m.offset);
+            err = -1;
             goto exit;
         } else {
             LOGD("%s(%d): camDriverV4l2Buffer:0x%x",__FUNCTION__,__LINE__,(int)camDriverV4l2Buffer);
@@ -562,6 +565,7 @@ capturePicture_streamoff:
         mPictureLock.unlock();
         LOGD("%s(%d): capture cancel, because mPictureRunning(0x%x) dosen't suit capture",
             __FUNCTION__,__LINE__, mPictureRunning);
+        err = -1;
         goto exit;
     }
     mPictureLock.unlock();
@@ -677,6 +681,7 @@ capturePicture_streamoff:
         mPictureLock.unlock();
         LOGD("%s(%d): capture cancel, because mPictureRunning(0x%x) dosen't suit capture",
             __FUNCTION__,__LINE__, mPictureRunning);
+        err = -1;
         goto exit;
     }
     mPictureLock.unlock();
@@ -689,7 +694,13 @@ capturePicture_streamoff:
     }
 
 exit:   
-
+		if(err < 0)
+			{
+				LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
+		    if (mNotifyCb && (mMsgEnabled & CAMERA_MSG_ERROR)) {                        
+             mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
+        }
+			}
     return err;
 }
 
@@ -835,7 +846,14 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     } else { 
         copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);       
     }
-exit:   
+exit:  
+			if(err < 0)
+			{
+				LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
+		    if (mNotifyCb && (mMsgEnabled & CAMERA_MSG_ERROR)) {                        
+             mNotifyCb(CAMERA_MSG_ERROR, CAMERA_MSG_ERROR,0,mCallbackCookie);
+        }
+			} 
 return err;
 
 }
