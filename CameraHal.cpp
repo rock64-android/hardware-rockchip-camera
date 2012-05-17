@@ -1660,7 +1660,7 @@ void CameraHal::previewThread()
                 }
                 if (camera_device_error == true) {
                     if (mNotifyCb && (mMsgEnabled & CAMERA_MSG_ERROR)) {                        
-                        mNotifyCb(CAMERA_MSG_ERROR, CAMERA_MSG_ERROR,0,mCallbackCookie);
+                        mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
                         mPreviewErrorFrameCount = 0;                        
                         continue;
                     }                    
