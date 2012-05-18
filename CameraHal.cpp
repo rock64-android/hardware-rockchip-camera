@@ -1189,7 +1189,7 @@ int CameraHal::cameraDisplayThreadPause(int done)
     mDisplayLock.unlock();
     mDisplayCond.signal();
 	if (done == true) {
-        if (displayThreadAckQ.get(&msg,2500) < 0) {
+        if (displayThreadAckQ.get(&msg,4000) < 0) {
             LOGE("%s(%d): Pause display thread failed, mDisplayRuning(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
         } else {
             if ((msg.command == CMD_DISPLAY_PAUSE) && ((int)msg.arg2 == STA_DISPLAY_PAUSE)
@@ -1220,7 +1220,7 @@ int CameraHal::cameraDisplayThreadStop(int done)
     mDisplayLock.unlock();
 	mDisplayCond.signal();    
 if (done == true) {
-        if (displayThreadAckQ.get(&msg,1000) < 0) {
+        if (displayThreadAckQ.get(&msg,4000) < 0) {
             LOGE("%s(%d): Stop display thread failed,mDisplayRuning(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
         } else {
             if ((msg.command == CMD_DISPLAY_STOP) && ((int)msg.arg2 == STA_DISPLAY_STOP)
@@ -1261,7 +1261,7 @@ int CameraHal::cameraPreviewThreadSet(unsigned int setStatus,int done)
     mPreviewCond.signal();
 
     if (done == true) {
-        if (previewThreadAckQ.get(&msg,3000) < 0) {
+        if (previewThreadAckQ.get(&msg,4000) < 0) {
             err = -1;
             LOGE("%s(%d): set preview thread status failed,mPreviewRunning(%d)",__FUNCTION__,__LINE__,mPreviewRunning);    
         } else {
@@ -3743,7 +3743,7 @@ int CameraHal::takePicture()
             msg.arg1 = (void*)CMDARG_ACK;
             commandThreadCommandQ.put(&msg);
             while (ret == 0) {            
-                ret = commandThreadAckQ.get(&msg,5000);
+                ret = commandThreadAckQ.get(&msg,6000);
                 if (ret == 0) {
                     if (msg.command == CMD_PREVIEW_CAPTURE) {
                         ret = 1;
