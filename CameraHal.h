@@ -115,6 +115,7 @@ namespace android {
 *0.2.d:
 	      1) adjust the timeout interval of takepic , display thread pause and preview thread pause.
 		  2) update the version to odd ,from this version on ,we use the odd number to indicate that this is not sure the stable.
+		  3) fix uvc camera convert display format is error in rk30;
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0xd) 
 

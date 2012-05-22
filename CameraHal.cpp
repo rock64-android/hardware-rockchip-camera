@@ -1397,7 +1397,8 @@ display_receive_cmd:
                                 mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight,false);
                         } else {
                         	/* zyc@rock-chips.com: for usb camera */							
-                        	cameraFormatConvert(V4L2_PIX_FMT_NV12, 0,mDisplayFormat,NULL,NULL,
+                        	cameraFormatConvert(V4L2_PIX_FMT_NV12, 0,mDisplayFormat,
+                        	    (char*)mPreviewBufferMap[queue_buf_index]->vir_addr,(char*)mDisplayBufferMap[queue_display_index]->vir_addr,
                         		mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,
                         		mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight,false);
                         }
@@ -1475,10 +1476,10 @@ display_receive_cmd:
         }
 
         if (mDisplayRuning == STA_DISPLAY_PAUSE) {
-            LOGD("%s(%d): display thread pause here... ", __FUNCTION__,__LINE__);
+            LOG1("%s(%d): display thread pause here... ", __FUNCTION__,__LINE__);
             mDisplayCond.wait(mDisplayLock);  
             mDisplayLock.unlock(); 
-            LOGD("%s(%d): display thread wake up... ", __FUNCTION__,__LINE__);
+            LOG1("%s(%d): display thread wake up... ", __FUNCTION__,__LINE__);
             goto display_receive_cmd;
         }
         
@@ -1679,7 +1680,10 @@ void CameraHal::previewThread()
             if (CAMERA_IS_UVC_CAMERA()) {				
                 cameraFormatConvert(mCamDriverPreviewFmt,V4L2_PIX_FMT_NV12,NULL,
                 	(char*)mCamDriverV4l2Buffer[cfilledbuffer1.index],(char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr, 
-                	0,0,mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight,false);														  
+                	0,0,mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight,false);	
+                
+				mCamBuffer->flushCacheMem(PREVIEWBUFFER,mCamBuffer->getPreviewBufInfo().mPerBuffersize * cfilledbuffer1.index,
+                                        mCamBuffer->getPreviewBufInfo().mPerBuffersize);                														  
             }      
             
             buffer_log = 0;
