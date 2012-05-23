@@ -1189,7 +1189,7 @@ int CameraHal::cameraDisplayThreadPause(int done)
     mDisplayLock.unlock();
     mDisplayCond.signal();
 	if (done == true) {
-        if (displayThreadAckQ.get(&msg,4000) < 0) {
+        if (displayThreadAckQ.get(&msg) < 0) {
             LOGE("%s(%d): Pause display thread failed, mDisplayRuning(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
         } else {
             if ((msg.command == CMD_DISPLAY_PAUSE) && ((int)msg.arg2 == STA_DISPLAY_PAUSE)
@@ -1220,7 +1220,7 @@ int CameraHal::cameraDisplayThreadStop(int done)
     mDisplayLock.unlock();
 	mDisplayCond.signal();    
 if (done == true) {
-        if (displayThreadAckQ.get(&msg,4000) < 0) {
+        if (displayThreadAckQ.get(&msg) < 0) {
             LOGE("%s(%d): Stop display thread failed,mDisplayRuning(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
         } else {
             if ((msg.command == CMD_DISPLAY_STOP) && ((int)msg.arg2 == STA_DISPLAY_STOP)
@@ -1315,7 +1315,7 @@ display_receive_cmd:
                 case CMD_DISPLAY_PAUSE:
                 {
                     LOGD("%s(%d): receive CMD_DISPLAY_PAUSE", __FUNCTION__,__LINE__);
-                    mDisplayLock.lock();
+
                     cameraDisplayBufferDestory();
                     mDisplayRuning = STA_DISPLAY_PAUSE;
                     if (CmdAck_Chk(msg)) {
@@ -1383,6 +1383,13 @@ display_receive_cmd:
                                     }                                
                                 } else {
                                     LOG2("%s(%d): %s(err:%d) dequeueBuffer failed, so pause here", __FUNCTION__,__LINE__, strerror(-err), -err);
+
+                                    mDisplayLock.lock();
+                                    if (displayThreadCommandQ.isEmpty() == false ) {
+                                        mDisplayLock.unlock(); 
+                                        goto display_receive_cmd;
+                                    }
+						                                    
                                     mDisplayCond.wait(mDisplayLock); 
                                     mDisplayLock.unlock();
                                     LOG2("%s(%d): wake up...", __FUNCTION__,__LINE__);
@@ -1476,6 +1483,11 @@ display_receive_cmd:
         }
 
         if (mDisplayRuning == STA_DISPLAY_PAUSE) {
+            mDisplayLock.lock();
+            if (displayThreadCommandQ.isEmpty() == false ) {
+                mDisplayLock.unlock(); 
+                goto display_receive_cmd;
+            }        	
             LOG1("%s(%d): display thread pause here... ", __FUNCTION__,__LINE__);
             mDisplayCond.wait(mDisplayLock);  
             mDisplayLock.unlock(); 
@@ -1521,6 +1533,11 @@ display_receive_cmd:
             } else {
                 /* ddl@rock-chips.com: dequeueBuffer isn't block, when ANativeWindow in asynchronous mode */
                 LOG2("%s(%d): %s(err:%d) dequeueBuffer failed, so pause here", __FUNCTION__,__LINE__, strerror(-err), -err);
+                mDisplayLock.lock();
+                if (displayThreadCommandQ.isEmpty() == false ) {
+                    mDisplayLock.unlock(); 
+                    goto display_receive_cmd;
+                }                  
                 mDisplayCond.wait(mDisplayLock); 
                 mDisplayLock.unlock();
                 LOG2("%s(%d): wake up...", __FUNCTION__,__LINE__);

@@ -112,12 +112,15 @@ namespace android {
 		  2)  the second parameter of erro callback message is wrong ,fix it
           3) status of pic thread setting is moved to pic thread before capture, and unset after capture , to avoid the thread 
 			 asynchronous.
-*0.2.d:
+*v0.2.d:
 	      1) adjust the timeout interval of takepic , display thread pause and preview thread pause.
 		  2) update the version to odd ,from this version on ,we use the odd number to indicate that this is not sure the stable.
 		  3) fix uvc camera convert display format is error in rk30;
+
+*v0.2.e:  
+*         1) display thread must check whether message queue is empty;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0xd) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0xe) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
