@@ -666,8 +666,12 @@ loop_continue:
     }
     //zyc , change the camera infomation if there is a usb camera
     if((strcmp(camInfoTmp[0].driver,"uvcvideo") == 0)) {
-    	camInfoTmp[0].facing_info.facing = (camInfoTmp[1].facing_info.facing == CAMERA_FACING_FRONT) ? CAMERA_FACING_BACK:CAMERA_FACING_FRONT;
-    	camInfoTmp[0].facing_info.orientation = (camInfoTmp[0].facing_info.facing == CAMERA_FACING_FRONT)?270:90;
+        if (cam_cnt == 1) {
+        	camInfoTmp[0].facing_info.facing = CAMERA_FACING_BACK;
+        } else {
+            camInfoTmp[0].facing_info.facing = (camInfoTmp[1].facing_info.facing == CAMERA_FACING_FRONT) ? CAMERA_FACING_BACK:CAMERA_FACING_FRONT;
+        }
+        camInfoTmp[0].facing_info.orientation = (camInfoTmp[0].facing_info.facing == CAMERA_FACING_FRONT)?270:90;
     } else if((strcmp(camInfoTmp[1].driver,"uvcvideo") == 0)) {
     	camInfoTmp[1].facing_info.facing = (camInfoTmp[0].facing_info.facing == CAMERA_FACING_FRONT) ? CAMERA_FACING_BACK:CAMERA_FACING_FRONT;
     	camInfoTmp[1].facing_info.orientation = (camInfoTmp[1].facing_info.facing == CAMERA_FACING_FRONT)?270:90;
@@ -710,7 +714,9 @@ camera_get_number_of_cameras_end:
     LOGD("%s(%d): Current board have %d cameras attached.",__FUNCTION__, __LINE__, gCamerasNumber);
     return gCamerasNumber;
 }
-
+static int getCallingPid() {
+    return IPCThreadState::self()->getCallingPid();
+}
 int camera_get_camera_info(int camera_id, struct camera_info *info)
 {
     int rv = 0,fp;
@@ -725,8 +731,25 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
         goto end;
     }
 
+    process_name[0] = 0x00; 
+    sprintf(process_name,"/proc/%d/cmdline",getCallingPid());
+    fp = open(process_name, O_RDONLY);
+    if (fp < 0) {
+        memset(process_name,0x00,sizeof(process_name));
+        LOGE("%s(%d): Obtain calling process info failed",__FUNCTION__,__LINE__);
+    } else {
+        memset(process_name,0x00,sizeof(process_name));
+        read(fp, process_name, 30);
+        close(fp);
+        fp = -1;
+    }
+
     info->facing = gCamInfos[camera_id].facing_info.facing;
-    info->orientation = gCamInfos[camera_id].facing_info.orientation;       
+    if (strstr(process_name,"com.skype.rover")) {
+        info->orientation = (info->facing == CAMERA_FACING_BACK)? CONFIG_CAMERA_BACK_ORIENTATION_SKYPE : CONFIG_CAMERA_FRONT_ORIENTATION_SKYPE;       
+    } else {        
+        info->orientation = gCamInfos[camera_id].facing_info.orientation;       
+    }
 end:
     LOGD("%s(%d): camera_%d facing(%d), orientation(%d)",__FUNCTION__,__LINE__,camera_id,info->facing,info->orientation);
     return rv;
