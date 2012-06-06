@@ -119,8 +119,9 @@ namespace android {
 
 *v0.2.e:  
 *         1) display thread must check whether message queue is empty;
+*v0.3.0: just update the version num
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 2, 0xe) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x0) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
