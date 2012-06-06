@@ -123,8 +123,10 @@ namespace android {
 *v0.3.1:  
 *         1) Only one usb sensor in board config as back;
 *         2) add configuration sensor orientation in skype app;
+*v0.3.3:
+*         1) add CONFIG_CAMERA_ORIENTATION_SKYPE
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x1) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x3) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -142,6 +144,7 @@ namespace android {
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT        4
 #define CONFIG_CAMERA_UVC_INVAL_FRAMECNT    5
+#define CONFIG_CAMERA_ORIENTATION_SKYPE     0
 #define CONFIG_CAMERA_FRONT_ORIENTATION_SKYPE     0
 #define CONFIG_CAMERA_BACK_ORIENTATION_SKYPE      0
 

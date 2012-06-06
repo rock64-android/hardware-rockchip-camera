@@ -730,7 +730,8 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
         rv = -EINVAL;
         goto end;
     }
-
+    
+#if CONFIG_CAMERA_ORIENTATION_SKYPE
     process_name[0] = 0x00; 
     sprintf(process_name,"/proc/%d/cmdline",getCallingPid());
     fp = open(process_name, O_RDONLY);
@@ -750,6 +751,10 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
     } else {        
         info->orientation = gCamInfos[camera_id].facing_info.orientation;       
     }
+#else
+    info->facing = gCamInfos[camera_id].facing_info.facing;
+    info->orientation = gCamInfos[camera_id].facing_info.orientation;       
+#endif
 end:
     LOGD("%s(%d): camera_%d facing(%d), orientation(%d)",__FUNCTION__,__LINE__,camera_id,info->facing,info->orientation);
     return rv;
