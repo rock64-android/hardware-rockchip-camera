@@ -1261,7 +1261,7 @@ int CameraHal::cameraPreviewThreadSet(unsigned int setStatus,int done)
     mPreviewCond.signal();
 
     if (done == true) {
-        if (previewThreadAckQ.get(&msg,4000) < 0) {
+        if (previewThreadAckQ.get(&msg) < 0) {
             err = -1;
             LOGE("%s(%d): set preview thread status failed,mPreviewRunning(%d)",__FUNCTION__,__LINE__,mPreviewRunning);    
         } else {
@@ -1638,6 +1638,10 @@ void CameraHal::previewThread()
         }
         
         if (mPreviewRunning == STA_PREVIEW_PAUSE) {
+        	  if (previewThreadCommandQ.isEmpty() == false ) {
+                 mPreviewLock.unlock();
+                 continue;
+             }
             mPreviewCond.wait(mPreviewLock);
             mPreviewLock.unlock();
             LOG1("%s(%d): wake up for mPreviewRunning:0x%x ",__FUNCTION__,__LINE__,mPreviewRunning);            
