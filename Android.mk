@@ -28,8 +28,9 @@ LOCAL_SHARED_LIBRARIES:= \
     libcamera_client \
     libgui\
     libjpeg\
+    libjpeghwenc\
     libion
-    #libjpeghwenc    
+    #    
     #libyuvtorgb\
     
 else

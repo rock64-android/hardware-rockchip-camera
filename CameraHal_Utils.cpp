@@ -685,7 +685,7 @@ capturePicture_streamoff:
         goto exit;
     }
     mPictureLock.unlock();
-    #if 0
+    #if 1
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
     #else
     err = 0;
@@ -830,7 +830,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     JpegOutInfo.jpegFileLen = 0x00;
     JpegOutInfo.cacheflush= &capturePicture_cacheflush;
     	
-    #if 0
+    #if 1
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
     #else
     err = 0;
