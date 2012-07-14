@@ -2293,7 +2293,7 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
     bounds.right = mPreviewWidth;
     bounds.bottom = mPreviewHeight;
 
-    for( i = 0;  i < (mPreviewBufferCount-undequeued); i++ ) {
+    for( i = 0;  i < mPreviewBufferCount; i++ ) {
         void *y_uv[2];
 
         mANativeWindow->lock_buffer(mANativeWindow, (buffer_handle_t*)mGrallocBufferMap[i].buffer_hnd);
@@ -2326,23 +2326,7 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
         }
         LOGD("%s(%d): Display buffer and Preview buffer is independent",__FUNCTION__,__LINE__);
     }
-
-
-    for (i=(mPreviewBufferCount-undequeued);i>=0 && i<mPreviewBufferCount; i++) {
-        err = mANativeWindow->cancel_buffer(mANativeWindow, (buffer_handle_t*)mGrallocBufferMap[i].buffer_hnd);
-        if (err != 0) {
-            LOGE("%s(%d): cancel_buffer failed: %s (%d)",__FUNCTION__,__LINE__, strerror(-err), -err);
-
-            if ( ENODEV == err ) {
-                LOGE("%s(%d): Preview surface abandoned!",__FUNCTION__,__LINE__);
-                mANativeWindow = NULL;
-            }
-
-            goto fail;
-        } 
-        cameraPreviewBufferSetSta(&mGrallocBufferMap[i], CMD_PREVIEWBUF_DISPING, 1);
-    }
-   
+    
     LOG_FUNCTION_NAME_EXIT    
     return err; 
  fail:
@@ -3404,11 +3388,11 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                     doYuvToRgb(&para);
                     #endif
                 } else if (srcbuf && dstbuf) {
-                	//if(mRGAFd > 0) {
-                        //rga_nv12torgb565(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);                    	  
-                    //} else {
+                	if(mRGAFd > 0) {
+                        rga_nv12torgb565(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);                    	  
+                    } else {
                     	arm_nv12torgb565(src_w,src_h,srcbuf, (short int*)dstbuf);                 
-                    //}
+                    }
                 }
             }
             break;
