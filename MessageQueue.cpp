@@ -12,8 +12,13 @@
 
 static volatile int32_t gLogLevel = 0;
 
+#ifdef ALOGD_IF
+#define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
+#define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
+#else
 #define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
 #define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
+#endif
 
 static char gDisplayThreadCommands[][30] = {
 		{"CMD_DISPLAY_PAUSE"},

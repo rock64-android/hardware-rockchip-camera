@@ -44,18 +44,22 @@
 #include <unistd.h>
 #include <linux/fb.h>
 
-#include "../libyuvtorgb/yuvtorgb.h"
+//#include "../libyuvtorgb/yuvtorgb.h"
 
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
 namespace android {
 // Logging support -- this is for debugging only
 // Use "adb shell dumpsys media.camera " to change it.
-static volatile int32_t gLogLevel;
+static volatile int32_t gLogLevel = 0;
 
+#ifdef ALOGD_IF
+#define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
+#define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
+#else
 #define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
 #define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-
+#endif
     
 #define LOG_TAG "CameraHal"
 
@@ -1495,55 +1499,7 @@ display_receive_cmd:
             goto display_receive_cmd;
         }
         
-        if (mANativeWindow) {           
-            
-            err = mANativeWindow->dequeue_buffer(mANativeWindow, (buffer_handle_t**)&hnd, &stride);
-            if (err == 0) {
-                // lock the initial queueable buffers
-                bounds.left = 0;
-                bounds.top = 0;
-                bounds.right = mPreviewWidth;
-                bounds.bottom = mPreviewHeight;
-                mANativeWindow->lock_buffer(mANativeWindow, (buffer_handle_t*)hnd);
-                mapper.lock((buffer_handle_t)(*hnd), CAMHAL_GRALLOC_USAGE, bounds, y_uv);
-
-                phnd = (private_handle_t*)*hnd;
-                for (i=0; i<mPreviewBufferCount; i++) {
-                    if (phnd == mDisplayBufferMap[i]->priv_hnd) {
-                        dequeue_buf_index = i;
-                        break;
-                    }
-                }
-                
-                if (i >= mPreviewBufferCount) {                    
-                    LOGE("%s(%d): dequeue buffer(0x%x magic:0x%x) don't find in mDisplayBufferMap", __FUNCTION__,__LINE__,(int)phnd,phnd->magic);                    
-                    continue;
-                } else {
-                    cameraPreviewBufferSetSta(mDisplayBufferMap[dequeue_buf_index], CMD_PREVIEWBUF_DISPING, 0);
-                }
-
-                if (mDisplayBufferMap[dequeue_buf_index] == mPreviewBufferMap[dequeue_buf_index]) {
-                    //Notify the frame has displayed, it is idle in ANativeWindow 
-                    msg.command = CMD_PREVIEW_QBUF;     
-                    msg.arg1 = (void*)dequeue_buf_index;
-                    msg.arg2 = (void*)CMD_PREVIEWBUF_DISPING;
-                    msg.arg3 = (void*)mPreviewStartTimes;
-                    commandThreadCommandQ.put(&msg); 
-                }
-            } else {
-                /* ddl@rock-chips.com: dequeueBuffer isn't block, when ANativeWindow in asynchronous mode */
-                LOG2("%s(%d): %s(err:%d) dequeueBuffer failed, so pause here", __FUNCTION__,__LINE__, strerror(-err), -err);
-                mDisplayLock.lock();
-                if (displayThreadCommandQ.isEmpty() == false ) {
-                    mDisplayLock.unlock(); 
-                    goto display_receive_cmd;
-                }                  
-                mDisplayCond.wait(mDisplayLock); 
-                mDisplayLock.unlock();
-                LOG2("%s(%d): wake up...", __FUNCTION__,__LINE__);
-            }
-            
-        } else {
+        if (mANativeWindow == NULL) { 
             LOGE("%s(%d): thread exit, because mANativeWindow is NULL", __FUNCTION__,__LINE__);
             mDisplayRuning = STA_DISPLAY_STOP;            
         }
@@ -1655,7 +1611,6 @@ void CameraHal::previewThread()
             
             /* De-queue the next avaliable buffer */            
             mPreviewLock.unlock();
-
             if (CAMERA_IS_UVC_CAMERA()) {
                 if (mPreviewFrameIndex==0) {
                     for (i=0; i<CONFIG_CAMERA_UVC_INVAL_FRAMECNT; i++) {
@@ -1691,7 +1646,6 @@ void CameraHal::previewThread()
                 mPreviewErrorFrameCount = 0;
             }
             mPreviewFrameIndex++; 
-            
             if (gLogLevel == 2)
                 debugShowFPS();
             
@@ -2296,7 +2250,6 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
 
     for ( i=0; i < total; i++ ) {
         int stride;  
-
         err = mANativeWindow->dequeue_buffer(mANativeWindow, (buffer_handle_t**)&hnd, &stride);
 
         if (err != 0) {
@@ -2309,7 +2262,6 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
 
             goto fail;
         }
-
         if (i < mPreviewBufferCount) {
             mGrallocBufferMap[i].buffer_hnd = hnd;
             mGrallocBufferMap[i].priv_hnd= (private_handle_t*)(*hnd);
@@ -2341,7 +2293,7 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
     bounds.right = mPreviewWidth;
     bounds.bottom = mPreviewHeight;
 
-    for( i = 0;  i < mPreviewBufferCount; i++ ) {
+    for( i = 0;  i < (mPreviewBufferCount-undequeued); i++ ) {
         void *y_uv[2];
 
         mANativeWindow->lock_buffer(mANativeWindow, (buffer_handle_t*)mGrallocBufferMap[i].buffer_hnd);
@@ -2373,6 +2325,22 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
             mPreviewBufferMap[i] = mPreviewBuffer[i];
         }
         LOGD("%s(%d): Display buffer and Preview buffer is independent",__FUNCTION__,__LINE__);
+    }
+
+
+    for (i=(mPreviewBufferCount-undequeued);i>=0 && i<mPreviewBufferCount; i++) {
+        err = mANativeWindow->cancel_buffer(mANativeWindow, (buffer_handle_t*)mGrallocBufferMap[i].buffer_hnd);
+        if (err != 0) {
+            LOGE("%s(%d): cancel_buffer failed: %s (%d)",__FUNCTION__,__LINE__, strerror(-err), -err);
+
+            if ( ENODEV == err ) {
+                LOGE("%s(%d): Preview surface abandoned!",__FUNCTION__,__LINE__);
+                mANativeWindow = NULL;
+            }
+
+            goto fail;
+        } 
+        cameraPreviewBufferSetSta(&mGrallocBufferMap[i], CMD_PREVIEWBUF_DISPING, 1);
     }
    
     LOG_FUNCTION_NAME_EXIT    
@@ -3420,6 +3388,7 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
             } else if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_RGB565)==0)) {
                 
                 if (srcphy && dstphy) {
+                    #if 0
                     YUV2RGBParams  para;
 
                     memset(&para, 0x00, sizeof(YUV2RGBParams));
@@ -3433,12 +3402,13 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                     para.outColor  = PP_OUT_RGB565;
 
                     doYuvToRgb(&para);
+                    #endif
                 } else if (srcbuf && dstbuf) {
-                	if(mRGAFd > 0) {
-                        rga_nv12torgb565(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);                    	  
-                    } else {
+                	//if(mRGAFd > 0) {
+                        //rga_nv12torgb565(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);                    	  
+                    //} else {
                     	arm_nv12torgb565(src_w,src_h,srcbuf, (short int*)dstbuf);                 
-                    }
+                    //}
                 }
             }
             break;

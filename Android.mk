@@ -27,13 +27,16 @@ LOCAL_SHARED_LIBRARIES:= \
     libcutils \
     libcamera_client \
     libgui\
-    libjpeghwenc\
     libjpeg\
-    libyuvtorgb\
     libion
+    #libjpeghwenc    
+    #libyuvtorgb\
+    
 else
 LOCAL_C_INCLUDES += \
-	frameworks/base/include/ui \
+	#frameworks/base/include/ui \
+  frameworks/native/include/media/hardware \
+  frameworks/native/include/media/openmax \
   external/jpeg \
   external/jhead	
   
