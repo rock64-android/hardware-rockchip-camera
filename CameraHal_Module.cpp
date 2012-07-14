@@ -598,7 +598,9 @@ int camera_get_number_of_cameras(void)
     rk_cam_info_t camInfoTmp[CAMERAS_SUPPORT_MAX];
     char *ptr,**ptrr;
     char version[PROPERTY_VALUE_MAX];
-
+    char property[PROPERTY_VALUE_MAX];
+    int hwrotation = 0;
+    
     if (gCamerasNumber > 0)
         goto camera_get_number_of_cameras_end;
     
@@ -709,6 +711,15 @@ loop_continue:
     
     memcpy(&gCamInfos[0], &camInfoTmp[0], sizeof(rk_cam_info_t));
     memcpy(&gCamInfos[1], &camInfoTmp[1], sizeof(rk_cam_info_t));
+
+
+    property_get("ro.sf.hwrotation", property, "0");
+    hwrotation = strtol(property,0,0);
+
+    if (hwrotation == 0) {
+        gCamInfos[0].facing_info.orientation -= 90;
+        gCamInfos[1].facing_info.orientation -= 90;
+    }
     
 camera_get_number_of_cameras_end:
     LOGD("%s(%d): Current board have %d cameras attached.",__FUNCTION__, __LINE__, gCamerasNumber);
