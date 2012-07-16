@@ -44,7 +44,7 @@
 #include <unistd.h>
 #include <linux/fb.h>
 
-//#include "../libyuvtorgb/yuvtorgb.h"
+#include "../libyuvtorgb/yuvtorgb.h"
 
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
@@ -3372,7 +3372,6 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
             } else if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_RGB565)==0)) {
                 
                 if (srcphy && dstphy) {
-                    #if 0
                     YUV2RGBParams  para;
 
                     memset(&para, 0x00, sizeof(YUV2RGBParams));
@@ -3386,7 +3385,6 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                     para.outColor  = PP_OUT_RGB565;
 
                     doYuvToRgb(&para);
-                    #endif
                 } else if (srcbuf && dstbuf) {
                 	if(mRGAFd > 0) {
                         rga_nv12torgb565(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);                    	  

@@ -685,11 +685,9 @@ capturePicture_streamoff:
         goto exit;
     }
     mPictureLock.unlock();
-    #if 1
-	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
-    #else
-    err = 0;
-    #endif
+
+    err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
+    
     if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
         LOGE("hw_jpeg_encode Failed \n");
         goto exit;
@@ -830,11 +828,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     JpegOutInfo.jpegFileLen = 0x00;
     JpegOutInfo.cacheflush= &capturePicture_cacheflush;
     	
-    #if 1
-	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
-    #else
-    err = 0;
-    #endif
+    err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
 
     cameraPreviewBufferSetSta(mPreviewBufferMap[index], CMD_PREVIEWBUF_SNAPSHOT_ENCING, 0);    
     if (mPreviewRunning == STA_PREVIEW_RUN) {	     
