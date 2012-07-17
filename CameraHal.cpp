@@ -1223,7 +1223,7 @@ int CameraHal::cameraDisplayThreadStop(int done)
     displayThreadCommandQ.put(&msg); 
     mDisplayLock.unlock();
 	mDisplayCond.signal();    
-if (done == true) {
+    if (done == true) {
         if (displayThreadAckQ.get(&msg) < 0) {
             LOGE("%s(%d): Stop display thread failed,mDisplayRuning(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
         } else {
@@ -1384,7 +1384,8 @@ display_receive_cmd:
                                             queue_display_index = i;
                                             break;
                                         }
-                                    }                                
+                                    }  
+                                    
                                 } else {
                                     LOG2("%s(%d): %s(err:%d) dequeueBuffer failed, so pause here", __FUNCTION__,__LINE__, strerror(-err), -err);
 
@@ -1485,19 +1486,17 @@ display_receive_cmd:
                 }
             }
         }
-
-        if (mDisplayRuning == STA_DISPLAY_PAUSE) {
-            mDisplayLock.lock();
-            if (displayThreadCommandQ.isEmpty() == false ) {
-                mDisplayLock.unlock(); 
-                goto display_receive_cmd;
-            }        	
-            LOG1("%s(%d): display thread pause here... ", __FUNCTION__,__LINE__);
-            mDisplayCond.wait(mDisplayLock);  
+        
+        mDisplayLock.lock();
+        if (displayThreadCommandQ.isEmpty() == false ) {
             mDisplayLock.unlock(); 
-            LOG1("%s(%d): display thread wake up... ", __FUNCTION__,__LINE__);
             goto display_receive_cmd;
-        }
+        }        	
+        LOG1("%s(%d): display thread pause here... ", __FUNCTION__,__LINE__);
+        mDisplayCond.wait(mDisplayLock);  
+        mDisplayLock.unlock(); 
+        LOG1("%s(%d): display thread wake up... ", __FUNCTION__,__LINE__);
+        goto display_receive_cmd;        
         
         if (mANativeWindow == NULL) { 
             LOGE("%s(%d): thread exit, because mANativeWindow is NULL", __FUNCTION__,__LINE__);
@@ -3384,7 +3383,7 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                     para.inColor  = PP_IN_YUV420sp;
                     para.outColor  = PP_OUT_RGB565;
 
-                    doYuvToRgb(&para);
+                    doYuvToRgb(&para);                    
                 } else if (srcbuf && dstbuf) {
                 	if(mRGAFd > 0) {
                         rga_nv12torgb565(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);                    	  
