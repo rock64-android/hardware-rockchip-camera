@@ -644,7 +644,7 @@ capturePicture_streamoff:
     if(JpegInInfo.thumbqLvl  >10) {
         JpegInInfo.thumbqLvl = 9;
     }
-    #if 0
+    
     if(thumbwidth !=0 && thumbheight !=0) {
         JpegInInfo.doThumbNail = 1;          //insert thumbnail at APP0 extension
     	JpegInInfo.thumbData = NULL;         //if thumbData is NULL, do scale, the type above can not be 420_P or 422_UYVY
@@ -653,10 +653,7 @@ capturePicture_streamoff:
     	JpegInInfo.thumbH = thumbheight;
     }else{    
         JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension   
-    }
-    #else
-    JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension   
-    #endif
+    }    
     
     Jpegfillexifinfo(&exifInfo);
     JpegInInfo.exifInfo =&exifInfo;
@@ -694,7 +691,7 @@ capturePicture_streamoff:
     if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
         LOGE("hw_jpeg_encode Failed \n");
         goto exit;
-    } else {         
+    } else {          
         copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);
     }
 
@@ -799,7 +796,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     if(JpegInInfo.thumbqLvl  >10) {
         JpegInInfo.thumbqLvl = 9;
     }
-    #if 0
+
     if(thumbwidth !=0 && thumbheight !=0) {
         JpegInInfo.doThumbNail = 1;          //insert thumbnail at APP0 extension
     	JpegInInfo.thumbData = NULL;         //if thumbData is NULL, do scale, the type above can not be 420_P or 422_UYVY
@@ -809,9 +806,6 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     }else{    
         JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension   
     }
-    #else
-    JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension   
-    #endif
     
     Jpegfillexifinfo(&exifInfo);
     JpegInInfo.exifInfo =&exifInfo;
