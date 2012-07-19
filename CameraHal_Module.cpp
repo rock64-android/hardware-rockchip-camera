@@ -718,7 +718,7 @@ loop_continue:
 
     if (hwrotation == 0) {
         gCamInfos[0].facing_info.orientation -= 90;
-        gCamInfos[1].facing_info.orientation -= 90;
+        gCamInfos[1].facing_info.orientation -= 270;
     }
     
 camera_get_number_of_cameras_end:
