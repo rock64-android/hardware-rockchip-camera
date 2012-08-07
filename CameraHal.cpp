@@ -51,7 +51,7 @@ extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 namespace android {
 // Logging support -- this is for debugging only
 // Use "adb shell dumpsys media.camera " to change it.
-static volatile int32_t gLogLevel = 0;
+static volatile int32_t gLogLevel;
 
 #ifdef ALOGD_IF
 #define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
@@ -1093,7 +1093,9 @@ int CameraHal::setPreviewWindow(struct preview_stream_ops *window)
     
     mANativeWindow = window;
     if (mANativeWindow) {        
+		mANativeWindowLock.lock();        
         mANativeWindowCond.signal();
+		mANativeWindowLock.unlock();
         LOGD("%s(%d): mANativeWindow is 0x%x, Now wake up thread which wait for mANativeWindowCond",__FUNCTION__,__LINE__,(int)mANativeWindow);
     } else {
         LOG1("%s(%d): window is NULL",__FUNCTION__,__LINE__);
@@ -1528,12 +1530,26 @@ void CameraHal::previewThread()
             previewThreadCommandQ.get(&msg);
             mPreviewLock.lock();
             camera_device_error = false;
-        } else {
-            mPreviewLock.lock();
-            if (previewThreadCommandQ.isEmpty() == false ) 
-                previewThreadCommandQ.get(&msg);
-        }
+            goto previewThread_cmd;
+        } 
         
+        mCamDriverStreamLock.lock();
+        if (mCamDriverStream == false) {
+            mCamDriverStreamLock.unlock();
+            LOGD("%s(%d): camera driver is stream off, so preview thread wait for command thread wake...",
+                 __FUNCTION__,__LINE__);
+            previewThreadCommandQ.get(&msg);
+            mPreviewLock.lock();
+            goto previewThread_cmd;
+        } else {
+            mCamDriverStreamLock.unlock();
+        }
+            
+        mPreviewLock.lock();
+        if (previewThreadCommandQ.isEmpty() == false ) 
+            previewThreadCommandQ.get(&msg);
+        
+previewThread_cmd:        
         switch (msg.command)
         {
             case CMD_PREVIEW_THREAD_START:
@@ -1593,7 +1609,7 @@ void CameraHal::previewThread()
         }
         
         if (mPreviewRunning == STA_PREVIEW_PAUSE) {
-        	  if (previewThreadCommandQ.isEmpty() == false ) {
+        	 if (previewThreadCommandQ.isEmpty() == false ) {
                  mPreviewLock.unlock();
                  continue;
              }
@@ -1603,6 +1619,11 @@ void CameraHal::previewThread()
         }
         
         if (mPreviewRunning == STA_PREVIEW_RUN) {
+
+            mCamDriverStreamLock.lock();
+            if (mCamDriverStream == false) 
+                continue;
+            mCamDriverStreamLock.unlock();
             
             cfilledbuffer1.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             cfilledbuffer1.memory = mCamDriverV4l2MemType;
@@ -1627,18 +1648,28 @@ void CameraHal::previewThread()
                     LOGE("%s(%d): camera driver or device may be error, so notify CAMERA_MSG_ERROR",
                             __FUNCTION__,__LINE__);
                 } else {
-                    mPreviewErrorFrameCount++;
-                    if (mPreviewErrorFrameCount >= 4) {                
-                        camera_device_error = true;   
-                        LOGE("%s(%d): mPreviewErrorFrameCount is %d, camera driver or device may be error, so notify CAMERA_MSG_ERROR",
-                            __FUNCTION__,__LINE__,mPreviewErrorFrameCount);
+                    mCamDriverStreamLock.lock();
+                    if (mCamDriverStream) {
+                        mPreviewErrorFrameCount++;
+                        if (mPreviewErrorFrameCount >= 2) {  
+                            mCamDriverStreamLock.unlock();
+                            camera_device_error = true;   
+                            LOGE("%s(%d): mPreviewErrorFrameCount is %d, camera driver or device may be error, so notify CAMERA_MSG_ERROR",
+                                __FUNCTION__,__LINE__,mPreviewErrorFrameCount);
+                        } else {
+                            mCamDriverStreamLock.unlock();
+                            continue;
+                        }
+                    } else {
+                        mCamDriverStreamLock.unlock();  
+                        continue;
                     }
                 }
                 if (camera_device_error == true) {
                     if (mNotifyCb && (mMsgEnabled & CAMERA_MSG_ERROR)) {                        
                         mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
                         mPreviewErrorFrameCount = 0;                        
-                        continue;
+                        continue; 
                     }                    
                 }
             } else {
@@ -1880,7 +1911,12 @@ get_command:
 
                 if (NULL == mANativeWindow) {
                     LOGD("%s(%d): camera preview buffer alloc from ANativeWindow, Now mANativeWIndow is NULL, wait for set...",__FUNCTION__,__LINE__);  
-                    mANativeWindowCond.wait(mANativeWindowLock);
+					mANativeWindowLock.lock();
+					if(NULL == mANativeWindow){
+						LOGD("%s(%d):ANativeWindow is NULL , lock and wait ...",__FUNCTION__,__LINE__);
+						mANativeWindowCond.wait(mANativeWindowLock);
+					}
+					mANativeWindowLock.unlock();
                 } 
 
                 if (commandThreadCommandQ.isEmpty() == false) {
@@ -1919,7 +1955,8 @@ get_command:
                 if (mPreviewRunning  == STA_PREVIEW_RUN)
                     cameraDisplayThreadPause(true);                    
                 if( mPreviewRunning  == STA_PREVIEW_RUN) {
-                		if(cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true) < 0){
+                    cameraStop();
+                	if(cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true) < 0){
                         LOGE("%s(%d): Pause preview thread failed!",__FUNCTION__,__LINE__);
                         msg.command = CMD_PREVIEW_STOP;
                         err = CMDARG_ERR;
@@ -1928,7 +1965,6 @@ get_command:
                         err = CMDARG_OK;
 
                     } 
-                    cameraStop(); 
                 } else {
                     msg.command = CMD_PREVIEW_STOP;
                     err = CMDARG_OK;
@@ -2988,7 +3024,27 @@ int CameraHal::cameraQuery(CameraParameters &params)
 	LOG1 ("scene: %s", (char *)mScene_menu[i].name);
 	return 0;
 }
+int CameraHal::cameraStream(bool on)
+{
+    int err = 0;
+    int cmd ;
+    enum v4l2_buf_type type;
 
+    type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    cmd = (on)?VIDIOC_STREAMON:VIDIOC_STREAMOFF;
+
+    mCamDriverStreamLock.lock();
+    err = ioctl(iCamFd, cmd, &type);
+    if (err < 0) {
+        LOGE("%s(%d): %s Failed",__FUNCTION__,__LINE__,((on)?"VIDIOC_STREAMON":"VIDIOC_STREAMOFF"));
+        goto cameraStream_end;
+    }
+    mCamDriverStream = on;
+    mCamDriverStreamLock.unlock();
+
+cameraStream_end:
+    return err;
+}
 int CameraHal::cameraStart()
 {
     int preview_size,i;
@@ -3074,13 +3130,6 @@ int CameraHal::cameraStart()
                         __FUNCTION__,__LINE__,i);                
             }
         }
-    }    
-    
-    type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    err = ioctl(iCamFd, VIDIOC_STREAMON, &type);
-    if ( err < 0) {
-        LOGE("%s(%d): VIDIOC_STREAMON Failed",__FUNCTION__,__LINE__);
-        goto fail_bufalloc;
     }
 	
     if(!mPreviewMemory) {
@@ -3120,6 +3169,8 @@ int CameraHal::cameraStart()
     }
     mPreviewErrorFrameCount = 0;
     mPreviewFrameIndex = 0;
+
+    cameraStream(true);
     LOG_FUNCTION_NAME_EXIT
     return 0;
 
@@ -3136,12 +3187,8 @@ int CameraHal::cameraStop()
 
     int ret,i;
     struct v4l2_requestbuffers creqbuf;
-
-    creqbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    if (ioctl(iCamFd, VIDIOC_STREAMOFF, &creqbuf.type) == -1) {
-        LOGE("%s(%d): VIDIOC_STREAMOFF Failed",__FUNCTION__,__LINE__);
-        goto fail_streamoff;
-    }
+    
+    cameraStream(false);
 
     if (mCamDriverV4l2MemType == V4L2_MEMORY_MMAP) {
         for (i=0; i<V4L2_BUFFER_MAX; i++) {

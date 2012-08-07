@@ -125,8 +125,11 @@ namespace android {
 *         2) add configuration sensor orientation in skype app;
 *v0.3.3:
 *         1) add CONFIG_CAMERA_ORIENTATION_SKYPE
+*v0.3.5:
+*         1) Stop camera driver before stop preview thread;
+*         2) Camera command thread is scheduled before wait for NativeWindow, so main thread can't wake up command thread;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x3) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x5) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -528,6 +531,7 @@ private:
     int cameraSetSize(int w, int h,  int fmt);
     int cameraStart();
     int cameraStop();
+    int cameraStream(bool on);
 	int cameraAutoFocus(const char *focus);
     int Jpegfillgpsinfo(RkGPSInfo *gpsInfo);
     int Jpegfillexifinfo(RkExifInfo *exifInfo);
@@ -620,6 +624,8 @@ private:
     Mutex mAutoFocusLock;
     Condition mAutoFocusCond;
     bool mExitAutoFocusThread; 
+    Mutex mCamDriverStreamLock;
+    bool mCamDriverStream;
 		
     int iCamFd;
     int mCamId;
