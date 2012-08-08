@@ -33,8 +33,32 @@ LOCAL_SHARED_LIBRARIES:= \
     libion
     #    
     #libyuvtorgb\
-    
-else
+
+endif
+ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk2928board)
+LOCAL_C_INCLUDES += \
+    frameworks/base/include/ui \
+  external/jpeg \
+  external/jhead\
+  hardware/rk29/hwcomposer_rga\
+    hardware/rk29/libgralloc_ump/ump/include
+
+LOCAL_SHARED_LIBRARIES:= \
+    libui \
+    libbinder \
+    libutils \
+    libcutils \
+    libcamera_client \
+    libgui\
+    libjpeg\
+    libjpeghwenc\
+    libyuvtorgb\
+    libion
+    #    
+    #libyuvtorgb\
+
+endif
+ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk29board)    
 LOCAL_C_INCLUDES += \
 	#frameworks/base/include/ui \
   frameworks/native/include/media/hardware \
@@ -59,10 +83,19 @@ LOCAL_CFLAGS := -fno-short-enums -DCOPY_IMAGE_BUFFER
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)	
 LOCAL_CFLAGS += -DTARGET_RK30
 endif
+
+ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk2928board)
+LOCAL_CFLAGS += -DTARGET_RK30
+endif
+
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)
 LOCAL_MODULE:= camera.rk30board
-else
+endif
+ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk2928board)
+LOCAL_MODULE:= camera.rk2928board
+endif
+ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk29board)
 LOCAL_MODULE:= camera.rk29board
 endif
 
