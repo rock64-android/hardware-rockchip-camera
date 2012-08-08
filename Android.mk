@@ -89,15 +89,7 @@ LOCAL_CFLAGS += -DTARGET_RK30
 endif
 
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
-ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)
-LOCAL_MODULE:= camera.rk30board
-endif
-ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk2928board)
-LOCAL_MODULE:= camera.rk2928board
-endif
-ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk29board)
-LOCAL_MODULE:= camera.rk29board
-endif
+LOCAL_MODULE:=camera.$(TARGET_BOARD_HARDWARE)
 
 LOCAL_MODULE_TAGS:= optional
 include $(BUILD_SHARED_LIBRARY)
