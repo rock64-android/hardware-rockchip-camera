@@ -128,8 +128,11 @@ namespace android {
 *v0.3.5:
 *         1) Stop camera driver before stop preview thread;
 *         2) Camera command thread is scheduled before wait for NativeWindow, so main thread can't wake up command thread;
+*v0.3.7:
+*         1) Display thread support ANativeWindow dequeue buffer operation is block, and is sync mode;
+*
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x5) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x7) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -588,6 +591,7 @@ private:
     int mRawBufferSize;
     int mPreviewFrameSize;
     int mPreviewFrame2AppSize;
+    int mDispBufUndqueueMin;
     volatile int32_t mPreviewStartTimes;  
     int mPreviewFrameIndex;
 

@@ -232,6 +232,8 @@ CameraHal::CameraHal(int cameraId)
             mDisplayRuning(STA_DISPLAY_PAUSE),
             mDisplayLock(),
             mDisplayCond(),
+            mCamDriverStream(false),
+            mCamDriverStreamLock(),
             mANativeWindowLock(),
             mANativeWindowCond(),
             mANativeWindow(NULL),
@@ -243,6 +245,7 @@ CameraHal::CameraHal(int cameraId)
 	        mCamDriverPreviewFmt(0),
 	        mCamDriverPictureFmt(0),
 	        mCamDriverV4l2BufferLen(0),
+	        mDispBufUndqueueMin(0),
             mPreviewMemory(NULL),
             mRawBufferSize(0),
             mJpegBufferSize(0),
@@ -1287,7 +1290,7 @@ cameraPreviewThreadStateSet_end:
 }
 void CameraHal::displayThread()
 {
-    int err,stride,i,all_dequeue;
+    int err,stride,i,queue_cnt;
     int dequeue_buf_index,queue_buf_index,queue_display_index;
     buffer_handle_t *hnd = NULL; 
     private_handle_t *phnd;
@@ -1464,20 +1467,71 @@ display_receive_cmd:
                         msg.arg2 = (void*)CMD_PREVIEWBUF_DISPING;
                         msg.arg3 = (void*)mPreviewStartTimes;
                         commandThreadCommandQ.put(&msg);
-                    }
 
-                    if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
-                        if (strcmp(mParameters.getPreviewFormat(),mDisplayFormat) == 0) {
-                            if (mPreviewMemory) {
-                                /* ddl@rock-chips.com : preview frame rate may be too high, CTS testPreviewCallback may be fail*/                    
-                                memcpy((char*)mPreviewBufs[queue_display_index], (char*)mDisplayBufferMap[queue_display_index]->vir_addr, mPreviewFrame2AppSize);                                                             
-                                mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, queue_display_index,NULL,mCallbackCookie);                                 
-                            } else {
-                                LOGE("%s(%d): mPreviewMemory is NULL, preview data could not send to application",__FUNCTION__,__LINE__);
-                            }    
+                        if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
+                            if (strcmp(mParameters.getPreviewFormat(),mDisplayFormat) == 0) {
+                                if (mPreviewMemory) {
+                                    /* ddl@rock-chips.com : preview frame rate may be too high, CTS testPreviewCallback may be fail*/                    
+                                    memcpy((char*)mPreviewBufs[queue_display_index], (char*)mDisplayBufferMap[queue_display_index]->vir_addr, mPreviewFrame2AppSize);                                                             
+                                    mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, queue_display_index,NULL,mCallbackCookie);                                 
+                                } else {
+                                    LOGE("%s(%d): mPreviewMemory is NULL, preview data could not send to application",__FUNCTION__,__LINE__);
+                                }    
+                            }
                         }
-                    }
-                    
+                    } else {
+                        queue_cnt = 0;
+                        for (i=0; i<mPreviewBufferCount; i++) {
+                            if (mDisplayBufferMap[i]->buf_state & CMD_PREVIEWBUF_DISPING) 
+                                queue_cnt++;
+                        }
+
+                        if (queue_cnt > mDispBufUndqueueMin) {
+                            err = mANativeWindow->dequeue_buffer(mANativeWindow, (buffer_handle_t**)&hnd, &stride);
+                            if (err == 0) {                                    
+                                // lock the initial queueable buffers
+                                bounds.left = 0;
+                                bounds.top = 0;
+                                bounds.right = mPreviewWidth;
+                                bounds.bottom = mPreviewHeight;
+                                mANativeWindow->lock_buffer(mANativeWindow, (buffer_handle_t*)hnd);
+                                mapper.lock((buffer_handle_t)(*hnd), CAMHAL_GRALLOC_USAGE, bounds, y_uv);
+
+                                phnd = (private_handle_t*)*hnd;
+                                for (i=0; i<mPreviewBufferCount; i++) {
+                                    if (phnd == mDisplayBufferMap[i]->priv_hnd) {
+                                        dequeue_buf_index = i;
+                                        break;
+                                    }
+                                }
+                                
+                                if (i >= mPreviewBufferCount) {                    
+                                    LOGE("%s(%d): dequeue buffer(0x%x magic:0x%x) don't find in mDisplayBufferMap", __FUNCTION__,__LINE__,(int)phnd,phnd->magic);                    
+                                    continue;
+                                } else {
+                                    cameraPreviewBufferSetSta(mDisplayBufferMap[dequeue_buf_index], CMD_PREVIEWBUF_DISPING, 0);
+                                }
+                                
+                                //Notify the frame has displayed, it is idle in ANativeWindow 
+                                msg.command = CMD_PREVIEW_QBUF;     
+                                msg.arg1 = (void*)dequeue_buf_index;
+                                msg.arg2 = (void*)CMD_PREVIEWBUF_DISPING;
+                                msg.arg3 = (void*)mPreviewStartTimes;
+                                commandThreadCommandQ.put(&msg);                                
+                            } else {
+                                /* ddl@rock-chips.com: dequeueBuffer isn't block, when ANativeWindow in asynchronous mode */
+                                LOG2("%s(%d): %s(err:%d) dequeueBuffer failed, so pause here", __FUNCTION__,__LINE__, strerror(-err), -err);
+                                mDisplayLock.lock();
+                                if (displayThreadCommandQ.isEmpty() == false ) {
+                                    mDisplayLock.unlock(); 
+                                    goto display_receive_cmd;
+                                }                  
+                                mDisplayCond.wait(mDisplayLock); 
+                                mDisplayLock.unlock();
+                                LOG2("%s(%d): wake up...", __FUNCTION__,__LINE__);
+                            }
+                        }
+                    }                    
                     break;
         
                 }
@@ -2245,7 +2299,7 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
     */
     
     mANativeWindow->get_min_undequeued_buffer_count(mANativeWindow, &undequeued);
-    
+    mDispBufUndqueueMin = undequeued;
     ///Set the number of buffers needed for camera preview
     
     //total = numBufs+undequeued;
