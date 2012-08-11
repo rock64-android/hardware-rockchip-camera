@@ -131,8 +131,10 @@ namespace android {
 *v0.3.7:
 *         1) Display thread support ANativeWindow dequeue buffer operation is block, and is sync mode;
 *
+*v0.3.9:
+*         1) fix mCamDriverStreamLock may be lost unlock in preview thread;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x7) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x9) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

@@ -1675,8 +1675,10 @@ previewThread_cmd:
         if (mPreviewRunning == STA_PREVIEW_RUN) {
 
             mCamDriverStreamLock.lock();
-            if (mCamDriverStream == false) 
+            if (mCamDriverStream == false) {
+                mCamDriverStreamLock.unlock();    
                 continue;
+            }
             mCamDriverStreamLock.unlock();
             
             cfilledbuffer1.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
