@@ -1211,9 +1211,9 @@ int CameraHal::cameraDisplayThreadStart(int done)
     msg.command = CMD_DISPLAY_START;
     msg.arg1 = (void*)((done == true) ? CMDARG_ACK : CMDARG_NACK);
     mDisplayLock.lock();
-    displayThreadCommandQ.put(&msg);
-    mDisplayLock.unlock(); 
+    displayThreadCommandQ.put(&msg);    
     mDisplayCond.signal();
+    mDisplayLock.unlock(); 
 	if (done == true) {
         if (displayThreadAckQ.get(&msg) < 0) {
             LOGE("%s(%d): Start display thread failed,mDisplayRunging(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
@@ -1242,9 +1242,9 @@ int CameraHal::cameraDisplayThreadPause(int done)
     msg.command = CMD_DISPLAY_PAUSE;
     msg.arg1 = (void*)((done == true) ? CMDARG_ACK : CMDARG_NACK);
     mDisplayLock.lock();
-    displayThreadCommandQ.put(&msg); 
-    mDisplayLock.unlock();
+    displayThreadCommandQ.put(&msg);
     mDisplayCond.signal();
+    mDisplayLock.unlock(); 
 	if (done == true) {
         if (displayThreadAckQ.get(&msg) < 0) {
             LOGE("%s(%d): Pause display thread failed, mDisplayRuning(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
@@ -1273,9 +1273,9 @@ int CameraHal::cameraDisplayThreadStop(int done)
     msg.command = CMD_DISPLAY_STOP;
     msg.arg1 = (void*)((done == true) ? CMDARG_ACK : CMDARG_NACK);
     mDisplayLock.lock();
-    displayThreadCommandQ.put(&msg); 
-    mDisplayLock.unlock();
-	mDisplayCond.signal();    
+    displayThreadCommandQ.put(&msg);
+	mDisplayCond.signal();
+    mDisplayLock.unlock(); 
     if (done == true) {
         if (displayThreadAckQ.get(&msg) < 0) {
             LOGE("%s(%d): Stop display thread failed,mDisplayRuning(%d)",__FUNCTION__,__LINE__,mDisplayRuning);    
@@ -1518,7 +1518,7 @@ display_receive_cmd:
 
                         if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
                             if (strcmp(mParameters.getPreviewFormat(),mDisplayFormat) == 0) {
-                                if (mPreviewMemory) {
+                                if (mPreviewMemory) {                                    
                                     /* ddl@rock-chips.com : preview frame rate may be too high, CTS testPreviewCallback may be fail*/                    
                                     memcpy((char*)mPreviewBufs[queue_display_index], (char*)mDisplayBufferMap[queue_display_index]->vir_addr, mPreviewFrame2AppSize);                                                             
                                     mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, queue_display_index,NULL,mCallbackCookie);                                 
@@ -1711,10 +1711,10 @@ previewThread_cmd:
         }
         
         if (mPreviewRunning == STA_PREVIEW_PAUSE) {
-        	 if (previewThreadCommandQ.isEmpty() == false ) {
-                 mPreviewLock.unlock();
-                 continue;
-             }
+            if (previewThreadCommandQ.isEmpty() == false ) {
+                mPreviewLock.unlock();
+                continue;
+            }
             mPreviewCond.wait(mPreviewLock);
             mPreviewLock.unlock();
             LOG1("%s(%d): wake up for mPreviewRunning:0x%x ",__FUNCTION__,__LINE__,mPreviewRunning);            
@@ -1850,6 +1850,8 @@ previewThread_cmd:
                         #if CONFIG_CAMERA_FRONT_MIRROR_MDATACB
                         if (gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_FRONT) {
                             mirror = true;
+                        } else {
+                            mirror = false;
                         }
                         #else
                         mirror = false;
@@ -1871,9 +1873,9 @@ previewThread_cmd:
                         LOGE("%s(%d): mPreviewMemory is NULL, preview data could not send to application",__FUNCTION__,__LINE__);
                     }
                 }
-            } 
-        }       
-        mPreviewLock.unlock(); 
+            }
+            mPreviewLock.unlock(); 
+        } 
     }
     
 previewThread_end:    

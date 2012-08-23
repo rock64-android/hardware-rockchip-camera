@@ -134,9 +134,12 @@ namespace android {
 *v0.3.9:
 *         1) fix mCamDriverStreamLock may be lost unlock in preview thread;
 *v0.3.b:
-	   1) support driver preview  format rgb565
+	      1) support driver preview  format rgb565
+*v0.3.d:
+*         1) fix preview data callback mirror local value have not been init before used;
+*         2) fix preview lock may be unlock, and display thread api lock and signal order;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x9) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0xd) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
