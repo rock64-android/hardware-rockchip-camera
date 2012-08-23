@@ -621,32 +621,6 @@ capturePicture_streamoff:
 
     copyAndSendRawImage((void*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), pictureSize);
 
-	{
-	int fp,index;
-	char filename[40];
-	int phy_addr ,vir_addr;
-
-	filename[0] = 0x00;
-	sprintf(filename, "/sdcard/yuv%d.bin",1);
-	fp = open(filename, O_RDWR|O_CREAT);
-	phy_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy);
-	vir_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
-	LOGD("phy_addr = 0x%x ,vir_addr = 0x%x",phy_addr,vir_addr);
-	char* r = (char*)vir_addr;
-	#if 0
-	for(int index = 0; index < 1024 ;index++){
-		
-			LOGD("val = 0x%x ",*(r+index));
-		}
-	if(fp > 0){
-		write(fp,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),pictureSize);
-		close(fp);
-		LOGD("WRITE FILE COMPLETE!");
-	}
-	else
-		LOGD("fp erro!!");
-#endif
-	}
     JpegInInfo.frameHeader = 1;
     if ((rotation == 0) || (rotation == 180)) {
         JpegInInfo.rotateDegree = DEGREE_0;        
@@ -691,8 +665,8 @@ capturePicture_streamoff:
 		JpegInInfo.uv_vir_addr = (unsigned char*)capture->output_vir_addr+jpeg_w*jpeg_h;
     }else{    
         JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension   
-    }    
-            JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension 
+    }
+    
     Jpegfillexifinfo(&exifInfo);
     JpegInInfo.exifInfo =&exifInfo;
     if((longtitude!=-1)&& (latitude!=-1)&&(timestamp!=-1)&&(getMethod!=NULL)) {    

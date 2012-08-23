@@ -2683,7 +2683,6 @@ int CameraHal::cameraCreate(int cameraId)
     char *ptr_tmp;
     struct pmem_region sub;
     struct v4l2_fmtdesc fmtdesc;
-    bool is_pre_fmt_drvsup = false;
     
     LOG_FUNCTION_NAME
 
@@ -2712,9 +2711,7 @@ int CameraHal::cameraCreate(int cameraId)
 	fmtdesc.index = 0;
 	fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;    
 	while (ioctl(iCamFd, VIDIOC_ENUM_FMT, &fmtdesc) == 0) {
-        mCamDriverSupportFmt[fmtdesc.index] = fmtdesc.pixelformat;    
-		if(fmtdesc.pixelformat == mCamDriverPreviewFmt)
-			is_pre_fmt_drvsup == true;
+        mCamDriverSupportFmt[fmtdesc.index] = fmtdesc.pixelformat;
 		fmtdesc.index++;
 	}
 
@@ -4097,8 +4094,14 @@ int CameraHal::setParameters(const CameraParameters &params_set)
         && (mCamDriverCapability.version == KERNEL_VERSION(0, 0, 1))) {
         mCamDriverPictureFmt = mCamDriverPreviewFmt;
     } else {
-        mCamDriverPictureFmt = mCamDriverPreviewFmt;    /* ddl@rock-chips.com : Picture format must is NV12, because jpeg encoder is only support NV12 */
-    } 
+        mCamDriverPictureFmt = mCamDriverPreviewFmt;    /* ddl@rock-chips.com : Picture format must is NV12 or RGB565, because jpeg encoder is only support NV12 */
+    }
+
+    if ((mCamDriverPictureFmt != V4L2_PIX_FMT_NV12) &&
+        (mCamDriverPictureFmt != V4L2_PIX_FMT_RGB565)) 
+        LOGE("%s(%d): %c%c%c%c is not supported,Only NV12 and RGB565 picture is supported",__FUNCTION__,__LINE__,
+             mCamDriverPictureFmt & 0xFF, (mCamDriverPictureFmt >> 8) & 0xFF,
+			(mCamDriverPictureFmt >> 16) & 0xFF, (mCamDriverPictureFmt >> 24) & 0xFF);
 
     framerate = params.getPreviewFrameRate();
 
