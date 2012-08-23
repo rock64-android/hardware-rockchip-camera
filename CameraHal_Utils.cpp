@@ -37,6 +37,7 @@
 #endif
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
 
+
 namespace android {
 #define LOG_TAG "CameraHal_Util"
 
@@ -395,6 +396,7 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     long timestamp;
     bool driver_mirror_fail = false;
     struct v4l2_control control;
+    JpegEncType encodetype;
     
      /*get jpeg and thumbnail information*/
     mParameters.getPictureSize(&jpeg_w, &jpeg_h);                
@@ -409,9 +411,6 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     longtitude = mGps_longitude;
     timestamp = mGps_timestamp;    
     getMethod = (char*)mParameters.get(CameraParameters::KEY_GPS_PROCESSING_METHOD);//getMethod : len <= 32
-    
-
-    pictureSize = jpeg_w * jpeg_h * 3/2;
     if (pictureSize & 0xfff) {
         pictureSize = (pictureSize & 0xfffff000) + 0x1000;
     }
@@ -425,7 +424,6 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     } else {
         LOGD("%s(%d): %dx%d quality(%d) rotation(%d)",__FUNCTION__,__LINE__, jpeg_w, jpeg_h,quality,rotation);
     }
-
     i = 0;
     while (mCamDriverSupportFmt[i]) {
         if (mCamDriverSupportFmt[i] == mCamDriverPictureFmt)
@@ -438,7 +436,19 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     } else {
         picture_format = mCamDriverPictureFmt;
     }
-
+	if(mCamDriverPictureFmt ==V4L2_PIX_FMT_RGB565){
+		encodetype = HWJPEGENC_RGB565;
+		pictureSize = jpeg_w * jpeg_h *2;
+		}
+	else if(mCamDriverPictureFmt ==V4L2_PIX_FMT_RGB24){
+		encodetype = JPEGENC_YUV420_SP;
+		pictureSize = jpeg_w * jpeg_h * 3/2;
+		}
+	else{
+		encodetype = JPEGENC_YUV420_SP;
+		pictureSize = jpeg_w * jpeg_h * 3/2;
+		}
+	
     mPictureLock.lock();
     if (mPictureRunning != STA_PICTURE_RUN) {
         mPictureLock.unlock();
@@ -611,6 +621,32 @@ capturePicture_streamoff:
 
     copyAndSendRawImage((void*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), pictureSize);
 
+	{
+	int fp,index;
+	char filename[40];
+	int phy_addr ,vir_addr;
+
+	filename[0] = 0x00;
+	sprintf(filename, "/sdcard/yuv%d.bin",1);
+	fp = open(filename, O_RDWR|O_CREAT);
+	phy_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy);
+	vir_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
+	LOGD("phy_addr = 0x%x ,vir_addr = 0x%x",phy_addr,vir_addr);
+	char* r = (char*)vir_addr;
+	#if 0
+	for(int index = 0; index < 1024 ;index++){
+		
+			LOGD("val = 0x%x ",*(r+index));
+		}
+	if(fp > 0){
+		write(fp,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),pictureSize);
+		close(fp);
+		LOGD("WRITE FILE COMPLETE!");
+	}
+	else
+		LOGD("fp erro!!");
+#endif
+	}
     JpegInInfo.frameHeader = 1;
     if ((rotation == 0) || (rotation == 180)) {
         JpegInInfo.rotateDegree = DEGREE_0;        
@@ -631,7 +667,7 @@ capturePicture_streamoff:
     JpegInInfo.uv_addr = capture->input_phy_addr + jpeg_w*jpeg_h;
     JpegInInfo.inputW = jpeg_w;
     JpegInInfo.inputH = jpeg_h;
-    JpegInInfo.type = JPEGENC_YUV420_SP;
+    JpegInInfo.type = encodetype;
     JpegInInfo.qLvl = quality/10;
     if (JpegInInfo.qLvl < 5) {
         JpegInInfo.qLvl = 5;
@@ -651,10 +687,12 @@ capturePicture_streamoff:
     	JpegInInfo.thumbDataLen = -1;
     	JpegInInfo.thumbW = thumbwidth;
     	JpegInInfo.thumbH = thumbheight;
+		JpegInInfo.y_vir_addr = (unsigned char*)capture->input_vir_addr;
+		JpegInInfo.uv_vir_addr = (unsigned char*)capture->output_vir_addr+jpeg_w*jpeg_h;
     }else{    
         JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension   
     }    
-    
+            JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension 
     Jpegfillexifinfo(&exifInfo);
     JpegInInfo.exifInfo =&exifInfo;
     if((longtitude!=-1)&& (latitude!=-1)&&(timestamp!=-1)&&(getMethod!=NULL)) {    
@@ -731,7 +769,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     long timestamp;
     bool driver_mirror_fail = false;
     struct Message msg;
-
+	JpegEncType encodetype;
     if (mMsgEnabled & CAMERA_MSG_SHUTTER)
         mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
     
@@ -750,11 +788,17 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     getMethod = (char*)mParameters.get(CameraParameters::KEY_GPS_PROCESSING_METHOD);//getMethod : len <= 32
 	
 	cachMem = this->mCamBuffer;
-    pictureSize = jpeg_w * jpeg_h * 3/2;
     if (pictureSize & 0xfff) {
         pictureSize = (pictureSize & 0xfffff000) + 0x1000;
     }
-
+	if(mCamDriverPictureFmt ==V4L2_PIX_FMT_RGB565){
+		encodetype = HWJPEGENC_RGB565;
+		pictureSize = jpeg_w * jpeg_h *2;
+		}
+	else{
+		encodetype = JPEGENC_YUV420_SP;
+		pictureSize = jpeg_w * jpeg_h * 3/2;
+		}
     if (mCamDriverPreviewFmt != mCamDriverPictureFmt) {
         cameraFormatConvert(mCamDriverPreviewFmt, mCamDriverPictureFmt, NULL,
             (char*)capture->input_vir_addr,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, jpeg_w, jpeg_h, jpeg_w, jpeg_h,false);
@@ -783,7 +827,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     JpegInInfo.uv_addr = capture->input_phy_addr + jpeg_w*jpeg_h;
     JpegInInfo.inputW = jpeg_w;
     JpegInInfo.inputH = jpeg_h;
-    JpegInInfo.type = JPEGENC_YUV420_SP;
+    JpegInInfo.type = encodetype;
     JpegInInfo.qLvl = quality/10;
     if (JpegInInfo.qLvl < 5) {
         JpegInInfo.qLvl = 5;

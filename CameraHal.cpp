@@ -221,6 +221,54 @@ static int rga_nv12torgb565(int fd,int width, int height, char *src, short int *
 #endif
 }
 
+static int rga_rgb565_cp(int fd,int width, int height, char *src, short int *dst)
+{
+#ifdef TARGET_RK30	  
+	struct rga_req	Rga_Request;
+	int err = 0;
+	
+	memset(&Rga_Request,0x0,sizeof(Rga_Request));
+
+	Rga_Request.src.yrgb_addr =  (int)src;
+	Rga_Request.src.uv_addr  = 0;
+	Rga_Request.src.v_addr	 =	0;
+	Rga_Request.src.vir_w =  width;
+	Rga_Request.src.vir_h = height;
+	Rga_Request.src.format = RK_FORMAT_RGB_565;
+	Rga_Request.src.act_w = width;
+	Rga_Request.src.act_h = height;
+	Rga_Request.src.x_offset = 0;
+	Rga_Request.src.y_offset = 0;
+
+	Rga_Request.dst.yrgb_addr = (int)dst;
+	Rga_Request.dst.uv_addr  = 0;
+	Rga_Request.dst.v_addr	 = 0;
+	Rga_Request.dst.vir_w = width;
+	Rga_Request.dst.vir_h = height;
+	Rga_Request.dst.format = RK_FORMAT_RGB_565;
+	Rga_Request.clip.xmin = 0;
+	Rga_Request.clip.xmax = width - 1;
+	Rga_Request.clip.ymin = 0;
+	Rga_Request.clip.ymax = height - 1;
+	Rga_Request.dst.act_w = width;
+	Rga_Request.dst.act_h = height;
+	Rga_Request.dst.x_offset = 0;
+	Rga_Request.dst.y_offset = 0;
+	Rga_Request.rotate_mode = 0;
+	Rga_Request.mmu_info.mmu_en    = 1;
+	Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1;
+	
+	if(ioctl(fd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
+		LOGE("%s(%d):  RGA_BLIT_ASYNC Failed", __FUNCTION__, __LINE__);
+		err = -1;
+	}	 
+	return err;
+#else
+	LOGE("%s(%d): rk29 havn't RGA device in chips!!",__FUNCTION__, __LINE__);
+	return -1;
+#endif
+}
+
 
 CameraHal::CameraHal(int cameraId)
             :mParameters(),
@@ -2279,6 +2327,7 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
     GraphicBufferMapper &mapper = GraphicBufferMapper::get();
     Rect bounds;        
     struct pmem_region sub;
+    bool previewbuf_direct_disp;
 
     LOG_FUNCTION_NAME
     // Set gralloc usage bits for window.
@@ -2400,9 +2449,20 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
     }
 
     cameraPreviewBufferCreate(numBufs);
+
+    if (mGrallocBufferMap[0].phy_addr) {
+        if (strcmp(fmt,CameraParameters::PIXEL_FORMAT_RGB565)) {
+            previewbuf_direct_disp = true;
+        } else if (mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) {
+            previewbuf_direct_disp = true;
+        } else {
+            previewbuf_direct_disp = false;
+        }
+    } else {
+        previewbuf_direct_disp = false;
+    }
     
-    if ((strcmp(fmt,CameraParameters::PIXEL_FORMAT_RGB565))
-        && mGrallocBufferMap[0].phy_addr) {
+    if (previewbuf_direct_disp == true) {
         /* 
         * ddl@rock-chips.com : Sensor data is directly stored in gralloc buffer(display buffer),
         *                      when gralloc buffer is physical continues memory and display format is yuv; 
@@ -2621,6 +2681,7 @@ int CameraHal::cameraCreate(int cameraId)
     char *ptr_tmp;
     struct pmem_region sub;
     struct v4l2_fmtdesc fmtdesc;
+    bool is_pre_fmt_drvsup = false;
     
     LOG_FUNCTION_NAME
 
@@ -2649,8 +2710,10 @@ int CameraHal::cameraCreate(int cameraId)
 	fmtdesc.index = 0;
 	fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;    
 	while (ioctl(iCamFd, VIDIOC_ENUM_FMT, &fmtdesc) == 0) {
-        mCamDriverSupportFmt[fmtdesc.index] = fmtdesc.pixelformat;        
-		fmtdesc.index++;        
+        mCamDriverSupportFmt[fmtdesc.index] = fmtdesc.pixelformat;    
+		if(fmtdesc.pixelformat == mCamDriverPreviewFmt)
+			is_pre_fmt_drvsup == true;
+		fmtdesc.index++;
 	}
 
     if (CAMERA_IS_RKSOC_CAMERA() 
@@ -2663,14 +2726,14 @@ int CameraHal::cameraCreate(int cameraId)
         CameraHal_SupportFmt[0] = V4L2_PIX_FMT_NV12;
         CameraHal_SupportFmt[1] = V4L2_PIX_FMT_NV16;
         CameraHal_SupportFmt[2] = V4L2_PIX_FMT_YUYV;
-        CameraHal_SupportFmt[3] = 0x00;
+	 CameraHal_SupportFmt[3] = V4L2_PIX_FMT_RGB565;
+        CameraHal_SupportFmt[4] = 0x00;
     }
 
     LOGD("Camera driver: %s   Driver version: %d.%d.%d  CameraHal version: %d.%d.%d ",mCamDriverCapability.driver,
         (mCamDriverCapability.version>>16) & 0xff,(mCamDriverCapability.version>>8) & 0xff,
         mCamDriverCapability.version & 0xff,(CONFIG_CAMERAHAL_VERSION>>16) & 0xff,(CONFIG_CAMERAHAL_VERSION>>8) & 0xff,
         CONFIG_CAMERAHAL_VERSION & 0xff);
-   
     i = 0;    
     while (CameraHal_SupportFmt[i]) {
         j = 0;
@@ -2698,7 +2761,7 @@ int CameraHal::cameraCreate(int cameraId)
         goto exit1;
     } else {  
         mCamDriverPreviewFmt = CameraHal_SupportFmt[i];
-        LOG1("%s(%d): mCamDriverPreviewFmt(%c%c%c%c) is cameraHal and camera driver is also supported!!",__FUNCTION__,__LINE__,
+        LOGD("%s(%d): mCamDriverPreviewFmt(%c%c%c%c) is cameraHal and camera driver is also supported!!",__FUNCTION__,__LINE__,
             mCamDriverPreviewFmt & 0xFF, (mCamDriverPreviewFmt >> 8) & 0xFF,
 			(mCamDriverPreviewFmt >> 16) & 0xFF, (mCamDriverPreviewFmt >> 24) & 0xFF);
         
@@ -3595,11 +3658,31 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
             }            
             break;
         }
+	case V4L2_PIX_FMT_RGB565:
+	{
+		if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_RGB565)==0)){
+			if (srcbuf && dstbuf && (srcbuf != dstbuf)){
+				if(mRGAFd > 0) 
+					rga_rgb565_cp(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);						  
+				else
+					memcpy(dstbuf,srcbuf,src_w*src_h*2);
+				}
+		}
+		break;
+	}
 cameraFormatConvert_default:        
         default:
-            LOGE("%s(%d): CameraHal is not support (%c%c%c%c)",__FUNCTION__,__LINE__,
-                v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
-			    (v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF);
+            if (android_fmt_dst) {
+                LOGE("%s(%d): CameraHal is not support (%c%c%c%c -> %s)",__FUNCTION__,__LINE__,
+                    v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
+    			    (v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF, android_fmt_dst);
+            } else if (v4l2_fmt_dst) {
+                LOGE("%s(%d): CameraHal is not support (%c%c%c%c -> %c%c%c%c)",__FUNCTION__,__LINE__,
+                    v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
+    			    (v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF,
+    			    v4l2_fmt_dst & 0xFF, (v4l2_fmt_dst >> 8) & 0xFF,
+                    (v4l2_fmt_dst >> 16) & 0xFF, (v4l2_fmt_dst >> 24) & 0xFF);
+            }
             break;
     }
     return 0;
@@ -3965,8 +4048,7 @@ int CameraHal::setParameters(const CameraParameters &params_set)
                 j++; 
             }        
         }
-
-        #if (CONFIG_CAMERA_DISPLAY_FORCE==0)
+	#if (CONFIG_CAMERA_DISPLAY_FORCE==0)
         char hwc_value[PROPERTY_VALUE_MAX];
         int hwc_version_int=0, hwc_version_float=0, hwc_on;
         bool force_rgb;
@@ -4011,9 +4093,9 @@ int CameraHal::setParameters(const CameraParameters &params_set)
    
     if (CAMERA_IS_RKSOC_CAMERA()
         && (mCamDriverCapability.version == KERNEL_VERSION(0, 0, 1))) {
-        mCamDriverPictureFmt = V4L2_PIX_FMT_YUV420;
+        mCamDriverPictureFmt = mCamDriverPreviewFmt;
     } else {
-        mCamDriverPictureFmt = V4L2_PIX_FMT_NV12;    /* ddl@rock-chips.com : Picture format must is NV12, because jpeg encoder is only support NV12 */
+        mCamDriverPictureFmt = mCamDriverPreviewFmt;    /* ddl@rock-chips.com : Picture format must is NV12, because jpeg encoder is only support NV12 */
     } 
 
     framerate = params.getPreviewFrameRate();

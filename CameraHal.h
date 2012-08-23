@@ -133,6 +133,8 @@ namespace android {
 *
 *v0.3.9:
 *         1) fix mCamDriverStreamLock may be lost unlock in preview thread;
+*v0.3.b:
+	   1) support driver preview  format rgb565
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x9) 
 
@@ -166,11 +168,11 @@ namespace android {
 #define CAMERA_PMEM_NAME                     "/dev/pmem_cam"
 #define CAMERA_DRIVER_SUPPORT_FORMAT_MAX   32
 
-#define RAW_BUFFER_SIZE_5M          0x740000
-#define RAW_BUFFER_SIZE_3M          0x480000
-#define RAW_BUFFER_SIZE_2M          0x2c0000
-#define RAW_BUFFER_SIZE_1M          0x120000
-#define RAW_BUFFER_SIZE_0M3          0x100000
+#define RAW_BUFFER_SIZE_5M         (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ? 0x9A0000:0x740000)
+#define RAW_BUFFER_SIZE_3M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ?0x600000 :0x480000)
+#define RAW_BUFFER_SIZE_2M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ?0x3A0000 :0x2c0000)
+#define RAW_BUFFER_SIZE_1M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565)? 0x180000 :0x120000)
+#define RAW_BUFFER_SIZE_0M3         (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565)?0x150000 :0x100000)
 
 #define JPEG_BUFFER_SIZE_5M          0x400000
 #define JPEG_BUFFER_SIZE_3M          0x300000
