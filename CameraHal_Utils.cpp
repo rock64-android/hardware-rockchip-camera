@@ -51,6 +51,7 @@ static char ExifModel[32];
 
 
 static MemManagerBase* cachMem =NULL;
+#define CAMERA_IPP_NAME					 "/dev/rk29-ipp"
 extern "C" int capturePicture_cacheflush(int buf_type, int offset, int len)
 {
 	int ret = 0;
@@ -622,20 +623,29 @@ capturePicture_streamoff:
     copyAndSendRawImage((void*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), pictureSize);
 
     JpegInInfo.frameHeader = 1;
-    if ((rotation == 0) || (rotation == 180)) {
-        JpegInInfo.rotateDegree = DEGREE_0;        
-    } else if (rotation == 90) {
-        if(jpeg_w %16 != 0 || jpeg_h %16 != 0){
-			YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
-					(char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w, jpeg_h);
-            mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
-			JpegInInfo.rotateDegree = DEGREE_270;
-		}else{
-			JpegInInfo.rotateDegree = DEGREE_90;
-		}
-    } else if (rotation == 270) {
-        JpegInInfo.rotateDegree = DEGREE_270; 
-    }
+    if(access(CAMERA_IPP_NAME, O_RDWR) < 0) {
+    	JpegInInfo.rotateDegree = DEGREE_0;
+    	if ((rotation != 0) && (rotation != 180)) {
+    		YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
+    				(char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w, jpeg_h);
+    		mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
+    		}
+     }else{
+    	    if ((rotation == 0) || (rotation == 180)) {
+    	        JpegInInfo.rotateDegree = DEGREE_0;        
+    	    } else if (rotation == 90) {
+    	        if(jpeg_w %16 != 0 || jpeg_h %16 != 0){
+    				YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
+    						(char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w, jpeg_h);
+    	            mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
+    				JpegInInfo.rotateDegree = DEGREE_270;
+    			}else{
+    				JpegInInfo.rotateDegree = DEGREE_90;
+    			}
+    	    } else if (rotation == 270) {
+    	        JpegInInfo.rotateDegree = DEGREE_270; 
+    	    }
+     	}
     JpegInInfo.yuvaddrfor180 = NULL;
     JpegInInfo.y_rgb_addr = capture->input_phy_addr;
     JpegInInfo.uv_addr = capture->input_phy_addr + jpeg_w*jpeg_h;
@@ -789,13 +799,22 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     copyAndSendRawImage((void*)capture->input_vir_addr, pictureSize);
 
     JpegInInfo.frameHeader = 1;
-    if ((rotation == 0) || (rotation == 180)) {
-        JpegInInfo.rotateDegree = DEGREE_0;        
-    } else if (rotation == 90) {
-        JpegInInfo.rotateDegree = DEGREE_90;
-    } else if (rotation == 270) {
-        JpegInInfo.rotateDegree = DEGREE_270; 
-    }
+    if(access(CAMERA_IPP_NAME, O_RDWR) < 0) {
+    	JpegInInfo.rotateDegree = DEGREE_0;
+    	if ((rotation != 0) && (rotation != 180)) {
+    		YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
+    				(char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w, jpeg_h);
+    		mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
+    		}
+     }else{
+    	    if ((rotation == 0) || (rotation == 180)) {
+    	        JpegInInfo.rotateDegree = DEGREE_0;        
+    	    } else if (rotation == 90) {
+    	        JpegInInfo.rotateDegree = DEGREE_90;
+    	    } else if (rotation == 270) {
+    	        JpegInInfo.rotateDegree = DEGREE_270; 
+    	    }
+     	}
     JpegInInfo.yuvaddrfor180 = NULL;
     JpegInInfo.y_rgb_addr = capture->input_phy_addr;
     JpegInInfo.uv_addr = capture->input_phy_addr + jpeg_w*jpeg_h;

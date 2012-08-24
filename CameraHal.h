@@ -138,8 +138,10 @@ namespace android {
 *v0.3.d:
 *         1) fix preview data callback mirror local value have not been init before used;
 *         2) fix preview lock may be unlock, and display thread api lock and signal order;
+*v0.3.f:
+		  1) use arm to do rotation when taking pic if no ipp supported. 
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0xd) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0xf) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
