@@ -672,7 +672,7 @@ capturePicture_streamoff:
     	JpegInInfo.thumbW = thumbwidth;
     	JpegInInfo.thumbH = thumbheight;
 		JpegInInfo.y_vir_addr = (unsigned char*)capture->input_vir_addr;
-		JpegInInfo.uv_vir_addr = (unsigned char*)capture->output_vir_addr+jpeg_w*jpeg_h;
+		JpegInInfo.uv_vir_addr = (unsigned char*)capture->input_vir_addr+jpeg_w*jpeg_h;
     }else{    
         JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension   
     }
@@ -840,6 +840,8 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     	JpegInInfo.thumbDataLen = -1;
     	JpegInInfo.thumbW = thumbwidth;
     	JpegInInfo.thumbH = thumbheight;
+        JpegInInfo.y_vir_addr = (unsigned char*)capture->input_vir_addr;
+        JpegInInfo.uv_vir_addr = (unsigned char*)capture->input_vir_addr+jpeg_w*jpeg_h;
     }else{    
         JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension   
     }
