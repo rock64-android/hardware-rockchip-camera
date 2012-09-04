@@ -4093,9 +4093,11 @@ int CameraHal::setParameters(const CameraParameters &params_set)
     if (CAMERA_IS_RKSOC_CAMERA()
         && (mCamDriverCapability.version == KERNEL_VERSION(0, 0, 1))) {
         mCamDriverPictureFmt = mCamDriverPreviewFmt;
-    } else {
-        mCamDriverPictureFmt = mCamDriverPreviewFmt;    /* ddl@rock-chips.com : Picture format must is NV12 or RGB565, because jpeg encoder is only support NV12 */
-    }
+    } else if(CAMERA_IS_UVC_CAMERA()){
+		mCamDriverPictureFmt = V4L2_PIX_FMT_NV12;
+    }else{
+	   mCamDriverPictureFmt = mCamDriverPreviewFmt;    /* ddl@rock-chips.com : Picture format must is NV12 or RGB565, because jpeg encoder is only support NV12 */
+	}
 
     if ((mCamDriverPictureFmt != V4L2_PIX_FMT_NV12) &&
         (mCamDriverPictureFmt != V4L2_PIX_FMT_RGB565)) 
