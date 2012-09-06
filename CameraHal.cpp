@@ -1118,8 +1118,8 @@ int CameraHal::setPreviewWindow(struct preview_stream_ops *window)
 
     if (mANativeWindow) {
         if (mGrallocBufferMap[0].priv_hnd) {
-            if ((mGrallocBufferMap[0].priv_hnd->width != mPreviewWidth) ||
-                (mGrallocBufferMap[0].priv_hnd->height != mPreviewHeight)) {
+            if ((PRIVATE_HANDLE_GET_W(mGrallocBufferMap[0].priv_hnd) != mPreviewWidth) ||
+                (PRIVATE_HANDLE_GET_H(mGrallocBufferMap[0].priv_hnd) != mPreviewHeight)) {        
                 LOGD("%s(%d): mANativeWidow's buffer is invalidate for current setParameters",__FUNCTION__,__LINE__);
                 if (mPreviewRunning == STA_PREVIEW_RUN) {
                     msg.command = CMD_PREVIEW_STOP;
@@ -1341,10 +1341,10 @@ void CameraHal::displayThread()
     int err,stride,i,queue_cnt;
     int dequeue_buf_index,queue_buf_index,queue_display_index;
     buffer_handle_t *hnd = NULL; 
-    private_handle_t *phnd;
+    NATIVE_HANDLE_TYPE *phnd;
     GraphicBufferMapper& mapper = GraphicBufferMapper::get();
     Message msg;
-    void *y_uv[2];
+    void *y_uv[3];
     Rect bounds;
     
     LOG_FUNCTION_NAME    
@@ -1431,7 +1431,7 @@ display_receive_cmd:
                                     mANativeWindow->lock_buffer(mANativeWindow, (buffer_handle_t*)hnd);
                                     mapper.lock((buffer_handle_t)(*hnd), CAMHAL_GRALLOC_USAGE, bounds, y_uv);
 
-                                    phnd = (private_handle_t*)*hnd;
+                                    phnd = (NATIVE_HANDLE_TYPE*)*hnd;
                                     for (i=0; i<mPreviewBufferCount; i++) {
                                         if (phnd == mDisplayBufferMap[i]->priv_hnd) {  
                                             queue_display_index = i;
@@ -1545,7 +1545,7 @@ display_receive_cmd:
                                 mANativeWindow->lock_buffer(mANativeWindow, (buffer_handle_t*)hnd);
                                 mapper.lock((buffer_handle_t)(*hnd), CAMHAL_GRALLOC_USAGE, bounds, y_uv);
 
-                                phnd = (private_handle_t*)*hnd;
+                                phnd = (NATIVE_HANDLE_TYPE*)*hnd;
                                 for (i=0; i<mPreviewBufferCount; i++) {
                                     if (phnd == mDisplayBufferMap[i]->priv_hnd) {
                                         dequeue_buf_index = i;
@@ -1554,7 +1554,7 @@ display_receive_cmd:
                                 }
                                 
                                 if (i >= mPreviewBufferCount) {                    
-                                    LOGE("%s(%d): dequeue buffer(0x%x magic:0x%x) don't find in mDisplayBufferMap", __FUNCTION__,__LINE__,(int)phnd,phnd->magic);                    
+                                    LOGE("%s(%d): dequeue buffer(0x%x ) don't find in mDisplayBufferMap", __FUNCTION__,__LINE__,(int)phnd);                    
                                     continue;
                                 } else {
                                     cameraPreviewBufferSetSta(mDisplayBufferMap[dequeue_buf_index], CMD_PREVIEWBUF_DISPING, 0);
@@ -2406,16 +2406,20 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
         }
         if (i < mPreviewBufferCount) {
             mGrallocBufferMap[i].buffer_hnd = hnd;
-            mGrallocBufferMap[i].priv_hnd= (private_handle_t*)(*hnd);
+            mGrallocBufferMap[i].priv_hnd= (NATIVE_HANDLE_TYPE*)(*hnd);
+            
+        #if defined(TARGET_RK29)            
             if (ioctl(mGrallocBufferMap[i].priv_hnd->fd,PMEM_GET_PHYS,&sub) == 0) {                    
                 mGrallocBufferMap[i].phy_addr = sub.offset + mGrallocBufferMap[i].priv_hnd->offset;    /* phy address */ 
             } else {   
                 /* ddl@rock-chips.com: gralloc buffer is not continuous in phy */
                 mGrallocBufferMap[i].phy_addr = 0x00;
-            }
-        } else {   
-            private_handle_t *phnd = (private_handle_t*)*hnd;
-            
+            }        
+        #else
+            mGrallocBufferMap[i].phy_addr = 0x00;        
+        #endif
+        
+        } else {             
             err = mANativeWindow->cancel_buffer(mANativeWindow, (buffer_handle_t*)hnd);
             if (err != 0) {
                 LOGE("%s(%d):cancel_buffer failed: %s (%d)",__FUNCTION__,__LINE__, strerror(-err), -err);
@@ -2436,18 +2440,22 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
     bounds.bottom = mPreviewHeight;
 
     for( i = 0;  i < mPreviewBufferCount; i++ ) {
-        void *y_uv[2];
-
+        void* y_uv[3];
+        
         mANativeWindow->lock_buffer(mANativeWindow, (buffer_handle_t*)mGrallocBufferMap[i].buffer_hnd);
-        mapper.lock((buffer_handle_t)mGrallocBufferMap[i].priv_hnd, CAMHAL_GRALLOC_USAGE, bounds, y_uv);   
-
-        cameraPreviewBufferSetSta(&mGrallocBufferMap[i], CMD_PREVIEWBUF_DISPING, 0);
-    }
-
-    for (i=0; i<numBufs; i++) {
-        mGrallocBufferMap[i].lock = new Mutex();
+        mapper.lock((buffer_handle_t)mGrallocBufferMap[i].priv_hnd, CAMHAL_GRALLOC_USAGE, bounds, y_uv);
+        
+    #if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29)
         mGrallocBufferMap[i].vir_addr = mGrallocBufferMap[i].priv_hnd->base;
-        mDisplayBufferMap[i] = &mGrallocBufferMap[i];        
+    #elif defined(TARGET_BOARD_PLATFORM_RK30XXB)
+        mGrallocBufferMap[i].vir_addr = (int)y_uv[0];
+    #endif
+
+        mGrallocBufferMap[i].lock = new Mutex();        
+        mDisplayBufferMap[i] = &mGrallocBufferMap[i]; 
+        cameraPreviewBufferSetSta(&mGrallocBufferMap[i], CMD_PREVIEWBUF_DISPING, 0);
+        LOGD("%s(%d): mGrallocBufferMap[i] phy_addr: 0x%x  vir_dir: 0x%x",
+            __FUNCTION__,__LINE__, i, mGrallocBufferMap[i].phy_addr,mGrallocBufferMap[i].vir_addr);
     }
 
     cameraPreviewBufferCreate(numBufs);
@@ -2691,6 +2699,11 @@ int CameraHal::cameraCreate(int cameraId)
     	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
     	goto exit;
 	}
+
+    #if CONFIG_CAMERA_INVALIDATE_RGA
+    mRGAFd = -1;
+    #endif
+    
     #endif
 	
     cameraDevicePathCur = (char*)&gCamInfos[cameraId].device_path[0];

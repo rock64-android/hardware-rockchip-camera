@@ -51,10 +51,13 @@
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
 
-#ifdef  TARGET_RK30
+#if defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XX)
 #include "../libgralloc_ump/gralloc_priv.h"
 #include <hardware/rga.h>
-#else
+#elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
+#include <hardware/hal_public.h>
+#include <hardware/rga.h>
+#elif defined(TARGET_RK29)
 #include "../libgralloc/gralloc_priv.h"
 #endif
 
@@ -139,9 +142,11 @@ namespace android {
 *         1) fix preview data callback mirror local value have not been init before used;
 *         2) fix preview lock may be unlock, and display thread api lock and signal order;
 *v0.3.f:
-		  1) use arm to do rotation when taking pic if no ipp supported. 
+*         1) use arm to do rotation when taking pic if no ipp supported;
+*v0.3.11:
+*         1) add support rk3066b; 
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0xf) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x11) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -154,6 +159,13 @@ namespace android {
 */
 #define CONFIG_CAMERA_DISPLAY_FORCE     0
 #define CONFIG_CAMERA_DISPLAY_FORCE_FORMAT CAMERA_DISPLAY_FORMAT_RGB565
+/* 
+*NOTE: 
+*       CONFIG_CAMERA_INVALIDATE_RGA is debug macro, 
+*    CONFIG_CAMERA_INVALIDATE_RGA must equal to 0 in official version.     
+*/
+#define CONFIG_CAMERA_INVALIDATE_RGA    0
+
 #define CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS   0
 #define CONFIG_CAMERA_FRAME_DV_PROC_STAT    0
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
@@ -191,8 +203,10 @@ namespace android {
 
 #define CAMHAL_GRALLOC_USAGE GRALLOC_USAGE_HW_TEXTURE | \
                              GRALLOC_USAGE_HW_RENDER | \
+                             GRALLOC_USAGE_SW_WRITE_OFTEN | \
+                             GRALLOC_USAGE_SW_READ_OFTEN /*| \
                              GRALLOC_USAGE_SW_WRITE_MASK| \
-                             GRALLOC_USAGE_SW_READ_RARELY 
+                             GRALLOC_USAGE_SW_READ_RARELY*/ 
 
 #ifdef ALOGD
 #define LOGD      ALOGD
@@ -207,6 +221,15 @@ namespace android {
 #define LOGI      ALOGI
 #endif
                              
+#if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29)
+    #define NATIVE_HANDLE_TYPE             private_handle_t
+    #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)    
+    #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)    
+#elif defined(TARGET_BOARD_PLATFORM_RK30XXB)               
+    #define NATIVE_HANDLE_TYPE             IMG_native_handle_t
+    #define PRIVATE_HANDLE_GET_W(hd)       (hd->iWidth)    
+    #define PRIVATE_HANDLE_GET_H(hd)       (hd->iHeight)    
+#endif
 
 struct CamCaptureInfo_s
 {
@@ -226,7 +249,7 @@ struct CamMemHeapInfo_s
 typedef struct rk_previewbuf_info {
     Mutex *lock;
     buffer_handle_t* buffer_hnd;
-    private_handle_t* priv_hnd;
+    NATIVE_HANDLE_TYPE *priv_hnd;
     camera_memory_t* video_buf;
     int phy_addr;
     int vir_addr;
