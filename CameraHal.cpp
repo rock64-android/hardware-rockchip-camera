@@ -2018,18 +2018,16 @@ get_command:
                 if (NULL == mANativeWindow) {
                     LOGD("%s(%d): camera preview buffer alloc from ANativeWindow, Now mANativeWIndow is NULL, wait for set...",__FUNCTION__,__LINE__);  
 					mANativeWindowLock.lock();
-					if(NULL == mANativeWindow){
+					while (NULL == mANativeWindow && (mPreviewCmdReceived == true)){
 						LOGD("%s(%d):ANativeWindow is NULL , lock and wait ...",__FUNCTION__,__LINE__);
 						mANativeWindowCond.wait(mANativeWindowLock);
 					}
+						
 					mANativeWindowLock.unlock();
-                } 
-
-                if (commandThreadCommandQ.isEmpty() == false) {
-                    LOGD("%s(%d): wake up for receive command",__FUNCTION__,__LINE__);
-                    goto get_command;    
-                }
-                                
+                    if(mPreviewCmdReceived == false)
+						goto PREVIEW_START_OUT;
+					} 
+                           
                 err = 0;                
                 cameraDisplayThreadStart(true);              
                
@@ -2051,6 +2049,7 @@ get_command:
                     msg.arg1 = (void*)(err ? CMDARG_ERR : CMDARG_OK);
                     commandThreadAckQ.put(&msg);
                 }
+PREVIEW_START_OUT:
                 break;
             }
 
@@ -2445,7 +2444,7 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
         mANativeWindow->lock_buffer(mANativeWindow, (buffer_handle_t*)mGrallocBufferMap[i].buffer_hnd);
         mapper.lock((buffer_handle_t)mGrallocBufferMap[i].priv_hnd, CAMHAL_GRALLOC_USAGE, bounds, y_uv);
         
-    #if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29)
+    #if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928)
         mGrallocBufferMap[i].vir_addr = mGrallocBufferMap[i].priv_hnd->base;
     #elif defined(TARGET_BOARD_PLATFORM_RK30XXB)
         mGrallocBufferMap[i].vir_addr = (int)y_uv[0];
@@ -3717,13 +3716,12 @@ int CameraHal::startPreview()
     LOG_FUNCTION_NAME
     Message msg;    
     Mutex::Autolock lock(mLock);
-    
+    mPreviewCmdReceived = true;
     if ((mPreviewThread != NULL) && (mCommandThread != NULL)) {
         msg.command = CMD_PREVIEW_START;
         msg.arg1 = (void*)CMDARG_NACK;
         commandThreadCommandQ.put(&msg);
     }
-    mPreviewCmdReceived = true;
     LOG_FUNCTION_NAME_EXIT
     return NO_ERROR ;
 }
@@ -3734,7 +3732,7 @@ void CameraHal::stopPreview()
     Message msg;
     int ret = 0;
     Mutex::Autolock lock(mLock);
-
+    mPreviewCmdReceived = false;
     if ((mPreviewThread != NULL) && (mCommandThread != NULL)) {
         msg.command = CMD_PREVIEW_STOP;
         msg.arg1 = (void*)CMDARG_ACK;
@@ -3757,7 +3755,6 @@ void CameraHal::stopPreview()
         LOGE("%s(%d): cancel, because thread (%s %s) is NULL", __FUNCTION__,__LINE__,(mPreviewThread == NULL)?"mPreviewThread":" ",
             (mCommandThread == NULL)?"mCommandThread":" ");
     }
-    mPreviewCmdReceived = false;
     LOG_FUNCTION_NAME_EXIT
 }
 

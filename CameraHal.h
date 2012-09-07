@@ -51,7 +51,7 @@
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
 
-#if defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XX)
+#if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) || (defined(TARGET_BOARD_PLATFORM_RK2928)))
 #include "../libgralloc_ump/gralloc_priv.h"
 #include <hardware/rga.h>
 #elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
@@ -144,7 +144,8 @@ namespace android {
 *v0.3.f:
 *         1) use arm to do rotation when taking pic if no ipp supported;
 *v0.3.11:
-*         1) add support rk3066b; 
+*         1) add support rk3066b;
+		  2) command thread may trap when native window is null , fix it. 
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x11) 
 
@@ -220,8 +221,8 @@ namespace android {
 #ifdef ALOGI
 #define LOGI      ALOGI
 #endif
-                             
-#if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29)
+
+#if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928)                         
     #define NATIVE_HANDLE_TYPE             private_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)    
