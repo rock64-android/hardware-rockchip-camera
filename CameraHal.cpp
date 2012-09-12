@@ -1891,7 +1891,8 @@ void CameraHal::pictureThread()
     mPictureRunning = STA_PICTURE_RUN;
     mPictureLock.unlock();   
     capture.input_phy_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy); 
-		capture.output_phy_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_phy);                        
+	capture.input_vir_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
+	capture.output_phy_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_phy);                        
     capture.output_vir_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir);                        
     capture.output_buflen = mCamBuffer->getJpegBufInfo().mBufferSizes;
     LOGD("%s(%d): capture.input_phy:0x%x, output_phy:0x%x vir:0x%x",
