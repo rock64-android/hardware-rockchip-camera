@@ -763,6 +763,19 @@ void CameraHal::initDefaultParameters()
             }
         }
 
+#ifdef TARGET_RK30    
+        if (mCamDriverFrmWidthMax >= 800) {
+            fmt.fmt.pix.width = 800;
+            fmt.fmt.pix.height = 600;
+            if (ioctl(iCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
+                if ((fmt.fmt.pix.width == 800) && (fmt.fmt.pix.height == 600)) {
+                    parameterString.append(",800x600");
+                    previewFrameSizeMax =  PAGE_ALIGN(800*600*2)*2;          // 720*480*1.5*2
+					params.setPreviewSize(800, 600);
+                }
+            }
+        }
+#endif
         if (mCamDriverFrmWidthMax >= 1280) {
             fmt.fmt.pix.width = 1280;
          	fmt.fmt.pix.height = 720;
