@@ -147,9 +147,10 @@ namespace android {
 *         1) add support rk3066b;
 		  2) command thread may trap when native window is null , fix it. 
 *v0.3.13:
-		  1) default preview size is setted to svga if driver supported for RK30
+		  1) default preview size is setted to svga if driver supported for RK30;
+		  2) fix uvc camera may be panic when close;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x11) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x13) 
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
 #define CAMERA_DISPLAY_FORMAT_RGB565     CameraParameters::PIXEL_FORMAT_RGB565
 #define CAMERA_DISPLAY_FORMAT_NV12       "nv12"

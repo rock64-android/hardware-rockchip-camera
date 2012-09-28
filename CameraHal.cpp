@@ -1761,9 +1761,13 @@ previewThread_cmd:
             if (ioctl(iCamFd, VIDIOC_DQBUF, &cfilledbuffer1) < 0) {
                 LOGE("%s(%d): VIDIOC_DQBUF Failed!!! err[%s] \n",__FUNCTION__,__LINE__,strerror(errno));
                 if (errno == EIO) {
-                    camera_device_error = true;  
-                    LOGE("%s(%d): camera driver or device may be error, so notify CAMERA_MSG_ERROR",
-                            __FUNCTION__,__LINE__);
+                    mCamDriverStreamLock.lock();
+                    if (mCamDriverStream) {
+                        camera_device_error = true;  
+                        LOGE("%s(%d): camera driver or device may be error, so notify CAMERA_MSG_ERROR",
+                                __FUNCTION__,__LINE__);
+                    }
+                    mCamDriverStreamLock.unlock();
                 } else {
                     mCamDriverStreamLock.lock();
                     if (mCamDriverStream) {
@@ -3333,18 +3337,7 @@ int CameraHal::cameraStop()
     struct v4l2_requestbuffers creqbuf;
     
     cameraStream(false);
-
-    if (mCamDriverV4l2MemType == V4L2_MEMORY_MMAP) {
-        for (i=0; i<V4L2_BUFFER_MAX; i++) {
-            if (mCamDriverV4l2Buffer[i] != NULL) {
-                if (munmap((void*)mCamDriverV4l2Buffer[i], mCamDriverV4l2BufferLen) < 0)
-                    LOGE("%s(%d): mCamDriverV4l2Buffer[%d] munmap failed : %s",__FUNCTION__,__LINE__,i,strerror(errno));
-                mCamDriverV4l2Buffer[i] = NULL;
-            } else {
-                break;
-            }
-        }
-    }
+    
     /* ddl@rock-chips.com: Release v4l2 buffer must by close device, buffer isn't release in VIDIOC_STREAMOFF ioctl */
     if (CAMERA_IS_UVC_CAMERA()) {
         close(iCamFd);
