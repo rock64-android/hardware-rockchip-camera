@@ -358,9 +358,10 @@ CameraHal::CameraHal(int cameraId)
 
     if (cameraCreate(cameraId) == 0) {
         initDefaultParameters();
-
-        cameraRawJpegBufferCreate(mRawBufferSize,mJpegBufferSize);
-
+		if(access(CAMERA_IPP_NAME, O_RDWR) < 0)
+        	cameraRawJpegBufferCreate(mRawBufferSize*2,mJpegBufferSize);
+		else
+            cameraRawJpegBufferCreate(mRawBufferSize,mJpegBufferSize);
         mDisplayThread = new DisplayThread(this);
         mPreviewThread = new PreviewThread(this);
         mCommandThread = new CommandThread(this);

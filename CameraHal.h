@@ -149,8 +149,12 @@ namespace android {
 *v0.3.13:
 		  1) default preview size is setted to svga if driver supported for RK30;
 		  2) fix uvc camera may be panic when close;
+
+*0.3.15:  1) if there is no ipp, do picture rotation of 90 an 180 degree  by arm 
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x13) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x15) 
+
+/*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
 #define CAMERA_DISPLAY_FORMAT_RGB565     CameraParameters::PIXEL_FORMAT_RGB565
 #define CAMERA_DISPLAY_FORMAT_NV12       "nv12"
@@ -209,7 +213,7 @@ namespace android {
                              GRALLOC_USAGE_SW_READ_OFTEN /*| \
                              GRALLOC_USAGE_SW_WRITE_MASK| \
                              GRALLOC_USAGE_SW_READ_RARELY*/ 
-
+#define CAMERA_IPP_NAME                  "/dev/rk29-ipp"
 #ifdef ALOGD
 #define LOGD      ALOGD
 #endif

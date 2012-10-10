@@ -51,7 +51,6 @@ static char ExifModel[32];
 
 
 static MemManagerBase* cachMem =NULL;
-#define CAMERA_IPP_NAME					 "/dev/rk29-ipp"
 extern "C" int capturePicture_cacheflush(int buf_type, int offset, int len)
 {
 	int ret = 0;
@@ -127,7 +126,37 @@ extern "C"  int YuvData_Mirror_Flip(int v4l2_fmt_src, char *pdata, char *pline_t
 YuvData_Mirror_Flip_end:
     return err;
 }
+extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigned char* srcuv,
+                   unsigned char* dsty, int dst_stride, unsigned char* dstuv,
+                   int width, int height,int rotate_angle){
+   int i = 0,j = 0;
+	// 90 , y plane
+  if(rotate_angle == 90){
+      srcy += src_stride * (height - 1);
+  	  srcuv += src_stride * ((height >> 1)- 1); 
+  	  src_stride = -src_stride;
+	}else if(rotate_angle == 270){
+      dsty += dst_stride * (width - 1);
+      dstuv += dst_stride * (width>>1 - 1);
+	  dst_stride = -dst_stride;
+  }
 
+  for (i = 0; i < width; ++i)
+    for (j = 0; j < height; ++j)
+      *(dsty+i * dst_stride + j) = *(srcy+j * src_stride + i); 
+  
+  //uv 
+  unsigned char av_u0,av_v0;
+  for (i = 0; i < width; i += 2)
+    for (j = 0; j < (height>>1); ++j) {
+		av_u0 = *(srcuv+i + (j * src_stride));
+		av_v0 = *(srcuv+i + (j * src_stride)+1);
+      *(dstuv+((j<<1) + ((i >> 1) * dst_stride)))= av_u0;
+      *(dstuv+((j<<1) + ((i >> 1) * dst_stride)+1)) = av_v0;
+	}
+   
+  return 0;
+ }
 /*fill in jpeg gps information*/  
 int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo)
 {
@@ -626,10 +655,13 @@ capturePicture_streamoff:
     if(access(CAMERA_IPP_NAME, O_RDWR) < 0) {
     	JpegInInfo.rotateDegree = DEGREE_0;
     	if ((rotation != 0) && (rotation != 180)) {
-    		YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
-    				(char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w, jpeg_h);
-    		mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
-    		}
+			int src_base = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
+			YUV420_rotate((unsigned char*)src_base ,jpeg_w, (unsigned char*)src_base+jpeg_w*jpeg_h,
+                   (unsigned char*)src_base+pictureSize, jpeg_h,(unsigned char*)src_base+pictureSize+jpeg_w*jpeg_h,jpeg_w, jpeg_h,rotation);
+			mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
+    		capture->input_phy_addr += pictureSize;
+			capture->input_vir_addr += pictureSize;
+			}
      }else{
     	    if ((rotation == 0) || (rotation == 180)) {
     	        JpegInInfo.rotateDegree = DEGREE_0;        
@@ -646,12 +678,21 @@ capturePicture_streamoff:
     	        JpegInInfo.rotateDegree = DEGREE_270; 
     	    }
      	}
+
     JpegInInfo.yuvaddrfor180 = NULL;
-    JpegInInfo.y_rgb_addr = capture->input_phy_addr;
-    JpegInInfo.uv_addr = capture->input_phy_addr + jpeg_w*jpeg_h;
+    JpegInInfo.type = encodetype;
+	JpegInInfo.y_rgb_addr = capture->input_phy_addr;
+	JpegInInfo.uv_addr = capture->input_phy_addr + jpeg_w*jpeg_h;
+	if ((rotation == 0) || (rotation == 180)) {
     JpegInInfo.inputW = jpeg_w;
     JpegInInfo.inputH = jpeg_h;
-    JpegInInfo.type = encodetype;
+	}else if(access(CAMERA_IPP_NAME, O_RDWR) < 0){
+    JpegInInfo.inputW = jpeg_h;
+    JpegInInfo.inputH = jpeg_w;
+	}else{
+	JpegInInfo.inputW = jpeg_w;
+    JpegInInfo.inputH = jpeg_h;
+	}
     JpegInInfo.qLvl = quality/10;
     if (JpegInInfo.qLvl < 5) {
         JpegInInfo.qLvl = 5;
@@ -802,10 +843,14 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     if(access(CAMERA_IPP_NAME, O_RDWR) < 0) {
     	JpegInInfo.rotateDegree = DEGREE_0;
     	if ((rotation != 0) && (rotation != 180)) {
-    		YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
-    				(char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w, jpeg_h);
-    		mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
-    		}
+			int src_base = capture->input_vir_addr;
+			int dst_base = (int)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
+            YUV420_rotate((unsigned char*)src_base ,jpeg_w, (unsigned char*)src_base+jpeg_w*jpeg_h,
+                   (unsigned char*)dst_base, jpeg_h,(unsigned char*)dst_base+jpeg_w*jpeg_h,jpeg_w, jpeg_h,rotation);
+            mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
+			capture->input_phy_addr = (int)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy);
+			capture->input_vir_addr = (int)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);	
+		}
      }else{
     	    if ((rotation == 0) || (rotation == 180)) {
     	        JpegInInfo.rotateDegree = DEGREE_0;        
@@ -816,15 +861,20 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     	    }
      	}
     JpegInInfo.yuvaddrfor180 = NULL;
+
+    JpegInInfo.type = encodetype;
     JpegInInfo.y_rgb_addr = capture->input_phy_addr;
     JpegInInfo.uv_addr = capture->input_phy_addr + jpeg_w*jpeg_h;
+    if ((rotation == 0) || (rotation == 180)) {
     JpegInInfo.inputW = jpeg_w;
     JpegInInfo.inputH = jpeg_h;
-    JpegInInfo.type = encodetype;
-    JpegInInfo.qLvl = quality/10;
-    if (JpegInInfo.qLvl < 5) {
-        JpegInInfo.qLvl = 5;
-    }
+    }else if(access(CAMERA_IPP_NAME, O_RDWR) < 0){
+    JpegInInfo.inputW = jpeg_h;
+    JpegInInfo.inputH = jpeg_w;
+    }else{
+	JpegInInfo.inputW = jpeg_w;
+    JpegInInfo.inputH = jpeg_h;
+	}
 
     JpegInInfo.thumbqLvl = thumbquality /10;
     if (JpegInInfo.thumbqLvl < 5) {
