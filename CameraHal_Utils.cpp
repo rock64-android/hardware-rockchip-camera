@@ -137,7 +137,7 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
   	  src_stride = -src_stride;
 	}else if(rotate_angle == 270){
       dsty += dst_stride * (width - 1);
-      dstuv += dst_stride * (width>>1 - 1);
+      dstuv += dst_stride * ((width>>1) - 1);
 	  dst_stride = -dst_stride;
   }
 
