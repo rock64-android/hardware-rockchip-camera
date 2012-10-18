@@ -875,7 +875,10 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
 	JpegInInfo.inputW = jpeg_w;
     JpegInInfo.inputH = jpeg_h;
 	}
-
+	JpegInInfo.qLvl = quality/10;
+    if (JpegInInfo.qLvl < 5) {
+        JpegInInfo.qLvl = 5;
+    }
     JpegInInfo.thumbqLvl = thumbquality /10;
     if (JpegInInfo.thumbqLvl < 5) {
         JpegInInfo.thumbqLvl = 5;
