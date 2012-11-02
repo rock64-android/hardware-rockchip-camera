@@ -269,6 +269,34 @@ static int rga_rgb565_cp(int fd,int width, int height, char *src, short int *dst
 #endif
 }
 
+static int arm_rgb565_mirror_line(int *psrc, int *pdst, int w)
+{
+    int i;
+
+    for (i=0; i<(w>>1); i++) {
+        *pdst = ((*psrc>>16)&0x0000ffff) | ((*psrc<<16)&0xffff0000);
+        psrc++;
+        pdst--;
+    }
+
+    return 0;
+}
+static int arm_rgb565_mirror(char *pdata, char *pline_tmp, int w, int h)
+{
+    int *pdata_tmp = NULL;
+    int *pdata_mirror;
+    int err = 0,i,j;
+
+    pdata_tmp = (int*)pline_tmp;
+    pdata_mirror = (int*)pdata;
+    
+    for (j=0; j<h; j++) {
+        arm_rgb565_mirror_line(pdata_mirror, pdata_tmp+((w>>1)-1),w);
+        memcpy(pdata_mirror, pdata_tmp, (w<<1));
+        pdata_mirror += (w>>1);
+    }
+    return err;
+}
 
 CameraHal::CameraHal(int cameraId)
             :mParameters(),
@@ -352,6 +380,24 @@ CameraHal::CameraHal(int cameraId)
 
         mPreviewBuffer[i] = NULL;
     }
+
+    #if CONFIG_CAMERA_FRONT_MIRROR_MDATACB
+    if (gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_FRONT) {
+    #if CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL
+        mDataCbFrontMirror = true;
+    #else
+        if (strstr(CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK,cameraCallProcess)) {
+            mDataCbFrontMirror = true;            
+        } else {
+            mDataCbFrontMirror = false;
+        }
+    #endif
+    } else {
+        mDataCbFrontMirror = false;
+    }
+    #else
+    mDataCbFrontMirror = false;
+    #endif
     
     //open the rga device,zyc
     mRGAFd = -1;
@@ -1480,11 +1526,11 @@ display_receive_cmd:
                         	    (char*)mPreviewBufferMap[queue_buf_index]->vir_addr,(char*)mDisplayBufferMap[queue_display_index]->vir_addr,
                         		mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,
                         		mPreviewWidth, mPreviewHeight,mPreviewWidth, mPreviewHeight,false);
-                        }
-                        
+                        }                        
                     } else {
                         queue_display_index = queue_buf_index;
                     }
+                    
                     LOG2("%s(%d): receive buffer %d, queue buffer %d to display", __FUNCTION__,__LINE__,queue_buf_index,queue_display_index);
 
                     cameraPreviewBufferSetSta(mDisplayBufferMap[queue_display_index], CMD_PREVIEWBUF_DISPING, 1);
@@ -1532,9 +1578,17 @@ display_receive_cmd:
 
                         if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
                             if (strcmp(mParameters.getPreviewFormat(),mDisplayFormat) == 0) {
-                                if (mPreviewMemory) {                                    
-                                    /* ddl@rock-chips.com : preview frame rate may be too high, CTS testPreviewCallback may be fail*/                    
-                                    memcpy((char*)mPreviewBufs[queue_display_index], (char*)mDisplayBufferMap[queue_display_index]->vir_addr, mPreviewFrame2AppSize);                                                             
+                                if (mPreviewMemory) {  
+                                    if (mDataCbFrontMirror == true) {
+                                        if (strcmp(CameraParameters::PIXEL_FORMAT_RGB565,mDisplayFormat) == 0)
+                                            arm_rgb565_mirror((char*)mDisplayBufferMap[queue_display_index]->vir_addr,
+                                                              (char*)mPreviewBufferMap[queue_buf_index]->vir_addr, 
+                                                              mPreviewWidth, mPreviewHeight);
+                                        else
+                                            LOGE("%s(%d): %s format mirror isn't support!",__FUNCTION__,__LINE__,mDisplayFormat);
+                                    } else {
+                                        memcpy((char*)mPreviewBufs[queue_display_index], (char*)mDisplayBufferMap[queue_display_index]->vir_addr, mPreviewFrame2AppSize);                                                             
+                                    }
                                     mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, queue_display_index,NULL,mCallbackCookie);                                 
                                 } else {
                                     LOGE("%s(%d): mPreviewMemory is NULL, preview data could not send to application",__FUNCTION__,__LINE__);
@@ -1862,29 +1916,18 @@ previewThread_cmd:
             if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
                 if (!strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420SP) ||
                     !strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420P)) {
-                    if (mPreviewMemory) {
-                        bool mirror;
-
-                        #if CONFIG_CAMERA_FRONT_MIRROR_MDATACB
-                        if (gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_FRONT) {
-                            mirror = true;
-                        } else {
-                            mirror = false;
-                        }
-                        #else
-                        mirror = false;
-                        #endif
+                    if (mPreviewMemory) {                     
                         
                         if (CAMERA_IS_UVC_CAMERA()) {
                             cameraFormatConvert(V4L2_PIX_FMT_NV12,0x00,mParameters.getPreviewFormat(),
                                 (char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBufs[cfilledbuffer1.index],
                                 0,0,mPreviewWidth, mPreviewHeight,mPreviewFrame2AppWidth, mPreviewFrame2AppHeight,
-                                mirror);
+                                mDataCbFrontMirror);
                         } else {
                             cameraFormatConvert(mCamDriverPreviewFmt,0x00,mParameters.getPreviewFormat(),
                                 (char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBufs[cfilledbuffer1.index],
                                 0,0,mPreviewWidth, mPreviewHeight,mPreviewFrame2AppWidth, mPreviewFrame2AppHeight,
-                                mirror);
+                                mDataCbFrontMirror);
                         }
                         mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, cfilledbuffer1.index,NULL,mCallbackCookie);                         
                     } else {

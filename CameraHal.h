@@ -150,9 +150,12 @@ namespace android {
 		  1) default preview size is setted to svga if driver supported for RK30;
 		  2) fix uvc camera may be panic when close;
 
-*0.3.15:  1) if there is no ipp, do picture rotation of 90 an 180 degree  by arm 
+*0.3.15:  
+*         1) if there is no ipp, do picture rotation of 90 an 180 degree  by arm 
+*v0.3.17:
+*         1) Support config whether mirror the preview data which send to apk by apk name;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x15) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x17) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -175,6 +178,8 @@ namespace android {
 #define CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS   0
 #define CONFIG_CAMERA_FRAME_DV_PROC_STAT    0
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
+#define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL  0
+#define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,"
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT        4
 #define CONFIG_CAMERA_UVC_INVAL_FRAMECNT    5
 #define CONFIG_CAMERA_ORIENTATION_SKYPE     0
@@ -675,6 +680,7 @@ private:
     
     bool mDriverMirrorSupport;
     bool mDriverFlipSupport;
+    bool mDataCbFrontMirror;
     
     struct v4l2_querymenu mWhiteBalance_menu[20];
     int mWhiteBalance_number;
