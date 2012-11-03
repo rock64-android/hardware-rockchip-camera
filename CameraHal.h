@@ -154,8 +154,10 @@ namespace android {
 *         1) if there is no ipp, do picture rotation of 90 an 180 degree  by arm 
 *v0.3.17:
 *         1) Support config whether mirror the preview data which send to apk by apk name;
+*v0.3.19: 
+*         1) fix operate mCamId before initiation in v0.3.17 version;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x17) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x19) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

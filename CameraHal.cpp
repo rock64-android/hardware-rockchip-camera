@@ -382,7 +382,7 @@ CameraHal::CameraHal(int cameraId)
     }
 
     #if CONFIG_CAMERA_FRONT_MIRROR_MDATACB
-    if (gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_FRONT) {
+    if (gCamInfos[cameraId].facing_info.facing == CAMERA_FACING_FRONT) {
     #if CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL
         mDataCbFrontMirror = true;
     #else
