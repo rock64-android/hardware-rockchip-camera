@@ -720,10 +720,10 @@ void CameraHal::initDefaultParameters()
         mCamDriverFrmWidthMax = fmt.fmt.pix.width;
         mCamDriverFrmHeightMax = fmt.fmt.pix.height;        
 
-        if (mCamDriverFrmWidthMax > 2592) {
-            LOGE("Camera driver support maximum resolution(%dx%d) is overflow 5Mega!",mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
-            mCamDriverFrmWidthMax = 2592;
-            mCamDriverFrmHeightMax = 1944;
+        if (mCamDriverFrmWidthMax > 3264) {
+            LOGE("Camera driver support maximum resolution(%dx%d) is overflow 8Mega!",mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
+            mCamDriverFrmWidthMax = 3264;
+            mCamDriverFrmHeightMax = 2448;
         }
         
         /*preview size setting*/ 
@@ -872,10 +872,15 @@ void CameraHal::initDefaultParameters()
             params.setPictureSize(2592,1944);
             mRawBufferSize = RAW_BUFFER_SIZE_5M;
             mJpegBufferSize = JPEG_BUFFER_SIZE_5M;
+        } else if (mCamDriverFrmWidthMax <= 3264) {                    			
+    		strcat( str_picturesize,"3264x2448,2592x1944,2048x1536,1600x1200,1024x768");
+            params.setPictureSize(3264,2448);
+            mRawBufferSize = RAW_BUFFER_SIZE_8M;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_8M;
     	} else {
             sprintf(str_picturesize, "%dx%d", mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
-            mRawBufferSize = RAW_BUFFER_SIZE_5M;
-            mJpegBufferSize = JPEG_BUFFER_SIZE_5M;
+            mRawBufferSize = RAW_BUFFER_SIZE_8M;
+            mJpegBufferSize = JPEG_BUFFER_SIZE_8M;
             params.setPictureSize(mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
     	}
         

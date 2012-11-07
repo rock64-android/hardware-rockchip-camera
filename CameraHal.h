@@ -156,6 +156,8 @@ namespace android {
 *         1) Support config whether mirror the preview data which send to apk by apk name;
 *v0.3.19: 
 *         1) fix operate mCamId before initiation in v0.3.17 version;
+*         2) add support 8Mega picture; 
+*
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x19) 
 
@@ -198,17 +200,19 @@ namespace android {
 #define CAMERA_PMEM_NAME                     "/dev/pmem_cam"
 #define CAMERA_DRIVER_SUPPORT_FORMAT_MAX   32
 
+#define RAW_BUFFER_SIZE_8M         (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ? 0xF40000:0xB70000)
 #define RAW_BUFFER_SIZE_5M         (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ? 0x9A0000:0x740000)
 #define RAW_BUFFER_SIZE_3M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ?0x600000 :0x480000)
 #define RAW_BUFFER_SIZE_2M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ?0x3A0000 :0x2c0000)
 #define RAW_BUFFER_SIZE_1M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565)? 0x180000 :0x120000)
 #define RAW_BUFFER_SIZE_0M3         (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565)?0x150000 :0x100000)
 
+#define JPEG_BUFFER_SIZE_8M          0x700000
 #define JPEG_BUFFER_SIZE_5M          0x400000
 #define JPEG_BUFFER_SIZE_3M          0x300000
 #define JPEG_BUFFER_SIZE_2M          0x300000
 #define JPEG_BUFFER_SIZE_1M          0x200000
-#define JPEG_BUFFER_SIZE_0M3          0x100000
+#define JPEG_BUFFER_SIZE_0M3         0x100000
 
 #define V4L2_BUFFER_MAX             32
 #define V4L2_BUFFER_MMAP_MAX        16
