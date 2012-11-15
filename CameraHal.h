@@ -157,9 +157,10 @@ namespace android {
 *v0.3.19: 
 *         1) fix operate mCamId before initiation in v0.3.17 version;
 *         2) add support 8Mega picture; 
-*
+*v0.3.21: 1) add focus zone support
+
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x19) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x21) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

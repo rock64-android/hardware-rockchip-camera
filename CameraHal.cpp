@@ -1064,6 +1064,13 @@ void CameraHal::initDefaultParameters()
 
 	params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES, parameterString.string());
 
+	focus.id = V4L2_CID_FOCUSZONE;
+     
+	// focus area settings
+    if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &focus)) {
+
+ 	   params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"1");
+	}
     /*mirror and flip query*/
 	struct v4l2_queryctrl mirror,flip;
     
@@ -3426,6 +3433,33 @@ int CameraHal::cameraAutoFocus(const char *focus)
     if (strcmp(focus, CameraParameters::FOCUS_MODE_AUTO) == 0) {
         extCtrInfo.id = V4L2_CID_FOCUS_AUTO;
 	    extCtrInfo.value = 1;
+		// set zone focus
+		if(mParameters.getInt(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS) == 1){
+			//parse zone,
+	    	int lx,ty,rx,dy;
+			const char* zoneStr = mParameters.get(CameraParameters::KEY_FOCUS_AREAS);
+	    	if(zoneStr){
+			//get lx
+	    	lx = strtol(zoneStr+1,0,0);
+
+	    	//get ty
+	    	char* tys = strstr(zoneStr,",");
+	    	ty = strtol(tys+1,0,0);
+		
+
+	    	//get rx
+	    	char* rxs = strstr(tys+1,",");
+	    	rx = strtol(rxs+1,0,0);
+	
+	    	//get dy
+			char* dys = strstr(rxs+1,",");
+	    	dy = strtol(dys+1,0,0);
+			extCtrInfo.rect[0] = lx;
+			extCtrInfo.rect[1] = ty;
+			extCtrInfo.rect[2] = rx;
+		    extCtrInfo.rect[3] = dy;
+			}
+		}
     } else if (strcmp(focus, CameraParameters::FOCUS_MODE_INFINITY) == 0) {
         extCtrInfo.id = V4L2_CID_FOCUS_ABSOLUTE;
 	    extCtrInfo.value = 0;
