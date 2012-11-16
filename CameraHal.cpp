@@ -2122,7 +2122,11 @@ get_command:
                 if (CmdAck_Chk(msg)) {
                     msg.arg1 = (void*)(err ? CMDARG_ERR : CMDARG_OK);
                     commandThreadAckQ.put(&msg);
-                }
+                }else if(err != 0){
+                    if (mNotifyCb && (mMsgEnabled & CAMERA_MSG_ERROR)) {
+                         mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
+                     }
+                }                
 PREVIEW_START_OUT:
                 break;
             }
