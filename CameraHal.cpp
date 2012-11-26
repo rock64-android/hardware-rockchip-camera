@@ -3400,6 +3400,17 @@ int CameraHal::cameraStop()
     
     /* ddl@rock-chips.com: Release v4l2 buffer must by close device, buffer isn't release in VIDIOC_STREAMOFF ioctl */
     if (CAMERA_IS_UVC_CAMERA()) {
+    	if (mCamDriverV4l2MemType == V4L2_MEMORY_MMAP) {
+        	for (i=0; i<V4L2_BUFFER_MAX; i++) {
+            	if (mCamDriverV4l2Buffer[i] != NULL) {
+                	if (munmap((void*)mCamDriverV4l2Buffer[i], mCamDriverV4l2BufferLen) < 0)
+                    	LOGE("%s(%d): mCamDriverV4l2Buffer[%d] munmap failed : %s",__FUNCTION__,__LINE__,i,strerror(errno));
+                	mCamDriverV4l2Buffer[i] = NULL;
+            	} else {
+                	break;
+            	}
+        	}
+    	}	
         close(iCamFd);
         iCamFd = open(cameraDevicePathCur, O_RDWR);
         if (iCamFd < 0) {
