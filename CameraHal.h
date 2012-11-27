@@ -35,7 +35,7 @@
 #include <cutils/properties.h>
 #include <cutils/atomic.h>
 #include <linux/version.h>
-#include <linux/videodev2.h>
+#include <linux/videodev2.h> 
 #include <binder/MemoryBase.h>
 #include <binder/MemoryHeapBase.h>
 #include <utils/threads.h>
@@ -158,9 +158,12 @@ namespace android {
 *         1) fix operate mCamId before initiation in v0.3.17 version;
 *         2) add support 8Mega picture; 
 *v0.3.21: 1) add focus zone support
-
+*v0.3.23:
+*         1)fix uvc camera erro when taking pic,must unmap buffer
+*         2)throw erro exception if failure to allocate preview memory
+*         3)add mirror preview data which send to yahoo messager apk
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x21) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x23) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -184,7 +187,7 @@ namespace android {
 #define CONFIG_CAMERA_FRAME_DV_PROC_STAT    0
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL  0
-#define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,"
+#define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>"
 #define CONFIG_CAMERA_PRVIEW_BUF_CNT        4
 #define CONFIG_CAMERA_UVC_INVAL_FRAMECNT    5
 #define CONFIG_CAMERA_ORIENTATION_SKYPE     0

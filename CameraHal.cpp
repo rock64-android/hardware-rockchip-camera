@@ -354,7 +354,7 @@ CameraHal::CameraHal(int cameraId)
         LOGE("Obtain calling process info failed");
     } else {
         memset(cameraCallProcess,0x00,sizeof(cameraCallProcess));
-        read(fp, cameraCallProcess, 30);
+        read(fp, cameraCallProcess, 29);
         close(fp);
         fp = -1;
         LOGD("Calling process is: %s",cameraCallProcess);
@@ -387,7 +387,7 @@ CameraHal::CameraHal(int cameraId)
         mDataCbFrontMirror = true;
     #else
         if (strstr(CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK,cameraCallProcess)) {
-            mDataCbFrontMirror = true;            
+            mDataCbFrontMirror = true; 
         } else {
             mDataCbFrontMirror = false;
         }
