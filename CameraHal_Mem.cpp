@@ -373,6 +373,7 @@ int IonMemManager::flushCacheMem(buffer_type_enum buftype,unsigned int offset, u
 /******************ION BUFFER END*******************/
 
 /*****************pmem buffer start*******************/
+#if (CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)
 PmemManager::PmemManager(char* devpath)
 			:MemManagerBase(),
 			mPmemFd(-1),
@@ -687,4 +688,5 @@ int PmemManager::flushCacheMem(buffer_type_enum buftype,unsigned int offset, uns
     return ret;
 }
 /******************* pmem buffer end*****************/
+#endif
 }

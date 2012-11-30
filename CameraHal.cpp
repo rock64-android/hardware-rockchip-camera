@@ -30,11 +30,6 @@
 
 #include <binder/IPCThreadState.h>
 
-#ifdef HAVE_ANDROID_OS 
-
-#include <linux/android_pmem.h>
-#include <binder/MemoryHeapPmem.h>
-#endif
 #include <utils/CallStack.h>
 #include <camera/ICameraService.h>
 #include <binder/IServiceManager.h>
@@ -44,8 +39,9 @@
 #include <unistd.h>
 #include <linux/fb.h>
 
+#ifdef TARGET_RK29
 #include "../libyuvtorgb/yuvtorgb.h"
-
+#endif
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
 namespace android {
@@ -175,10 +171,11 @@ static void arm_nv12torgb565(int width, int height, char *src, short int *dst)
 
 static int rga_nv12torgb565(int fd,int width, int height, char *src, short int *dst)
 {
-#ifdef TARGET_RK30    
+#ifdef TARGET_RK30
+#if (CONFIG_CAMERA_INVALIDATE_RGA==0)
     struct rga_req  Rga_Request;
     int err = 0;
-    
+    LOGD("rga_nv12torgb565..");
     memset(&Rga_Request,0x0,sizeof(Rga_Request));
 
     Rga_Request.src.yrgb_addr =  (int)src;
@@ -216,6 +213,10 @@ static int rga_nv12torgb565(int fd,int width, int height, char *src, short int *
     }    
     return err;
 #else
+    LOGE("%s(%d): RGA is invalidate!",__FUNCTION__, __LINE__);
+    return 0;
+#endif
+#else
     LOGE("%s(%d): rk29 havn't RGA device in chips!!",__FUNCTION__, __LINE__);
     return -1;
 #endif
@@ -223,7 +224,9 @@ static int rga_nv12torgb565(int fd,int width, int height, char *src, short int *
 
 static int rga_rgb565_cp(int fd,int width, int height, char *src, short int *dst)
 {
-#ifdef TARGET_RK30	  
+#ifdef TARGET_RK30	 
+
+#if (CONFIG_CAMERA_INVALIDATE_RGA==0)
 	struct rga_req	Rga_Request;
 	int err = 0;
 	
@@ -263,6 +266,10 @@ static int rga_rgb565_cp(int fd,int width, int height, char *src, short int *dst
 		err = -1;
 	}	 
 	return err;
+#else
+    LOGE("%s(%d): RGA is invalidate!",__FUNCTION__, __LINE__);
+    return 0;
+#endif    
 #else
 	LOGE("%s(%d): rk29 havn't RGA device in chips!!",__FUNCTION__, __LINE__);
 	return -1;
@@ -607,7 +614,7 @@ void CameraHal::initDefaultParameters()
     String8 parameterString;
 	int i,j,previewFrameSizeMax;
 	char cur_param[32],cam_size[10];
-    char str_picturesize[100];//We support at most 4 resolutions: 2592x1944,2048x1536,1600x1200,1024x768 
+    char str_picturesize[200];//We support at most 4 resolutions: 2592x1944,2048x1536,1600x1200,1024x768 
     int ret,picture_size_bit;
     struct v4l2_format fmt;    
     
@@ -1143,7 +1150,8 @@ void CameraHal::initDefaultParameters()
     params.set(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED,"true");
     params.set(CameraParameters::KEY_MAX_NUM_METERING_AREAS,"0");
 
-    LOGD ("Support Preview format: %s ",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS));
+    LOGD ("Support Preview format: %s .. %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),
+        params.get(CameraParameters::KEY_PREVIEW_FORMAT));
     LOGD ("Support Preview sizes: %s ",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES));
     LOGD ("Support Preview FPS range: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE));
     LOGD ("Support Preview framerate: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES)); 
@@ -1156,7 +1164,8 @@ void CameraHal::initDefaultParameters()
         LOGD ("Support scene: %s",params.get(CameraParameters::KEY_SUPPORTED_SCENE_MODES));
     if (params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES))
         LOGD ("Support flash: %s",params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES));
-    LOGD ("Support focus: %s",params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES));
+    LOGD ("Support focus: %s  focus zone: %s",params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES),
+        params.get(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS));
     LOGD ("Support zoom: %s(ratios: %s)",params.get(CameraParameters::KEY_ZOOM_SUPPORTED),
         params.get(CameraParameters::KEY_ZOOM_RATIOS));
     if (strcmp("0", params.get(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION))
@@ -2165,7 +2174,6 @@ PREVIEW_START_OUT:
             case CMD_PREVIEW_CAPTURE:
             {
                 int i;
-                struct pmem_region sub;
                 struct v4l2_buffer v4l2_buf;
                 
                 LOGD("%s(%d): receive CMD_PREVIEW_CAPTURE", __FUNCTION__,__LINE__);
@@ -2260,7 +2268,6 @@ PREVIEW_CAPTURE_end:
             case CMD_PREVIEW_QBUF:
             {
                 struct v4l2_buffer vb;
-                struct pmem_region region;
                 int index;
                 int cmd_info, preview_times;
 
@@ -2404,8 +2411,7 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
     int i, total;
     buffer_handle_t* hnd = NULL;
     GraphicBufferMapper &mapper = GraphicBufferMapper::get();
-    Rect bounds;        
-    struct pmem_region sub;
+    Rect bounds;  
     bool previewbuf_direct_disp;
 
     LOG_FUNCTION_NAME
@@ -2484,8 +2490,9 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
         if (i < mPreviewBufferCount) {
             mGrallocBufferMap[i].buffer_hnd = hnd;
             mGrallocBufferMap[i].priv_hnd= (NATIVE_HANDLE_TYPE*)(*hnd);
-            
-        #if defined(TARGET_RK29)            
+        #if (CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)  
+            struct pmem_region sub;
+        
             if (ioctl(mGrallocBufferMap[i].priv_hnd->fd,PMEM_GET_PHYS,&sub) == 0) {                    
                 mGrallocBufferMap[i].phy_addr = sub.offset + mGrallocBufferMap[i].priv_hnd->offset;    /* phy address */ 
             } else {   
@@ -2531,7 +2538,7 @@ int CameraHal::cameraDisplayBufferCreate(int width, int height, const char *fmt,
         mGrallocBufferMap[i].lock = new Mutex();        
         mDisplayBufferMap[i] = &mGrallocBufferMap[i]; 
         cameraPreviewBufferSetSta(&mGrallocBufferMap[i], CMD_PREVIEWBUF_DISPING, 0);
-        LOGD("%s(%d): mGrallocBufferMap[i] phy_addr: 0x%x  vir_dir: 0x%x",
+        LOGD("%s(%d): mGrallocBufferMap[%d] phy_addr: 0x%x  vir_dir: 0x%x",
             __FUNCTION__,__LINE__, i, mGrallocBufferMap[i].phy_addr,mGrallocBufferMap[i].vir_addr);
     }
 
@@ -2711,8 +2718,8 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
                 LOGE("%s(%d): Set buffer displaying, but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
             buf_hnd->buf_state |= CMD_PREVIEWBUF_DISPING;
         } else { 
-            if ((buf_hnd->buf_state & CMD_PREVIEWBUF_DISPING) == 0)
-                LOGE("%s(%d): Clear buffer displaying,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            //if ((buf_hnd->buf_state & CMD_PREVIEWBUF_DISPING) == 0)
+                //LOGE("%s(%d): Clear buffer displaying,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
             buf_hnd->buf_state &= ~CMD_PREVIEWBUF_DISPING;
         }
     }
@@ -2723,8 +2730,8 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
                 LOGE("%s(%d): Set buffer encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
             buf_hnd->buf_state |= CMD_PREVIEWBUF_ENCING;
         } else {
-            if ((buf_hnd->buf_state & CMD_PREVIEWBUF_ENCING) == 0)
-                LOGE("%s(%d): Clear buffer encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            //if ((buf_hnd->buf_state & CMD_PREVIEWBUF_ENCING) == 0)
+                //LOGE("%s(%d): Clear buffer encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
             buf_hnd->buf_state &= ~CMD_PREVIEWBUF_ENCING;
         }
     }
@@ -2735,8 +2742,8 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
                 LOGE("%s(%d): Set buffer snapshot encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
             buf_hnd->buf_state |= CMD_PREVIEWBUF_SNAPSHOT_ENCING;
         } else {
-            if ((buf_hnd->buf_state & CMD_PREVIEWBUF_SNAPSHOT_ENCING) == 0)
-                LOGE("%s(%d): Clear buffer snapshot encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            //if ((buf_hnd->buf_state & CMD_PREVIEWBUF_SNAPSHOT_ENCING) == 0)
+                //LOGE("%s(%d): Clear buffer snapshot encoding,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
             buf_hnd->buf_state &= ~CMD_PREVIEWBUF_SNAPSHOT_ENCING;
         }
     }
@@ -2747,8 +2754,8 @@ int CameraHal::cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, 
                 LOGE("%s(%d): Set buffer writing, but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
             buf_hnd->buf_state |= CMD_PREVIEWBUF_WRITING;
         } else { 
-            if ((buf_hnd->buf_state & CMD_PREVIEWBUF_WRITING) == 0)
-                LOGE("%s(%d): Clear buffer writing,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
+            //if ((buf_hnd->buf_state & CMD_PREVIEWBUF_WRITING) == 0)
+                //LOGE("%s(%d): Clear buffer writing,  but buffer status(0x%x) is error",__FUNCTION__,__LINE__,buf_hnd->buf_state);
             buf_hnd->buf_state &= ~CMD_PREVIEWBUF_WRITING;
         }
     }
@@ -2766,7 +2773,6 @@ int CameraHal::cameraCreate(int cameraId)
     char cam_path[20];
     char cam_num[3];
     char *ptr_tmp;
-    struct pmem_region sub;
     struct v4l2_fmtdesc fmtdesc;
     
     LOG_FUNCTION_NAME
@@ -2867,20 +2873,19 @@ int CameraHal::cameraCreate(int cameraId)
     LOGD("%s(%d): Current driver is %s, v4l2 memory is %s",__FUNCTION__,__LINE__,mCamDriverCapability.driver, 
         (mCamDriverV4l2MemType==V4L2_MEMORY_MMAP)?"V4L2_MEMORY_MMAP":"V4L2_MEMORY_OVERLAY");
    
-
-    if(access(CAMERA_PMEM_NAME, O_RDWR) < 0) {
     #if (CONFIG_CAMERA_MEM == CAMERA_MEM_ION)
         mCamBuffer = new IonMemManager();
         LOGD("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
-    #else
-        LOGE("%s(%d): %s isn't registered,CameraHal_Mem current configuration isn't support ION memory!!!",
-            __FUNCTION__,__LINE__,CAMERA_PMEM_NAME);
-        goto exit1;
+    #else if (CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)
+        if(access(CAMERA_PMEM_NAME, O_RDWR) < 0) {
+            LOGE("%s(%d): %s isn't registered, CameraHal_Mem current configuration isn't support ION memory!!!",
+                __FUNCTION__,__LINE__,CAMERA_PMEM_NAME);
+            goto exit1;
+        } else {
+            mCamBuffer = new PmemManager((char*)CAMERA_PMEM_NAME);
+            LOGD("%s(%d): Camera Hal memory is alloced from %s device",__FUNCTION__,__LINE__,CAMERA_PMEM_NAME);
+        }
     #endif
-    } else {
-        mCamBuffer = new PmemManager((char*)CAMERA_PMEM_NAME);
-        LOGD("%s(%d): Camera Hal memory is alloced from %s device",__FUNCTION__,__LINE__,CAMERA_PMEM_NAME);
-    }
     
     mCamId = cameraId;
     
@@ -3653,6 +3658,7 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
             } else if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_RGB565)==0)) {
                 
                 if (srcphy && dstphy) {
+                #ifdef TARGET_RK29 
                     YUV2RGBParams  para;
 
                     memset(&para, 0x00, sizeof(YUV2RGBParams));
@@ -3665,7 +3671,10 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                     para.inColor  = PP_IN_YUV420sp;
                     para.outColor  = PP_OUT_RGB565;
 
-                    doYuvToRgb(&para);                    
+                    doYuvToRgb(&para);    
+                #else
+                    LOGE("%s(%d): Convert nv12 to rgb565 isn't support physical address in current paltform",__FUNCTION__,__LINE__);
+                #endif
                 } else if (srcbuf && dstbuf) {
                 	if(mRGAFd > 0) {
                         rga_nv12torgb565(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);                    	  
@@ -3804,17 +3813,6 @@ cameraFormatConvert_default:
     return 0;
 
 }
-int CameraHal::cameraPmemBufferFlush(sp<MemoryHeapBase> heap, sp<IMemory> buf)
-{
-    struct pmem_region region;
-
-    if ((heap != NULL) && (heap->getHeapID()>0) && (buf!= NULL)) {
-        region.len = buf->size();
-        region.offset = (long)buf->offset();
-        ioctl(heap->getHeapID(), PMEM_CACHE_FLUSH, &region);
-    }
-    return 0;
-}
 
 int CameraHal::startPreview()
 {
@@ -3917,7 +3915,6 @@ int CameraHal::storeMetaDataInBuffers(int enable)
 int CameraHal::startRecording()
 {
     int i = 0,err=NO_ERROR;
-    struct pmem_region sub;
     Message msg;
     
     LOG_FUNCTION_NAME
@@ -4165,8 +4162,8 @@ int CameraHal::setParameters(const CameraParameters &params_set)
 	#if (CONFIG_CAMERA_DISPLAY_FORCE==0)
         char hwc_value[PROPERTY_VALUE_MAX];
         int hwc_version_int=0, hwc_version_float=0, hwc_on;
-        bool force_rgb;
-
+        bool force_rgb = false;
+    
         property_get("sys.ghwc.version", hwc_value, "0.0");
         sscanf(hwc_value,"%d.%d",&hwc_version_int,&hwc_version_float);        
         property_get("sys.hwc.compose_policy", hwc_value, "5a5a");
@@ -4175,7 +4172,7 @@ int CameraHal::setParameters(const CameraParameters &params_set)
         if (hwc_on != 0x5a5a) {
             if ((hwc_version_int>=0x01) && (hwc_version_float>=0x00)) {                
                 force_rgb = false;
-                LOGD("%s(%d): HWC version v%d.%d is support yuv, Camera display format isn't fix rgb",__FUNCTION__,__LINE__,
+                LOGV("%s(%d): HWC version v%d.%d is support yuv, Camera display format isn't fix rgb",__FUNCTION__,__LINE__,
                     hwc_version_int,hwc_version_float);
             } else {
                 force_rgb = true;

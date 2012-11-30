@@ -15,11 +15,11 @@
 #endif
 #if (CONFIG_CAMERA_MEM == CAMERA_MEM_ION)
 #include <ion/IonAlloc.h>
-#endif
-
+#elif (CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)
 #ifdef HAVE_ANDROID_OS 
 #include <linux/android_pmem.h>
 #include <binder/MemoryHeapPmem.h>
+#endif
 #endif
 #include <binder/IMemory.h>
 namespace android {
@@ -71,7 +71,7 @@ protected:
 	struct bufferinfo_s mJpegBufferInfo;
 	mutable Mutex mLock;
 };
-
+#if (CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)
 class PmemManager:public MemManagerBase{
 	public :
 		PmemManager(char* devpath);
@@ -96,7 +96,7 @@ class PmemManager:public MemManagerBase{
 		sp<IMemory> mRawBuffer;  
         sp<IMemory> **mPreviewBuffer;
 };
-
+#endif
 #if (CONFIG_CAMERA_MEM == CAMERA_MEM_ION)
 class IonMemManager:public MemManagerBase{
 	public :

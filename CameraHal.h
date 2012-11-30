@@ -51,9 +51,20 @@
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
 
+
+/* 
+*NOTE: 
+*       CONFIG_CAMERA_INVALIDATE_RGA is debug macro, 
+*    CONFIG_CAMERA_INVALIDATE_RGA must equal to 0 in official version.     
+*/
+#define CONFIG_CAMERA_INVALIDATE_RGA    0
+
+
 #if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) || (defined(TARGET_BOARD_PLATFORM_RK2928)))
 #include "../libgralloc_ump/gralloc_priv.h"
+#if (CONFIG_CAMERA_INVALIDATE_RGA==0)
 #include <hardware/rga.h>
+#endif
 #elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
 #include <hardware/hal_public.h>
 #include <hardware/rga.h>
@@ -162,8 +173,13 @@ namespace android {
 *         1)fix uvc camera erro when taking pic,must unmap buffer
 *         2)throw erro exception if failure to allocate preview memory
 *         3)add mirror preview data which send to yahoo messager apk
+*v0.3.25:
+*         1)fix some print error and picturesize array size no enough in initDefaultParameters;
+*         2)pmem code invalidate by CONFIG_CAMERA_MEM;
+*         3)rga code invalidate by CONFIG_CAMERA_INVALIDATE_RGA;
+*         4)support android-4.2 directly;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x23) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x25) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -176,12 +192,6 @@ namespace android {
 */
 #define CONFIG_CAMERA_DISPLAY_FORCE     0
 #define CONFIG_CAMERA_DISPLAY_FORCE_FORMAT CAMERA_DISPLAY_FORMAT_RGB565
-/* 
-*NOTE: 
-*       CONFIG_CAMERA_INVALIDATE_RGA is debug macro, 
-*    CONFIG_CAMERA_INVALIDATE_RGA must equal to 0 in official version.     
-*/
-#define CONFIG_CAMERA_INVALIDATE_RGA    0
 
 #define CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS   0
 #define CONFIG_CAMERA_FRAME_DV_PROC_STAT    0
@@ -596,7 +606,6 @@ private:
         
     int cameraRawJpegBufferCreate(int rawBufferSize, int jpegBufferSize);
     int cameraRawJpegBufferDestory();
-    int cameraPmemBufferFlush(sp<MemoryHeapBase> heap, sp<IMemory> buf);
     int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, char *srcbuf, char *dstbuf, 
                             int srcphy,int dstphy,int src_w, int src_h,int dst_w, int dst_h, bool mirror);
      int cameraDisplayBufferCreate(int width, int height, const char *fmt,int numBufs);

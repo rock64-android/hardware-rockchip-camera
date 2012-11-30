@@ -29,9 +29,7 @@ LOCAL_SHARED_LIBRARIES:= \
     libgui\
     libjpeg\
     libjpeghwenc\
-    libyuvtorgb\
     libion
-    #    
     #libyuvtorgb\
 
 endif

@@ -25,18 +25,6 @@
 */
 #include <math.h>
 #include "CameraHal.h" 
-//#include "SkStream.h"
-//#include "SkBitmap.h"
-//#include "SkDevice.h"
-//#include "SkPaint.h"
-//#include "SkRect.h"
-//#include "SkImageEncoder.h"
-#if HAVE_ANDROID_OS
-#include <linux/android_pmem.h>
-#include <binder/MemoryHeapPmem.h>
-#endif
-#include "../jpeghw/release/encode_release/hw_jpegenc.h"
-
 
 namespace android {
 #define LOG_TAG "CameraHal_Util"
