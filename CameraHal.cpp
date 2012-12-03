@@ -175,7 +175,7 @@ static int rga_nv12torgb565(int fd,int width, int height, char *src, short int *
 #if (CONFIG_CAMERA_INVALIDATE_RGA==0)
     struct rga_req  Rga_Request;
     int err = 0;
-    LOGD("rga_nv12torgb565..");
+    
     memset(&Rga_Request,0x0,sizeof(Rga_Request));
 
     Rga_Request.src.yrgb_addr =  (int)src;
