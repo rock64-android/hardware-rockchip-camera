@@ -178,8 +178,11 @@ namespace android {
 *         2)pmem code invalidate by CONFIG_CAMERA_MEM;
 *         3)rga code invalidate by CONFIG_CAMERA_INVALIDATE_RGA;
 *         4)support android-4.2 directly;
+*v0.3.27:
+*         1)support FOCUS_MODE_CONTINUOUS_PICTURE;
+*         2)fix falsh menu error in initDefaultParameters;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x25) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x27) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -598,7 +601,7 @@ private:
     int cameraStart();
     int cameraStop();
     int cameraStream(bool on);
-	int cameraAutoFocus(const char *focus);
+	int cameraAutoFocus(const char *focus, bool auto_trig_only);
     int Jpegfillgpsinfo(RkGPSInfo *gpsInfo);
     int Jpegfillexifinfo(RkExifInfo *exifInfo);
     int copyAndSendRawImage(void *raw_image, int size);

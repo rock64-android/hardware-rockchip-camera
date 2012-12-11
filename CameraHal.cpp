@@ -1036,8 +1036,8 @@ void CameraHal::initDefaultParameters()
 					strcpy(cur_param, (char *)flashMode_menu->name);
 				}
 				mFlashMode_number++;
+                flashMode_menu++;                
 			}
-			flashMode_menu++;
 		}
 		params.set(CameraParameters::KEY_SUPPORTED_FLASH_MODES, str_flash);
 		params.set(CameraParameters::KEY_FLASH_MODE, cur_param);
@@ -1058,7 +1058,7 @@ void CameraHal::initDefaultParameters()
     focus.id = V4L2_CID_FOCUS_CONTINUOUS;
     if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &focus)) {
         parameterString.append(",");
-        parameterString.append(CameraParameters::FOCUS_MODE_EDOF);
+        parameterString.append(CameraParameters::FOCUS_MODE_CONTINUOUS_PICTURE);
     }
 
     focus.id = V4L2_CID_FOCUS_ABSOLUTE;
@@ -1685,10 +1685,10 @@ display_receive_cmd:
             mDisplayLock.unlock(); 
             goto display_receive_cmd;
         }        	
-        LOG1("%s(%d): display thread pause here... ", __FUNCTION__,__LINE__);
+        LOG2("%s(%d): display thread pause here... ", __FUNCTION__,__LINE__);
         mDisplayCond.wait(mDisplayLock);  
         mDisplayLock.unlock(); 
-        LOG1("%s(%d): display thread wake up... ", __FUNCTION__,__LINE__);
+        LOG2("%s(%d): display thread wake up... ", __FUNCTION__,__LINE__);
         goto display_receive_cmd;        
         
         if (mANativeWindow == NULL) { 
@@ -2066,7 +2066,7 @@ void CameraHal::autofocusThread()
         }
         mAutoFocusLock.unlock();
         
-        err = cameraAutoFocus(CameraParameters::FOCUS_MODE_AUTO);
+        err = cameraAutoFocus(CameraParameters::FOCUS_MODE_AUTO, true);
 
         if (mMsgEnabled & CAMERA_MSG_FOCUS)
             mNotifyCb(CAMERA_MSG_FOCUS, err, 0, mCallbackCookie);
@@ -3102,7 +3102,7 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 	const char *mfocusMode = mParameters.get(CameraParameters::KEY_FOCUS_MODE);
 	if (params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES)) {
 		if ( !mfocusMode || strcmp(focusMode, mfocusMode) ) {
-       		if(!cameraAutoFocus(focusMode)){
+       		if(!cameraAutoFocus(focusMode,false)){
         		params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
         		err = -1;
    			}
@@ -3125,6 +3125,7 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 			if(i== mFlashMode_number || mFlashMode_number == 0){
 				params.set(CameraParameters::KEY_FLASH_MODE,(mflashMode?mflashMode:CameraParameters::FLASH_MODE_OFF));
 				err = -1;
+                LOGE("%s(%d): flashMode %s is not support",__FUNCTION__,__LINE__,flashMode);
 			} else {
 				extCtrInfo.id = mFlashMode_menu[i].id;
 				extCtrInfo.value = mFlashMode_menu[i].index;
@@ -3438,7 +3439,7 @@ fail_streamoff:
     return -1;
 }
 
-int CameraHal::cameraAutoFocus(const char *focus)
+int CameraHal::cameraAutoFocus(const char *focus, bool auto_trig_only)
 {
     int err;
     struct v4l2_ext_control extCtrInfo;
@@ -3452,7 +3453,10 @@ int CameraHal::cameraAutoFocus(const char *focus)
     
     if (strcmp(focus, CameraParameters::FOCUS_MODE_AUTO) == 0) {
         extCtrInfo.id = V4L2_CID_FOCUS_AUTO;
-	    extCtrInfo.value = 1;
+        if (auto_trig_only)
+            extCtrInfo.value = 2;
+        else
+	        extCtrInfo.value = 1;
 		// set zone focus
 		if(mParameters.getInt(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS) == 1){
 			//parse zone,
@@ -3486,7 +3490,8 @@ int CameraHal::cameraAutoFocus(const char *focus)
     } else if (strcmp(focus, CameraParameters::FOCUS_MODE_MACRO) == 0) {
         extCtrInfo.id = V4L2_CID_FOCUS_ABSOLUTE;
 	    extCtrInfo.value = 0xff;
-    } else if (strcmp(focus, CameraParameters::FOCUS_MODE_EDOF) == 0) {
+    } else if ((strcmp(focus, CameraParameters::FOCUS_MODE_CONTINUOUS_PICTURE) == 0)
+               || (strcmp(focus, CameraParameters::FOCUS_MODE_CONTINUOUS_VIDEO) == 0)){
         extCtrInfo.id = V4L2_CID_FOCUS_CONTINUOUS;
 	    extCtrInfo.value = 1;
     } else if (strcmp(focus, CameraParameters::FOCUS_MODE_FIXED) == 0) {
@@ -3495,6 +3500,7 @@ int CameraHal::cameraAutoFocus(const char *focus)
         goto cameraAutoFocus_end;
     } else {
     	err = false;
+        LOGE("%s(%d): %s is not support in camera driver",__FUNCTION__,__LINE__);
 	    goto cameraAutoFocus_end;
     }
 
