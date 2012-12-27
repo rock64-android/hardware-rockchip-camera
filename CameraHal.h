@@ -181,8 +181,11 @@ namespace android {
 *v0.3.27:
 *         1)support FOCUS_MODE_CONTINUOUS_PICTURE;
 *         2)fix falsh menu error in initDefaultParameters;
+*
+*v0.3.29:
+*         1)add support preview format yuv420p(yv12) for CtsVerifter, and delete rgb565 in preview support format;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x27) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x29) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

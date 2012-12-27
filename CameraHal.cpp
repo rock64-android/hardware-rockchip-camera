@@ -922,13 +922,10 @@ void CameraHal::initDefaultParameters()
         }
     }
     /*preview format setting*/
-    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS, "yuv420sp,rgb565,yuv420p");
+    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS, "yuv420sp,yuv420p");
     params.set(CameraParameters::KEY_VIDEO_FRAME_FORMAT,CameraParameters::PIXEL_FORMAT_YUV420SP);
-    if ((strcmp(cameraCallProcess,"com.android.camera")==0) || (strcmp(cameraCallProcess,"com.android.gallery3d")==0)){    //for PanoramaActivity
-        params.setPreviewFormat(CameraParameters::PIXEL_FORMAT_RGB565);   
-    } else {
-        params.setPreviewFormat(CameraParameters::PIXEL_FORMAT_YUV420SP);   
-    }
+    params.setPreviewFormat(CameraParameters::PIXEL_FORMAT_YUV420SP);
+    
     /* zyc@rock-chips.com: preset the displayformat for cts */
 	strcpy(mDisplayFormat,CAMERA_DISPLAY_FORMAT_NV12);
 
@@ -1597,7 +1594,7 @@ display_receive_cmd:
                         msg.arg3 = (void*)mPreviewStartTimes;
                         commandThreadCommandQ.put(&msg);
 
-                        if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
+                        if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {                            
                             if (strcmp(mParameters.getPreviewFormat(),mDisplayFormat) == 0) {
                                 if (mPreviewMemory) {  
                                     if (mDataCbFrontMirror == true) {
@@ -3272,10 +3269,13 @@ int CameraHal::cameraStart()
     
     LOG_FUNCTION_NAME
 
-    if (!strcmp(mParameters.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_YUV420SP) ||
-        !strcmp(mParameters.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_YUV420P)) {
+    if (!strcmp(mParameters.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_YUV420SP)) {
         mPreviewFrameSize = (mPreviewWidth * mPreviewHeight * 3)/2;
         mPreviewFrame2AppSize = (mPreviewFrame2AppWidth * mPreviewFrame2AppHeight * 3)/2;
+    } else if (!strcmp(mParameters.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_YUV420P)) {
+        mPreviewFrameSize = (mPreviewWidth * mPreviewHeight * 3)/2;
+        mPreviewFrame2AppSize = ((mPreviewFrame2AppWidth+15)&0xfffffff0)*mPreviewFrame2AppHeight
+                                +((mPreviewFrame2AppWidth/2+15)&0xfffffff0)*mPreviewFrame2AppHeight;    
     } else if ((!strcmp(mParameters.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_YUV422SP)) ||
        (!strcmp(mParameters.getPreviewFormat(), CameraParameters::PIXEL_FORMAT_RGB565))) {
         mPreviewFrameSize = mPreviewWidth * mPreviewHeight * 2;
@@ -3525,7 +3525,7 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
     int y_size,i,j;
 
     /*
-    if (v4l2_fmt_dst) {    
+    if (v4l2_fmt_dst) { 
         LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x,%dx%d)->'%c%c%c%c'@(0x%x,0x%x,%dx%d) ",
     				v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
     				(v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF,
@@ -3686,6 +3686,63 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                         rga_nv12torgb565(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);                    	  
                     } else {
                     	arm_nv12torgb565(src_w,src_h,srcbuf, (short int*)dstbuf);                 
+                    }
+                }
+            } else if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_YUV420P)==0)) {
+                char *dst_u,*dst_v,*src_y,*dst_y,*srcuv;
+                int dstc_size,dsty_size, align_dstw,align_dsthalfw;
+                
+                if ((src_w == dst_w) && (src_h == dst_h)) { 
+                    align_dstw = ((dst_w+15)&0xfffffff0);
+                    align_dsthalfw = ((dst_w/2+15)&0xfffffff0);
+                    dsty_size = align_dstw*dst_h;
+                    dstc_size = align_dsthalfw*dst_h/2;
+                    src_y = srcbuf;
+                    dst_y = dstbuf;
+                    
+                    if (mirror == false) {
+                        for (j=0; j<src_h; j++) {
+                            for (i=0; i<src_w; i++) {
+                                *dst_y++ = *src_y++;
+                            }
+                            dst_y += align_dstw-src_w;
+                        }
+                        
+                        srcuv = (char*)(srcbuf + y_size); 
+                        dst_u = (char*)(dstbuf+dsty_size);
+                        dst_v = dst_u + dstc_size;
+
+                        for (j=0; j<src_h/2; j++) {
+                            for (i=0; i<src_w/2; i++) {                        
+                                *dst_v++ = *srcuv++;
+                                *dst_u++ = *srcuv++;
+                            }
+                            dst_u += align_dsthalfw-src_w/2;
+                            dst_v += align_dsthalfw-src_w/2;
+                        }
+                        
+                    } else {                        
+                        char *psrc,*pdst;
+                        psrc = srcbuf;
+                        pdst = dstbuf + dst_w-1;
+                        for (i=0; i<src_h; i++) {                            
+                            for (j=0; j<src_w; j++) {
+                                *pdst-- = *psrc++;
+                            }
+                            pdst += 2*align_dstw - (align_dstw - dst_w);
+                        }
+
+                        psrc = srcbuf + y_size; 
+                        dst_u = dstbuf + dsty_size + dst_w/2-1;
+                        dst_v = dst_u + dstc_size;
+                        for (i=0; i<src_h/2; i++) {                            
+                            for (j=0; j<src_w/2; j++) {
+                                *dst_v-- = *psrc++;
+                                *dst_u-- = *psrc++;
+                            }
+                            dst_u += align_dsthalfw*2 - (align_dsthalfw - dst_w/2);
+                            dst_v += align_dsthalfw*2 - (align_dsthalfw - dst_w/2);
+                        }
                     }
                 }
             }
@@ -4190,8 +4247,8 @@ int CameraHal::setParameters(const CameraParameters &params_set)
         }
 
         if (force_rgb == false) {
-            if ((strcmp(params.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_RGB565)==0)
-                || (strcmp(cameraCallProcess,"com.android.facelock")==0)) {
+            if ((strcmp(cameraCallProcess,"com.android.camera")==0) || (strcmp(cameraCallProcess,"com.android.gallery3d")==0)
+                || (strcmp(cameraCallProcess,"com.android.facelock")==0)) {            
                 strcpy(mDisplayFormat,CameraParameters::PIXEL_FORMAT_RGB565);
             } else { 
                 strcpy(mDisplayFormat,CAMERA_DISPLAY_FORMAT_NV12);
