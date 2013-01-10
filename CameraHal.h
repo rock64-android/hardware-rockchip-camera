@@ -184,8 +184,10 @@ namespace android {
 *
 *v0.3.29:
 *         1)add support preview format yuv420p(yv12) for CtsVerifter, and delete rgb565 in preview support format;
+*v0.3.2b: 1)add face detection support
+		  2)stop camera stream befor set previewthread status  when taking pic 
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x29) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x2b) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -627,7 +629,8 @@ private:
     int cameraDisplayThreadStop(int done);
 
     int cameraPreviewThreadSet(unsigned int setStatus,int done);
-    
+
+	int cameraSetFaceDetect(bool window,bool on);   
     char *cameraDevicePathCur;    
     char cameraCallProcess[30];
     struct v4l2_capability mCamDriverCapability;

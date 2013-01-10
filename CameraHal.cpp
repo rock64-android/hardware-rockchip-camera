@@ -1075,6 +1075,16 @@ void CameraHal::initDefaultParameters()
 
  	   params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"1");
 	}
+	//hardware face detect settings
+	struct v4l2_queryctrl facedetect;
+	facedetect.id = V4L2_CID_FACEDETECT;
+	    if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &facedetect)) {
+
+       params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"1");
+    }else{
+		params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"0");
+	}	
+ 	 
     /*mirror and flip query*/
 	struct v4l2_queryctrl mirror,flip;
     
@@ -1140,7 +1150,7 @@ void CameraHal::initDefaultParameters()
     parameterString = "128";
     params.set(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT, parameterString.string()); 
     /* zyc@rock-chips.com: for cts ,KEY_MAX_NUM_DETECTED_FACES_HW should not be 0 */
-    params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW, "0");
+
     params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_SW, "0");
     params.set(CameraParameters::KEY_RECORDING_HINT,"false");
     params.set(CameraParameters::KEY_VIDEO_STABILIZATION_SUPPORTED,"false");
@@ -1976,8 +1986,11 @@ void CameraHal::pictureThread()
     capture.output_buflen = mCamBuffer->getJpegBufInfo().mBufferSizes;
     LOGD("%s(%d): capture.input_phy:0x%x, output_phy:0x%x vir:0x%x",
         __FUNCTION__,__LINE__,capture.input_phy_addr,capture.output_phy_addr,capture.output_vir_addr);
-    capturePicture(&capture);
-    
+    //close the face window
+	cameraSetFaceDetect(false,true);
+	capturePicture(&capture);
+    //reopen the face window
+	cameraSetFaceDetect(true,true);
     mPictureLock.lock();
     mPictureRunning = STA_PICTURE_STOP;
     mPictureLock.unlock();
@@ -2197,8 +2210,8 @@ PREVIEW_START_OUT:
                 mPictureLock.unlock();
 								   
                 if (mPreviewRunning  == STA_PREVIEW_RUN) {
-                	  cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true);
                     cameraStop();
+					cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true);
                 }
                 
                 if (mPictureThread->run("CameraPictureThread", ANDROID_PRIORITY_DISPLAY) != NO_ERROR) {
@@ -3184,10 +3197,48 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
         LOGD("%s(%d): Display and preview size is %dx%d, but application(%s) receive framesize is %dx%d",
                __FUNCTION__,__LINE__, mPreviewWidth,mPreviewHeight,
                cameraCallProcess,mPreviewFrame2AppWidth,mPreviewFrame2AppHeight);
+	//hardware face detect setting
+	if(!mRecordRunning)
+		cameraSetFaceDetect(true,true);
 end:  
     return err;
 }
+int CameraHal::cameraSetFaceDetect(bool window,bool on)
+{
+	int err = 0;
+    struct v4l2_ext_control extCtrInfo;
+    struct v4l2_ext_controls extCtrInfos;
+	int rotation = 0;
+    if(mParameters.getInt(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW)!=0){
+		extCtrInfo.id = V4L2_CID_FACEDETECT;
+        extCtrInfos.ctrl_class = V4L2_CTRL_CLASS_CAMERA;
+        extCtrInfos.count = 1;
+        extCtrInfos.controls = &extCtrInfo;
+		if(!on){
+			extCtrInfo.value = 0x0;
+		}else{
+		
+        	rotation = strtol(mParameters.get(CameraParameters::KEY_ROTATION),0,0);
+			extCtrInfo.value = rotation/90+1;
+			if(window){
+				extCtrInfo.value |= 0x100;
+			}else{
+				extCtrInfo.value &= 0x0ff;
+			}
+		}
 
+		err = ioctl(iCamFd, VIDIOC_S_EXT_CTRLS, &extCtrInfos);
+        if ( err < 0 ){
+            LOGE ("%s(%d): Set face detection fail",__FUNCTION__,__LINE__);
+        } else {
+            LOGD("%s(%d): Set face detection %d",__FUNCTION__,__LINE__, rotation);
+        }
+    }else{
+		LOG1("%s:not support hardware face detection.",__func__);
+	}
+	return err;
+
+}
 int CameraHal::cameraQuery(CameraParameters &params)
 {
 	int err, i = 0;
@@ -3451,6 +3502,10 @@ int CameraHal::cameraAutoFocus(const char *focus, bool auto_trig_only)
     	goto cameraAutoFocus_end;
     }
     
+	extCtrInfo.rect[0] = 0;
+    extCtrInfo.rect[1] = 0;
+    extCtrInfo.rect[2] = 0;
+    extCtrInfo.rect[3] = 0;   
     if (strcmp(focus, CameraParameters::FOCUS_MODE_AUTO) == 0) {
         extCtrInfo.id = V4L2_CID_FOCUS_AUTO;
         if (auto_trig_only)
@@ -3988,6 +4043,7 @@ int CameraHal::startRecording()
     memset(framebuf_disptime_cnt,0x00, sizeof(framebuf_disptime_cnt));
     memset(framebuf_enctime_cnt,0x00, sizeof(framebuf_enctime_cnt));
     #endif
+	cameraSetFaceDetect(false,true);
     LOG_FUNCTION_NAME_EXIT
 startRecording_end:
     return err;
@@ -4006,6 +4062,7 @@ void CameraHal::stopRecording()
         " %ld(80-90ms) %ld(90-100ms)",framebuf_enctime_cnt[0],framebuf_enctime_cnt[1],framebuf_enctime_cnt[2],framebuf_enctime_cnt[3],framebuf_enctime_cnt[4],
         framebuf_enctime_cnt[5],framebuf_enctime_cnt[6]);
     #endif
+	cameraSetFaceDetect(true,true);
     LOG_FUNCTION_NAME_EXIT
 }
 
