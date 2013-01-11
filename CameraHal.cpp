@@ -1074,6 +1074,8 @@ void CameraHal::initDefaultParameters()
     if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &focus)) {
 
  	   params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"1");
+	}else{
+	   params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
 	}
 	//hardware face detect settings
 	struct v4l2_queryctrl facedetect;
@@ -2076,7 +2078,7 @@ void CameraHal::autofocusThread()
         }
         mAutoFocusLock.unlock();
         
-        err = cameraAutoFocus(CameraParameters::FOCUS_MODE_AUTO, true);
+        err = cameraAutoFocus(CameraParameters::FOCUS_MODE_AUTO,false);
 
         if (mMsgEnabled & CAMERA_MSG_FOCUS)
             mNotifyCb(CAMERA_MSG_FOCUS, err, 0, mCallbackCookie);
@@ -3112,7 +3114,7 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 	const char *mfocusMode = mParameters.get(CameraParameters::KEY_FOCUS_MODE);
 	if (params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES)) {
 		if ( !mfocusMode || strcmp(focusMode, mfocusMode) ) {
-       		if(!cameraAutoFocus(focusMode,false)){
+       		if(!cameraAutoFocus(focusMode,true)){
         		params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
         		err = -1;
    			}
