@@ -2077,8 +2077,10 @@ void CameraHal::autofocusThread()
             goto autofocusThread_end;
         }
         mAutoFocusLock.unlock();
-        
-        err = cameraAutoFocus(CameraParameters::FOCUS_MODE_AUTO,false);
+
+       	const char *mfocusMode = mParameters.get(CameraParameters::KEY_FOCUS_MODE);
+		if(mfocusMode) 
+        	err = cameraAutoFocus(mfocusMode/*CameraParameters::FOCUS_MODE_AUTO*/,false);
 
         if (mMsgEnabled & CAMERA_MSG_FOCUS)
             mNotifyCb(CAMERA_MSG_FOCUS, err, 0, mCallbackCookie);
