@@ -2161,7 +2161,7 @@ PREVIEW_START_OUT:
                 if (mPreviewRunning  == STA_PREVIEW_RUN)
                     cameraDisplayThreadPause(true);                    
                 if( mPreviewRunning  == STA_PREVIEW_RUN) {
-                    cameraStop();
+					cameraStream(false);
                 	if(cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true) < 0){
                         LOGE("%s(%d): Pause preview thread failed!",__FUNCTION__,__LINE__);
                         msg.command = CMD_PREVIEW_STOP;
@@ -2171,6 +2171,7 @@ PREVIEW_START_OUT:
                         err = CMDARG_OK;
 
                     } 
+					cameraStop();
                 } else {
                     msg.command = CMD_PREVIEW_STOP;
                     err = CMDARG_OK;
@@ -2214,8 +2215,10 @@ PREVIEW_START_OUT:
                 mPictureLock.unlock();
 								   
                 if (mPreviewRunning  == STA_PREVIEW_RUN) {
-                    cameraStop();
+					cameraStream(false);
+                   // cameraStop();
 					cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true);
+					cameraStop();
                 }
                 
                 if (mPictureThread->run("CameraPictureThread", ANDROID_PRIORITY_DISPLAY) != NO_ERROR) {
