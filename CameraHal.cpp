@@ -2700,7 +2700,7 @@ int CameraHal::cameraPreviewBufferDestory(void)
     unsigned int i;
     
 	LOG_FUNCTION_NAME
-    
+   	if(mCamBuffer != NULL){ 
     for(i = 0; i < mCamBuffer->getPreviewBufInfo().mNumBffers; i++) {
 		if (mPreviewBuffer[i] != NULL) {
 			if (mPreviewBuffer[i]->lock) {
@@ -2712,8 +2712,8 @@ int CameraHal::cameraPreviewBufferDestory(void)
 		}
 	}
 
-    mCamBuffer->destroyPreviewBuffer();
-    
+	mCamBuffer->destroyPreviewBuffer();
+    }
 	LOG_FUNCTION_NAME_EXIT
 	return 0;
 }
@@ -3318,6 +3318,7 @@ int CameraHal::cameraStream(bool on)
     mCamDriverStreamLock.unlock();
 
 cameraStream_end:
+	mCamDriverStreamLock.unlock();
     return err;
 }
 int CameraHal::cameraStart()
@@ -4199,8 +4200,8 @@ int CameraHal::cancelPicture()
     mPictureLock.lock();
     mPictureRunning = STA_PICTURE_WAIT_STOP;
     mPictureLock.unlock();
-    
-	mPictureThread->requestExitAndWait();
+	if(mPictureThread != NULL) 
+		mPictureThread->requestExitAndWait();
     
     
     LOG_FUNCTION_NAME_EXIT
@@ -4493,24 +4494,35 @@ void CameraHal::release()
         msg.arg1 = (void*)CMDARG_NACK;
         commandThreadCommandQ.put(&msg);
     }
-
-    mCommandThread->requestExitAndWait();
-    mCommandThread.clear();
-    mDisplayThread->requestExitAndWait();
-    mDisplayThread.clear();
-    mPreviewThread->requestExitAndWait();
-    mPreviewThread.clear();
+	if(mCommandThread != NULL){
+   		mCommandThread->requestExitAndWait();
+    	mCommandThread.clear();
+	}
+	if(mDisplayThread != NULL){
+    	mDisplayThread->requestExitAndWait();
+    	mDisplayThread.clear();
+	}
+	if(mPreviewThread != NULL){
+    	mPreviewThread->requestExitAndWait();
+    	mPreviewThread.clear();
+	}
    
     mAutoFocusLock.lock();
     mExitAutoFocusThread = true;
     mAutoFocusLock.unlock();
     mAutoFocusCond.signal();
-    mAutoFocusThread->requestExitAndWait();
-    mAutoFocusThread.clear();
-    mPictureThread->requestExitAndWait();
-    mPictureThread.clear();
-    mSnapshotThread->requestExitAndWait();
-    mSnapshotThread.clear();
+	if(mAutoFocusThread != NULL){
+	    mAutoFocusThread->requestExitAndWait();
+	    mAutoFocusThread.clear();
+	}
+	if(mPictureThread != NULL){
+	   mPictureThread->requestExitAndWait();
+ 	   mPictureThread.clear();
+	}
+	if(mSnapshotThread != NULL){
+  	  mSnapshotThread->requestExitAndWait();
+  	  mSnapshotThread.clear();
+	}
 	
     cameraDestroy();
     
