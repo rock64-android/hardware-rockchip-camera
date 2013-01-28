@@ -185,9 +185,13 @@ namespace android {
 *v0.3.29:
 *         1)add support preview format yuv420p(yv12) for CtsVerifter, and delete rgb565 in preview support format;
 *v0.3.2b: 1)add face detection support
-		  2)stop camera stream befor set previewthread status  when taking pic 
+*		  2)stop camera stream befor set previewthread status  when taking pic 
+*v0.3.2d: 
+*         1)fix panorama preview error after take picture twice when in uvc camera; because some preview buffer state(displaying)
+*           is invalidate in camera start. the state is preview thread set, but display thread has been pause.
+		  
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x2b) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x2d) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

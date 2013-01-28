@@ -2656,8 +2656,14 @@ int CameraHal::cameraPreviewBufferCreate(unsigned int numBufs)
             break;            
     }
 
-    if ((frame_size == mCamBuffer->getPreviewBufInfo().mPerBuffersize) && 
+    if ((PAGE_ALIGN(frame_size) == mCamBuffer->getPreviewBufInfo().mPerBuffersize) && 
         (numBufs == mCamBuffer->getPreviewBufInfo().mNumBffers)) {
+
+        for (i=0;i<numBufs;i++) {
+            cameraPreviewBufferSetSta(mPreviewBuffer[i],
+                (CMD_PREVIEWBUF_DISPING|CMD_PREVIEWBUF_WRITING|CMD_PREVIEWBUF_ENCING),0);
+        }
+        
         goto cameraPreviewBufferCreate_end;
     } else {
         cameraPreviewBufferDestory();
