@@ -1820,6 +1820,8 @@ previewThread_cmd:
         
         if (mPreviewRunning == STA_PREVIEW_RUN) {
 
+            mPreviewLock.unlock();
+
             mCamDriverStreamLock.lock();
             if (mCamDriverStream == false) {
                 mCamDriverStreamLock.unlock();    
@@ -1832,7 +1834,7 @@ previewThread_cmd:
             cfilledbuffer1.reserved = NULL;
             
             /* De-queue the next avaliable buffer */            
-            mPreviewLock.unlock();
+            
             if (CAMERA_IS_UVC_CAMERA()) {
                 if (mPreviewFrameIndex==0) {
                     for (i=0; i<CONFIG_CAMERA_UVC_INVAL_FRAMECNT; i++) {
@@ -3315,7 +3317,6 @@ int CameraHal::cameraStream(bool on)
         goto cameraStream_end;
     }
     mCamDriverStream = on;
-    mCamDriverStreamLock.unlock();
 
 cameraStream_end:
 	mCamDriverStreamLock.unlock();

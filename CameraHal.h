@@ -189,9 +189,12 @@ namespace android {
 *v0.3.2d: 
 *         1)fix panorama preview error after take picture twice when in uvc camera; because some preview buffer state(displaying)
 *           is invalidate in camera start. the state is preview thread set, but display thread has been pause.
-		  
+*         2)fix mCamDriverStreamLock isn't unlock when streamoff error in cameraStream function;
+*v0.3.2f:
+*         1)fix preview thread and command thread may dead lock in mPreviewLock when fast take picture frequently;
+*
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x2d) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x2f) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
