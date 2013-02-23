@@ -192,9 +192,10 @@ namespace android {
 *         2)fix mCamDriverStreamLock isn't unlock when streamoff error in cameraStream function;
 *v0.3.2f:
 *         1)fix preview thread and command thread may dead lock in mPreviewLock when fast take picture frequently;
-*
+*v0.3.31:
+*         1)fix testFocusAreas faild in CTS;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x2f) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x31) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

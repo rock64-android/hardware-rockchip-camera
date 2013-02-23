@@ -4281,6 +4281,46 @@ int CameraHal::setParameters(const CameraParameters &params_set)
         return BAD_VALUE;
     }
 
+
+    if (params.getInt(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS) == 1) {
+        //parse zone,
+        int lx,ty,rx,dy,w,areas_num;
+        const char* zoneStr = params.get(CameraParameters::KEY_FOCUS_AREAS);
+        const char *zone = zoneStr;
+
+        areas_num = 0;
+        for (w=0; w<strlen(zoneStr); w++) {
+            if (*zone++ == '(')
+                areas_num++;                
+        }
+
+        if (areas_num > 1) {
+            LOGE("%s(%d): Focus areas number(%d) is invalidate",__FUNCTION__,__LINE__, areas_num);
+            return BAD_VALUE;
+        }
+        
+        if(zoneStr){            
+            lx = strtol(zoneStr+1,0,0);           //get lx 
+            char* tys = strstr(zoneStr,",");     //get ty
+            ty = strtol(tys+1,0,0);            
+            char* rxs = strstr(tys+1,",");       //get rx
+            rx = strtol(rxs+1,0,0);            
+            char* dys = strstr(rxs+1,",");       //get dy
+            dy = strtol(dys+1,0,0);
+            char* ws = strstr(dys+1,",");
+            w = strtol(ws+1,0,0);
+            
+            if ((!lx && !ty && !rx && !dy && !w) == false ) {            
+                if ((lx < -1000) || (ty < -1000) || (rx>1000) || (dy>1000)
+                    || (w<1) || (w>1000) || (lx>=rx) || (ty>=dy)) {                    
+
+                    LOGE("%s(%d): Focus areas(%s) is invalidate",__FUNCTION__,__LINE__,zoneStr);
+                    return  BAD_VALUE;
+                }
+            }
+        }
+	}
+
     if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),params.getPreviewFormat())) {
         
         /* ddl@rock-chips.com : CameraHal_SupportFmt[0] : V4L2_PIX_FMT_NV12 OR V4L2_PIX_FMT_YUV420(rk29xx_camera 0.0.1) */
