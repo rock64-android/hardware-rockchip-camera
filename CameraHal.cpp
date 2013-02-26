@@ -4288,18 +4288,18 @@ int CameraHal::setParameters(const CameraParameters &params_set)
         const char* zoneStr = params.get(CameraParameters::KEY_FOCUS_AREAS);
         const char *zone = zoneStr;
 
-        areas_num = 0;
-        for (w=0; w<strlen(zoneStr); w++) {
-            if (*zone++ == '(')
-                areas_num++;                
-        }
+        if (zoneStr) {
+            areas_num = 0;
+            for (w=0; w<strlen(zoneStr); w++) {
+                if (*zone++ == '(')
+                    areas_num++;                
+            }
 
-        if (areas_num > 1) {
-            LOGE("%s(%d): Focus areas number(%d) is invalidate",__FUNCTION__,__LINE__, areas_num);
-            return BAD_VALUE;
-        }
-        
-        if(zoneStr){            
+            if (areas_num > 1) {
+                LOGE("%s(%d): Focus areas number(%d) is invalidate",__FUNCTION__,__LINE__, areas_num);
+                return BAD_VALUE;
+            }          
+                     
             lx = strtol(zoneStr+1,0,0);           //get lx 
             char* tys = strstr(zoneStr,",");     //get ty
             ty = strtol(tys+1,0,0);            

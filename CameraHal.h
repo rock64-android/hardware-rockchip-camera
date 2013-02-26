@@ -194,8 +194,10 @@ namespace android {
 *         1)fix preview thread and command thread may dead lock in mPreviewLock when fast take picture frequently;
 *v0.3.31:
 *         1)fix testFocusAreas faild in CTS;
+*v0.3.33:
+*         1)fix v0.3.33 version zoneStr haven't check is NULL;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x31) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x33) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
