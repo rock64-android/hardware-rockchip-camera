@@ -10,7 +10,7 @@ LOCAL_SRC_FILES:=\
 	CameraHal.cpp\
 	CameraHal_Utils.cpp\
 	MessageQueue.cpp\
-	CameraHal_Mem.cpp
+	CameraHal_Mem.cpp\
   
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)	 
 LOCAL_C_INCLUDES += \

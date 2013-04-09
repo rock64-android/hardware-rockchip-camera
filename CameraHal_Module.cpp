@@ -27,8 +27,8 @@
 #include <binder/IPCThreadState.h>
 #include "CameraHal.h"
 #include "CameraHal_Module.h"
-
-
+#include "CameraHal_MediaProfile.cpp"
+#include <time.h>
 
 rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 static android::CameraHal* gCameraHals[CAMERAS_SUPPORT_MAX];
@@ -600,7 +600,15 @@ int camera_get_number_of_cameras(void)
     char version[PROPERTY_VALUE_MAX];
     char property[PROPERTY_VALUE_MAX];
     int hwrotation = 0;
-    
+
+	//oyyf@rock-chips.com:  modify /data/media_profiles.xml
+	struct timeval t0, t1;
+    ::gettimeofday(&t0, NULL);
+	media_profiles_xml_control();
+	::gettimeofday(&t1, NULL);
+	LOGD("meida_profiles_xml_control time (%ld)us\n", (t1.tv_sec*1000000 + t1.tv_usec) - (t0.tv_sec*1000000 + t0.tv_usec));
+
+	
     if (gCamerasNumber > 0)
         goto camera_get_number_of_cameras_end;
     

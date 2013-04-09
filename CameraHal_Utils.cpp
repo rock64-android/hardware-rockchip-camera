@@ -477,7 +477,7 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     }
     mPictureLock.unlock();
 
-    err = cameraSetSize(jpeg_w, jpeg_h, picture_format);
+    err = cameraSetSize(jpeg_w, jpeg_h, picture_format,true);
     if (err < 0) {
 		LOGE ("CapturePicture failed to set VIDIOC_S_FMT.");
 		goto exit;
@@ -599,7 +599,10 @@ capturePicture_streamoff:
     mPictureLock.unlock();
     
     cameraFormatConvert(picture_format, mCamDriverPictureFmt, NULL,
-        (char*)camDriverV4l2Buffer,(char*)(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, jpeg_w, jpeg_h,jpeg_w, jpeg_h,false);
+        (char*)camDriverV4l2Buffer,(char*)(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, 
+        jpeg_w, jpeg_h,jpeg_w,
+        jpeg_w, jpeg_h,jpeg_w,
+        false);
 
     if (mCamDriverV4l2MemType == V4L2_MEMORY_MMAP) {
         if (camDriverV4l2Buffer != NULL) {
@@ -640,47 +643,30 @@ capturePicture_streamoff:
     copyAndSendRawImage((void*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), pictureSize);
 
     JpegInInfo.frameHeader = 1;
-    if(access(CAMERA_IPP_NAME, O_RDWR) < 0) {
-    	JpegInInfo.rotateDegree = DEGREE_0;
-    	if ((rotation != 0) && (rotation != 180)) {
-			int src_base = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
-			YUV420_rotate((unsigned char*)src_base ,jpeg_w, (unsigned char*)src_base+jpeg_w*jpeg_h,
-                   (unsigned char*)src_base+pictureSize, jpeg_h,(unsigned char*)src_base+pictureSize+jpeg_w*jpeg_h,jpeg_w, jpeg_h,rotation);
-			mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
-    		capture->input_phy_addr += pictureSize;
-			capture->input_vir_addr += pictureSize;
-			}
-     }else{
-    	    if ((rotation == 0) || (rotation == 180)) {
-    	        JpegInInfo.rotateDegree = DEGREE_0;        
-    	    } else if (rotation == 90) {
-    	        if(jpeg_w %16 != 0 || jpeg_h %16 != 0){
-    				YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
-    						(char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w, jpeg_h);
-    	            mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
-    				JpegInInfo.rotateDegree = DEGREE_270;
-    			}else{
-    				JpegInInfo.rotateDegree = DEGREE_90;
-    			}
-    	    } else if (rotation == 270) {
-    	        JpegInInfo.rotateDegree = DEGREE_270; 
-    	    }
-     	}
+    
+    if ((rotation == 0) || (rotation == 180)) {
+        JpegInInfo.rotateDegree = DEGREE_0;        
+    } else if (rotation == 90) {
+        if(jpeg_w %16 != 0 || jpeg_h %16 != 0){
+			YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
+					(char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w, jpeg_h);
+            mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
+			JpegInInfo.rotateDegree = DEGREE_270;
+		}else{
+			JpegInInfo.rotateDegree = DEGREE_90;
+		}
+    } else if (rotation == 270) {
+        JpegInInfo.rotateDegree = DEGREE_270; 
+    }
 
     JpegInInfo.yuvaddrfor180 = NULL;
     JpegInInfo.type = encodetype;
 	JpegInInfo.y_rgb_addr = capture->input_phy_addr;
 	JpegInInfo.uv_addr = capture->input_phy_addr + jpeg_w*jpeg_h;
-	if ((rotation == 0) || (rotation == 180)) {
+/* ddl@rock-chips.con : v0.4.1 fix rk2928 rotate 90 and 270 */
     JpegInInfo.inputW = jpeg_w;
     JpegInInfo.inputH = jpeg_h;
-	}else if(access(CAMERA_IPP_NAME, O_RDWR) < 0){
-    JpegInInfo.inputW = jpeg_h;
-    JpegInInfo.inputH = jpeg_w;
-	}else{
-	JpegInInfo.inputW = jpeg_w;
-    JpegInInfo.inputH = jpeg_h;
-	}
+    
     JpegInInfo.qLvl = quality/10;
     if (JpegInInfo.qLvl < 5) {
         JpegInInfo.qLvl = 5;
@@ -747,13 +733,12 @@ capturePicture_streamoff:
     }
 
 exit:   
-		if(err < 0)
-			{
-				LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
-		    if (mNotifyCb && (mMsgEnabled & CAMERA_MSG_ERROR)) {                        
-             mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
+    if(err < 0) {
+        LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
+        if (mNotifyCb && (mMsgEnabled & CAMERA_MSG_ERROR)) {                        
+            mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
         }
-			}
+    }
     return err;
 }
 
@@ -814,7 +799,10 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
 		}
     if (mCamDriverPreviewFmt != mCamDriverPictureFmt) {
         cameraFormatConvert(mCamDriverPreviewFmt, mCamDriverPictureFmt, NULL,
-            (char*)capture->input_vir_addr,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, jpeg_w, jpeg_h, jpeg_w, jpeg_h,false);
+            (char*)capture->input_vir_addr,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, 
+            jpeg_w, jpeg_h,jpeg_w, 
+            jpeg_w, jpeg_h,jpeg_w,
+            false);
         capture->input_phy_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy);
         capture->input_vir_addr = (int)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
     }
@@ -828,41 +816,22 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     copyAndSendRawImage((void*)capture->input_vir_addr, pictureSize);
 
     JpegInInfo.frameHeader = 1;
-    if(access(CAMERA_IPP_NAME, O_RDWR) < 0) {
-    	JpegInInfo.rotateDegree = DEGREE_0;
-    	if ((rotation != 0) && (rotation != 180)) {
-			int src_base = capture->input_vir_addr;
-			int dst_base = (int)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
-            YUV420_rotate((unsigned char*)src_base ,jpeg_w, (unsigned char*)src_base+jpeg_w*jpeg_h,
-                   (unsigned char*)dst_base, jpeg_h,(unsigned char*)dst_base+jpeg_w*jpeg_h,jpeg_w, jpeg_h,rotation);
-            mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
-			capture->input_phy_addr = (int)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy);
-			capture->input_vir_addr = (int)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);	
-		}
-     }else{
-    	    if ((rotation == 0) || (rotation == 180)) {
-    	        JpegInInfo.rotateDegree = DEGREE_0;        
-    	    } else if (rotation == 90) {
-    	        JpegInInfo.rotateDegree = DEGREE_90;
-    	    } else if (rotation == 270) {
-    	        JpegInInfo.rotateDegree = DEGREE_270; 
-    	    }
-     	}
+    
+    if ((rotation == 0) || (rotation == 180)) {
+        JpegInInfo.rotateDegree = DEGREE_0;        
+    } else if (rotation == 90) {
+        JpegInInfo.rotateDegree = DEGREE_90;
+    } else if (rotation == 270) {
+        JpegInInfo.rotateDegree = DEGREE_270; 
+    }
     JpegInInfo.yuvaddrfor180 = NULL;
 
     JpegInInfo.type = encodetype;
     JpegInInfo.y_rgb_addr = capture->input_phy_addr;
-    JpegInInfo.uv_addr = capture->input_phy_addr + jpeg_w*jpeg_h;
-    if ((rotation == 0) || (rotation == 180)) {
+    JpegInInfo.uv_addr = capture->input_phy_addr + jpeg_w*jpeg_h;    
     JpegInInfo.inputW = jpeg_w;
     JpegInInfo.inputH = jpeg_h;
-    }else if(access(CAMERA_IPP_NAME, O_RDWR) < 0){
-    JpegInInfo.inputW = jpeg_h;
-    JpegInInfo.inputH = jpeg_w;
-    }else{
-	JpegInInfo.inputW = jpeg_w;
-    JpegInInfo.inputH = jpeg_h;
-	}
+    
 	JpegInInfo.qLvl = quality/10;
     if (JpegInInfo.qLvl < 5) {
         JpegInInfo.qLvl = 5;
@@ -907,7 +876,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     JpegOutInfo.outBuflen = capture->output_buflen;
     JpegOutInfo.jpegFileLen = 0x00;
     JpegOutInfo.cacheflush= &capturePicture_cacheflush;
-    	
+    
     err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
 
     cameraPreviewBufferSetSta(mPreviewBufferMap[index], CMD_PREVIEWBUF_SNAPSHOT_ENCING, 0);    
@@ -929,13 +898,12 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
         copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);       
     }
 exit:  
-			if(err < 0)
-			{
-				LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
-		    if (mNotifyCb && (mMsgEnabled & CAMERA_MSG_ERROR)) {                        
-             mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
+    if(err < 0) {
+        LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
+        if (mNotifyCb && (mMsgEnabled & CAMERA_MSG_ERROR)) {                        
+            mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
         }
-			} 
+    } 
 return err;
 
 }

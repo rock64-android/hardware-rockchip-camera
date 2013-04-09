@@ -46,8 +46,9 @@
 #include <camera/Camera.h>
 #include <hardware/camera.h>
 #include <camera/CameraParameters.h>
-
-
+#if defined(TARGET_RK29)
+#include <linux/android_pmem.h>
+#endif
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
 
@@ -196,8 +197,14 @@ namespace android {
 *         1)fix testFocusAreas faild in CTS;
 *v0.3.33:
 *         1)fix v0.3.33 version zoneStr haven't check is NULL;
+*
+*v0.4.1 :
+*         1)compatible with generic_sensor driver;
+*         2)support auto create media_profiles.xml;
+*         3)fix take picture encode error if rotate 90 or 270 in rk2928;
+*         4)fix fill data to display buffer ignore stride, rk3066b display 176x144 error;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 3, 0x33) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x1) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -303,6 +310,7 @@ typedef struct rk_previewbuf_info {
     int phy_addr;
     int vir_addr;
     int buf_state;
+    int stride;
 } rk_previewbuf_info_t;
 
 enum PreviewBufStatus {
@@ -612,7 +620,7 @@ private:
     int cameraDestroy();
     int cameraConfig(const CameraParameters &params);
     int cameraQuery(CameraParameters &params);
-    int cameraSetSize(int w, int h,  int fmt);
+    int cameraSetSize(int w, int h, int fmt, bool is_capture);
     int cameraStart();
     int cameraStop();
     int cameraStream(bool on);
@@ -624,8 +632,11 @@ private:
         
     int cameraRawJpegBufferCreate(int rawBufferSize, int jpegBufferSize);
     int cameraRawJpegBufferDestory();
-    int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, char *srcbuf, char *dstbuf, 
-                            int srcphy,int dstphy,int src_w, int src_h,int dst_w, int dst_h, bool mirror);
+    int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, 
+                            char *srcbuf, char *dstbuf,int srcphy,int dstphy,
+                            int src_w, int src_h, int srcbuf_w,
+                            int dst_w, int dst_h, int dstbuf_w,
+                            bool mirror);
      int cameraDisplayBufferCreate(int width, int height, const char *fmt,int numBufs);
      int cameraDisplayBufferDestory(void);
      int cameraPreviewBufferCreate(unsigned int numBufs);
