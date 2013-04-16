@@ -206,6 +206,7 @@ static int rga_nv12torgb565(int fd,int width, int height, char *src, short int *
     Rga_Request.rotate_mode = 0;
     Rga_Request.mmu_info.mmu_en    = 1;
     Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1;
+    Rga_Request.alpha_rop_flag |= (1 << 5);             /* ddl@rock-chips.com: v0.4.3 */
     
     if(ioctl(fd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
         LOGE("%s(%d):  RGA_BLIT_ASYNC Failed", __FUNCTION__, __LINE__);

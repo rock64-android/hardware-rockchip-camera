@@ -203,8 +203,10 @@ namespace android {
 *         2)support auto create media_profiles.xml;
 *         3)fix take picture encode error if rotate 90 or 270 in rk2928;
 *         4)fix fill data to display buffer ignore stride, rk3066b display 176x144 error;
+*v0.4.3:
+*         1)fix convert nv12 to rgb565 by rga must set alpha_rop_flag bit;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x1) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x3) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
