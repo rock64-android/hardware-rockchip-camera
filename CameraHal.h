@@ -205,8 +205,11 @@ namespace android {
 *         4)fix fill data to display buffer ignore stride, rk3066b display 176x144 error;
 *v0.4.3:
 *         1)fix convert nv12 to rgb565 by rga must set alpha_rop_flag bit;
+*
+*v0.4.5:
+*         1)fix setParameters dead lock in mlock for camera service, because picture thread run in mDataCb;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x3) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x5) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -627,8 +630,8 @@ private:
     int cameraStop();
     int cameraStream(bool on);
 	int cameraAutoFocus(const char *focus, bool auto_trig_only);
-    int Jpegfillgpsinfo(RkGPSInfo *gpsInfo);
-    int Jpegfillexifinfo(RkExifInfo *exifInfo);
+    int Jpegfillgpsinfo(RkGPSInfo *gpsInfo,CameraParameters &params);
+    int Jpegfillexifinfo(RkExifInfo *exifInfo,CameraParameters &params);
     int copyAndSendRawImage(void *raw_image, int size);
     int copyAndSendCompressedImage(void *compressed_image, int size);
         
@@ -654,6 +657,10 @@ private:
     int cameraPreviewThreadSet(unsigned int setStatus,int done);
 
 	int cameraSetFaceDetect(bool window,bool on);   
+
+    int cameraParametersGet(CameraParameters &params);
+    int cameraParametersSet(CameraParameters &params);
+    
     char *cameraDevicePathCur;    
     char cameraCallProcess[30];
     struct v4l2_capability mCamDriverCapability;
@@ -667,6 +674,7 @@ private:
     unsigned int mCamDriverV4l2BufferLen;
 
     mutable Mutex mLock;        // API lock -- all public methods
+    mutable Mutex mParametersLock;         /* ddl@rock-chips.com: v0.4.5 */
     CameraParameters mParameters;
     Mutex mANativeWindowLock;
     Condition mANativeWindowCond;

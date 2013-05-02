@@ -146,7 +146,7 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
   return 0;
  }
 /*fill in jpeg gps information*/  
-int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo)
+int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo,CameraParameters &params)
 {
 	char* gpsprocessmethod = NULL;
     double latitude,longtitude,altitude;
@@ -165,7 +165,7 @@ int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo)
     latitude = mGps_latitude;
     longtitude = mGps_longitude;
     timestamp = mGps_timestamp; 
-    gpsprocessmethod = (char*)mParameters.get(CameraParameters::KEY_GPS_PROCESSING_METHOD);
+    gpsprocessmethod = (char*)params.get(CameraParameters::KEY_GPS_PROCESSING_METHOD);
     
     if(latitude >= 0){
     	gpsInfo->GPSLatitudeRef[0] = 'N';
@@ -253,7 +253,7 @@ int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo)
 }
 
 
-int CameraHal::Jpegfillexifinfo(RkExifInfo *exifInfo)
+int CameraHal::Jpegfillexifinfo(RkExifInfo *exifInfo,CameraParameters &params)
 {
     char property[PROPERTY_VALUE_MAX];
     int jpeg_w,jpeg_h;
@@ -265,8 +265,8 @@ int CameraHal::Jpegfillexifinfo(RkExifInfo *exifInfo)
     }
 
     /*get some current relavant  parameters*/
-    mParameters.getPictureSize(&jpeg_w, &jpeg_h);
-    focalen = strtol(mParameters.get(CameraParameters::KEY_FOCAL_LENGTH),0,0);
+    params.getPictureSize(&jpeg_w, &jpeg_h);
+    focalen = strtol(params.get(CameraParameters::KEY_FOCAL_LENGTH),0,0);
     
     /*fill in jpeg exif tag*/  
     property_get("ro.product.brand", property, EXIF_DEF_MAKER);
@@ -307,8 +307,8 @@ int CameraHal::Jpegfillexifinfo(RkExifInfo *exifInfo)
 	exifInfo->MaxApertureValue.denom = 0x100;
 	exifInfo->MeteringMode = 02;
 
-    if (mParameters.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES)) {
-        if (!strcmp(CameraParameters::FLASH_MODE_OFF, mParameters.get(CameraParameters::KEY_FLASH_MODE))) {
+    if (params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES)) {
+        if (!strcmp(CameraParameters::FLASH_MODE_OFF, params.get(CameraParameters::KEY_FLASH_MODE))) {
 	        exifInfo->Flash = 0;
         } else {
             exifInfo->Flash = 0;
@@ -328,8 +328,8 @@ int CameraHal::Jpegfillexifinfo(RkExifInfo *exifInfo)
 	exifInfo->FileSource = 3;
 	exifInfo->CustomRendered = 1;
 	exifInfo->ExposureMode = 0;
-    if (mParameters.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE)) {
-        if (!strcmp(CameraParameters::WHITE_BALANCE_AUTO, mParameters.get(CameraParameters::KEY_WHITE_BALANCE))) {
+    if (params.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE)) {
+        if (!strcmp(CameraParameters::WHITE_BALANCE_AUTO, params.get(CameraParameters::KEY_WHITE_BALANCE))) {
 	        exifInfo->WhiteBalance = 0;
         } else {
             exifInfo->WhiteBalance = 1;
@@ -415,20 +415,22 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     bool driver_mirror_fail = false;
     struct v4l2_control control;
     JpegEncType encodetype;
-    
+    CameraParameters params;
+
+    cameraParametersGet(params);             /* ddl@rock-chips.com: v0.4.5 */      
      /*get jpeg and thumbnail information*/
-    mParameters.getPictureSize(&jpeg_w, &jpeg_h);                
-    quality = mParameters.getInt("jpeg-quality");
-    rotation = strtol(mParameters.get(CameraParameters::KEY_ROTATION),0,0);
-    thumbquality = strtol(mParameters.get(CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY),0,0);
-    thumbwidth = strtol(mParameters.get(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH),0,0);
-    thumbheight = strtol(mParameters.get(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT),0,0);
+    params.getPictureSize(&jpeg_w, &jpeg_h);                
+    quality = params.getInt("jpeg-quality");
+    rotation = strtol(params.get(CameraParameters::KEY_ROTATION),0,0);
+    thumbquality = strtol(params.get(CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY),0,0);
+    thumbwidth = strtol(params.get(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH),0,0);
+    thumbheight = strtol(params.get(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT),0,0);
     /*get gps information*/
     altitude = mGps_altitude;
     latitude = mGps_latitude;
     longtitude = mGps_longitude;
     timestamp = mGps_timestamp;    
-    getMethod = (char*)mParameters.get(CameraParameters::KEY_GPS_PROCESSING_METHOD);//getMethod : len <= 32
+    getMethod = (char*)params.get(CameraParameters::KEY_GPS_PROCESSING_METHOD);//getMethod : len <= 32
     if (pictureSize & 0xfff) {
         pictureSize = (pictureSize & 0xfffff000) + 0x1000;
     }
@@ -692,10 +694,10 @@ capturePicture_streamoff:
         JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension   
     }
     
-    Jpegfillexifinfo(&exifInfo);
+    Jpegfillexifinfo(&exifInfo,params);
     JpegInInfo.exifInfo =&exifInfo;
     if((longtitude!=-1)&& (latitude!=-1)&&(timestamp!=-1)&&(getMethod!=NULL)) {    
-        Jpegfillgpsinfo(&gpsInfo);  
+        Jpegfillgpsinfo(&gpsInfo,params);  
         memset(gpsprocessmethod,0,45);   
         memcpy(gpsprocessmethod,ExifAsciiPrefix,8);   
         memcpy(gpsprocessmethod+8,getMethod,strlen(getMethod)+1);          
@@ -768,22 +770,26 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     bool driver_mirror_fail = false;
     struct Message msg;
 	JpegEncType encodetype;
+    CameraParameters params;
+
+    cameraParametersGet(params); 
+    
     if (mMsgEnabled & CAMERA_MSG_SHUTTER)
         mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
     
      /*get jpeg and thumbnail information*/
-    mParameters.getPreviewSize(&jpeg_w, &jpeg_h); 
-    quality = mParameters.getInt("jpeg-quality");
-    rotation = strtol(mParameters.get(CameraParameters::KEY_ROTATION),0,0);
-    thumbquality = strtol(mParameters.get(CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY),0,0);
-    thumbwidth = strtol(mParameters.get(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH),0,0);
-    thumbheight = strtol(mParameters.get(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT),0,0);
+    params.getPreviewSize(&jpeg_w, &jpeg_h); 
+    quality = params.getInt("jpeg-quality");
+    rotation = strtol(params.get(CameraParameters::KEY_ROTATION),0,0);
+    thumbquality = strtol(params.get(CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY),0,0);
+    thumbwidth = strtol(params.get(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH),0,0);
+    thumbheight = strtol(params.get(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT),0,0);
     /*get gps information*/
     altitude = mGps_altitude;
     latitude = mGps_latitude;
     longtitude = mGps_longitude;
     timestamp = mGps_timestamp;    
-    getMethod = (char*)mParameters.get(CameraParameters::KEY_GPS_PROCESSING_METHOD);//getMethod : len <= 32
+    getMethod = (char*)params.get(CameraParameters::KEY_GPS_PROCESSING_METHOD);//getMethod : len <= 32
 	
 	cachMem = this->mCamBuffer;
     if (pictureSize & 0xfff) {
@@ -856,10 +862,10 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
         JpegInInfo.doThumbNail = 0;          //insert thumbnail at APP0 extension   
     }
     
-    Jpegfillexifinfo(&exifInfo);
+    Jpegfillexifinfo(&exifInfo,params);
     JpegInInfo.exifInfo =&exifInfo;
     if((longtitude!=-1)&& (latitude!=-1)&&(timestamp!=-1)&&(getMethod!=NULL)) {    
-        Jpegfillgpsinfo(&gpsInfo);  
+        Jpegfillgpsinfo(&gpsInfo,params);  
         memset(gpsprocessmethod,0,45);   
         memcpy(gpsprocessmethod,ExifAsciiPrefix,8);   
         memcpy(gpsprocessmethod+8,getMethod,strlen(getMethod)+1);          

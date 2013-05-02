@@ -316,6 +316,7 @@ CameraHal::CameraHal(int cameraId)
             mDisplayRuning(STA_DISPLAY_PAUSE),
             mDisplayLock(),
             mDisplayCond(),
+            mParametersLock(),
             mCamDriverStream(false),
             mCamDriverStreamLock(),
             mANativeWindowLock(),
@@ -3206,7 +3207,8 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 	    }
 	}    
     
-    mParameters = params;
+    cameraParametersSet(params);       /* ddl@rock-chips.com: v0.4.5 */
+    
     mParameters.getPreviewSize(&mPreviewFrame2AppWidth, &mPreviewFrame2AppHeight); 
     if (strcmp(cameraCallProcess,"com.android.facelock")==0) {        
         if ((mPreviewFrame2AppWidth==160) && (mPreviewFrame2AppHeight==120)) {
@@ -4235,6 +4237,22 @@ int CameraHal::cancelPicture()
     return 0;
 }
 
+int CameraHal::cameraParametersGet(CameraParameters & params)
+{
+    mParametersLock.lock();
+    params = mParameters;
+    mParametersLock.unlock();
+    return 0;
+}
+
+int CameraHal::cameraParametersSet(CameraParameters & params)
+{
+    mParametersLock.lock();
+    mParameters = params;
+    mParametersLock.unlock();
+    return 0;
+}
+
 int CameraHal::setParameters(const char* parameters)
 {
     CameraParameters params;
@@ -4258,15 +4276,6 @@ int CameraHal::setParameters(const CameraParameters &params_set)
     Mutex::Autolock lock(mLock);
 
     params = params_set;
-    
-    mPictureLock.lock();
-    if (mPictureRunning != STA_PICTURE_STOP) {
-        mPictureLock.unlock();
-        LOG1("%s(%d):  capture in progress, wait for finish...",__FUNCTION__,__LINE__);        
-        mPictureThread->requestExitAndWait();
-        LOG1("%s(%d):  capture finish, setParameters go!!",__FUNCTION__,__LINE__);
-    }
-    mPictureLock.unlock();
 
     if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES), params.get(CameraParameters::KEY_PREVIEW_SIZE)) == NULL) {
         if (strcmp(params.get(CameraParameters::KEY_PREVIEW_SIZE),"240x160")==0) {
