@@ -208,8 +208,11 @@ namespace android {
 *
 *v0.4.5:
 *         1)fix setParameters dead lock in mlock for camera service, because picture thread run in mDataCb;
+*v0.4.7:
+*         1)fix snapshot error when recording for uvc camera;
+*         2)pause display thread when pause preview thread;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x5) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x7) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

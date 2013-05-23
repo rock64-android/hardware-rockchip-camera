@@ -2131,12 +2131,12 @@ get_command:
 					while (NULL == mANativeWindow && (mPreviewCmdReceived == true)){
 						LOGD("%s(%d):ANativeWindow is NULL , lock and wait ...",__FUNCTION__,__LINE__);
 						mANativeWindowCond.wait(mANativeWindowLock);
-					}
-						
-					mANativeWindowLock.unlock();
+                    }
+				    		
+                    mANativeWindowLock.unlock();
                     if(mPreviewCmdReceived == false)
-						goto PREVIEW_START_OUT;
-					} 
+                        goto PREVIEW_START_OUT;
+                } 
                            
                 err = 0;                
                 cameraDisplayThreadStart(true);              
@@ -2171,8 +2171,8 @@ PREVIEW_START_OUT:
             {
                 LOGD("%s(%d): receive CMD_PREVIEW_STOP,  mPreviewRunning(%d) mDisplayRuning(%d)", __FUNCTION__,__LINE__,mPreviewRunning,mDisplayRuning);
 
-                if (mPreviewRunning  == STA_PREVIEW_RUN)
-                    cameraDisplayThreadPause(true);                    
+                //if (mPreviewRunning  == STA_PREVIEW_RUN) /* ddl@rock-chips.com: v0.4.7 */
+                cameraDisplayThreadPause(true);                    
                 if( mPreviewRunning  == STA_PREVIEW_RUN) {
 					cameraStream(false);
                 	if(cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true) < 0){
@@ -4227,7 +4227,8 @@ int CameraHal::cancelPicture()
     Mutex::Autolock lock(mLock);
 
     mPictureLock.lock();
-    mPictureRunning = STA_PICTURE_WAIT_STOP;
+    if (mPictureRunning == STA_PICTURE_RUN)         /* ddl@rock-chips.com: v0.4.7 */
+        mPictureRunning = STA_PICTURE_WAIT_STOP;
     mPictureLock.unlock();
 	if(mPictureThread != NULL) 
 		mPictureThread->requestExitAndWait();
