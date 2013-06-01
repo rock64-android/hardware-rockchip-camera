@@ -767,7 +767,6 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     char *getMethod = NULL;
     double latitude,longtitude,altitude;
     long timestamp;
-    bool driver_mirror_fail = false;
     struct Message msg;
 	JpegEncType encodetype;
     CameraParameters params;
@@ -823,25 +822,27 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
         capture->input_phy_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy);
         capture->input_vir_addr = (int)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
     }
-    
-    if (rotation == 180) {
-        if (driver_mirror_fail == true) {
-            YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)capture->input_vir_addr, (char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w,jpeg_h);  
-        }
-    }
-
     copyAndSendRawImage((void*)capture->input_vir_addr, pictureSize);
 
     JpegInInfo.frameHeader = 1;
-    
-    if ((rotation == 0) || (rotation == 180)) {
-        JpegInInfo.rotateDegree = DEGREE_0;        
-    } else if (rotation == 90) {
+	JpegInInfo.yuvaddrfor180 = NULL;
+    if ((rotation == 0) ){
+	JpegInInfo.rotateDegree = DEGREE_0;    
+    }else if((rotation == 180)) {
+        JpegInInfo.rotateDegree = DEGREE_180; 
+	
+		if (mCamDriverPreviewFmt != mCamDriverPictureFmt) {
+			JpegInInfo.yuvaddrfor180 = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy)+pictureSize;
+	}else{
+		JpegInInfo.yuvaddrfor180 = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy);
+	}
+    } else if(rotation == 180){
+	JpegInInfo.rotateDegree = DEGREE_180;
+    }else if (rotation == 90) {
         JpegInInfo.rotateDegree = DEGREE_90;
     } else if (rotation == 270) {
         JpegInInfo.rotateDegree = DEGREE_270; 
     }
-    JpegInInfo.yuvaddrfor180 = NULL;
 
     JpegInInfo.type = encodetype;
     JpegInInfo.y_rgb_addr = capture->input_phy_addr;

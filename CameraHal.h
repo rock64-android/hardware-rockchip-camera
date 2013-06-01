@@ -211,8 +211,11 @@ namespace android {
 *v0.4.7:
 *         1)fix snapshot error when recording for uvc camera;
 *         2)pause display thread when pause preview thread;
+*v0.4.9:
+		  1)fix video snapshot orientation erro of 180 degree
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x7) 
+
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x9) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -759,6 +762,7 @@ private:
 
     struct v4l2_querymenu mFlashMode_menu[20];
     int mFlashMode_number;
+
 
     double mGps_latitude;
     double mGps_longitude;
