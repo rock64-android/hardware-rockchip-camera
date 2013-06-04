@@ -619,6 +619,7 @@ void CameraHal::initDefaultParameters()
     char str_picturesize[200];//We support at most 4 resolutions: 2592x1944,2048x1536,1600x1200,1024x768 
     int ret,picture_size_bit;
     struct v4l2_format fmt;    
+    bool dot;
     
     LOG_FUNCTION_NAME    
     memset(str_picturesize,0x00,sizeof(str_picturesize));
@@ -945,27 +946,73 @@ void CameraHal::initDefaultParameters()
 	struct v4l2_queryctrl whiteBalance;
 	struct v4l2_querymenu *whiteBalance_menu = mWhiteBalance_menu;
     char str_whitebalance[200];
-	strcpy(str_whitebalance, "");//default whitebalance
-	whiteBalance.id = V4L2_CID_DO_WHITE_BALANCE;
-	if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &whiteBalance)) {
-		for (i = whiteBalance.minimum; i <= whiteBalance.maximum; i += whiteBalance.step) {
-			whiteBalance_menu->id = V4L2_CID_DO_WHITE_BALANCE;
-			whiteBalance_menu->index = i;
-			if (!ioctl(iCamFd, VIDIOC_QUERYMENU, whiteBalance_menu)) {
-                if (i != whiteBalance.minimum)
-                    strcat(str_whitebalance, ",");
-				strcat(str_whitebalance, (char *)whiteBalance_menu->name);
-				if (whiteBalance.default_value == i) {
-					strcpy(cur_param, (char *)whiteBalance_menu->name);
-				}
-				mWhiteBalance_number++;
-			}
-			whiteBalance_menu++;
-		}
-		params.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE, str_whitebalance);
-		params.set(CameraParameters::KEY_WHITE_BALANCE, cur_param);
-	}
+    /* ddl@rock-chips.com: v0.4.9 */
+    memset(str_whitebalance,0x00,sizeof(str_whitebalance));
+    if (CAMERA_IS_RKSOC_CAMERA()) {
+    	strcpy(str_whitebalance, "");//default whitebalance
+    	whiteBalance.id = V4L2_CID_DO_WHITE_BALANCE;
+    	if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &whiteBalance)) {
+    		for (i = whiteBalance.minimum; i <= whiteBalance.maximum; i += whiteBalance.step) {
+    			whiteBalance_menu->id = V4L2_CID_DO_WHITE_BALANCE;
+    			whiteBalance_menu->index = i;
+    			if (!ioctl(iCamFd, VIDIOC_QUERYMENU, whiteBalance_menu)) {
+                    if (i != whiteBalance.minimum)
+                        strcat(str_whitebalance, ",");
+    				strcat(str_whitebalance, (char *)whiteBalance_menu->name);
+    				if (whiteBalance.default_value == i) {
+    					strcpy(cur_param, (char *)whiteBalance_menu->name);
+    				}
+    				mWhiteBalance_number++;
+    			}
+    			whiteBalance_menu++;
+    		}
+    		params.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE, str_whitebalance);
+    		params.set(CameraParameters::KEY_WHITE_BALANCE, cur_param);
+    	}
+    } else if (CAMERA_IS_UVC_CAMERA()){        
+        dot = false;
 
+        whiteBalance.id = V4L2_CID_AUTO_WHITE_BALANCE;
+    	if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &whiteBalance)) {
+            strcat(str_whitebalance, "auto");
+            dot = true;
+    	}
+        
+        whiteBalance.id = V4L2_CID_WHITE_BALANCE_TEMPERATURE;
+    	if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &whiteBalance)) {
+    		if ((whiteBalance.minimum <= 2800) && (2800 <= whiteBalance.maximum)) {
+                if (dot)
+                    strcat(str_whitebalance, ",");
+                strcat(str_whitebalance, "incandescent");
+                dot = true;
+    		}
+
+            if ((whiteBalance.minimum <= 4000) && (4000 <= whiteBalance.maximum)) {
+                if (dot)
+                    strcat(str_whitebalance, ",");
+                strcat(str_whitebalance, "fluorescent");
+                dot = true;
+    		}
+
+            if ((whiteBalance.minimum <= 5500) && (5500 <= whiteBalance.maximum)) {
+                if (dot)
+                    strcat(str_whitebalance, ",");
+                strcat(str_whitebalance, "daylight");
+                dot = true;
+    		}
+
+            if ((whiteBalance.minimum <= 6500) && (6500 <= whiteBalance.maximum)) {
+                if (dot)
+                    strcat(str_whitebalance, ",");
+                strcat(str_whitebalance, "cloudy-daylight");
+                dot = true;
+    		}
+
+            params.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE, str_whitebalance);
+    		params.set(CameraParameters::KEY_WHITE_BALANCE, "auto");
+    	}        
+    }
+    
     /*color effect setting*/
 	struct v4l2_queryctrl effect;
 	struct v4l2_querymenu *effect_menu = mEffect_menu;
@@ -3062,19 +3109,50 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 	const char *mwhite_balance = mParameters.get(CameraParameters::KEY_WHITE_BALANCE);
 	if (params.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE)) {
 		if ( !mwhite_balance || strcmp(white_balance, mwhite_balance) ) {
-			for (i = 0; i < mWhiteBalance_number; i++) {
-				if (!strcmp((char *)mWhiteBalance_menu[i].name, white_balance)) {
-					break;
-				}
-			}
-			control.id = mWhiteBalance_menu[i].id;
-			control.value = mWhiteBalance_menu[i].index;
-			err = ioctl(iCamFd, VIDIOC_S_CTRL, &control);
-			if ( err < 0 ) {
-                LOGE ("%s(%d): Set white balance(%s) failed",__FUNCTION__,__LINE__,white_balance);
-			} else {
-			    LOGD("%s(%d): Set white balance %s ",__FUNCTION__,__LINE__, mWhiteBalance_menu[i].name);
-			}
+            /* ddl@rock-chips.com: v0.4.9 */
+            if (CAMERA_IS_RKSOC_CAMERA()) {
+    			for (i = 0; i < mWhiteBalance_number; i++) {
+    				if (!strcmp((char *)mWhiteBalance_menu[i].name, white_balance)) {
+    					break;
+    				}
+    			}
+    			control.id = mWhiteBalance_menu[i].id;
+    			control.value = mWhiteBalance_menu[i].index;
+    			err = ioctl(iCamFd, VIDIOC_S_CTRL, &control);
+            } else if (CAMERA_IS_UVC_CAMERA()) {
+                control.id = V4L2_CID_AUTO_WHITE_BALANCE;
+                if (strcmp(white_balance,"auto")==0) {                    
+                    control.value = true;                    
+                } else {
+                    control.value = false;
+                    err = ioctl(iCamFd, VIDIOC_S_CTRL, &control);
+                    if (err<0) {
+                        LOGE("%s(%d): turn off auto white balance failed",__FUNCTION__,__LINE__);
+                    }
+                }
+
+                if (strcmp(white_balance,"incandescent")==0) {
+                    control.id = V4L2_CID_WHITE_BALANCE_TEMPERATURE;
+                    control.value = 2800; 
+                } else if (strcmp(white_balance,"fluorescent")==0) {
+                    control.id = V4L2_CID_WHITE_BALANCE_TEMPERATURE;
+                    control.value = 4000; 
+                } else if (strcmp(white_balance,"daylight")==0) {
+                    control.id = V4L2_CID_WHITE_BALANCE_TEMPERATURE;
+                    control.value = 5500; 
+                } else if (strcmp(white_balance,"cloudy-daylight")==0) {
+                    control.id = V4L2_CID_WHITE_BALANCE_TEMPERATURE;
+                    control.value = 6500; 
+                }
+
+                err = ioctl(iCamFd, VIDIOC_S_CTRL, &control);
+            }
+
+            if (err<0) {
+                LOGE("%s(%d): Set white balance(%s) failed",__FUNCTION__,__LINE__,white_balance);
+            } else {                    
+                LOGD("%s(%d): Set white balance(%s) success",__FUNCTION__,__LINE__,white_balance);
+            }
 		}
 	}
 

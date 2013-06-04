@@ -213,6 +213,8 @@ namespace android {
 *         2)pause display thread when pause preview thread;
 *v0.4.9:
 		  1)fix video snapshot orientation erro of 180 degree
+*         2)add support white balance control for uvc camera;
+
 */
 
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x9) 
