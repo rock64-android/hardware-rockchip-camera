@@ -212,12 +212,14 @@ namespace android {
 *         1)fix snapshot error when recording for uvc camera;
 *         2)pause display thread when pause preview thread;
 *v0.4.9:
-		  1)fix video snapshot orientation erro of 180 degree
+*		  1)fix video snapshot orientation erro of 180 degree
 *         2)add support white balance control for uvc camera;
-
+*v0.4.b:
+*         1)fix uvc camera cts pass for 4.2_r4;
+*         2)fix deadlock in testPreviewCallbackWithPicture test;
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x9) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0xb) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

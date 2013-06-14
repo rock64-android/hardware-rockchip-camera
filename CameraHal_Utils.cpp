@@ -566,9 +566,11 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     mPictureLock.unlock();
 
     if (CAMERA_IS_UVC_CAMERA()) {
-        for (i=0; i<CONFIG_CAMERA_UVC_INVAL_FRAMECNT; i++) {
-            ioctl(iCamFd, VIDIOC_DQBUF, &buffer);
-            ioctl(iCamFd, VIDIOC_QBUF, &buffer);
+        if (strcmp(cameraCallProcess,"com.android.cts.stub")) {
+            for (i=0; i<CONFIG_CAMERA_UVC_INVAL_FRAMECNT; i++) {
+                ioctl(iCamFd, VIDIOC_DQBUF, &buffer);
+                ioctl(iCamFd, VIDIOC_QBUF, &buffer);
+            }
         }
     }
 

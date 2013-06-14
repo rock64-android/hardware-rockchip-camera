@@ -1887,10 +1887,12 @@ previewThread_cmd:
             /* De-queue the next avaliable buffer */            
             
             if (CAMERA_IS_UVC_CAMERA()) {
-                if (mPreviewFrameIndex==0) {
-                    for (i=0; i<CONFIG_CAMERA_UVC_INVAL_FRAMECNT; i++) {
+                if (strcmp(cameraCallProcess,"com.android.cts.stub")) {   /* ddl@rock-chips.com: v0.4.b */ 
+                    if (mPreviewFrameIndex==0) {
+                        for (i=0; i<CONFIG_CAMERA_UVC_INVAL_FRAMECNT; i++) {
                         if (ioctl(iCamFd, VIDIOC_DQBUF, &cfilledbuffer1) >= 0) {
-                            ioctl(iCamFd, VIDIOC_QBUF, &cfilledbuffer1);
+                                ioctl(iCamFd, VIDIOC_QBUF, &cfilledbuffer1);
+                            }
                         }
                     }
                 }
@@ -2205,7 +2207,7 @@ get_command:
                 if (CmdAck_Chk(msg)) {
                     msg.arg1 = (void*)(err ? CMDARG_ERR : CMDARG_OK);
                     commandThreadAckQ.put(&msg);
-                }else if(err != 0){
+                } else if(err != 0) {
                     if (mNotifyCb && (mMsgEnabled & CAMERA_MSG_ERROR)) {
                          mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
                      }
@@ -2273,10 +2275,24 @@ PREVIEW_START_OUT:
                     goto PREVIEW_CAPTURE_end;
                 }
                 mPictureLock.unlock();
-								   
+
+PREVIEW_CAPTURE_end:     /* ddl@rock-chips.com: v0.4.b */
+                if (err < 0) {
+                    msg.command = CMD_PREVIEW_CAPTURE;
+                    err = CMDARG_ERR;              
+                } else {
+                    msg.command = CMD_PREVIEW_CAPTURE;
+                    err = CMDARG_OK;                        
+                }
+                LOGD("%s(%d): CMD_PREVIEW_CAPTURE %s", __FUNCTION__,__LINE__, (err == CMDARG_ERR) ? "ERR" : "OK");
+
+                if (CmdAck_Chk(msg)) {
+                    msg.arg1 = (void*)err;
+                    commandThreadAckQ.put(&msg);
+                }
+				
                 if (mPreviewRunning  == STA_PREVIEW_RUN) {
-					cameraStream(false);
-                   // cameraStop();
+					cameraStream(false);                   
 					cameraPreviewThreadSet(CMD_PREVIEW_THREAD_PAUSE,true);
 					cameraStop();
                 }
@@ -2288,19 +2304,6 @@ PREVIEW_START_OUT:
                     mPictureRunning = STA_PICTURE_STOP;
                     mPictureLock.unlock();                   
                     goto PREVIEW_CAPTURE_end;
-                }
-PREVIEW_CAPTURE_end:
-                if (err < 0) {
-                    msg.command = CMD_PREVIEW_CAPTURE;
-                    err = CMDARG_ERR;              
-                } else {
-                    msg.command = CMD_PREVIEW_CAPTURE;
-                    err = CMDARG_OK;                        
-                }
-                LOGD("%s(%d): CMD_PREVIEW_CAPTURE %s", __FUNCTION__,__LINE__, (err == CMDARG_ERR) ? "ERR" : "OK");
-                if (CmdAck_Chk(msg)) {
-                    msg.arg1 = (void*)err;
-                    commandThreadAckQ.put(&msg);
                 }
                 break;
             }
