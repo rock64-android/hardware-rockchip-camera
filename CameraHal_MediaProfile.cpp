@@ -610,21 +610,23 @@ int camera_request_framerate(char* dev_path, int camid, struct xml_video_element
 	struct xml_video_element* element=pst_element;
 	struct xml_video_element* element_tmp;
 	int resolution_index;
-	
+	struct v4l2_format fmt; 
+    unsigned int sensor_resolution_w=0,sensor_resolution_h=0;
+    
     iCamFd = open(dev_path, O_RDWR);
-        
+
     if (iCamFd < 0) {
-         LOGE("%s.%d  Could not open the camera device %s \n", 
-		 	__FUNCTION__,__LINE__,dev_path);
-    	 err = -1;
-         goto exit;
+        LOGE("%s.%d  Could not open the camera device %s \n", 
+        	__FUNCTION__,__LINE__,dev_path);
+        err = -1;
+        goto exit;
     }
 	
     memset(&CamDriverCapability, 0, sizeof(struct v4l2_capability));
     err = ioctl(iCamFd, VIDIOC_QUERYCAP, &CamDriverCapability);
     if (err < 0) {
-       	LOGE("%s.%d  Error opening device unable to query device.\n",__FUNCTION__,__LINE__);
-    	goto exit;
+        LOGE("%s.%d  Error opening device unable to query device.\n",__FUNCTION__,__LINE__);
+        goto exit;
     } 
 
     if (CamDriverCapability.version == RK29_CAM_VERSION_CODE_1) {
@@ -636,46 +638,70 @@ int camera_request_framerate(char* dev_path, int camid, struct xml_video_element
 
 	ver = xml_version_check(&CamDriverCapability);
 	if(ver){
-		i=0;
-	 	for(i=0; i<element_count; i++, element++){
-			width = resolution[i][0];
-			height = resolution[i][1];				
-			memset(&fival, 0, sizeof(fival));
-			fival.index = 0;
-			fival.pixel_format = pix_format_tmp;
-			fival.width = width;
-			fival.height = height;
-			fival.reserved[1] = 0x00;
-			element->n_cameraId = camid;
-			element->n_width = width;
-			element->n_height = height;
-			strcat(element->str_quality, fmt_name[i]); 
-			element->n_frameRate = 0;
-			element->isAddMark = 0;
-			if ((ret = ioctl(iCamFd, VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) {
-				if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {			
-					fps = (fival.discrete.denominator/fival.discrete.numerator);
-					crop_w = (fival.reserved[1]&0xffff0000)>>16;
-					crop_h = (fival.reserved[1]&0xffff);
+        i=0;
 
-				    element->n_frameRate = fps;
+        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        fmt.fmt.pix.pixelformat= pix_format_tmp;
+        fmt.fmt.pix.field = V4L2_FIELD_NONE;
 
-				  	if ((crop_w!= width) || (crop_h != height)) {
-					  	if(width==1280 && height==720 ) {
-							element->isAddMark = 1;
-					  	}
-				  	}
+        /*picture size setting*/
+        fmt.fmt.pix.width = 10000;
+        fmt.fmt.pix.height = 10000;
+        ret = ioctl(iCamFd, VIDIOC_TRY_FMT, &fmt);
 
-				  	if(width==720 && height==480){
-				  		resolution_index = find_resolution_index(640,480);
-						element_tmp = pst_element + resolution_index;
-						element_tmp->isAddMark = 1;
-				  	}
+        sensor_resolution_w = fmt.fmt.pix.width;
+        sensor_resolution_h = fmt.fmt.pix.height;  /* ddl@rock-chips.com: v0.4.e */
+        
+        for(i=0; i<element_count; i++, element++){
+            width = resolution[i][0];
+            height = resolution[i][1];				
+            memset(&fival, 0, sizeof(fival));
+            fival.index = 0;
+            fival.pixel_format = pix_format_tmp;
+            fival.width = width;
+            fival.height = height;
+            fival.reserved[1] = 0x00;
+            element->n_cameraId = camid;
+            element->n_width = width;
+            element->n_height = height;
+            strcat(element->str_quality, fmt_name[i]); 
+            element->n_frameRate = 0;
+            element->isAddMark = 0;
+
+            /* ddl@rock-chips.com: v0.4.e */
+            if ((width>sensor_resolution_w) || (height>sensor_resolution_h)) {
+                element->isAddMark = 1;
+                continue;
+            }
+            
+            if ((ret = ioctl(iCamFd, VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) {
+                if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {			
+                    fps = (fival.discrete.denominator/fival.discrete.numerator);
+                    crop_w = (fival.reserved[1]&0xffff0000)>>16;
+                    crop_h = (fival.reserved[1]&0xffff);
+
+                    element->n_frameRate = fps;
+
+                    if ((crop_w!= width) || (crop_h != height)) {
+                        if(width==1280 && height==720 ) {
+                            element->isAddMark = 1;
+                        }
+                    }
+
+                    if(width==720 && height==480){
+
+                        if ((crop_w>800) || (crop_h>600)) {    /* ddl@rock-chips.com: v0.4.e */
+                            element->isAddMark = 1;    
+                        } else {                       
+                            resolution_index = find_resolution_index(640,480);
+                            element_tmp = pst_element + resolution_index;
+                            element_tmp->isAddMark = 1;
+                        }
+                    }
 
                     LOGD("CameraId:%d  %dx%d(%dx%d) fps: %d\n",camid,width,height,crop_w,crop_h, fps);
                     
-				} 
-				else{
+                } else {
 					LOGE("fival.type != V4L2_FRMIVAL_TYPE_DISCRETE\n");
 				}
 			} else {
@@ -683,18 +709,19 @@ int camera_request_framerate(char* dev_path, int camid, struct xml_video_element
 				LOGE("find frame intervals failed ret(%d)\n", ret);
 	 		}
 	 	}
-	} else {
+    } else {
         LOGE("%s.%d  Current camera driver version: %d.%d.%d, It is not support CameraHal_MediaProfile\n",
-			__FUNCTION__,__LINE__,
+            __FUNCTION__,__LINE__,
             (CamDriverCapability.version>>16) & 0xff,(CamDriverCapability.version>>8) & 0xff,
-             CamDriverCapability.version & 0xff); 
+            CamDriverCapability.version & 0xff); 
         err = -1;
-	}
+    }
+
 exit:
-	if(iCamFd>0){
-		close(iCamFd);
-		iCamFd=-1;
-	}
+    if(iCamFd>0){
+        close(iCamFd);
+        iCamFd=-1;
+    }
     return err;
 }
 

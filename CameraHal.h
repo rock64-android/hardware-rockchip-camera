@@ -217,9 +217,12 @@ namespace android {
 *v0.4.b:
 *         1)fix uvc camera cts pass for 4.2_r4;
 *         2)fix deadlock in testPreviewCallbackWithPicture test;
+*
+*v0.4.e:
+*         1)fix media_profiles.xml which auto created obtain some element's resolution is bigger than sensor resolution;
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0xb) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0xe) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
