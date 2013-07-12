@@ -615,7 +615,7 @@ void CameraHal::initDefaultParameters()
     CameraParameters params;
     String8 parameterString;
 	int i,j,previewFrameSizeMax;
-	char cur_param[32],cam_size[10];
+	char cur_param[32],cam_size[12];        /* ddl@rock-chips.com: v0.4.f */
     char str_picturesize[200];//We support at most 4 resolutions: 2592x1944,2048x1536,1600x1200,1024x768 
     int ret,picture_size_bit;
     struct v4l2_format fmt;    

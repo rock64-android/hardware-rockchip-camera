@@ -220,9 +220,12 @@ namespace android {
 *
 *v0.4.e:
 *         1)fix media_profiles.xml which auto created obtain some element's resolution is bigger than sensor resolution;
+*
+*v0.4.f:
+*         1)fix cam_size local variable is overflow in initDefaultParameters;
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0xe) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0xf) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
