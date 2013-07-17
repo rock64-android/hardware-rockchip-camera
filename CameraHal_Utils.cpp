@@ -602,28 +602,19 @@ capturePicture_streamoff:
     }
     mPictureLock.unlock();
     
-    cameraFormatConvert(picture_format, mCamDriverPictureFmt, NULL,
+    if (cameraFormatConvert(picture_format, mCamDriverPictureFmt, NULL,
         (char*)camDriverV4l2Buffer,(char*)(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, 
         jpeg_w, jpeg_h,jpeg_w,
         jpeg_w, jpeg_h,jpeg_w,
-        false);
+        false) == 0) {
+        mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);  /* ddl@rock-chips.com: v0.4.0x11 */
+    }
 
     if (mCamDriverV4l2MemType == V4L2_MEMORY_MMAP) {
         if (camDriverV4l2Buffer != NULL) {
             if (munmap((void*)camDriverV4l2Buffer, buffer.length) < 0)
                 LOGE("%s camDriverV4l2Buffer munmap failed : %s",__FUNCTION__,strerror(errno));
             camDriverV4l2Buffer = NULL;
-        }
-    }
-
-    /* ddl@rock-chips.com: Release v4l2 buffer must by close device, buffer isn't release in VIDIOC_STREAMOFF ioctl */
-    if (CAMERA_IS_UVC_CAMERA()) {
-        close(iCamFd);
-        iCamFd = open(cameraDevicePathCur, O_RDWR);
-        if (iCamFd < 0) {
-            LOGE ("%s[%d]-Could not open the camera device(%s): %s",__FUNCTION__,__LINE__, cameraDevicePathCur, strerror(errno) );
-            err = -1;
-            goto exit;
         }
     }
     
@@ -743,6 +734,19 @@ exit:
             mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
         }
     }
+
+    /* ddl@rock-chips.com: v0.4.11 */
+    /* ddl@rock-chips.com: Release v4l2 buffer must by close device, buffer isn't release in VIDIOC_STREAMOFF ioctl */
+    if (CAMERA_IS_UVC_CAMERA()) {
+        close(iCamFd);
+        iCamFd = open(cameraDevicePathCur, O_RDWR);
+        if (iCamFd < 0) {
+            LOGE ("%s[%d]-Could not open the camera device(%s): %s",__FUNCTION__,__LINE__, cameraDevicePathCur, strerror(errno) );
+            err = -1;
+            goto exit;
+        }
+    }
+    
     return err;
 }
 

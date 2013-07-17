@@ -114,7 +114,7 @@ static int cameraPixFmt2HalPixFmt(const char *fmt)
     return hal_pixel_format;
 }
 
-static void arm_nv12torgb565(int width, int height, char *src, short int *dst,int dstbuf_w)
+static int arm_nv12torgb565(int width, int height, char *src, short int *dst,int dstbuf_w)
 {
     int line, col;
     int y, u, v, yy, vr, ug, vg, ub;
@@ -167,6 +167,7 @@ static void arm_nv12torgb565(int width, int height, char *src, short int *dst,in
             pv = pu+1;
         }
     }
+    return 0;
 }
 
 static int rga_nv12torgb565(int fd,int width, int height, char *src, short int *dst, int dstbuf_width)
@@ -3694,7 +3695,7 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                             bool mirror)
 {
     int y_size,i,j;
-
+    int ret = -1;
     /*
     if (v4l2_fmt_dst) { 
         LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x,%dx%d)->'%c%c%c%c'@(0x%x,0x%x,%dx%d) ",
@@ -3739,6 +3740,7 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                             srcbuf += srcbuf_w;
                         }
                     }
+                    ret = 0;
                 }
             } else if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV21) || 
                 (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_YUV420SP)==0))) {
@@ -3773,6 +3775,7 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                             pdst += 2*dst_w;
                         }
                     }
+                    ret = 0;
                 } else {
                     if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV21) || 
                         (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_YUV420SP)==0))) {
@@ -3821,6 +3824,7 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                                 src_uv += src_w*3/4;
                             }
                         }
+                        ret = 0;
                     } else {
                         if (v4l2_fmt_dst) {    
                             LOGE("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->'%c%c%c%c'@(0x%x,0x%x), %dx%d->%dx%d "
@@ -3856,15 +3860,15 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                     para.inColor  = PP_IN_YUV420sp;
                     para.outColor  = PP_OUT_RGB565;
 
-                    doYuvToRgb(&para);    
+                    ret = doYuvToRgb(&para);    
                 #else
                     LOGE("%s(%d): Convert nv12 to rgb565 isn't support physical address in current paltform",__FUNCTION__,__LINE__);
                 #endif
                 } else if (srcbuf && dstbuf) {
                 	if(mRGAFd > 0) {
-                        rga_nv12torgb565(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf,dstbuf_w);                    	  
+                        ret = rga_nv12torgb565(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf,dstbuf_w);                    	  
                     } else {
-                    	arm_nv12torgb565(src_w,src_h,srcbuf, (short int*)dstbuf,dstbuf_w);                 
+                    	ret = arm_nv12torgb565(src_w,src_h,srcbuf, (short int*)dstbuf,dstbuf_w);                 
                     }
                 }
             } else if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_YUV420P)==0)) {
@@ -3923,6 +3927,8 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                             dst_v += align_dsthalfw*2 - (align_dsthalfw - dst_w/2);
                         }
                     }
+
+                    ret = 0;
                 }
             }
             break;
@@ -3965,6 +3971,7 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                         }
                         srcint += (src_w>>1);  
                     }
+                    ret = 0;
                 } else {
                     if (v4l2_fmt_dst) {    
                         LOGE("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->'%c%c%c%c'@(0x%x,0x%x), %dx%d->%dx%d "
@@ -4003,7 +4010,8 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                             srcint += 2;
                         }
                         srcint += (src_w>>1);  
-                    }                  
+                    } 
+                    ret = 0;
                 } else {
                     if (v4l2_fmt_dst) {    
                         LOGE("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->'%c%c%c%c'@(0x%x,0x%x), %dx%d->%dx%d "
@@ -4029,11 +4037,13 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 	{
 		if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_RGB565)==0)){
 			if (srcbuf && dstbuf && (srcbuf != dstbuf)){
-				if(mRGAFd > 0) 
-					rga_rgb565_cp(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);						  
-				else
+				if(mRGAFd > 0) {
+					ret = rga_rgb565_cp(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);						  
+				} else {
 					memcpy(dstbuf,srcbuf,src_w*src_h*2);
+                    ret = 0;
 				}
+			}
 		}
 		break;
 	}
@@ -4052,7 +4062,7 @@ cameraFormatConvert_default:
             }
             break;
     }
-    return 0;
+    return ret;
 
 }
 

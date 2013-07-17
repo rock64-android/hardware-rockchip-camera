@@ -223,9 +223,12 @@ namespace android {
 *
 *v0.4.f:
 *         1)fix cam_size local variable is overflow in initDefaultParameters;
+*v0.4.11:
+*         1)fix raw data buffer haven't cacheflush in capture for uvc camera;
+*         2)fix uvc camera haven't close when capture error;
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0xf) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x11) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
