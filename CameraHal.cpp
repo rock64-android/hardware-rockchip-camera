@@ -1574,11 +1574,18 @@ display_receive_cmd:
                                     phnd = (NATIVE_HANDLE_TYPE*)*hnd;
                                     for (i=0; i<mPreviewBufferCount; i++) {
                                         if (phnd == mDisplayBufferMap[i]->priv_hnd) {  
-                                            queue_display_index = i;
+                                            if (mDisplayBufferMap[i]->vir_addr == (int)y_uv[0]) {   /* ddl@rock-chips.com: v0.4.0x13 */                                             
+                                                queue_display_index = i;
+                                            }
                                             break;
                                         }
-                                    }  
+                                    }
                                     
+                                    if (queue_display_index==mPreviewBufferCount) {  /* ddl@rock-chips.com: v0.4.0x13 */
+                                        mapper.unlock((buffer_handle_t)phnd);
+                                        mANativeWindow->cancel_buffer(mANativeWindow, (buffer_handle_t*)hnd);
+                                        LOGD("%p hnd is invalidate, cancel it!",phnd);
+                                    }
                                 } else {
                                     LOG2("%s(%d): %s(err:%d) dequeueBuffer failed, so pause here", __FUNCTION__,__LINE__, strerror(-err), -err);
 
@@ -1594,6 +1601,20 @@ display_receive_cmd:
                                 }
                             }
                         } 
+
+                        if (queue_display_index==CONFIG_CAMERA_PRVIEW_BUF_CNT) { /* ddl@rock-chips.com: v0.4.0x13 */
+                            LOGE("%s(%d): display thread can't dequeue display buffer, this frame(%d) ignore!",
+                                __FUNCTION__,__LINE__,queue_buf_index);
+
+                            cameraPreviewBufferSetSta(mPreviewBufferMap[queue_buf_index], CMD_PREVIEWBUF_DISPING, 0);
+                            msg.command = CMD_PREVIEW_QBUF;     
+                            msg.arg1 = (void*)queue_buf_index;
+                            msg.arg2 = (void*)CMD_PREVIEWBUF_DISPING;
+                            msg.arg3 = (void*)mPreviewStartTimes;
+                            commandThreadCommandQ.put(&msg);
+
+                            goto display_wait;
+                        }
                         
                         if(CAMERA_IS_RKSOC_CAMERA()) {                             
                             cameraFormatConvert(mCamDriverPreviewFmt, 0,mDisplayFormat,
@@ -1740,7 +1761,7 @@ display_receive_cmd:
                 }
             }
         }
-        
+display_wait:        
         mDisplayLock.lock();
         if (displayThreadCommandQ.isEmpty() == false ) {
             mDisplayLock.unlock(); 

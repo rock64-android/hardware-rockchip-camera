@@ -626,8 +626,10 @@ int camera_get_number_of_cameras(void)
         sprintf(cam_num, "%d", i);
         strcat(cam_path,cam_num);
         fd = open(cam_path, O_RDONLY);
-        if (fd < 0)
+        if (fd < 0) {
+            LOGE("Open %s failed! strr: %s",cam_path,strerror(errno));
             break;
+        }
 
         memset(&capability, 0, sizeof(struct v4l2_capability));
         if (ioctl(fd, VIDIOC_QUERYCAP, &capability) < 0) {
