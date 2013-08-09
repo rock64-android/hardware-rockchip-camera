@@ -229,9 +229,13 @@ namespace android {
 *
 *v0.4.13
 *         1)fix display buffer may be changed when rorate;
+*v0.4.15:
+*         1)support query fov from kernel;
+*         2)support create media_profiles.xml auto for uvc camera;
+*         3)fix snapshot error when recording for uvc camera;  for v0.4.7
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x13) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x15) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

@@ -635,7 +635,32 @@ int camera_request_framerate(char* dev_path, int camid, struct xml_video_element
     } else { 
         pix_format_tmp = V4L2_PIX_FMT_NV12;        
     }
+    /* oyyf@rock-chips.com: v0.4.0x15 */
+    if(strcmp((char*)&CamDriverCapability.driver[0],"uvcvideo") == 0){
+        i=0;        
+        sensor_resolution_w = 640;        /* ddl@rock-chips.com: uvc camera resolution fix vga */
+        sensor_resolution_h = 480;        
+        
+        for(i=0; i<element_count; i++, element++){
+            width = resolution[i][0];
+            height = resolution[i][1];				
+            element->n_cameraId = camid;
+            element->n_width = width;
+            element->n_height = height;
+            strcat(element->str_quality, fmt_name[i]); 
+            element->n_frameRate = 15;
+            element->isAddMark = 0;
+            if ((width>sensor_resolution_w) || (height>sensor_resolution_h)) {
+                element->isAddMark = 1;
+                LOGD("USB-CAMERA: CameraId:%d  %dx%d fps: %d isAddMark(%d)\n",camid,width,height,element->n_frameRate,element->isAddMark);
+                continue;
+            }
+            LOGD("USB-CAMERA: CameraId:%d  %dx%d fps: %d isAddMark(%d)\n",camid,width,height,element->n_frameRate,element->isAddMark);
+       }
 
+        goto exit;
+    }
+    
 	ver = xml_version_check(&CamDriverCapability);
 	if(ver){
         i=0;

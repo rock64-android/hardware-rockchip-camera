@@ -621,6 +621,7 @@ void CameraHal::initDefaultParameters()
     int ret,picture_size_bit;
     struct v4l2_format fmt;    
     bool dot;
+    char *ptr,str_fov_h[4],str_fov_v[4],fov_h,fov_v;
     
     LOG_FUNCTION_NAME    
     memset(str_picturesize,0x00,sizeof(str_picturesize));
@@ -1177,6 +1178,31 @@ void CameraHal::initDefaultParameters()
     /*rotation setting*/
     params.set(CameraParameters::KEY_ROTATION, "0");
 
+    /*horizontal angle of view setting ,no much meaning ,only for passing cts */
+    ptr = strstr((char*)(&mCamDriverCapability.card[0]),"-");   /* ddl@rock-chips.com: v0.4.0x15 */
+    if (ptr != NULL) {
+        ptr = strstr(ptr,"_");
+        if (ptr != NULL) {
+            ptr++;
+            fov_h = atoi(ptr);
+            sprintf(str_fov_h,"%d",fov_h);            
+            ptr = strstr(ptr,"_");
+            ptr++;
+            fov_v = atoi(ptr);
+            sprintf(str_fov_v,"%d",fov_v);
+        } else {
+            LOGD("%s(%d): Current driver isn't support fov query, user can update driver to v0.3.0xf",__FUNCTION__,__LINE__);
+            strlcpy(str_fov_h,"100",3);
+            strlcpy(str_fov_v,"100",3);
+        }
+    } else {
+        LOGE("%s(%d): mCamDriverCapability.card is error!",__FUNCTION__,__LINE__);
+        strlcpy(str_fov_h,"100",3);
+        strlcpy(str_fov_v,"100",3);
+    }    
+    params.set(CameraParameters::KEY_HORIZONTAL_VIEW_ANGLE, str_fov_h);
+    params.set(CameraParameters::KEY_VERTICAL_VIEW_ANGLE, str_fov_v);
+    
     /*lzg@rockchip.com :add some settings to pass cts*/    
     /*focus distance setting ,no much meaning ,only for passing cts */
     parameterString = "0.3,50,Infinity";
@@ -1184,12 +1210,6 @@ void CameraHal::initDefaultParameters()
     /*focus length setting ,no much meaning ,only for passing cts */
     parameterString = "35";
     params.set(CameraParameters::KEY_FOCAL_LENGTH, parameterString.string());
-   /*horizontal angle of view setting ,no much meaning ,only for passing cts */
-    parameterString = "100";
-    params.set(CameraParameters::KEY_HORIZONTAL_VIEW_ANGLE, parameterString.string());
-    /*vertical angle of view setting ,no much meaning ,only for passing cts */
-    parameterString = "100";
-    params.set(CameraParameters::KEY_VERTICAL_VIEW_ANGLE, parameterString.string());
 
    /*quality of the EXIF thumbnail in Jpeg picture setting */
     parameterString = "50";
