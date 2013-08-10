@@ -811,18 +811,20 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     /*ddl@rock-chips.com: v0.4.7*/
     if (mCamDriverPreviewFmt != mCamDriverPictureFmt) {
         if (CAMERA_IS_RKSOC_CAMERA()) {
-            cameraFormatConvert(mCamDriverPreviewFmt, mCamDriverPictureFmt, NULL,
+            if (cameraFormatConvert(mCamDriverPreviewFmt, mCamDriverPictureFmt, NULL,
                 (char*)capture->input_vir_addr,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, 
                 jpeg_w, jpeg_h,jpeg_w, 
                 jpeg_w, jpeg_h,jpeg_w,
-                false);
+                false) == 0)
+                mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
         } else if (CAMERA_IS_UVC_CAMERA()) {
-            if (V4L2_PIX_FMT_NV12!= mCamDriverPictureFmt) {
-                cameraFormatConvert(V4L2_PIX_FMT_NV12, mCamDriverPictureFmt, NULL,
-                (char*)capture->input_vir_addr,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, 
-                jpeg_w, jpeg_h,jpeg_w, 
-                jpeg_w, jpeg_h,jpeg_w,
-                false);
+            if (V4L2_PIX_FMT_NV12!= mCamDriverPreviewFmt) {  /* ddl@rock-chips.com: v0.4.15 */
+                if (cameraFormatConvert(V4L2_PIX_FMT_NV12, mCamDriverPictureFmt, NULL,
+                    (char*)capture->input_vir_addr,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, 
+                    jpeg_w, jpeg_h,jpeg_w, 
+                    jpeg_w, jpeg_h,jpeg_w,
+                    false)==0)
+                    mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
             }
         }
         capture->input_phy_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy);
