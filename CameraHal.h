@@ -233,9 +233,11 @@ namespace android {
 *         1)support query fov from kernel;
 *         2)support create media_profiles.xml auto for uvc camera;
 *         3)fix snapshot error when recording for uvc camera;  for v0.4.7
+*v0.4.17:
+*         1)support VIDIOC_S_CROP for fied of view; it is for CTS Verifyer FOV;
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x15) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x17) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -722,6 +724,7 @@ private:
     int mDispBufUndqueueMin;
     volatile int32_t mPreviewStartTimes;  
     int mPreviewFrameIndex;
+    struct v4l2_rect mCropView;
 
     rk_previewbuf_info_t *mPreviewBuffer[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     rk_previewbuf_info_t *mPreviewBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];

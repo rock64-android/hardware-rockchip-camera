@@ -727,8 +727,8 @@ loop_continue:
     hwrotation = strtol(property,0,0);
 
     if (hwrotation == 0) {
-        gCamInfos[0].facing_info.orientation -= 90;
-        gCamInfos[1].facing_info.orientation -= 270;
+        gCamInfos[0].facing_info.orientation = 0;    /* ddl@rock-chips.com: v0.4.17 */ 
+        gCamInfos[1].facing_info.orientation = 0;
     }
     
 camera_get_number_of_cameras_end:

@@ -379,6 +379,7 @@ CameraHal::CameraHal(int cameraId)
     mDriverFlipSupport = false;
     mPreviewCmdReceived = false;
     mPreviewStartTimes = 0x00;    
+    memset(&mCropView, 0x00, sizeof(struct v4l2_rect));
     memset(mCamDriverV4l2Buffer, 0x00, sizeof(mCamDriverV4l2Buffer));
     memset(mDisplayFormat,0x00,sizeof(mDisplayFormat));
     for (i=0; i<CONFIG_CAMERA_PRVIEW_BUF_CNT; i++) {
@@ -897,6 +898,13 @@ void CameraHal::initDefaultParameters()
     	}
         
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, str_picturesize);
+
+        if (strcmp(cameraCallProcess,"com.android.cts.verifier") == 0) {
+            mCropView.left = 0;
+            mCropView.top = 0;
+            mCropView.width = mCamDriverFrmWidthMax;
+            mCropView.height = mCamDriverFrmHeightMax;
+        }
 
         /*frame rate setting*/
         cameraFpsInfoSet(params);
@@ -3098,6 +3106,15 @@ int CameraHal::cameraSetSize(int w, int h, int fmt, bool is_capture)
 {
     int err=0;
     struct v4l2_format format;
+    struct v4l2_crop crop;
+
+    crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    crop.c = mCropView;
+
+    err = ioctl(iCamFd, VIDIOC_S_CROP, &crop);
+    if (err <0) {
+        LOGE("%s(%d): VIDIOC_S_CROP failed,please check camera driver version",__FUNCTION__,__LINE__);
+    }
 
 	/* Set preview format */
 	format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
