@@ -235,9 +235,11 @@ namespace android {
 *         3)fix snapshot error when recording for uvc camera;  for v0.4.7
 *v0.4.17:
 *         1)support VIDIOC_S_CROP for fied of view; it is for CTS Verifyer FOV;
+*v0.4.19:
+*         1)support anti-banding and exposure manual for uvc;
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x17) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x19) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -261,6 +263,16 @@ namespace android {
 #define CONFIG_CAMERA_ORIENTATION_SKYPE     0
 #define CONFIG_CAMERA_FRONT_ORIENTATION_SKYPE     0
 #define CONFIG_CAMERA_BACK_ORIENTATION_SKYPE      0
+
+#define CONFIG_CAMERA_UVC_MANEXP                1
+#define CONFIG_CAMERA_UVC_MANEXP_MINUS_3        100
+#define CONFIG_CAMERA_UVC_MANEXP_MINUS_2        150
+#define CONFIG_CAMERA_UVC_MANEXP_MINUS_1        200
+#define CONFIG_CAMERA_UVC_MANEXP_DEFAULT        300
+#define CONFIG_CAMERA_UVC_MANEXP_PLUS_1         400
+#define CONFIG_CAMERA_UVC_MANEXP_PLUS_2         450
+#define CONFIG_CAMERA_UVC_MANEXP_PLUS_3         550
+
 
 #define CONFIG_CAMERA_FRONT_PREVIEW_FPS_MIN    3000        // 3fps
 #define CONFIG_CAMERA_FRONT_PREVIEW_FPS_MAX    30000        //30fps
@@ -778,6 +790,9 @@ private:
 
     struct v4l2_querymenu mScene_menu[20];
     int mScene_number;
+
+    struct v4l2_querymenu mAntiBanding_menu[5];
+    int mAntiBanding_number;
     
     int mZoomMin;
     int mZoomMax;
@@ -785,6 +800,8 @@ private:
 
     struct v4l2_querymenu mFlashMode_menu[20];
     int mFlashMode_number;
+
+    int mUvcManExposure[7];
 
 
     double mGps_latitude;

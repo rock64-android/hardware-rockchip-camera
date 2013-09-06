@@ -391,6 +391,16 @@ CameraHal::CameraHal(int cameraId)
 
         mPreviewBuffer[i] = NULL;
     }
+#if CONFIG_CAMERA_UVC_MANEXP
+    mUvcManExposure[0] = CONFIG_CAMERA_UVC_MANEXP_MINUS_3;
+    mUvcManExposure[1] = CONFIG_CAMERA_UVC_MANEXP_MINUS_2;
+    mUvcManExposure[2] = CONFIG_CAMERA_UVC_MANEXP_MINUS_1;
+    mUvcManExposure[3] = CONFIG_CAMERA_UVC_MANEXP_DEFAULT;
+    mUvcManExposure[4] = CONFIG_CAMERA_UVC_MANEXP_PLUS_1;
+    mUvcManExposure[5] = CONFIG_CAMERA_UVC_MANEXP_PLUS_2;
+    mUvcManExposure[6] = CONFIG_CAMERA_UVC_MANEXP_PLUS_3;
+#endif    
+    
 
     #if CONFIG_CAMERA_FRONT_MIRROR_MDATACB
     if (gCamInfos[cameraId].facing_info.facing == CAMERA_FACING_FRONT) {
@@ -617,15 +627,18 @@ void CameraHal::initDefaultParameters()
     CameraParameters params;
     String8 parameterString;
 	int i,j,previewFrameSizeMax;
-	char cur_param[32],cam_size[12];        /* ddl@rock-chips.com: v0.4.f */
-    char str_picturesize[200];//We support at most 4 resolutions: 2592x1944,2048x1536,1600x1200,1024x768 
+	char cur_param[32],cam_size[16];        /* ddl@rock-chips.com: v0.4.f */
+    char str[300];           
     int ret,picture_size_bit;
     struct v4l2_format fmt;    
+    struct v4l2_queryctrl query_control;
+    struct v4l2_control control;
+	struct v4l2_querymenu *menu_ptr,query_menu;    
     bool dot;
     char *ptr,str_fov_h[4],str_fov_v[4],fov_h,fov_v;
     
     LOG_FUNCTION_NAME    
-    memset(str_picturesize,0x00,sizeof(str_picturesize));
+    memset(str,0x00,sizeof(str));
     if (CAMERA_IS_UVC_CAMERA()) {
         /*preview size setting*/
         struct v4l2_frmsizeenum fsize;                
@@ -650,9 +663,9 @@ void CameraHal::initDefaultParameters()
                 sprintf((char*)(&cam_size[strlen(cam_size)]),"%d",fsize.discrete.height);
                 parameterString.append((const char*)cam_size);
 
-                if ((strlen(str_picturesize)+strlen(cam_size))<sizeof(str_picturesize)) {
+                if ((strlen(str)+strlen(cam_size))<sizeof(str)) {
                     if (fsize.discrete.width <= 2592) {
-                        strcat(str_picturesize, cam_size);
+                        strcat(str, cam_size);
                         if (fsize.discrete.width > mCamDriverFrmWidthMax) {
                             mCamDriverFrmWidthMax = fsize.discrete.width;
                             mCamDriverFrmHeightMax = fsize.discrete.height;
@@ -677,7 +690,7 @@ void CameraHal::initDefaultParameters()
         params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());
         params.setPreviewSize(640,480);
         /*picture size setting*/      
-        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, str_picturesize);        
+        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, str);        
         params.setPictureSize(mCamDriverFrmWidthMax,  mCamDriverFrmHeightMax);        
 
         if (mCamDriverFrmWidthMax <= 1024) {
@@ -858,46 +871,46 @@ void CameraHal::initDefaultParameters()
         }
         params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());
         
-        strcat(str_picturesize,parameterString.string());
-        strcat(str_picturesize,",");
+        strcat(str,parameterString.string());
+        strcat(str,",");
         if(mCamDriverFrmWidthMax <= 640){
-            strcat( str_picturesize,"640x480,320x240");
+            strcat( str,"640x480,320x240");
 		    mRawBufferSize = RAW_BUFFER_SIZE_0M3;
             mJpegBufferSize = JPEG_BUFFER_SIZE_0M3;
             params.setPictureSize(640,480);
         }else if (mCamDriverFrmWidthMax <= 1280) {
-            strcat( str_picturesize,"1024x768,640x480,320x240");
+            strcat(str,"1024x768,640x480,320x240");
 		    mRawBufferSize = RAW_BUFFER_SIZE_1M;
             mJpegBufferSize = JPEG_BUFFER_SIZE_1M;
             params.setPictureSize(1024,768);
         } else if (mCamDriverFrmWidthMax <= 1600) {
-			strcat( str_picturesize,"1600x1200,1024x768,640x480");
+			strcat( str,"1600x1200,1024x768,640x480");
             mRawBufferSize = RAW_BUFFER_SIZE_2M;
             mJpegBufferSize = JPEG_BUFFER_SIZE_2M;
             params.setPictureSize(1600,1200);
         } else if (mCamDriverFrmWidthMax <= 2048) {
-			strcat( str_picturesize,"2048x1536,1600x1200,1024x768");
+			strcat( str,"2048x1536,1600x1200,1024x768");
             mRawBufferSize = RAW_BUFFER_SIZE_3M;
             mJpegBufferSize = JPEG_BUFFER_SIZE_3M;  
             params.setPictureSize(2048,1536);
         } else if (mCamDriverFrmWidthMax <= 2592) {                    			
-    		strcat( str_picturesize,"2592x1944,2048x1536,1600x1200,1024x768");
+    		strcat( str,"2592x1944,2048x1536,1600x1200,1024x768");
             params.setPictureSize(2592,1944);
             mRawBufferSize = RAW_BUFFER_SIZE_5M;
             mJpegBufferSize = JPEG_BUFFER_SIZE_5M;
         } else if (mCamDriverFrmWidthMax <= 3264) {                    			
-    		strcat( str_picturesize,"3264x2448,2592x1944,2048x1536,1600x1200,1024x768");
+    		strcat( str,"3264x2448,2592x1944,2048x1536,1600x1200,1024x768");
             params.setPictureSize(3264,2448);
             mRawBufferSize = RAW_BUFFER_SIZE_8M;
             mJpegBufferSize = JPEG_BUFFER_SIZE_8M;
     	} else {
-            sprintf(str_picturesize, "%dx%d", mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
+            sprintf(str, "%dx%d", mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
             mRawBufferSize = RAW_BUFFER_SIZE_8M;
             mJpegBufferSize = JPEG_BUFFER_SIZE_8M;
             params.setPictureSize(mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
     	}
         
-        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, str_picturesize);
+        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, str);
 
         if (strcmp(cameraCallProcess,"com.android.cts.verifier") == 0) {
             mCropView.left = 0;
@@ -912,9 +925,11 @@ void CameraHal::initDefaultParameters()
         /*zoom setting*/
         struct v4l2_queryctrl zoom;
         char str_zoom_max[3],str_zoom_element[5];
-        char str_zoom[200];
-        strcpy(str_zoom, "");//default zoom
         int max;
+        
+        memset(str,0x00,sizeof(str));
+        strcpy(str, "");//default zoom
+        
 
         zoom.id = V4L2_CID_ZOOM_ABSOLUTE;
         if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &zoom)) {
@@ -929,9 +944,9 @@ void CameraHal::initDefaultParameters()
         	params.set(CameraParameters::KEY_ZOOM, "0");
         	for (i=mZoomMin; i<=mZoomMax; i+=mZoomStep) {
         		sprintf(str_zoom_element,"%d,", i);
-        		strcat(str_zoom,str_zoom_element);
+        		strcat(str,str_zoom_element);
         	}
-        	params.set(CameraParameters::KEY_ZOOM_RATIOS, str_zoom);
+        	params.set(CameraParameters::KEY_ZOOM_RATIOS, str);
         }
     }
     /*preview format setting*/
@@ -955,11 +970,11 @@ void CameraHal::initDefaultParameters()
     /*white balance setting*/
 	struct v4l2_queryctrl whiteBalance;
 	struct v4l2_querymenu *whiteBalance_menu = mWhiteBalance_menu;
-    char str_whitebalance[200];
+    
     /* ddl@rock-chips.com: v0.4.9 */
-    memset(str_whitebalance,0x00,sizeof(str_whitebalance));
+    memset(str,0x00,sizeof(str));
     if (CAMERA_IS_RKSOC_CAMERA()) {
-    	strcpy(str_whitebalance, "");//default whitebalance
+    	strcpy(str, "");//default whitebalance
     	whiteBalance.id = V4L2_CID_DO_WHITE_BALANCE;
     	if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &whiteBalance)) {
     		for (i = whiteBalance.minimum; i <= whiteBalance.maximum; i += whiteBalance.step) {
@@ -967,8 +982,8 @@ void CameraHal::initDefaultParameters()
     			whiteBalance_menu->index = i;
     			if (!ioctl(iCamFd, VIDIOC_QUERYMENU, whiteBalance_menu)) {
                     if (i != whiteBalance.minimum)
-                        strcat(str_whitebalance, ",");
-    				strcat(str_whitebalance, (char *)whiteBalance_menu->name);
+                        strcat(str, ",");
+    				strcat(str, (char *)whiteBalance_menu->name);
     				if (whiteBalance.default_value == i) {
     					strcpy(cur_param, (char *)whiteBalance_menu->name);
     				}
@@ -976,7 +991,7 @@ void CameraHal::initDefaultParameters()
     			}
     			whiteBalance_menu++;
     		}
-    		params.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE, str_whitebalance);
+    		params.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE, str);
     		params.set(CameraParameters::KEY_WHITE_BALANCE, cur_param);
     	}
     } else if (CAMERA_IS_UVC_CAMERA()){        
@@ -984,7 +999,7 @@ void CameraHal::initDefaultParameters()
 
         whiteBalance.id = V4L2_CID_AUTO_WHITE_BALANCE;
     	if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &whiteBalance)) {
-            strcat(str_whitebalance, "auto");
+            strcat(str, "auto");
             dot = true;
     	}
         
@@ -992,33 +1007,33 @@ void CameraHal::initDefaultParameters()
     	if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &whiteBalance)) {
     		if ((whiteBalance.minimum <= 2800) && (2800 <= whiteBalance.maximum)) {
                 if (dot)
-                    strcat(str_whitebalance, ",");
-                strcat(str_whitebalance, "incandescent");
+                    strcat(str, ",");
+                strcat(str, "incandescent");
                 dot = true;
     		}
 
             if ((whiteBalance.minimum <= 4000) && (4000 <= whiteBalance.maximum)) {
                 if (dot)
-                    strcat(str_whitebalance, ",");
-                strcat(str_whitebalance, "fluorescent");
+                    strcat(str, ",");
+                strcat(str, "fluorescent");
                 dot = true;
     		}
 
             if ((whiteBalance.minimum <= 5500) && (5500 <= whiteBalance.maximum)) {
                 if (dot)
-                    strcat(str_whitebalance, ",");
-                strcat(str_whitebalance, "daylight");
+                    strcat(str, ",");
+                strcat(str, "daylight");
                 dot = true;
     		}
 
             if ((whiteBalance.minimum <= 6500) && (6500 <= whiteBalance.maximum)) {
                 if (dot)
-                    strcat(str_whitebalance, ",");
-                strcat(str_whitebalance, "cloudy-daylight");
+                    strcat(str, ",");
+                strcat(str, "cloudy-daylight");
                 dot = true;
     		}
 
-            params.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE, str_whitebalance);
+            params.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE, str);
     		params.set(CameraParameters::KEY_WHITE_BALANCE, "auto");
     	}        
     }
@@ -1026,8 +1041,9 @@ void CameraHal::initDefaultParameters()
     /*color effect setting*/
 	struct v4l2_queryctrl effect;
 	struct v4l2_querymenu *effect_menu = mEffect_menu;
-    char str_effect[200];
-	strcpy(str_effect, "");//default effect
+
+    memset(str,0x00,sizeof(str));
+	strcpy(str, "");//default effect
 	effect.id = V4L2_CID_EFFECT;
 	if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &effect)) {
 		for (i = effect.minimum; i <= effect.maximum; i += effect.step) {
@@ -1035,8 +1051,8 @@ void CameraHal::initDefaultParameters()
 			effect_menu->index = i;
 			if (!ioctl(iCamFd, VIDIOC_QUERYMENU, effect_menu)) {
                 if (i != effect.minimum)
-                    strcat(str_effect, ",");
-				strcat(str_effect, (char *)effect_menu->name);
+                    strcat(str, ",");
+				strcat(str, (char *)effect_menu->name);
 				if (effect.default_value == i) {
 					strcpy(cur_param, (char *)effect_menu->name);
 				}
@@ -1044,15 +1060,16 @@ void CameraHal::initDefaultParameters()
 			}
 			effect_menu++;
 		}
-		params.set(CameraParameters::KEY_SUPPORTED_EFFECTS, str_effect);
+		params.set(CameraParameters::KEY_SUPPORTED_EFFECTS, str);
 		params.set(CameraParameters::KEY_EFFECT, cur_param);
 	}
 
     /*scene setting*/
 	struct v4l2_queryctrl scene;
 	struct v4l2_querymenu *scene_menu = mScene_menu;
-    char str_scene[200];
-	strcpy(str_scene, "");//default scene
+
+    memset(str,0x00,sizeof(str));
+	strcpy(str, "");//default scene
 	scene.id = V4L2_CID_SCENE;
 	if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &scene)) {
 		for (i=scene.minimum; i<=scene.maximum; i+=scene.step) {
@@ -1060,8 +1077,8 @@ void CameraHal::initDefaultParameters()
 			scene_menu->index = i;
 			if (!ioctl(iCamFd, VIDIOC_QUERYMENU, scene_menu)) {
                 if (i != scene.minimum)
-                    strcat(str_scene, ",");
-				strcat(str_scene, (char *)scene_menu->name);
+                    strcat(str, ",");
+				strcat(str, (char *)scene_menu->name);
 				if (scene.default_value == i) {
 					strcpy(cur_param, (char *)scene_menu->name);
 				}
@@ -1069,16 +1086,65 @@ void CameraHal::initDefaultParameters()
 			}
 			scene_menu++;
 		}
-		params.set(CameraParameters::KEY_SUPPORTED_SCENE_MODES, str_scene);
+		params.set(CameraParameters::KEY_SUPPORTED_SCENE_MODES, str);
 		params.set(CameraParameters::KEY_SCENE_MODE, cur_param);
 
 	}
+    
+    
+    /*anti-banding setting*/
+	struct v4l2_queryctrl anti_banding;
+	struct v4l2_querymenu *anti_banding_menus = mAntiBanding_menu;
+
+    memset(str,0x00,sizeof(str));
+	strcpy(str, "");//default scene
+	anti_banding.id = V4L2_CID_POWER_LINE_FREQUENCY;
+	if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &anti_banding)) {
+		for (i=anti_banding.minimum; i<=anti_banding.maximum; i+=anti_banding.step) {
+		    anti_banding_menus->id = V4L2_CID_POWER_LINE_FREQUENCY;
+			anti_banding_menus->index = i;
+			if (!ioctl(iCamFd, VIDIOC_QUERYMENU, anti_banding_menus)) {
+                if (i != anti_banding.minimum)
+                    strcat(str, ",");
+                if (!strcmp((char*)anti_banding_menus->name,"50 Hz")) {
+                    strcat(str, "50hz");
+                    if (anti_banding.default_value == i) {
+                        strcpy(cur_param, "50hz");
+    				}
+                } else if (!strcmp((char*)anti_banding_menus->name,"60 Hz")) {
+                    strcat(str, "60hz");
+                    if (anti_banding.default_value == i) {
+                        strcpy(cur_param, "60hz");
+    				}
+                } else if (!strcmp((char*)anti_banding_menus->name,"Disabled")) {
+                    strcat(str, "off");
+                    if (anti_banding.default_value == i) {
+                        strcpy(cur_param, "off");
+    				}
+                } else if (!strcmp((char*)anti_banding_menus->name,"Auto")) {
+                    strcat(str, "auto");
+                    if (anti_banding.default_value == i) {
+                        strcpy(cur_param, "auto");
+    				}
+                }				
+				mAntiBanding_number++;
+			}
+			anti_banding_menus++;
+		}
+
+        if ((!strstr(str,"auto")) && (strstr(str,"off"))) {
+            strcat(str, ",auto");
+        }
+		params.set(CameraParameters::KEY_SUPPORTED_ANTIBANDING, str);
+		params.set(CameraParameters::KEY_ANTIBANDING, "off");
+	}    
 
     /*flash mode setting*/
 	struct v4l2_queryctrl flashMode;
 	struct v4l2_querymenu *flashMode_menu = mFlashMode_menu;
-    char str_flash[200];
-	strcpy(str_flash, "");//default flash
+    
+    memset(str,0x00,sizeof(str));
+	strcpy(str, "");//default flash
 	flashMode.id = V4L2_CID_FLASH;
 	if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &flashMode)) {
 		for (i = flashMode.minimum; i <= flashMode.maximum; i += flashMode.step) {
@@ -1086,8 +1152,8 @@ void CameraHal::initDefaultParameters()
 			flashMode_menu->index = i;
 			if (!ioctl(iCamFd, VIDIOC_QUERYMENU, flashMode_menu)) {
                 if (i != flashMode.minimum)
-                    strcat(str_flash, ",");
-				strcat(str_flash, (char *)flashMode_menu->name);
+                    strcat(str, ",");
+				strcat(str, (char *)flashMode_menu->name);
 				if (flashMode.default_value == i) {
 					strcpy(cur_param, (char *)flashMode_menu->name);
 				}
@@ -1095,7 +1161,7 @@ void CameraHal::initDefaultParameters()
                 flashMode_menu++;                
 			}
 		}
-		params.set(CameraParameters::KEY_SUPPORTED_FLASH_MODES, str_flash);
+		params.set(CameraParameters::KEY_SUPPORTED_FLASH_MODES, str);
 		params.set(CameraParameters::KEY_FLASH_MODE, cur_param);
 	}
     
@@ -1165,24 +1231,63 @@ void CameraHal::initDefaultParameters()
 
 
     /*Exposure setting*/
-    struct v4l2_queryctrl exposure;
-    char str_exposure[16];
-    exposure.id = V4L2_CID_EXPOSURE;
-    if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &exposure)) {
-        sprintf(str_exposure,"%d",exposure.default_value);
-    	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, str_exposure);
-        sprintf(str_exposure,"%d",exposure.maximum);        
-    	params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, str_exposure);
-        sprintf(str_exposure,"%d",exposure.minimum);        
-    	params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, str_exposure);
-        sprintf(str_exposure,"%d",exposure.step); 
-    	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, str_exposure);
-    } else {
-    	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, "0");
-    	params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "0");
-    	params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "0");
-    	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, "0.000001f");
+    char str_exposure[16], exposure_failed;
+
+    exposure_failed = true;
+    if (CAMERA_IS_RKSOC_CAMERA()) {
+        query_control.id = V4L2_CID_EXPOSURE;
+        if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &query_control)) {
+            exposure_failed = false;
+            sprintf(str_exposure,"%d",query_control.default_value);
+        	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, str_exposure);
+            sprintf(str_exposure,"%d",query_control.maximum);        
+        	params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, str_exposure);
+            sprintf(str_exposure,"%d",query_control.minimum);        
+        	params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, str_exposure);
+            sprintf(str_exposure,"%d",query_control.step); 
+        	params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, str_exposure);
+        }
+    } else if (CAMERA_IS_UVC_CAMERA()) {
+    
+        #if CONFIG_CAMERA_UVC_MANEXP
+        query_control.id = V4L2_CID_EXPOSURE_AUTO;
+        if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &query_control)) {
+            for (i = query_control.minimum; i <= query_control.maximum; i += query_control.step) {
+    			query_menu.id = V4L2_CID_EXPOSURE_AUTO;
+    			query_menu.index = i;
+    			if (!ioctl(iCamFd, VIDIOC_QUERYMENU, &query_menu)) {
+    				if (!strcmp((char*)query_menu.name,"Manual Mode")) {
+                        control.id = V4L2_CID_EXPOSURE_AUTO;
+                        control.value = i;
+                        if (!ioctl(iCamFd,VIDIOC_S_CTRL,&control)) {
+                            exposure_failed = false;                
+                            params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, "0");
+                            params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "3");
+                            params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "-3");
+                            params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, "1");
+                        } else {
+                            LOGE("%s(%d): V4L2_CID_EXPOSURE_AUTO(%s) set failed!",
+                                __FUNCTION__,__LINE__,query_menu.name);
+                        }
+                        break;
+    				}
+    			}
+            }    
+
+            if (i==query_control.maximum) {
+                LOGE("%s(%d): V4L2_CID_EXPOSURE_AUTO Manual Mode isn't support",__FUNCTION__,__LINE__);
+            }
+		}
+        #endif
     }
+
+    if (exposure_failed == true) {
+        params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, "0");
+        params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "0");
+        params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "0");
+        params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, "0.000001f");
+    }
+    
     /*rotation setting*/
     params.set(CameraParameters::KEY_ROTATION, "0");
 
@@ -1239,7 +1344,8 @@ void CameraHal::initDefaultParameters()
 
     LOGD ("Support Preview format: %s .. %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),
         params.get(CameraParameters::KEY_PREVIEW_FORMAT));
-    LOGD ("Support Preview sizes: %s ",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES));
+    LOGD ("Support Preview sizes: %s     %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES),
+        params.get(CameraParameters::KEY_PREVIEW_SIZE));
     LOGD ("Support Preview FPS range: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE));
     LOGD ("Support Preview framerate: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES)); 
     LOGD ("Support Picture sizes: %s ",params.get(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES));
@@ -1260,6 +1366,10 @@ void CameraHal::initDefaultParameters()
         LOGD ("Support exposure: (%s -> %s)",params.get(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION),
             params.get(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION));
     }
+    if (params.get(CameraParameters::KEY_SUPPORTED_ANTIBANDING))
+        LOGD("Support anti-banding: %s  anti-banding: %s",params.get(CameraParameters::KEY_SUPPORTED_ANTIBANDING),
+              params.get(CameraParameters::KEY_ANTIBANDING));
+    
     LOGD ("Support hardware faces detecte: %s",params.get(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW));
     LOGD ("Support software faces detecte: %s",params.get(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_SW));
     LOGD ("Support video stabilization: %s",params.get(CameraParameters::KEY_VIDEO_STABILIZATION_SUPPORTED));
@@ -3259,7 +3369,54 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 			}
 		}
 	}
-
+    
+    /*anti-banding setting*/
+    const char *anti_banding = params.get(CameraParameters::KEY_ANTIBANDING);
+	const char *manti_banding = mParameters.get(CameraParameters::KEY_ANTIBANDING);
+	if (anti_banding != NULL) {
+		if ( !manti_banding || (anti_banding && strcmp(anti_banding, manti_banding)) ) {
+            if (!strcmp(anti_banding,CameraParameters::ANTIBANDING_OFF)) {
+                for (i=0; i<mAntiBanding_number; i++) {
+                    if (!strcmp((char*)mAntiBanding_menu[i].name,"Disabled")) 
+                        break;
+                }
+            } else if (!strcmp(anti_banding,CameraParameters::ANTIBANDING_50HZ)) {
+                for (i=0; i<mAntiBanding_number; i++) {
+                    if (!strcmp((char*)mAntiBanding_menu[i].name,"50 Hz")) 
+                        break;
+                }
+            } else if (!strcmp(anti_banding,CameraParameters::ANTIBANDING_60HZ)) {
+                for (i=0; i<mAntiBanding_number; i++) {
+                    if (!strcmp((char*)mAntiBanding_menu[i].name,"60 Hz")) 
+                        break;
+                }
+            } else if (!strcmp(anti_banding,CameraParameters::ANTIBANDING_AUTO)) {
+                for (i=0; i<mAntiBanding_number; i++) {
+                    if (!strcmp((char*)mAntiBanding_menu[i].name,"Auto")) 
+                        break;
+                }
+                if (i==mAntiBanding_number) {
+                    for (i=0; i<mAntiBanding_number; i++) {
+                        if (!strcmp((char*)mAntiBanding_menu[i].name,"Disabled")) 
+                            break;
+                    }
+                }
+            }
+            
+            if (i<mAntiBanding_number) {
+    			control.id = mAntiBanding_menu[i].id;
+    			control.value = mAntiBanding_menu[i].index;
+    			err = ioctl(iCamFd, VIDIOC_S_CTRL, &control);
+    			if ( err < 0 ){
+    				LOGE("%s(%d): Set anti-banding(%s) failed",__FUNCTION__,__LINE__,anti_banding);
+    			} else {
+    			    LOGD ("%s(%d): Set anti-banding %s ",__FUNCTION__,__LINE__, (char *)mAntiBanding_menu[i].name);
+    			}
+            } else {
+                LOGE("%s(%d): AntiBanding(%s) isn't support!",__FUNCTION__,__LINE__, anti_banding);
+            }
+		}
+	}
 	/*scene setting*/
     const char *scene = params.get(CameraParameters::KEY_SCENE_MODE);
 	const char *mscene = mParameters.get(CameraParameters::KEY_SCENE_MODE);
@@ -3336,6 +3493,7 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 	if (strcmp("0", params.get(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION))
 		|| strcmp("0", params.get(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION))) {
 	    if (!mexposure || (exposure && strcmp(exposure,mexposure))) {
+            if (CAMERA_IS_RKSOC_CAMERA()) {
     		control.id = V4L2_CID_EXPOSURE;
     		control.value = atoi(exposure);
     		err = ioctl(iCamFd, VIDIOC_S_CTRL, &control);
@@ -3344,6 +3502,18 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
     		} else {	    
 		        LOGD("%s(%d): Set exposure %s",__FUNCTION__,__LINE__,exposure);
     		}
+            } else if (CAMERA_IS_UVC_CAMERA()) {
+            #if CONFIG_CAMERA_UVC_MANEXP 
+                control.id = V4L2_CID_EXPOSURE_ABSOLUTE;                    
+                control.value = mUvcManExposure[atoi(exposure) + 3];
+                
+                if (ioctl(iCamFd,VIDIOC_S_CTRL, &control) <0) {
+                     LOGE("%s(%d):  Set exposure(%s) failed",__FUNCTION__,__LINE__,exposure);
+                } else {
+                     LOGD("%s(%d): Set exposure %s  %d",__FUNCTION__,__LINE__,exposure,control.value);
+                }
+            #endif
+            }
 	    }
 	}    
     
@@ -4464,6 +4634,20 @@ int CameraHal::setParameters(const CameraParameters &params_set)
     if ((fps_min < 0) || (fps_max < 0) || (fps_max < fps_min)) {
         LOGE("%s(%d): FpsRange(%s) is invalidate",__FUNCTION__,__LINE__,params.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
         return BAD_VALUE;
+    }
+
+    if ((params.getInt(CameraParameters::KEY_EXPOSURE_COMPENSATION)>params.getInt(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION))
+        || (params.getInt(CameraParameters::KEY_EXPOSURE_COMPENSATION)<params.getInt(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION))) {
+
+        LOGE("%s(%d): Exposure(%s) is invalidate",__FUNCTION__,__LINE__,params.get(CameraParameters::KEY_EXPOSURE_COMPENSATION));
+        return BAD_VALUE;
+    }
+
+    if (params.get(CameraParameters::KEY_ANTIBANDING)!=NULL) {
+        if (!strstr(params.get(CameraParameters::KEY_SUPPORTED_ANTIBANDING),params.get(CameraParameters::KEY_ANTIBANDING))) {
+            LOGE("%s(%d): Antibanding(%s) is invalidate",__FUNCTION__,__LINE__,params.get(CameraParameters::KEY_ANTIBANDING));
+            return BAD_VALUE;
+        }
     }
 
 
