@@ -237,9 +237,11 @@ namespace android {
 *         1)support VIDIOC_S_CROP for fied of view; it is for CTS Verifyer FOV;
 *v0.4.19:
 *         1)support anti-banding and exposure manual for uvc;
+*v0.4.1b:
+		  1)fix video snapshot erro when orientation is 180 degree.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x19) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x1b) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

@@ -809,7 +809,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
 		pictureSize = jpeg_w * jpeg_h * 3/2;
 		}
     /*ddl@rock-chips.com: v0.4.7*/
-    if (mCamDriverPreviewFmt != mCamDriverPictureFmt) {
+    if ((mCamDriverPreviewFmt != mCamDriverPictureFmt)||(rotation == 180)) {
         if (CAMERA_IS_RKSOC_CAMERA()) {
             if (cameraFormatConvert(mCamDriverPreviewFmt, mCamDriverPictureFmt, NULL,
                 (char*)capture->input_vir_addr,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, 
@@ -835,17 +835,12 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
     JpegInInfo.frameHeader = 1;
 	JpegInInfo.yuvaddrfor180 = NULL;
     if ((rotation == 0) ){
-	JpegInInfo.rotateDegree = DEGREE_0;    
-    }else if((rotation == 180)) {
-        JpegInInfo.rotateDegree = DEGREE_180; 
-	
-		if (mCamDriverPreviewFmt != mCamDriverPictureFmt) {
-			JpegInInfo.yuvaddrfor180 = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy)+pictureSize;
-	}else{
-		JpegInInfo.yuvaddrfor180 = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy);
-	}
-    } else if(rotation == 180){
-	JpegInInfo.rotateDegree = DEGREE_180;
+	    JpegInInfo.rotateDegree = DEGREE_0;    
+    }else if(rotation == 180){
+	    JpegInInfo.rotateDegree = DEGREE_0;
+        YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
+            (char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w,jpeg_h);
+        mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
     }else if (rotation == 90) {
         JpegInInfo.rotateDegree = DEGREE_90;
     } else if (rotation == 270) {
