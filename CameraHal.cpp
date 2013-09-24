@@ -423,6 +423,14 @@ CameraHal::CameraHal(int cameraId)
     //open the rga device,zyc
     mRGAFd = -1;
 
+    mMjpegDecoder.state = -1;
+    mMjpegDecoder.decoder = NULL;
+    mMjpegDecoder.init = NULL;
+    mMjpegDecoder.decode = NULL;
+    mMjpegDecoder.deInit = NULL;
+    mMjpegDecoder.destroy = NULL;
+    mMjpegDecoder.get = NULL;
+
     if (cameraCreate(cameraId) == 0) {
         initDefaultParameters();
 		if(access(CAMERA_IPP_NAME, O_RDWR) < 0)
@@ -626,71 +634,66 @@ void CameraHal::initDefaultParameters()
 {
     CameraParameters params;
     String8 parameterString;
-	int i,j,previewFrameSizeMax;
-	char cur_param[32],cam_size[16];        /* ddl@rock-chips.com: v0.4.f */
+	int i,j,k,previewFrameSizeMax;
+	char cur_param[32],str_element[32];        /* ddl@rock-chips.com: v0.4.f */
     char str[300];           
-    int ret,picture_size_bit;
+    int ret,picture_size_bit,framerate[100];
     struct v4l2_format fmt;    
     struct v4l2_queryctrl query_control;
     struct v4l2_control control;
-	struct v4l2_querymenu *menu_ptr,query_menu;    
+	struct v4l2_querymenu *menu_ptr,query_menu;   
+    struct v4l2_frmivalenum fival;
+    struct v4l2_frmsizeenum fsize; 
     bool dot;
     char *ptr,str_fov_h[4],str_fov_v[4],fov_h,fov_v;
     
     LOG_FUNCTION_NAME    
+    i = 0;
     memset(str,0x00,sizeof(str));
+    memset(framerate,0x00,sizeof(framerate));
     if (CAMERA_IS_UVC_CAMERA()) {
         /*preview size setting*/
-        struct v4l2_frmsizeenum fsize;                
-        
-        memset(&fsize, 0, sizeof(fsize));         
-        picture_size_bit = 0;
         fsize.index = 0;       
         fsize.pixel_format = mCamDriverPreviewFmt;
         while ((ret = ioctl(iCamFd, VIDIOC_ENUM_FRAMESIZES, &fsize)) == 0) {
-        	if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {                 
-                if ((fsize.discrete.width == 320) && (fsize.discrete.height == 240)) {
-                    if (strcmp(cameraCallProcess,"com.tencent.android.pad") == 0) {
-                        fsize.index++;
-                        continue;
-                    }
-                }
-                memset(cam_size,0x00,sizeof(cam_size));
+            if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {                
+                memset(str_element,0x00,sizeof(str_element));
                 if (parameterString.size() != 0) 
-                    cam_size[0]=',';
-                sprintf((char*)(&cam_size[strlen(cam_size)]),"%d",fsize.discrete.width);
-                strcat(cam_size, "x");
-                sprintf((char*)(&cam_size[strlen(cam_size)]),"%d",fsize.discrete.height);
-                parameterString.append((const char*)cam_size);
+                    str_element[0]=',';
+                sprintf((char*)(&str_element[strlen(str_element)]),"%d",fsize.discrete.width);
+                strcat(str_element, "x");
+                sprintf((char*)(&str_element[strlen(str_element)]),"%d",fsize.discrete.height);
+                parameterString.append((const char*)str_element);
 
-                if ((strlen(str)+strlen(cam_size))<sizeof(str)) {
-                    if (fsize.discrete.width <= 2592) {
-                        strcat(str, cam_size);
-                        if (fsize.discrete.width > mCamDriverFrmWidthMax) {
-                            mCamDriverFrmWidthMax = fsize.discrete.width;
-                            mCamDriverFrmHeightMax = fsize.discrete.height;
-                        } 
-                    }
-                } else {
-                    break;
+                if (fsize.discrete.width > mCamDriverFrmWidthMax) {
+                    mCamDriverFrmWidthMax = fsize.discrete.width;
+                    mCamDriverFrmHeightMax = fsize.discrete.height;
                 }
-        	} else if (fsize.type == V4L2_FRMSIZE_TYPE_CONTINUOUS) {
-
-        		break;
-        	} else if (fsize.type == V4L2_FRMSIZE_TYPE_STEPWISE) {
-        		
-        		break;
-        	}
+                
+                memset(&fival, 0, sizeof(fival));
+                fival.index = 0;
+                fival.pixel_format = fsize.pixel_format;
+                fival.width = fsize.discrete.width;
+                fival.height = fsize.discrete.height;
+                while ((ret = ioctl(iCamFd, VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) {
+                    if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
+                        framerate[i++] = fival.discrete.denominator/fival.discrete.numerator;
+                        //LOGD("%dx%d : %d  %d/%d",fival.width,fival.height, framerate[i-1],fival.discrete.denominator,fival.discrete.numerator);
+                    } else if (fival.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
+                        break;
+                    } else if (fival.type == V4L2_FRMIVAL_TYPE_STEPWISE) {
+                        break;
+                    }
+                    fival.index++;
+                }
+            }
         	fsize.index++;
         }
-        if (ret != 0 && errno != EINVAL) {
-    		LOGE("ERROR enumerating frame sizes: %d\n", errno);
-    	}
 
         params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());
         params.setPreviewSize(640,480);
         /*picture size setting*/      
-        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, str);        
+        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, parameterString.string());        
         params.setPictureSize(mCamDriverFrmWidthMax,  mCamDriverFrmHeightMax);        
 
         if (mCamDriverFrmWidthMax <= 1024) {
@@ -713,22 +716,58 @@ void CameraHal::initDefaultParameters()
     	}
         
         /* set framerate */
-        struct v4l2_streamparm setfps;          
+        struct v4l2_streamparm setfps;
+        int fps_min,fps_max;
+
+        i=0;
+        fps_min = 100;
+        fps_max = 0;
+        while (framerate[i]) {
+            j=0;
+            k=0;
+            while(framerate[j]) {
+                if (framerate[j] == framerate[i])
+                    k++;
+                j++;
+            }
+            //LOGD("fps: %d  %d  %d",framerate[i], k, fsize.index);
+            if (k==fsize.index) {
+                memset(str_element,0x00,sizeof(str_element));
+                sprintf((char*)(&str_element[strlen(str_element)]),"%d",framerate[i]);
+                if (strstr(str,str_element)==NULL) {
+                    if (strlen(str)==0) {
+                        strcat(str,str_element);
+                    } else {
+                        strcat(str,",");
+                        strcat(str,str_element);
+                    }
+                }
+
+                if (fps_min>framerate[i])
+                    fps_min = framerate[i];
+                if (fps_max<framerate[i])
+                    fps_max = framerate[i];
+            }
+
+            i++;
+        }
         
         memset(&setfps, 0, sizeof(struct v4l2_streamparm));
         setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         setfps.parm.capture.timeperframe.numerator=1;
-        setfps.parm.capture.timeperframe.denominator=15;
+        setfps.parm.capture.timeperframe.denominator=fps_max;
         ret = ioctl(iCamFd, VIDIOC_S_PARM, &setfps); 
 
         /*frame rate setting*/    
-        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, "15");
-        params.setPreviewFrameRate(15);
-        /*frame per second setting*/
-        parameterString = "15000,15000";
-        params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, parameterString.string());
-        parameterString = "(15000,15000)";
-        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, parameterString.string());
+        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, str);
+        params.setPreviewFrameRate(fps_max);
+        
+        memset(str_element,0x00,sizeof(str_element));
+        sprintf((char*)(&str_element[0]),"%d,%d",fps_min*1000,fps_max*1000);
+        params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, str_element);
+        memset(str_element,0x00,sizeof(str_element));
+        sprintf((char*)(&str_element[0]),"(%d,%d)",fps_min*1000,fps_max*1000);
+        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, str_element);
     	/*not support zoom */
     	params.set(CameraParameters::KEY_ZOOM_SUPPORTED, "false");
 
@@ -1757,14 +1796,14 @@ display_receive_cmd:
                         if(CAMERA_IS_RKSOC_CAMERA()) {                             
                             cameraFormatConvert(mCamDriverPreviewFmt, 0,mDisplayFormat,
                                 (char*)mPreviewBufferMap[queue_buf_index]->vir_addr,(char*)mDisplayBufferMap[queue_display_index]->vir_addr,
-                                mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,
+                                mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,mPreviewFrameSize,
                                 mPreviewWidth, mPreviewHeight,mPreviewWidth,
                                 mPreviewWidth, mPreviewHeight,mDisplayBufferMap[queue_display_index]->stride, false);
                         } else {
                         	/* zyc@rock-chips.com: for usb camera */							
                         	cameraFormatConvert(V4L2_PIX_FMT_NV12, 0,mDisplayFormat,
                         	    (char*)mPreviewBufferMap[queue_buf_index]->vir_addr,(char*)mDisplayBufferMap[queue_display_index]->vir_addr,
-                        		mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,
+                        		mPreviewBufferMap[queue_buf_index]->phy_addr, mDisplayBufferMap[queue_display_index]->phy_addr,mPreviewFrameSize,
                         		mPreviewWidth, mPreviewHeight,mPreviewWidth,
                                 mPreviewWidth, mPreviewHeight,mDisplayBufferMap[queue_display_index]->stride, false);
                         }                        
@@ -2106,7 +2145,7 @@ previewThread_cmd:
             if (CAMERA_IS_UVC_CAMERA()) {				
                 cameraFormatConvert(mCamDriverPreviewFmt,V4L2_PIX_FMT_NV12,NULL,
                 	(char*)mCamDriverV4l2Buffer[cfilledbuffer1.index],(char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr, 
-                	0,0,
+                	0,0,cfilledbuffer1.bytesused,
                 	mPreviewWidth, mPreviewHeight,mPreviewWidth,
                 	mPreviewWidth, mPreviewHeight,mPreviewWidth,
                 	false);	
@@ -2169,14 +2208,14 @@ previewThread_cmd:
                         if (CAMERA_IS_UVC_CAMERA()) {
                             cameraFormatConvert(V4L2_PIX_FMT_NV12,0x00,mParameters.getPreviewFormat(),
                                 (char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBufs[cfilledbuffer1.index],
-                                0,0,
+                                0,0,mPreviewFrameSize,
                                 mPreviewWidth, mPreviewHeight,mPreviewWidth,
                                 mPreviewFrame2AppWidth, mPreviewFrame2AppHeight,mPreviewFrame2AppWidth,
                                 mDataCbFrontMirror);
                         } else {
                             cameraFormatConvert(mCamDriverPreviewFmt,0x00,mParameters.getPreviewFormat(),
                                 (char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBufs[cfilledbuffer1.index],
-                                0,0,
+                                0,0,mPreviewFrameSize,
                                 mPreviewWidth, mPreviewHeight,mPreviewWidth,
                                 mPreviewFrame2AppWidth, mPreviewFrame2AppHeight,mPreviewFrame2AppWidth,
                                 mDataCbFrontMirror);
@@ -3027,6 +3066,43 @@ int CameraHal::cameraCreate(int cameraId)
     
     LOG_FUNCTION_NAME
 
+    mLibstageLibHandle = dlopen("libstagefright.so", RTLD_NOW);    
+    if (mLibstageLibHandle == NULL) {
+        LOGE("%s(%d): open libstagefright.so fail",__FUNCTION__,__LINE__);
+    } else {
+        mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");
+        if (mMjpegDecoder.get == NULL) {
+            LOGE("%s(%d): dlsym get_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+        } else {
+            mMjpegDecoder.decoder = mMjpegDecoder.get();
+            if (mMjpegDecoder.decoder==NULL) {
+                LOGE("%s(%d): get mjpeg decoder failed",__FUNCTION__,__LINE__);
+            } else {
+                mMjpegDecoder.destroy =(destroyMjpegDecoderFun)dlsym(mLibstageLibHandle, "destroy_class_On2JpegDecoder");
+                if (mMjpegDecoder.destroy == NULL)
+                    LOGE("%s(%d): dlsym destroy_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+
+                mMjpegDecoder.init = (initMjpegDecoderFun)dlsym(mLibstageLibHandle, "init_class_On2JpegDecoder");
+                if (mMjpegDecoder.init == NULL)
+                    LOGE("%s(%d): dlsym init_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+
+                mMjpegDecoder.deInit =(deInitMjpegDecoderFun)dlsym(mLibstageLibHandle, "deinit_class_On2JpegDecoder");
+                if (mMjpegDecoder.deInit == NULL)
+                    LOGE("%s(%d): dlsym deinit_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+
+                mMjpegDecoder.decode =(mjpegDecodeOneFrameFun)dlsym(mLibstageLibHandle, "dec_oneframe_class_On2JpegDecoder");
+                if (mMjpegDecoder.decode == NULL)
+                    LOGE("%s(%d): dlsym dec_oneframe_class_On2JpegDecoder fail",__FUNCTION__,__LINE__); 
+
+                if ((mMjpegDecoder.deInit != NULL) && (mMjpegDecoder.init != NULL) &&
+                    (mMjpegDecoder.destroy != NULL) && (mMjpegDecoder.decode != NULL)) {
+                    mMjpegDecoder.state = mMjpegDecoder.init(mMjpegDecoder.decoder);
+                }
+            }
+        }
+    }
+    
+
     #ifdef  TARGET_RK30 
     if((mRGAFd = open("/dev/rga",O_RDWR)) < 0) {
     	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
@@ -3070,9 +3146,16 @@ int CameraHal::cameraCreate(int cameraId)
     } else {
         CameraHal_SupportFmt[0] = V4L2_PIX_FMT_NV12;
         CameraHal_SupportFmt[1] = V4L2_PIX_FMT_NV16;
+        #if CONFIG_CAMERA_UVC_MJPEG_SUPPORT
+        CameraHal_SupportFmt[2] = V4L2_PIX_FMT_MJPEG;
+        CameraHal_SupportFmt[3] = V4L2_PIX_FMT_YUYV;
+        CameraHal_SupportFmt[4] = V4L2_PIX_FMT_RGB565;
+        #else
         CameraHal_SupportFmt[2] = V4L2_PIX_FMT_YUYV;
-	 CameraHal_SupportFmt[3] = V4L2_PIX_FMT_RGB565;
+        CameraHal_SupportFmt[3] = V4L2_PIX_FMT_RGB565;
         CameraHal_SupportFmt[4] = 0x00;
+        #endif
+        CameraHal_SupportFmt[5] = 0x00;
     }
 
     LOGD("Camera driver: %s   Driver version: %d.%d.%d  CameraHal version: %d.%d.%d ",mCamDriverCapability.driver,
@@ -3089,16 +3172,18 @@ int CameraHal::cameraCreate(int cameraId)
             j++;
         }
         if (mCamDriverSupportFmt[j] == CameraHal_SupportFmt[i]) {
+            if ((mCamDriverSupportFmt[j] == V4L2_PIX_FMT_MJPEG) && (mMjpegDecoder.state == -1))
+                continue;
             break;
         }
         i++;
     }
 
     if (CameraHal_SupportFmt[i] == 0x00) {
-        LOGE("%s(%d): all camera driver support format is not supported in CameraHal!!",__FUNCTION__,__LINE__);
+        LOGE("%s(%d): all camera driver support format is not supported in CameraHal:",__FUNCTION__,__LINE__);
         j = 0;
         while (mCamDriverSupportFmt[j]) {
-            LOG1("pixelformat = '%c%c%c%c'",
+            LOGE("pixelformat = '%c%c%c%c'",
 				mCamDriverSupportFmt[j] & 0xFF, (mCamDriverSupportFmt[j] >> 8) & 0xFF,
 				(mCamDriverSupportFmt[j] >> 16) & 0xFF, (mCamDriverSupportFmt[j] >> 24) & 0xFF);
             j++;
@@ -3107,9 +3192,8 @@ int CameraHal::cameraCreate(int cameraId)
     } else {  
         mCamDriverPreviewFmt = CameraHal_SupportFmt[i];
         LOGD("%s(%d): mCamDriverPreviewFmt(%c%c%c%c) is cameraHal and camera driver is also supported!!",__FUNCTION__,__LINE__,
-            mCamDriverPreviewFmt & 0xFF, (mCamDriverPreviewFmt >> 8) & 0xFF,
-			(mCamDriverPreviewFmt >> 16) & 0xFF, (mCamDriverPreviewFmt >> 24) & 0xFF);
-        
+                mCamDriverPreviewFmt & 0xFF, (mCamDriverPreviewFmt >> 8) & 0xFF,
+    			(mCamDriverPreviewFmt >> 16) & 0xFF, (mCamDriverPreviewFmt >> 24) & 0xFF);
     }
 
     if (CAMERA_IS_UVC_CAMERA()) {                  /* ddl@rock-chips.com: This driver is UVC sensor driver */
@@ -3208,6 +3292,15 @@ int CameraHal::cameraDestroy()
         close(mRGAFd);
         mRGAFd = -1;		
     }
+
+    if (mMjpegDecoder.state == 0) {
+        mMjpegDecoder.deInit(mMjpegDecoder.decoder);
+        mMjpegDecoder.destroy(mMjpegDecoder.decoder);
+        mMjpegDecoder.decoder = NULL;
+
+        dlclose(mLibstageLibHandle);
+        mLibstageLibHandle = NULL;
+    }
 		
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -3218,12 +3311,15 @@ int CameraHal::cameraSetSize(int w, int h, int fmt, bool is_capture)
     struct v4l2_format format;
     struct v4l2_crop crop;
 
-    crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    crop.c = mCropView;
 
-    err = ioctl(iCamFd, VIDIOC_S_CROP, &crop);
-    if (err <0) {
-        LOGE("%s(%d): VIDIOC_S_CROP failed,please check camera driver version",__FUNCTION__,__LINE__);
+    if (CAMERA_IS_RKSOC_CAMERA()) {
+        crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        crop.c = mCropView;
+
+        err = ioctl(iCamFd, VIDIOC_S_CROP, &crop);
+        if (err <0) {
+            LOGE("%s(%d): VIDIOC_S_CROP failed,please check camera driver version",__FUNCTION__,__LINE__);
+        }
     }
 
 	/* Set preview format */
@@ -3917,7 +4013,7 @@ cameraAutoFocus_end:
     return err;
 }
 int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, 
-                            char *srcbuf, char *dstbuf,int srcphy,int dstphy,
+                            char *srcbuf, char *dstbuf,int srcphy,int dstphy,int src_size,
                             int src_w, int src_h, int srcbuf_w,
                             int dst_w, int dst_h, int dstbuf_w,
                             bool mirror)
@@ -4261,20 +4357,48 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
             }            
             break;
         }
-	case V4L2_PIX_FMT_RGB565:
-	{
-		if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_RGB565)==0)){
-			if (srcbuf && dstbuf && (srcbuf != dstbuf)){
-				if(mRGAFd > 0) {
-					ret = rga_rgb565_cp(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);						  
-				} else {
-					memcpy(dstbuf,srcbuf,src_w*src_h*2);
-                    ret = 0;
-				}
-			}
-		}
-		break;
-	}
+        case V4L2_PIX_FMT_RGB565:
+        {
+            if (android_fmt_dst && (strcmp(android_fmt_dst,CameraParameters::PIXEL_FORMAT_RGB565)==0)){
+                if (srcbuf && dstbuf && (srcbuf != dstbuf)){
+                    if(mRGAFd > 0) {
+                        ret = rga_rgb565_cp(mRGAFd,src_w,src_h,srcbuf, (short int*)dstbuf);						  
+                    } else {
+                        memcpy(dstbuf,srcbuf,src_w*src_h*2);
+                        ret = 0;
+                    }
+                }
+            }
+            break;
+        }
+
+        case V4L2_PIX_FMT_MJPEG:
+        {
+            VPU_FRAME outbuf; 
+            unsigned int output_len;
+            unsigned int input_len;
+            FILE *fp;
+            char filename[50];
+            
+            output_len = 0;
+            input_len = src_size;
+            if (v4l2_fmt_dst == V4L2_PIX_FMT_NV12) {                
+                
+                ret = mMjpegDecoder.decode(mMjpegDecoder.decoder,(unsigned char*)&outbuf, &output_len, (unsigned char*)srcbuf, &input_len);
+                if ((ret >= 0) && (output_len == sizeof(VPU_FRAME))) {
+                    VPUMemLink(&outbuf.vpumem);
+                    /* following codes are used to get yuv data after decoder */
+                    VPUMemInvalidate(&outbuf.vpumem);
+                    memcpy(dstbuf, outbuf.vpumem.vir_addr,((outbuf.DisplayWidth+15)&(~15))*((outbuf.DisplayHeight+15)&(~15))*3/2);
+                    VPUFreeLinear(&outbuf.vpumem);
+                } else {
+                    LOGE("%s(%d): mjpeg decode failed! ret:%d  output_len: 0x%x, src_buf: %p, input_len: %d",__FUNCTION__,__LINE__,
+                        ret,output_len,srcbuf, input_len);
+                }
+            }
+            break;
+        }
+        
 cameraFormatConvert_default:        
         default:
             if (android_fmt_dst) {
@@ -4752,7 +4876,7 @@ int CameraHal::setParameters(const CameraParameters &params_set)
     } else if(CAMERA_IS_UVC_CAMERA()){
 		mCamDriverPictureFmt = V4L2_PIX_FMT_NV12;
     }else{
-	   mCamDriverPictureFmt = mCamDriverPreviewFmt;    /* ddl@rock-chips.com : Picture format must is NV12 or RGB565, because jpeg encoder is only support NV12 */
+	    mCamDriverPictureFmt = mCamDriverPreviewFmt;    /* ddl@rock-chips.com : Picture format must is NV12 or RGB565, because jpeg encoder is only support NV12 */
 	}
 
     if ((mCamDriverPictureFmt != V4L2_PIX_FMT_NV12) &&

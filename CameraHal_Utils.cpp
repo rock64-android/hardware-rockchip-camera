@@ -603,7 +603,7 @@ capturePicture_streamoff:
     mPictureLock.unlock();
     
     if (cameraFormatConvert(picture_format, mCamDriverPictureFmt, NULL,
-        (char*)camDriverV4l2Buffer,(char*)(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, 
+        (char*)camDriverV4l2Buffer,(char*)(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0,buffer.bytesused,
         jpeg_w, jpeg_h,jpeg_w,
         jpeg_w, jpeg_h,jpeg_w,
         false) == 0) {
@@ -815,7 +815,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
                 (char*)capture->input_vir_addr,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, 
                 jpeg_w, jpeg_h,jpeg_w, 
                 jpeg_w, jpeg_h,jpeg_w,
-                false) == 0)
+                false,mPreviewFrameSize) == 0)
                 mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
         } else if (CAMERA_IS_UVC_CAMERA()) {
             if (V4L2_PIX_FMT_NV12!= mCamDriverPreviewFmt) {  /* ddl@rock-chips.com: v0.4.15 */
@@ -823,7 +823,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
                     (char*)capture->input_vir_addr,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0, 
                     jpeg_w, jpeg_h,jpeg_w, 
                     jpeg_w, jpeg_h,jpeg_w,
-                    false)==0)
+                    false,mPreviewFrameSize)==0)
                     mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
             }
         }

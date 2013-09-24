@@ -18,7 +18,8 @@ LOCAL_C_INCLUDES += \
   external/jpeg \
   external/jhead\
   hardware/rk29/hwcomposer_rga\
-	hardware/rk29/libgralloc_ump/ump/include	
+	hardware/rk29/libgralloc_ump/ump/include\
+	hardware/rk29/libon2
 
 LOCAL_SHARED_LIBRARIES:= \
     libui \
@@ -29,8 +30,9 @@ LOCAL_SHARED_LIBRARIES:= \
     libgui\
     libjpeg\
     libjpeghwenc\
-    libion
-    #libyuvtorgb\
+    libion\
+    libvpu\
+    libdl
 
 endif
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk2928board)
@@ -39,7 +41,8 @@ LOCAL_C_INCLUDES += \
   external/jpeg \
   external/jhead\
   hardware/rk29/hwcomposer_rga\
-    hardware/rk29/libgralloc_ump/ump/include
+  hardware/rk29/libon2\
+  hardware/rk29/libgralloc_ump/ump/include
 
 LOCAL_SHARED_LIBRARIES:= \
     libui \
@@ -51,9 +54,9 @@ LOCAL_SHARED_LIBRARIES:= \
     libjpeg\
     libjpeghwenc\
     libyuvtorgb\
-    libion
-    #    
-    #libyuvtorgb\
+    libion\
+    libvpu\
+    libdl
 
 endif
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk29board)    

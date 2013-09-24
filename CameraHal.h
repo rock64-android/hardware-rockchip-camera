@@ -51,6 +51,7 @@
 #endif
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
+#include "../libon2/vpu_global.h"
 
 
 /* 
@@ -238,10 +239,13 @@ namespace android {
 *v0.4.19:
 *         1)support anti-banding and exposure manual for uvc;
 *v0.4.1b:
-		  1)fix video snapshot erro when orientation is 180 degree.
+*		  1)fix video snapshot erro when orientation is 180 degree.
+*
+*v0.4.1d:
+*         1)support mjpeg format for uvc camera;
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x1b) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x1d) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -265,6 +269,7 @@ namespace android {
 #define CONFIG_CAMERA_ORIENTATION_SKYPE     0
 #define CONFIG_CAMERA_FRONT_ORIENTATION_SKYPE     0
 #define CONFIG_CAMERA_BACK_ORIENTATION_SKYPE      0
+#define CONFIG_CAMERA_UVC_MJPEG_SUPPORT           1
 
 #define CONFIG_CAMERA_UVC_MANEXP                1
 #define CONFIG_CAMERA_UVC_MANEXP_MINUS_3        100
@@ -376,6 +381,28 @@ enum PreviewBufStatus {
 #define CAMERA_IS_UVC_CAMERA()  (strcmp((char*)&mCamDriverCapability.driver[0],"uvcvideo") == 0)
 #define CAMERA_IS_RKSOC_CAMERA()  ((strstr((char*)&mCamDriverCapability.driver[0],"rk") != NULL)\
                                     && (strstr((char*)&mCamDriverCapability.driver[0],"-camera") != NULL))
+
+
+/* mjpeg decoder interface in libvpu.*/
+typedef void* (*getMjpegDecoderFun)(void);
+typedef void (*destroyMjpegDecoderFun)(void* jpegDecoder);
+
+typedef int (*initMjpegDecoderFun)(void* jpegDecoder);
+typedef int (*deInitMjpegDecoderFun)(void* jpegDecoder);
+
+typedef int (*mjpegDecodeOneFrameFun)(void * jpegDecoder,uint8_t* aOutBuffer, uint32_t *aOutputLength,
+        uint8_t* aInputBuf, uint32_t* aInBufSize);
+
+typedef struct mjpeg_interface {
+    void*                       decoder;
+    int                         state;
+    
+    getMjpegDecoderFun          get;
+    destroyMjpegDecoderFun      destroy;
+    initMjpegDecoderFun         init;
+    deInitMjpegDecoderFun       deInit;
+    mjpegDecodeOneFrameFun      decode;
+} mjpeg_interface_t;
 
 
 class CameraHal {
@@ -680,7 +707,7 @@ private:
     int cameraRawJpegBufferCreate(int rawBufferSize, int jpegBufferSize);
     int cameraRawJpegBufferDestory();
     int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, 
-                            char *srcbuf, char *dstbuf,int srcphy,int dstphy,
+                            char *srcbuf, char *dstbuf,int srcphy,int dstphy,int src_size,
                             int src_w, int src_h, int srcbuf_w,
                             int dst_w, int dst_h, int dstbuf_w,
                             bool mirror);
@@ -749,7 +776,7 @@ private:
     unsigned char* mPreviewBufs[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     camera_memory_t* mVideoBufs[CONFIG_CAMERA_PRVIEW_BUF_CNT];
     
-    unsigned int CameraHal_SupportFmt[5];
+    unsigned int CameraHal_SupportFmt[6];
     char mDisplayFormat[30];
     
     sp<DisplayThread>  mDisplayThread;
@@ -779,6 +806,9 @@ private:
     int iCamFd;
     int mCamId;
     int mRGAFd;
+
+    mjpeg_interface_t mMjpegDecoder;
+    void* mLibstageLibHandle;
     
     bool mDriverMirrorSupport;
     bool mDriverFlipSupport;
