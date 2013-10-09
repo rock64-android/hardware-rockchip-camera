@@ -243,9 +243,11 @@ namespace android {
 *
 *v0.4.1d:
 *         1)support mjpeg format for uvc camera;
+*v0.4.1f:
+*         1)mjpeg mirror;
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x1d) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x1f) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP

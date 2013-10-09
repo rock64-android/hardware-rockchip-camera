@@ -4376,9 +4376,10 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
         {
             VPU_FRAME outbuf; 
             unsigned int output_len;
-            unsigned int input_len;
+            unsigned int input_len,i,j,w,h;
             FILE *fp;
             char filename[50];
+            unsigned int *psrc,*pdst;
             
             output_len = 0;
             input_len = src_size;
@@ -4389,7 +4390,40 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                     VPUMemLink(&outbuf.vpumem);
                     /* following codes are used to get yuv data after decoder */
                     VPUMemInvalidate(&outbuf.vpumem);
-                    memcpy(dstbuf, outbuf.vpumem.vir_addr,((outbuf.DisplayWidth+15)&(~15))*((outbuf.DisplayHeight+15)&(~15))*3/2);
+                    w = ((outbuf.DisplayWidth+15)&(~15));
+                    h = ((outbuf.DisplayHeight+15)&(~15));
+                    LOGD("w: %d h:%d",w,h);
+                    if (mirror == false) {
+                        memcpy(dstbuf, outbuf.vpumem.vir_addr,w*h*3/2);
+                    } else {
+                        pdst = (unsigned int*)(dstbuf); 
+                        psrc = (unsigned int*)outbuf.vpumem.vir_addr;
+                        pdst += ((w>>2)-1);
+                        for (j=0; j<h; j++) {                            
+                            for (i=0; i<(w>>2); i++) {
+                                *pdst = ((*psrc>>24)&0x000000ff) | ((*psrc>>8)&0x0000ff00)
+                                        | ((*psrc<<8)&0x00ff0000) | ((*psrc<<24)&0xff000000);
+                                psrc++;
+                                pdst--;
+                            }
+                            pdst += (w>>1);
+                        }
+
+                        pdst = (unsigned int*)dstbuf; 
+                        psrc = (unsigned int*)outbuf.vpumem.vir_addr;
+
+                        pdst += (w*h/4);
+                        psrc += (w*h/4);
+                        pdst += ((w>>2)-1);
+                        for (j=0; j<(h/2); j++) {                            
+                            for (i=0; i<(w>>2); i++) {
+                                *pdst = ((*psrc>>16)&0x0000ffff) | ((*psrc<<16)&0xffff0000);
+                                psrc++;
+                                pdst--;
+                            }
+                            pdst += (w>>1);
+                        }
+                    }
                     VPUFreeLinear(&outbuf.vpumem);
                 } else {
                     LOGE("%s(%d): mjpeg decode failed! ret:%d  output_len: 0x%x, src_buf: %p, input_len: %d",__FUNCTION__,__LINE__,
