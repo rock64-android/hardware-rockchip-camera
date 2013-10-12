@@ -2489,6 +2489,9 @@ PREVIEW_CAPTURE_end:     /* ddl@rock-chips.com: v0.4.b */
                     msg.arg1 = (void*)err;
                     commandThreadAckQ.put(&msg);
                 }
+
+                if (err < 0)             /* ddl@rock-chips.com: v0.4.0x21 */
+                    break;
 				
                 if (mPreviewRunning  == STA_PREVIEW_RUN) {
 					cameraStream(false);                   
@@ -3356,18 +3359,23 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 
     if (params.getPreviewFrameRate() != mParameters.getPreviewFrameRate()) {
         if (CAMERA_IS_UVC_CAMERA()) {
-            struct v4l2_streamparm setfps;          
-        
-            memset(&setfps, 0, sizeof(struct v4l2_streamparm));
-            setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            setfps.parm.capture.timeperframe.numerator=1;
-            setfps.parm.capture.timeperframe.denominator=params.getPreviewFrameRate();
-            err = ioctl(iCamFd, VIDIOC_S_PARM, &setfps); 
-            if (err != 0) {
-                LOGE ("%s(%d): Set framerate(%d fps) failed",__FUNCTION__,__LINE__,params.getPreviewFrameRate());
-                return err;
-            } else {
-                LOGD ("%s(%d): Set framerate(%d fps) success",__FUNCTION__,__LINE__,params.getPreviewFrameRate());
+            
+            if (mPreviewCmdReceived == false) {      /* ddl@rock-chips.com: v0.4.0x21 */
+                struct v4l2_streamparm setfps;          
+            
+                memset(&setfps, 0, sizeof(struct v4l2_streamparm));
+                setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                setfps.parm.capture.timeperframe.numerator=1;
+                setfps.parm.capture.timeperframe.denominator=params.getPreviewFrameRate();
+                err = ioctl(iCamFd, VIDIOC_S_PARM, &setfps); 
+                if (err != 0) {
+                    LOGE ("%s(%d): Set framerate(%d fps) failed",__FUNCTION__,__LINE__,params.getPreviewFrameRate());
+                    return err;
+                } else {
+                    LOGD ("%s(%d): Set framerate(%d fps) success",__FUNCTION__,__LINE__,params.getPreviewFrameRate());
+                }
+            } else {                
+                LOGD("%s(%d): UVC isn't support set framerate after start preview",__FUNCTION__,__LINE__);
             }
         } 
     }
@@ -4392,7 +4400,6 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
                     VPUMemInvalidate(&outbuf.vpumem);
                     w = ((outbuf.DisplayWidth+15)&(~15));
                     h = ((outbuf.DisplayHeight+15)&(~15));
-                    LOGD("w: %d h:%d",w,h);
                     if (mirror == false) {
                         memcpy(dstbuf, outbuf.vpumem.vir_addr,w*h*3/2);
                     } else {

@@ -245,9 +245,13 @@ namespace android {
 *         1)support mjpeg format for uvc camera;
 *v0.4.1f:
 *         1)mjpeg mirror;
+*v0.4.0x21:
+*         1)It isn't support set framerate after start preview for uvc; 
+*           This would be lead to CTS failed;
+*
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x1f) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x21) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
