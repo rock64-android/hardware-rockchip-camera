@@ -248,10 +248,12 @@ namespace android {
 *v0.4.0x21:
 *         1)It isn't support set framerate after start preview for uvc; 
 *           This would be lead to CTS failed;
+*v0.4.0x23
+*         1)cameraFormatConvert parameters error in captureVideoPicture; Snapshot during recording is error;
 *
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x21) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x23) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
