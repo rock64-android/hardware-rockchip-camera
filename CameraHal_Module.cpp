@@ -722,7 +722,7 @@ loop_continue:
     memcpy(&gCamInfos[0], &camInfoTmp[0], sizeof(rk_cam_info_t));
     memcpy(&gCamInfos[1], &camInfoTmp[1], sizeof(rk_cam_info_t));
 
-
+#if 0
     property_get("ro.sf.hwrotation", property, "0");
     hwrotation = strtol(property,0,0);
 
@@ -730,7 +730,7 @@ loop_continue:
         gCamInfos[0].facing_info.orientation = 0;    /* ddl@rock-chips.com: v0.4.17 */ 
         gCamInfos[1].facing_info.orientation = 0;
     }
-    
+#endif    
 camera_get_number_of_cameras_end:
     LOGD("%s(%d): Current board have %d cameras attached.",__FUNCTION__, __LINE__, gCamerasNumber);
     return gCamerasNumber;
