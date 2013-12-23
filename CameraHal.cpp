@@ -3076,8 +3076,19 @@ int CameraHal::cameraCreate(int cameraId)
     } else {
         mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");
         if (mMjpegDecoder.get == NULL) {
-            LOGE("%s(%d): dlsym get_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
-        } else {
+            dlclose(mLibstageLibHandle);            /* ddl@rock-chips.com: v0.4.0x27 */
+            mLibstageLibHandle = dlopen("librk_on2.so", RTLD_NOW);    
+            if (mLibstageLibHandle == NULL) {
+                LOGE("%s(%d): open librk_on2.so fail",__FUNCTION__,__LINE__);
+            } else {
+                mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");
+                if (mMjpegDecoder.get == NULL) {
+                    LOGE("%s(%d): dlsym get_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+                }
+            }
+        } 
+
+        if (mMjpegDecoder.get != NULL) {
             mMjpegDecoder.decoder = mMjpegDecoder.get();
             if (mMjpegDecoder.decoder==NULL) {
                 LOGE("%s(%d): get mjpeg decoder failed",__FUNCTION__,__LINE__);

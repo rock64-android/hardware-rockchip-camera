@@ -251,9 +251,11 @@ namespace android {
 *v0.4.0x23
 *         1)cameraFormatConvert parameters error in captureVideoPicture; Snapshot during recording is error;
 *
+*v0.4.0x27:
+*         1) get_class_On2JpegDecoder interface is in librk_on2.so for android 4.4;
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x23) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x27) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
