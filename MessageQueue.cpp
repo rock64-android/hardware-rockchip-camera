@@ -55,7 +55,19 @@ static char gThreadCmdArgs[][30] = {
         {"CMDARG_OK"},        
         {"CMDARG_ACK"},
         {"CMDARG_NACK"}     
-    };
+};
+static char gPreviewProcessThreadCmds[][50] = {
+        {"CMD_PREVIEW_PROCESS_PAUSE"},
+        {"CMD_PREVIEW_PROCESS_START"},
+        {"CMD_PREVIEW_PROCESS_CONVERT_UVC"},
+        {"CMD_PREVIEW_PROCESS_EXIT"}
+};
+static char gPreviewDispatchThreadCmds[][50] = {
+        {"CMD_PREVIEW_DISPATCH_PAUSE"},
+        {"CMD_PREVIEW_DISPATCH_START"},
+        {"CMD_PREVIEW_DISPATCH_FRAME"},
+        {"CMD_PREVIEW_DISPATCH_EXIT"}
+};
 static char gInvalCommands[]={"CMD_UNKNOW"};
 static char gInvalArg[]={"CMDARG_UNKNOW"};
 static char* MessageCmdConvert(char* msgQ, unsigned int cmd)
@@ -73,6 +85,12 @@ static char* MessageCmdConvert(char* msgQ, unsigned int cmd)
     } else if (strstr(msgQ,"snapshot")) {
         if (cmd < sizeof(gSnapshotThreadCommands)/30) 
             cmd_name = (char*)gSnapshotThreadCommands[cmd];
+    } else if (strstr(msgQ,"previewProcess")) {
+        if (cmd < sizeof(gPreviewProcessThreadCmds)/50) 
+            cmd_name = (char*)gPreviewProcessThreadCmds[cmd];
+    } else if (strstr(msgQ,"previewDispatch")) {
+        if (cmd < sizeof(gPreviewDispatchThreadCmds)/50) 
+            cmd_name = (char*)gPreviewDispatchThreadCmds[cmd];
     }
     return cmd_name;
 }

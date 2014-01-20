@@ -56,19 +56,19 @@ public :
 	virtual int destroyPreviewBuffer() = 0;
 	virtual int destroyRawBuffer() = 0;
 	virtual int destroyJpegBuffer() = 0;
-	virtual int flushCacheMem(buffer_type_enum buftype,unsigned int offset, unsigned int len) = 0;
-	struct bufferinfo_s& getPreviewBufInfo(){
+	virtual int flushCacheMem(buffer_type_enum buftype,unsigned int buf_idx) = 0;
+	struct bufferinfo_s* getPreviewBufInfo(){
 		return mPreviewBufferInfo;}
-	struct bufferinfo_s& getRawBufInfo(){
+	struct bufferinfo_s* getRawBufInfo(){
 		return mRawBufferInfo;}
-	struct bufferinfo_s& getJpegBufInfo(){
+	struct bufferinfo_s* getJpegBufInfo(){
 		return mJpegBufferInfo;}
     unsigned int getBufferAddr(enum buffer_type_enum buf_type, unsigned int buf_idx, buffer_addr_t addr_type);
     int dump();
 protected:
-	struct bufferinfo_s mPreviewBufferInfo;
-	struct bufferinfo_s mRawBufferInfo;
-	struct bufferinfo_s mJpegBufferInfo;
+	struct bufferinfo_s *mPreviewBufferInfo;
+	struct bufferinfo_s *mRawBufferInfo;
+	struct bufferinfo_s *mJpegBufferInfo;
 	mutable Mutex mLock;
 };
 #if (CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)
@@ -83,7 +83,7 @@ class PmemManager:public MemManagerBase{
 		virtual int destroyPreviewBuffer();
 		virtual int destroyRawBuffer();
 		virtual int destroyJpegBuffer();
-		virtual int flushCacheMem(buffer_type_enum buftype,unsigned int offset, unsigned int len) ;
+		virtual int flushCacheMem(buffer_type_enum buftype,unsigned int buf_idx);
 		int initPmem(char* devpath);
 		int deinitPmem();
 	private:
@@ -110,7 +110,7 @@ class IonMemManager:public MemManagerBase{
 		virtual int destroyPreviewBuffer();
 		virtual int destroyRawBuffer();
 		virtual int destroyJpegBuffer();
-		virtual int flushCacheMem(buffer_type_enum buftype,unsigned int offset, unsigned int len);
+		virtual int flushCacheMem(buffer_type_enum buftype,unsigned int buf_idx);
 	private:
 		int createIonBuffer(struct bufferinfo_s* ionbuf);
 		void destroyIonBuffer(buffer_type_enum buftype);

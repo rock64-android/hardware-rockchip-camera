@@ -54,7 +54,7 @@ extern "C" int capturePicture_cacheflush(int buf_type, int offset, int len)
         buf_type = JPEGBUFFER;
     }
 
-    cachMem->flushCacheMem((buffer_type_enum)buf_type,offset,len);
+    cachMem->flushCacheMem((buffer_type_enum)buf_type,0);
 
 	return ret;
 }
@@ -145,6 +145,102 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
    
   return 0;
  }
+
+extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int src_h,int dstbuf,int zoom_value)
+{
+	int vipdata_base;
+
+	struct rk29_ipp_req ipp_req;
+	int src_y_offset,src_uv_offset,dst_y_offset,dst_uv_offset,src_y_size,dst_y_size;
+	int scale_w_times =0,scale_h_times = 0,w,h;
+	int ret = 0;
+	int ippFd = -1;
+	int ratio = 0;
+	int top_offset=0,left_offset=0;
+	int cropW,cropH;
+
+
+	if((ippFd = open("/dev/rk29-ipp",O_RDWR)) < 0) {
+		LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
+		ret = -1;
+		goto do_ipp_err;
+	}
+
+	/*
+	*ddl@rock-chips.com: 
+	* IPP Dest image resolution is 2047x1088, so scale operation break up some times
+	*/
+	if ((src_w > 0x7f0) || (src_h > 0x430)) {
+		scale_w_times = ((src_w/0x7f0)>(src_h/0x430))?(src_w/0x7f0):(src_h/0x430); 
+		scale_h_times = scale_w_times;
+		scale_w_times++;
+		scale_h_times++;
+	} else {
+		scale_w_times = 1;
+		scale_h_times = 1;
+	}
+	memset(&ipp_req, 0, sizeof(struct rk29_ipp_req));
+
+	//compute zoom 
+	cropW = (src_w*100/zoom_value)& (~0x03);
+	cropH = (src_h*100/zoom_value)& (~0x03);
+	left_offset=MAX((((src_w-cropW)>>1)-1),0);
+	top_offset=MAX((((src_h-cropH)>>1)-1),0);
+	left_offset &= ~0x01; 
+	top_offset &=~0x01;
+
+	ipp_req.timeout = 3000;
+	ipp_req.flag = IPP_ROT_0; 
+	ipp_req.store_clip_mode =1;
+	ipp_req.src0.w = cropW/scale_w_times;
+	ipp_req.src0.h = cropH/scale_h_times;
+	ipp_req.src_vir_w = src_w;
+	ipp_req.src0.fmt = IPP_Y_CBCR_H2V2;
+	ipp_req.dst0.w = src_w/scale_w_times;
+	ipp_req.dst0.h = src_h/scale_h_times;
+	ipp_req.dst_vir_w = src_w;	 
+	ipp_req.dst0.fmt = IPP_Y_CBCR_H2V2;
+	vipdata_base = srcbuf;
+	src_y_size = src_w*src_h;
+	dst_y_size = src_w*src_h;
+
+	for (h=0; h<scale_h_times; h++) {
+		for (w=0; w<scale_w_times; w++) {
+			int ipp_times = 3;
+			src_y_offset = (top_offset + h*cropH/scale_h_times)* src_w 
+						+ left_offset + w*cropW/scale_w_times;
+			src_uv_offset = (top_offset + h*cropH/scale_h_times)* src_w/2
+						+ left_offset + w*cropW/scale_w_times;
+
+			dst_y_offset = src_w*src_h*h/scale_h_times + src_w*w/scale_w_times;
+			dst_uv_offset = src_w*src_h*h/scale_h_times/2 + src_w*w/scale_w_times;
+
+			ipp_req.src0.YrgbMst = vipdata_base + src_y_offset;
+			ipp_req.src0.CbrMst = vipdata_base + src_y_size + src_uv_offset;
+			ipp_req.dst0.YrgbMst = dstbuf + dst_y_offset;
+			ipp_req.dst0.CbrMst = dstbuf + dst_y_size + dst_uv_offset;
+			while(ipp_times-- > 0) {
+				if (ioctl(ippFd,IPP_BLIT_SYNC,&ipp_req)){
+					LOGE("ipp do erro,do again,ipp_times = %d!\n",ipp_times);
+				 } else {
+					break;
+				 }
+			}
+			if (ipp_times <= 0) {
+				ret = -1;
+				goto do_ipp_err;
+			}
+		}
+	}
+do_ipp_err:
+	if(ippFd > 0)
+	   close(ippFd);
+	
+	return ret;    
+}
+
+
+
 /*fill in jpeg gps information*/  
 int CameraHal::Jpegfillgpsinfo(RkGPSInfo *gpsInfo,CameraParameters &params)
 {
@@ -436,14 +532,15 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     }
 	
 	cachMem = this->mCamBuffer;
-    if (pictureSize > mCamBuffer->getRawBufInfo().mBufferSizes) {
+    if (pictureSize > mCamBuffer->getRawBufInfo()->mBufferSizes) {
         LOGE("%s(%d): mRawBuffer(size:0x%x) is not enough for this resolution picture(%dx%d, size:0x%x)",
-            __FUNCTION__, __LINE__,mCamBuffer->getRawBufInfo().mBufferSizes, jpeg_w, jpeg_h, pictureSize);
+            __FUNCTION__, __LINE__,mCamBuffer->getRawBufInfo()->mBufferSizes, jpeg_w, jpeg_h, pictureSize);
         err = -1;
         goto exit;
     } else {
         LOGD("%s(%d): %dx%d quality(%d) rotation(%d)",__FUNCTION__,__LINE__, jpeg_w, jpeg_h,quality,rotation);
     }
+	#if 0
     i = 0;
     while (mCamDriverSupportFmt[i]) {
         if (mCamDriverSupportFmt[i] == mCamDriverPictureFmt)
@@ -456,6 +553,9 @@ int CameraHal::capturePicture(struct CamCaptureInfo_s *capture)
     } else {
         picture_format = mCamDriverPictureFmt;
     }
+	#else
+	picture_format = mCamDriverPreviewFmt; 
+	#endif
 	if(mCamDriverPictureFmt ==V4L2_PIX_FMT_RGB565){
 		encodetype = HWJPEGENC_RGB565;
 		pictureSize = jpeg_w * jpeg_h *2;
@@ -601,14 +701,30 @@ capturePicture_streamoff:
         goto exit;
     }
     mPictureLock.unlock();
-    
-    if (cameraFormatConvert(picture_format, mCamDriverPictureFmt, NULL,
-        (char*)camDriverV4l2Buffer,(char*)(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0,buffer.bytesused,
-        jpeg_w, jpeg_h,jpeg_w,
-        jpeg_w, jpeg_h,jpeg_w,
-        false) == 0) {
-        mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);  /* ddl@rock-chips.com: v0.4.0x11 */
-    }
+	if (CAMERA_IS_UVC_CAMERA()) {
+	    if (cameraFormatConvert(picture_format, mCamDriverPictureFmt, NULL,
+	        (char*)camDriverV4l2Buffer,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 1, buffer_addr_vir),
+	        0,mCamBuffer->getBufferAddr(RAWBUFFER, 1, buffer_addr_phy),buffer.bytesused,
+	        jpeg_w, jpeg_h,jpeg_w,
+	        jpeg_w, jpeg_h,jpeg_w,
+	        false) == 0) {
+	        mCamBuffer->flushCacheMem(RAWBUFFER,1); 
+			rk_camera_zoom_ipp(V4L2_PIX_FMT_NV12, mCamBuffer->getBufferAddr(RAWBUFFER, 1, buffer_addr_phy), 
+			                    jpeg_w, jpeg_h,
+			                    mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy),uvcZoomVal);
+			
+	        mCamBuffer->flushCacheMem(RAWBUFFER,0); 
+	    }
+	} else {
+	    if (cameraFormatConvert(picture_format, mCamDriverPictureFmt, NULL,
+	        (char*)camDriverV4l2Buffer,(char*)(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0,buffer.bytesused,
+	        jpeg_w, jpeg_h,jpeg_w,
+	        jpeg_w, jpeg_h,jpeg_w,
+	        false) == 0) {
+            mCamBuffer->flushCacheMem(RAWBUFFER,0);  /* ddl@rock-chips.com: v0.4.0x11 */
+	    }
+	}
+
 
     if (mCamDriverV4l2MemType == V4L2_MEMORY_MMAP) {
         if (camDriverV4l2Buffer != NULL) {
@@ -622,7 +738,7 @@ capturePicture_streamoff:
         if (driver_mirror_fail == true) {
             YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
                 (char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w,jpeg_h);
-            mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
+            mCamBuffer->flushCacheMem(RAWBUFFER,0);
         } else {
             if (mDriverFlipSupport && mDriverMirrorSupport) {  
                 control.id = V4L2_CID_HFLIP;
@@ -645,7 +761,7 @@ capturePicture_streamoff:
         if(jpeg_w %16 != 0 || jpeg_h %16 != 0){
 			YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
 					(char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w, jpeg_h);
-            mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
+            mCamBuffer->flushCacheMem(RAWBUFFER,0);
 			JpegInInfo.rotateDegree = DEGREE_270;
 		}else{
 			JpegInInfo.rotateDegree = DEGREE_90;
@@ -816,15 +932,16 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
                 jpeg_w, jpeg_h,jpeg_w, 
                 jpeg_w, jpeg_h,jpeg_w,
                 false) == 0)
-                mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
+                mCamBuffer->flushCacheMem(RAWBUFFER,0);
         } else if (CAMERA_IS_UVC_CAMERA()) {            
-            if (V4L2_PIX_FMT_NV12!= mCamDriverPreviewFmt) {  /* ddl@rock-chips.com: v0.4.15 */                
+            if (V4L2_PIX_FMT_NV12!= mCamDriverPreviewFmt) {  /* ddl@rock-chips.com: v0.4.15 */   
                 if (cameraFormatConvert(V4L2_PIX_FMT_NV12, mCamDriverPictureFmt, NULL,
                     (char*)capture->input_vir_addr,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir),0,0,mPreviewFrameSize, 
                     jpeg_w, jpeg_h,jpeg_w, 
                     jpeg_w, jpeg_h,jpeg_w,
                     false)==0)
-                    mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
+                    mCamBuffer->flushCacheMem(RAWBUFFER,0);
+
             }
         }
         capture->input_phy_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_phy);
@@ -840,7 +957,7 @@ int CameraHal::captureVideoPicture(struct CamCaptureInfo_s *capture, int index)
 	    JpegInInfo.rotateDegree = DEGREE_0;
         YuvData_Mirror_Flip(mCamDriverPictureFmt,(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir), 
             (char*)mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir), jpeg_w,jpeg_h);
-        mCamBuffer->flushCacheMem(RAWBUFFER,0,mCamBuffer->getRawBufInfo().mBufferSizes);
+        mCamBuffer->flushCacheMem(RAWBUFFER,0);
     }else if (rotation == 90) {
         JpegInInfo.rotateDegree = DEGREE_90;
     } else if (rotation == 270) {

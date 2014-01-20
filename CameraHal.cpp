@@ -71,6 +71,8 @@ static nsecs_t last_disp_time = 0,cur_disp_time=0;
 static long framebuf_disptime_cnt[6], framebuf_enctime_cnt[10];
 #endif
 
+extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int src_h,int dstbuf,int zoom_value);
+
 static void debugShowFPS()
 {
     static int mFrameCount = 0;
@@ -312,6 +314,8 @@ CameraHal::CameraHal(int cameraId)
             mSnapshotRunning(-1),
             mCommandRunning(-1),
             mPreviewRunning(STA_PREVIEW_PAUSE),
+            mPreviewProcessRunning(false),
+            mPreviewDispatchRunning(false),
             mPreviewLock(),
             mPreviewCond(),
             mDisplayRuning(STA_DISPLAY_PAUSE),
@@ -349,11 +353,16 @@ CameraHal::CameraHal(int cameraId)
             displayThreadAckQ("displayAckQ"),            
             previewThreadCommandQ("previewCmdQ"),
             previewThreadAckQ("previewAckQ"),
+            previewProcessThreadCmdQ("previewProcessCmdQ"),
+            previewProcessThreadAckQ("previewProcessAckQ"),
+            previewDispatchThreadCmdQ("previewDispatchCmdQ"),
+            previewDispatchThreadAckQ("previewDispatchAckQ"),
             commandThreadCommandQ("commandCmdQ"),
             commandThreadAckQ("commandAckQ"),
             snapshotThreadCommandQ("snapshotCmdQ"),
             snapshotThreadAckQ("snapshotAckQ"),
-            mCamBuffer(NULL)
+            mCamBuffer(NULL),
+            uvcZoomVal(100)
 {
     int fp,i;
     
@@ -440,12 +449,16 @@ CameraHal::CameraHal(int cameraId)
             cameraRawJpegBufferCreate(mRawBufferSize,mJpegBufferSize);
         mDisplayThread = new DisplayThread(this);
         mPreviewThread = new PreviewThread(this);
+        mPreviewProcessThread = new PreviewProcessThread(this);
+        mPreviewDispatchThread = new PreviewDispatchThread(this);
         mCommandThread = new CommandThread(this);
         mPictureThread = new PictureThread(this);
 	    mSnapshotThread = new SnapshotThread(this);
         mAutoFocusThread = new AutoFocusThread(this);
         mDisplayThread->run("CameraDispThread",ANDROID_PRIORITY_URGENT_DISPLAY);
         mPreviewThread->run("CameraPreviewThread",ANDROID_PRIORITY_DISPLAY);
+        mPreviewProcessThread->run("CameraPreviewProcessThread",ANDROID_PRIORITY_DISPLAY);
+        mPreviewDispatchThread->run("CameraPreviewDispatchThread",ANDROID_PRIORITY_DISPLAY);
         mCommandThread->run("CameraCmdThread", ANDROID_PRIORITY_URGENT_DISPLAY);
         mAutoFocusThread->run("CameraAutoFocusThread", ANDROID_PRIORITY_DISPLAY);
         mSnapshotThread->run("CameraSnapshotThread", ANDROID_PRIORITY_NORMAL);
@@ -453,6 +466,8 @@ CameraHal::CameraHal(int cameraId)
         LOGD("CameraHal create success!");
     } else {
         mPreviewThread = NULL;
+        mPreviewProcessThread = NULL;
+        mPreviewDispatchThread = NULL;
         mDisplayThread = NULL;
         mCommandThread = NULL;
         mPictureThread = NULL;
@@ -638,7 +653,7 @@ void CameraHal::initDefaultParameters()
 	int i,j,k,previewFrameSizeMax;
 	char cur_param[32],str_element[32];        /* ddl@rock-chips.com: v0.4.f */
     char str[300];           
-    int ret,picture_size_bit,framerate[100];
+    int ret,picture_size_bit,framerate[200];
     struct v4l2_format fmt;    
     struct v4l2_queryctrl query_control;
     struct v4l2_control control;
@@ -657,7 +672,12 @@ void CameraHal::initDefaultParameters()
         fsize.index = 0;       
         fsize.pixel_format = mCamDriverPreviewFmt;
         while ((ret = ioctl(iCamFd, VIDIOC_ENUM_FRAMESIZES, &fsize)) == 0) {
-            if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {                
+            if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {  
+				if(fsize.discrete.width%16 || fsize.discrete.height%16)
+				{
+					fsize.index++;
+					continue;
+				}
                 memset(str_element,0x00,sizeof(str_element));
                 if (parameterString.size() != 0) 
                     str_element[0]=',';
@@ -724,31 +744,21 @@ void CameraHal::initDefaultParameters()
         fps_min = 100;
         fps_max = 0;
         while (framerate[i]) {
-            j=0;
-            k=0;
-            while(framerate[j]) {
-                if (framerate[j] == framerate[i])
-                    k++;
-                j++;
-            }
-            //LOGD("fps: %d  %d  %d",framerate[i], k, fsize.index);
-            if (k==fsize.index) {
-                memset(str_element,0x00,sizeof(str_element));
-                sprintf((char*)(&str_element[strlen(str_element)]),"%d",framerate[i]);
-                if (strstr(str,str_element)==NULL) {
-                    if (strlen(str)==0) {
-                        strcat(str,str_element);
-                    } else {
-                        strcat(str,",");
-                        strcat(str,str_element);
-                    }
+            memset(str_element,0x00,sizeof(str_element));
+            sprintf((char*)(&str_element[strlen(str_element)]),"%d",framerate[i]);
+            if (strstr(str,str_element)==NULL) {
+                if (strlen(str)==0) {
+                    strcat(str,str_element);
+                } else {
+                    strcat(str,",");
+                    strcat(str,str_element);
                 }
-
-                if (fps_min>framerate[i])
-                    fps_min = framerate[i];
-                if (fps_max<framerate[i])
-                    fps_max = framerate[i];
             }
+
+            if (fps_min>framerate[i])
+                fps_min = framerate[i];
+            if (fps_max<framerate[i])
+                fps_max = framerate[i];
 
             i++;
         }
@@ -769,9 +779,28 @@ void CameraHal::initDefaultParameters()
         memset(str_element,0x00,sizeof(str_element));
         sprintf((char*)(&str_element[0]),"(%d,%d)",fps_min*1000,fps_max*1000);
         params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, str_element);
-    	/*not support zoom */
-    	params.set(CameraParameters::KEY_ZOOM_SUPPORTED, "false");
+        /*zoom setting*/
+        char str_zoom_max[3],str_zoom_element[5];
+        int max;
+        
+        memset(str,0x00,sizeof(str));
+        strcpy(str, "");//default zoom
 
+    	mZoomMax = 300;
+    	mZoomMin= 100;
+    	mZoomStep = 5;	
+
+    	max = (mZoomMax - mZoomMin)/mZoomStep;
+    	sprintf(str_zoom_max,"%d",max);
+    	params.set(CameraParameters::KEY_ZOOM_SUPPORTED, "true");
+    	params.set(CameraParameters::KEY_MAX_ZOOM, str_zoom_max);
+    	params.set(CameraParameters::KEY_ZOOM, "0");
+    	for (i=mZoomMin; i<=mZoomMax; i+=mZoomStep) {
+    		sprintf(str_zoom_element,"%d,", i);
+    		strcat(str,str_zoom_element);
+    	}
+    	params.set(CameraParameters::KEY_ZOOM_RATIOS, str);
+	
     } else if (CAMERA_IS_RKSOC_CAMERA()) {
     
         fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1290,14 +1319,12 @@ void CameraHal::initDefaultParameters()
     } else if (CAMERA_IS_UVC_CAMERA()) {
     
         #if CONFIG_CAMERA_UVC_MANEXP
-        query_control.id = V4L2_CID_EXPOSURE_AUTO;
+        query_control.id = V4L2_CID_BRIGHTNESS;
         if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &query_control)) {
+			 
             for (i = query_control.minimum; i <= query_control.maximum; i += query_control.step) {
-    			query_menu.id = V4L2_CID_EXPOSURE_AUTO;
-    			query_menu.index = i;
-    			if (!ioctl(iCamFd, VIDIOC_QUERYMENU, &query_menu)) {
-    				if (!strcmp((char*)query_menu.name,"Manual Mode")) {
-                        control.id = V4L2_CID_EXPOSURE_AUTO;
+
+                        control.id = V4L2_CID_BRIGHTNESS;
                         control.value = i;
                         if (!ioctl(iCamFd,VIDIOC_S_CTRL,&control)) {
                             exposure_failed = false;                
@@ -1310,8 +1337,7 @@ void CameraHal::initDefaultParameters()
                                 __FUNCTION__,__LINE__,query_menu.name);
                         }
                         break;
-    				}
-    			}
+
             }    
 
             if (i==query_control.maximum) {
@@ -1964,10 +1990,8 @@ void CameraHal::previewThread()
     int ret,i;
     bool loop = true;
     static struct v4l2_buffer cfilledbuffer1;
-    Message msg;
-    bool camera_device_error;
-    int buffer_log;
-    bool snapshot;
+    Message msg,msg_send;
+    bool camera_device_error,snapshot;
     GraphicBufferMapper &mapper = GraphicBufferMapper::get();
     
     LOG_FUNCTION_NAME
@@ -2006,6 +2030,12 @@ previewThread_cmd:
             case CMD_PREVIEW_THREAD_START:
             {
                 LOGD("%s(%d): receive CMD_PREVIEW_START", __FUNCTION__,__LINE__);
+                msg.command = CMD_PREVIEW_PROCESS_START;
+                previewProcessThreadCmdQ.put(&msg);
+            
+                msg.command = CMD_PREVIEW_DISPATCH_START;
+                previewDispatchThreadCmdQ.put(&msg);
+                
                 mPreviewRunning = STA_PREVIEW_RUN;
                 if (CmdAck_Chk(msg)) {
                     msg.arg1 = (void*)CMDARG_OK;
@@ -2017,6 +2047,19 @@ previewThread_cmd:
             case CMD_PREVIEW_THREAD_PAUSE:
             {
                 LOGD("%s(%d): receive CMD_PREVIEW_PAUSE", __FUNCTION__,__LINE__);
+
+                msg_send.command = CMD_PREVIEW_PROCESS_PAUSE;
+                previewProcessThreadCmdQ.put(&msg_send);
+                if (previewProcessThreadAckQ.get(&msg_send, 1000) != 0) {
+                    LOGE("%s(%d): pause preview process thread time out",__FUNCTION__,__LINE__);
+                }
+            
+                msg_send.command = CMD_PREVIEW_DISPATCH_PAUSE;
+                previewDispatchThreadCmdQ.put(&msg_send);                
+                if (previewDispatchThreadAckQ.get(&msg_send,1000)  != 0) {
+                    LOGE("%s(%d): pause preview dispatch thread time out",__FUNCTION__,__LINE__);
+                }
+                
                 mPreviewRunning = STA_PREVIEW_PAUSE;
                 if (CmdAck_Chk(msg)) {
                     msg.arg1 = (void*)CMDARG_OK;
@@ -2055,6 +2098,12 @@ previewThread_cmd:
             msg.command = CMD_SNAPSHOT_EXIT;
             msg.arg1 = (void*)CMDARG_NACK;
             snapshotThreadCommandQ.put(&msg);
+
+            msg.command = CMD_PREVIEW_PROCESS_EXIT;
+            previewProcessThreadCmdQ.put(&msg);
+            
+            msg.command = CMD_PREVIEW_DISPATCH_EXIT;
+            previewDispatchThreadCmdQ.put(&msg);
             
             goto previewThread_end;
         }
@@ -2141,93 +2190,19 @@ previewThread_cmd:
                 debugShowFPS();
             
             cameraPreviewBufferSetSta(mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_WRITING, 0);
-            
-            //zyc ,convert the format for usb camera
-            if (CAMERA_IS_UVC_CAMERA()) {				
-                cameraFormatConvert(mCamDriverPreviewFmt,V4L2_PIX_FMT_NV12,NULL,
-                	(char*)mCamDriverV4l2Buffer[cfilledbuffer1.index],(char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr, 
-                	0,0,cfilledbuffer1.bytesused,
-                	mPreviewWidth, mPreviewHeight,mPreviewWidth,
-                	mPreviewWidth, mPreviewHeight,mPreviewWidth,
-                	false);	
-                
-				mCamBuffer->flushCacheMem(PREVIEWBUFFER,mCamBuffer->getPreviewBufInfo().mPerBuffersize * cfilledbuffer1.index,
-                                        mCamBuffer->getPreviewBufInfo().mPerBuffersize);                														  
-            }      
-            
-            buffer_log = 0;
-            if (mANativeWindow) {
-                buffer_log |= CMD_PREVIEWBUF_DISPING;
-            }
 
-            if (mRecordRunning && (mMsgEnabled & CAMERA_MSG_VIDEO_FRAME) && mDataCbTimestamp) {
-                buffer_log |= CMD_PREVIEWBUF_ENCING;
-                if (snapshot) {
-                    buffer_log |= CMD_PREVIEWBUF_SNAPSHOT_ENCING;
-                    snapshot = false;
-                }                
-            }
-
-            cameraPreviewBufferSetSta(mPreviewBufferMap[cfilledbuffer1.index], buffer_log, 1);
-
-            mPreviewLock.lock();                       
-            // Notify mANativeWindow of a new frame.
-            if (buffer_log & CMD_PREVIEWBUF_DISPING) {                 
-                msg.command = CMD_DISPLAY_FRAME;
+            if (CAMERA_IS_UVC_CAMERA()) {
+                msg.command = CMD_PREVIEW_PROCESS_CONVERT_UVC;
                 msg.arg1 = (void*)cfilledbuffer1.index;
-                displayThreadCommandQ.put(&msg);
-                mDisplayCond.signal();
+                msg.arg2 = (void*)cfilledbuffer1.bytesused;
+                msg.arg3 = (void*)snapshot;
+                //LOGD("Send %d buffer to preview process!!",cfilledbuffer1.index);
+                previewProcessThreadCmdQ.put(&msg);
+            } else if (CAMERA_IS_RKSOC_CAMERA()){
+                previewDispatch(cfilledbuffer1.index,snapshot,false);
             }
-            
-            // Send Video Frame 
-        	if (buffer_log & CMD_PREVIEWBUF_ENCING) {
-                //in snapshot progress
-                if(buffer_log & CMD_PREVIEWBUF_SNAPSHOT_ENCING) {   
-                    msg.command = CMD_SNAPSHOT_SNAPSHOT;
-                    msg.arg1 = (void*)cfilledbuffer1.index;
-                    snapshotThreadCommandQ.put(&msg);
-                }
-             
-                if (mVideoBufs[cfilledbuffer1.index] != NULL) { 
-                    #if CONFIG_CAMERA_FRAME_DV_PROC_STAT
-                    framebuf_enc_start[cfilledbuffer1.index]=(nsecs_t)systemTime(CLOCK_MONOTONIC);
-                    #endif
-                    mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[cfilledbuffer1.index], 0, mCallbackCookie);                                                
-                    LOG2("%s(%d): enqueue buffer %d to encoder", __FUNCTION__,__LINE__,cfilledbuffer1.index);
-                    
-                } else {
-                    LOGE("%s(%d): mVideoBufs[%d] is NULL, this frame recording cancel",__FUNCTION__,__LINE__,cfilledbuffer1.index);
-                    cameraPreviewBufferSetSta(mPreviewBufferMap[cfilledbuffer1.index], CMD_PREVIEWBUF_ENCING, 0);
-                }    		    
-            } 
 
-            if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
-                if (!strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420SP) ||
-                    !strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420P)) {
-                    if (mPreviewMemory) {                     
-                        
-                        if (CAMERA_IS_UVC_CAMERA()) {
-                            cameraFormatConvert(V4L2_PIX_FMT_NV12,0x00,mParameters.getPreviewFormat(),
-                                (char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBufs[cfilledbuffer1.index],
-                                0,0,mPreviewFrameSize,
-                                mPreviewWidth, mPreviewHeight,mPreviewWidth,
-                                mPreviewFrame2AppWidth, mPreviewFrame2AppHeight,mPreviewFrame2AppWidth,
-                                mDataCbFrontMirror);
-                        } else {
-                            cameraFormatConvert(mCamDriverPreviewFmt,0x00,mParameters.getPreviewFormat(),
-                                (char*)mPreviewBufferMap[cfilledbuffer1.index]->vir_addr,(char*)mPreviewBufs[cfilledbuffer1.index],
-                                0,0,mPreviewFrameSize,
-                                mPreviewWidth, mPreviewHeight,mPreviewWidth,
-                                mPreviewFrame2AppWidth, mPreviewFrame2AppHeight,mPreviewFrame2AppWidth,
-                                mDataCbFrontMirror);
-                        }
-                        mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, cfilledbuffer1.index,NULL,mCallbackCookie);                         
-                    } else {
-                        LOGE("%s(%d): mPreviewMemory is NULL, preview data could not send to application",__FUNCTION__,__LINE__);
-                    }
-                }
-            }
-            mPreviewLock.unlock(); 
+            snapshot = false;
         } 
     }
     
@@ -2235,6 +2210,236 @@ previewThread_end:
     LOG_FUNCTION_NAME_EXIT
     return;
 }
+
+void CameraHal::previewProcessThread()
+{
+    bool loop = true;
+    unsigned int buf_idx,buf_size;
+    Message msg;
+    int ret = 0;
+    
+    while (loop) {        
+        previewProcessThreadCmdQ.get(&msg);
+
+        switch (msg.command) 
+        {
+            case CMD_PREVIEW_PROCESS_START:
+            {
+                mPreviewProcessRunning = true ;
+                break;
+            }
+            case CMD_PREVIEW_PROCESS_PAUSE:
+            {
+                mPreviewProcessRunning = false ;
+                msg.arg1 = (void*)CMDARG_OK;
+                previewProcessThreadAckQ.put(&msg);                
+                break;
+            }
+
+            case CMD_PREVIEW_PROCESS_CONVERT_UVC:
+            { 
+                if (mPreviewProcessRunning == true) {
+                    buf_idx = (unsigned int)msg.arg1;
+                    buf_size = (unsigned int)msg.arg2;
+                    //LOGD("Receive %d buffer from preview!!!!",buf_idx);
+                    ret = cameraFormatConvert(mCamDriverPreviewFmt,V4L2_PIX_FMT_NV12,NULL,
+                        	(char*)mCamDriverV4l2Buffer[buf_idx],
+                        	(char*)mCamBuffer->getBufferAddr(RAWBUFFER, 1, buffer_addr_vir), 
+                        	0,mCamBuffer->getBufferAddr(RAWBUFFER, 1, buffer_addr_phy),buf_size,
+                        	mPreviewWidth, mPreviewHeight,mPreviewWidth,
+                        	mPreviewWidth, mPreviewHeight,mPreviewWidth,
+                        	false);
+
+                    msg.command = CMD_PREVIEW_DISPATCH_FRAME;
+                    msg.arg1 = (void*)buf_idx;
+                    msg.arg2 = msg.arg3;
+
+                    if (ret >= 0) { 
+						mCamBuffer->flushCacheMem(RAWBUFFER,1);
+                        rk_camera_zoom_ipp(V4L2_PIX_FMT_NV12, 
+                                           mCamBuffer->getBufferAddr(RAWBUFFER, 1, buffer_addr_phy), 
+                                           mPreviewWidth, mPreviewHeight,
+                                           mPreviewBufferMap[buf_idx]->phy_addr,uvcZoomVal);
+                        mCamBuffer->flushCacheMem(PREVIEWBUFFER,buf_idx); 						
+                        msg.arg3 = (void*)false ;
+                    } else {
+                        msg.arg3 = (void*)true ;
+                    }
+                    
+                    //LOGD("Sensor %d buffer to preview dispatch!!!!!!",buf_idx);
+                    previewDispatchThreadCmdQ.put(&msg);
+                } else {
+                    LOGE("Preview process thread has pause!!!");
+                }
+                break;
+            }
+
+            case CMD_PREVIEW_PROCESS_EXIT:
+            {
+                LOGD("previewProcessThread receive exit cmd!!");
+                loop = false;
+                
+                break;
+            }
+
+            default :
+                break;
+
+        }
+
+    }
+
+    return;
+}
+
+void CameraHal::previewDispatch(unsigned int buf_idx, bool snapshot, bool bypass)
+{
+    unsigned int buffer_log;
+    Message msg;
+
+    if (bypass == true) {
+        //LOGD("Send %d  buffer to comand thread!",buf_idx);
+        msg.command = CMD_PREVIEW_QBUF;     
+        msg.arg1 = (void*)buf_idx;
+        msg.arg2 = (void*)CMD_PREVIEWBUF_WRITING;
+        msg.arg3 = (void*)mPreviewStartTimes;
+        commandThreadCommandQ.put(&msg);
+
+        goto end;
+
+    }
+    buffer_log = 0;
+    if (mANativeWindow) {
+        buffer_log |= CMD_PREVIEWBUF_DISPING;
+    }
+
+    if (mRecordRunning && (mMsgEnabled & CAMERA_MSG_VIDEO_FRAME) && mDataCbTimestamp) {
+        buffer_log |= CMD_PREVIEWBUF_ENCING;
+        if (snapshot) {
+            buffer_log |= CMD_PREVIEWBUF_SNAPSHOT_ENCING;
+        }                
+    }
+
+    cameraPreviewBufferSetSta(mPreviewBufferMap[buf_idx], buffer_log, 1);
+                          
+    // Notify mANativeWindow of a new frame.
+    if (buffer_log & CMD_PREVIEWBUF_DISPING) {                 
+        msg.command = CMD_DISPLAY_FRAME;
+        msg.arg1 = (void*)buf_idx;
+        displayThreadCommandQ.put(&msg);
+        mDisplayCond.signal();
+    }
+    
+    // Send Video Frame 
+	if (buffer_log & CMD_PREVIEWBUF_ENCING) {
+        //in snapshot progress
+        if(buffer_log & CMD_PREVIEWBUF_SNAPSHOT_ENCING) {   
+            msg.command = CMD_SNAPSHOT_SNAPSHOT;
+            msg.arg1 = (void*)buf_idx;
+            snapshotThreadCommandQ.put(&msg);
+        }
+     
+        if (mVideoBufs[buf_idx] != NULL) { 
+            #if CONFIG_CAMERA_FRAME_DV_PROC_STAT
+            framebuf_enc_start[buf_idx]=(nsecs_t)systemTime(CLOCK_MONOTONIC);
+            #endif
+            mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_idx], 0, mCallbackCookie);                                                
+            LOG2("%s(%d): enqueue buffer %d to encoder", __FUNCTION__,__LINE__,buf_idx);
+            
+        } else {
+            LOGE("%s(%d): mVideoBufs[%d] is NULL, this frame recording cancel",__FUNCTION__,__LINE__,buf_idx);
+            cameraPreviewBufferSetSta(mPreviewBufferMap[buf_idx], CMD_PREVIEWBUF_ENCING, 0);
+        }    		    
+    } 
+
+    if ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
+        if (!strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420SP) ||
+            !strcmp(mParameters.getPreviewFormat(),CameraParameters::PIXEL_FORMAT_YUV420P)) {
+            if (mPreviewMemory) {                     
+                
+                if (CAMERA_IS_UVC_CAMERA()) {
+					cameraFormatConvert(V4L2_PIX_FMT_NV12,0x00,mParameters.getPreviewFormat(),                            
+                    //cameraFormatConvert(V4L2_PIX_FMT_NV12,V4L2_PIX_FMT_NV12,NULL,
+                        (char*)mPreviewBufferMap[buf_idx]->vir_addr,(char*)mPreviewBufs[buf_idx],
+                        0,0,mPreviewFrameSize,
+                        mPreviewWidth, mPreviewHeight,mPreviewWidth,
+                        mPreviewFrame2AppWidth, mPreviewFrame2AppHeight,mPreviewFrame2AppWidth,
+                        mDataCbFrontMirror);							
+					
+                } else {
+                    cameraFormatConvert(mCamDriverPreviewFmt,0x00,mParameters.getPreviewFormat(),
+                        (char*)mPreviewBufferMap[buf_idx]->vir_addr,(char*)mPreviewBufs[buf_idx],
+                        0,0,mPreviewFrameSize,
+                        mPreviewWidth, mPreviewHeight,mPreviewWidth,
+                        mPreviewFrame2AppWidth, mPreviewFrame2AppHeight,mPreviewFrame2AppWidth,
+                        mDataCbFrontMirror);
+                }
+                mDataCb(CAMERA_MSG_PREVIEW_FRAME, mPreviewMemory, buf_idx,NULL,mCallbackCookie);                         
+            } else {
+                LOGE("%s(%d): mPreviewMemory is NULL, preview data could not send to application",__FUNCTION__,__LINE__);
+            }
+        }
+    }
+end:
+    return;
+}
+
+void CameraHal::previewDispatchThread()
+{
+    bool loop = true,snapshot,bypass;
+    unsigned int buf_idx;
+    Message msg;
+    
+    while (loop) {        
+        previewDispatchThreadCmdQ.get(&msg);
+
+        switch (msg.command) 
+        {
+            case CMD_PREVIEW_DISPATCH_START:
+            {
+                mPreviewDispatchRunning = true ;
+                break;
+            }
+            case CMD_PREVIEW_DISPATCH_PAUSE:
+            {
+                mPreviewDispatchRunning = false ;
+                msg.arg1 = (void*)CMDARG_OK;
+                previewDispatchThreadAckQ.put(&msg);
+                break;
+            }
+            case CMD_PREVIEW_DISPATCH_FRAME:
+            {  
+                if (mPreviewDispatchRunning == true) 
+{
+                    buf_idx = (unsigned int)msg.arg1;
+                    snapshot = (bool)msg.arg2;
+                    bypass = (bool)msg.arg3;
+                    //LOGD("Receive %d buffer from preview process!!!!!!!!  bypass: %d",buf_idx,bypass);
+                    previewDispatch(buf_idx,snapshot,bypass);
+                } else {
+                    LOGE("Preview dispatch thread has pause!!!");
+                }
+                break;
+            }
+
+            case CMD_PREVIEW_DISPATCH_EXIT:
+            {
+                loop = false;
+                break;
+            }
+
+            default :
+                break;
+
+        }
+
+    }
+
+    return;
+}
+
+
+
 void CameraHal::pictureThread()
 {
     struct CamCaptureInfo_s capture;
@@ -2247,7 +2452,7 @@ void CameraHal::pictureThread()
 	capture.input_vir_addr = mCamBuffer->getBufferAddr(RAWBUFFER, 0, buffer_addr_vir);
 	capture.output_phy_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_phy);                        
     capture.output_vir_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir);                        
-    capture.output_buflen = mCamBuffer->getJpegBufInfo().mBufferSizes;
+    capture.output_buflen = mCamBuffer->getJpegBufInfo()->mBufferSizes;
     LOGD("%s(%d): capture.input_phy:0x%x, output_phy:0x%x vir:0x%x",
         __FUNCTION__,__LINE__,capture.input_phy_addr,capture.output_phy_addr,capture.output_vir_addr);
     //close the face window
@@ -2283,8 +2488,7 @@ void CameraHal::snapshotThread()
                 
                 LOGD("%s(%d): receive CMD_SNAPSHOT_SNAPSHOT with buffer %d",__FUNCTION__,__LINE__, index);
 			
-                if(mCamBuffer->getRawBufInfo().mNumBffers== 0                    || mCamBuffer->getJpegBufInfo().mNumBffers == 0){
-                    LOGE("%s(%d): cancel, because mRawBuffer and mJpegBuffer is NULL",__FUNCTION__,__LINE__);
+                if((mCamBuffer->getRawBufInfo()== NULL) || (mCamBuffer->getJpegBufInfo()== NULL)) {                    LOGE("%s(%d): cancel, because mRawBuffer and mJpegBuffer is NULL",__FUNCTION__,__LINE__);
                     cameraPreviewBufferSetSta(mPreviewBufferMap[index], CMD_PREVIEWBUF_SNAPSHOT_ENCING, 0);
                     goto CMD_SNAPSHOT_SNAPSHOT_end;
                 }
@@ -2293,7 +2497,7 @@ void CameraHal::snapshotThread()
                 capture.input_vir_addr = mPreviewBufferMap[index]->vir_addr;			  
                 capture.output_phy_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_phy);                        
                 capture.output_vir_addr = mCamBuffer->getBufferAddr(JPEGBUFFER, 0, buffer_addr_vir);                        
-                capture.output_buflen = mCamBuffer->getJpegBufInfo().mBufferSizes;
+                capture.output_buflen = mCamBuffer->getJpegBufInfo()->mBufferSizes;
                 captureVideoPicture(&capture,index);
                 
 CMD_SNAPSHOT_SNAPSHOT_end:
@@ -2460,8 +2664,8 @@ PREVIEW_START_OUT:
                     goto PREVIEW_CAPTURE_end;
                 }
 
-                if(mCamBuffer->getRawBufInfo().mNumBffers== 0
-                    || mCamBuffer->getJpegBufInfo().mNumBffers == 0){
+                if((mCamBuffer->getRawBufInfo()== NULL)
+                    || (mCamBuffer->getJpegBufInfo() == NULL)) {
                     LOGE("%s(%d): cancel, because mRawBuffer and mJpegBuffer is NULL",__FUNCTION__,__LINE__);
                     err = -1;
                     goto PREVIEW_CAPTURE_end;
@@ -2564,6 +2768,8 @@ PREVIEW_CAPTURE_end:     /* ddl@rock-chips.com: v0.4.b */
                     LOG2("%s(%d): receive CMD_PREVIEW_QBUF %d from encoder",__FUNCTION__,__LINE__,index);
                 } else if (cmd_info == CMD_PREVIEWBUF_SNAPSHOT_ENCING) {
                     LOG2("%s(%d): receive CMD_PREVIEW_QBUF %d from videoSnapshot",__FUNCTION__,__LINE__,index);
+                }  else if (cmd_info == CMD_PREVIEWBUF_WRITING) {
+                    LOG2("%s(%d): receive CMD_PREVIEW_QBUF %d from preview",__FUNCTION__,__LINE__,index);
                 }
                 
                 if (mPreviewRunning != STA_PREVIEW_RUN) {
@@ -2641,11 +2847,11 @@ int CameraHal::cameraRawJpegBufferCreate(int rawBufferSize, int jpegBufferSize)
     
     LOG_FUNCTION_NAME 
 
-    if (mCamBuffer->getRawBufInfo().mBufferSizes) { 
+    if (mCamBuffer->getRawBufInfo() != NULL) { 
         mCamBuffer->destroyRawBuffer();        
     }
 
-    if (mCamBuffer->getJpegBufInfo().mBufferSizes) { 
+    if (mCamBuffer->getJpegBufInfo() != NULL) { 
         mCamBuffer->destroyJpegBuffer();        
     }
     
@@ -2659,7 +2865,7 @@ int CameraHal::cameraRawJpegBufferCreate(int rawBufferSize, int jpegBufferSize)
 			LOGE("%s(%d): Jpeg buffer malloc failed",__FUNCTION__,__LINE__);
 	}
 	if(rawBufferSize) {
-		tmpbufinfo.mNumBffers = 1;
+		tmpbufinfo.mNumBffers = 2;
 		tmpbufinfo.mPerBuffersize = rawBufferSize;
 		tmpbufinfo.mBufType = RAWBUFFER;
 		err = mCamBuffer->createRawBuffer(&tmpbufinfo);
@@ -2924,18 +3130,19 @@ int CameraHal::cameraPreviewBufferCreate(unsigned int numBufs)
             frame_size = mPreviewWidth*mPreviewHeight*2;
             break;            
     }
+    if (mCamBuffer->getPreviewBufInfo() != NULL) {
+        if ((PAGE_ALIGN(frame_size) == mCamBuffer->getPreviewBufInfo()->mPerBuffersize) && 
+            (numBufs == mCamBuffer->getPreviewBufInfo()->mNumBffers)) {
 
-    if ((PAGE_ALIGN(frame_size) == mCamBuffer->getPreviewBufInfo().mPerBuffersize) && 
-        (numBufs == mCamBuffer->getPreviewBufInfo().mNumBffers)) {
-
-        for (i=0;i<numBufs;i++) {
-            cameraPreviewBufferSetSta(mPreviewBuffer[i],
-                (CMD_PREVIEWBUF_DISPING|CMD_PREVIEWBUF_WRITING|CMD_PREVIEWBUF_ENCING),0);
+            for (i=0;i<numBufs;i++) {
+                cameraPreviewBufferSetSta(mPreviewBuffer[i],
+                    (CMD_PREVIEWBUF_DISPING|CMD_PREVIEWBUF_WRITING|CMD_PREVIEWBUF_ENCING),0);
+            }
+            
+            goto cameraPreviewBufferCreate_end;
+        } else {
+            cameraPreviewBufferDestory();
         }
-        
-        goto cameraPreviewBufferCreate_end;
-    } else {
-        cameraPreviewBufferDestory();
     }
 
     previewbuf.mNumBffers = numBufs;	
@@ -2971,18 +3178,18 @@ int CameraHal::cameraPreviewBufferDestory(void)
     
 	LOG_FUNCTION_NAME
    	if(mCamBuffer != NULL){ 
-    for(i = 0; i < mCamBuffer->getPreviewBufInfo().mNumBffers; i++) {
-		if (mPreviewBuffer[i] != NULL) {
-			if (mPreviewBuffer[i]->lock) {
-				delete mPreviewBuffer[i]->lock;
-				mPreviewBuffer[i]->lock = NULL;					  
-			}
-			free(mPreviewBuffer[i]);
-			mPreviewBuffer[i] = NULL;
-		}
-	}
+        for(i = 0; i < mPreviewBufferCount; i++) {
+    		if (mPreviewBuffer[i] != NULL) {
+    			if (mPreviewBuffer[i]->lock) {
+    				delete mPreviewBuffer[i]->lock;
+    				mPreviewBuffer[i]->lock = NULL;					  
+    			}
+    			free(mPreviewBuffer[i]);
+    			mPreviewBuffer[i] = NULL;
+    		}
+    	}
 
-	mCamBuffer->destroyPreviewBuffer();
+    	mCamBuffer->destroyPreviewBuffer();
     }
 	LOG_FUNCTION_NAME_EXIT
 	return 0;
@@ -3067,56 +3274,64 @@ int CameraHal::cameraCreate(int cameraId)
     char cam_num[3];
     char *ptr_tmp;
     struct v4l2_fmtdesc fmtdesc;
+    char decode_name[50];
     
     LOG_FUNCTION_NAME
 
+    memset(decode_name,0x00,sizeof(decode_name));
     mLibstageLibHandle = dlopen("libstagefright.so", RTLD_NOW);    
     if (mLibstageLibHandle == NULL) {
         LOGE("%s(%d): open libstagefright.so fail",__FUNCTION__,__LINE__);
     } else {
-        mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");
-        if (mMjpegDecoder.get == NULL) {
+        mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");         
+    }
+
+    if (mMjpegDecoder.get == NULL) {
+        if (mLibstageLibHandle != NULL)
             dlclose(mLibstageLibHandle);            /* ddl@rock-chips.com: v0.4.0x27 */
-            mLibstageLibHandle = dlopen("librk_on2.so", RTLD_NOW);    
-            if (mLibstageLibHandle == NULL) {
-                LOGE("%s(%d): open librk_on2.so fail",__FUNCTION__,__LINE__);
+        mLibstageLibHandle = dlopen("librk_on2.so", RTLD_NOW);    
+        if (mLibstageLibHandle == NULL) {
+            LOGE("%s(%d): open librk_on2.so fail",__FUNCTION__,__LINE__);
+        } else {
+            mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");
+            if (mMjpegDecoder.get == NULL) {
+                LOGE("%s(%d): dlsym get_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
             } else {
-                mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");
-                if (mMjpegDecoder.get == NULL) {
-                    LOGE("%s(%d): dlsym get_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
-                }
+                strcat(decode_name,"dec_oneframe_On2JpegDecoder");
             }
-        } 
+        }
+    } else {
+        strcat(decode_name,"dec_oneframe_class_On2JpegDecoder");
+    }
 
-        if (mMjpegDecoder.get != NULL) {
-            mMjpegDecoder.decoder = mMjpegDecoder.get();
-            if (mMjpegDecoder.decoder==NULL) {
-                LOGE("%s(%d): get mjpeg decoder failed",__FUNCTION__,__LINE__);
-            } else {
-                mMjpegDecoder.destroy =(destroyMjpegDecoderFun)dlsym(mLibstageLibHandle, "destroy_class_On2JpegDecoder");
-                if (mMjpegDecoder.destroy == NULL)
-                    LOGE("%s(%d): dlsym destroy_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
 
-                mMjpegDecoder.init = (initMjpegDecoderFun)dlsym(mLibstageLibHandle, "init_class_On2JpegDecoder");
-                if (mMjpegDecoder.init == NULL)
-                    LOGE("%s(%d): dlsym init_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+    if (mMjpegDecoder.get != NULL) {
+        mMjpegDecoder.decoder = mMjpegDecoder.get();
+        if (mMjpegDecoder.decoder==NULL) {
+            LOGE("%s(%d): get mjpeg decoder failed",__FUNCTION__,__LINE__);
+        } else {
+            mMjpegDecoder.destroy =(destroyMjpegDecoderFun)dlsym(mLibstageLibHandle, "destroy_class_On2JpegDecoder");
+            if (mMjpegDecoder.destroy == NULL)
+                LOGE("%s(%d): dlsym destroy_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
 
-                mMjpegDecoder.deInit =(deInitMjpegDecoderFun)dlsym(mLibstageLibHandle, "deinit_class_On2JpegDecoder");
-                if (mMjpegDecoder.deInit == NULL)
-                    LOGE("%s(%d): dlsym deinit_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+            mMjpegDecoder.init = (initMjpegDecoderFun)dlsym(mLibstageLibHandle, "init_class_On2JpegDecoder");
+            if (mMjpegDecoder.init == NULL)
+                LOGE("%s(%d): dlsym init_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
 
-                mMjpegDecoder.decode =(mjpegDecodeOneFrameFun)dlsym(mLibstageLibHandle, "dec_oneframe_class_On2JpegDecoder");
-                if (mMjpegDecoder.decode == NULL)
-                    LOGE("%s(%d): dlsym dec_oneframe_class_On2JpegDecoder fail",__FUNCTION__,__LINE__); 
+            mMjpegDecoder.deInit =(deInitMjpegDecoderFun)dlsym(mLibstageLibHandle, "deinit_class_On2JpegDecoder");
+            if (mMjpegDecoder.deInit == NULL)
+                LOGE("%s(%d): dlsym deinit_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
 
-                if ((mMjpegDecoder.deInit != NULL) && (mMjpegDecoder.init != NULL) &&
-                    (mMjpegDecoder.destroy != NULL) && (mMjpegDecoder.decode != NULL)) {
-                    mMjpegDecoder.state = mMjpegDecoder.init(mMjpegDecoder.decoder);
-                }
+            mMjpegDecoder.decode =(mjpegDecodeOneFrameFun)dlsym(mLibstageLibHandle, decode_name);
+            if (mMjpegDecoder.decode == NULL)
+                LOGE("%s(%d): dlsym %s fail",__FUNCTION__,__LINE__,decode_name); 
+
+            if ((mMjpegDecoder.deInit != NULL) && (mMjpegDecoder.init != NULL) &&
+                (mMjpegDecoder.destroy != NULL) && (mMjpegDecoder.decode != NULL)) {
+                mMjpegDecoder.state = mMjpegDecoder.init(mMjpegDecoder.decoder);
             }
         }
     }
-    
 
     #ifdef  TARGET_RK30 
     if((mRGAFd = open("/dev/rga",O_RDWR)) < 0) {
@@ -3367,6 +3582,7 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
     struct v4l2_control control;
 	struct v4l2_ext_control extCtrInfo;
 	struct v4l2_ext_controls extCtrInfos;
+	struct v4l2_queryctrl query_control;
 	CameraParameters params = tmpparams;
 
     if (params.getPreviewFrameRate() != mParameters.getPreviewFrameRate()) {
@@ -3445,7 +3661,16 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
 	}
 
     /*zoom setting*/
-	if (!CAMERA_IS_UVC_CAMERA()) {
+	if (CAMERA_IS_UVC_CAMERA()) {
+
+	    const int zoom = params.getInt(CameraParameters::KEY_ZOOM);
+		const int mzoom = mParameters.getInt(CameraParameters::KEY_ZOOM);
+		if ((mzoom < 0) || (zoom != mzoom)) {	
+			uvcZoomVal = zoom * mZoomStep + mZoomMin;
+		}
+	}
+	else
+	{
 	    const int zoom = params.getInt(CameraParameters::KEY_ZOOM);
 		const int mzoom = mParameters.getInt(CameraParameters::KEY_ZOOM);
 		if (params.get(CameraParameters::KEY_ZOOM_SUPPORTED)) {
@@ -3620,13 +3845,16 @@ int CameraHal::cameraConfig(const CameraParameters &tmpparams)
     		}
             } else if (CAMERA_IS_UVC_CAMERA()) {
             #if CONFIG_CAMERA_UVC_MANEXP 
-                control.id = V4L2_CID_EXPOSURE_ABSOLUTE;                    
-                control.value = mUvcManExposure[atoi(exposure) + 3];
+			    query_control.id = V4L2_CID_BRIGHTNESS;
+        		if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &query_control)){
+	               control.id = V4L2_CID_BRIGHTNESS ;                    
+	               control.value = atoi(exposure) * ((query_control.maximum - query_control.minimum)/7);
                 
                 if (ioctl(iCamFd,VIDIOC_S_CTRL, &control) <0) {
                      LOGE("%s(%d):  Set exposure(%s) failed",__FUNCTION__,__LINE__,exposure);
                 } else {
                      LOGD("%s(%d): Set exposure %s  %d",__FUNCTION__,__LINE__,exposure,control.value);
+	                }
                 }
             #endif
             }
@@ -4397,56 +4625,16 @@ int CameraHal::cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
             VPU_FRAME outbuf; 
             unsigned int output_len;
             unsigned int input_len,i,j,w,h;
-            FILE *fp;
             char filename[50];
             unsigned int *psrc,*pdst;
             
             output_len = 0;
             input_len = src_size;
             if (v4l2_fmt_dst == V4L2_PIX_FMT_NV12) {                
-                
-                ret = mMjpegDecoder.decode(mMjpegDecoder.decoder,(unsigned char*)&outbuf, &output_len, (unsigned char*)srcbuf, &input_len);
-                if ((ret >= 0) && (output_len == sizeof(VPU_FRAME))) {
-                    VPUMemLink(&outbuf.vpumem);
-                    /* following codes are used to get yuv data after decoder */
-                    VPUMemInvalidate(&outbuf.vpumem);
-                    w = ((outbuf.DisplayWidth+15)&(~15));
-                    h = ((outbuf.DisplayHeight+15)&(~15));
-                    if (mirror == false) {
-                        memcpy(dstbuf, outbuf.vpumem.vir_addr,w*h*3/2);
-                    } else {
-                        pdst = (unsigned int*)(dstbuf); 
-                        psrc = (unsigned int*)outbuf.vpumem.vir_addr;
-                        pdst += ((w>>2)-1);
-                        for (j=0; j<h; j++) {                            
-                            for (i=0; i<(w>>2); i++) {
-                                *pdst = ((*psrc>>24)&0x000000ff) | ((*psrc>>8)&0x0000ff00)
-                                        | ((*psrc<<8)&0x00ff0000) | ((*psrc<<24)&0xff000000);
-                                psrc++;
-                                pdst--;
-                            }
-                            pdst += (w>>1);
-                        }
-
-                        pdst = (unsigned int*)dstbuf; 
-                        psrc = (unsigned int*)outbuf.vpumem.vir_addr;
-
-                        pdst += (w*h/4);
-                        psrc += (w*h/4);
-                        pdst += ((w>>2)-1);
-                        for (j=0; j<(h/2); j++) {                            
-                            for (i=0; i<(w>>2); i++) {
-                                *pdst = ((*psrc>>16)&0x0000ffff) | ((*psrc<<16)&0xffff0000);
-                                psrc++;
-                                pdst--;
-                            }
-                            pdst += (w>>1);
-                        }
-                    }
-                    VPUFreeLinear(&outbuf.vpumem);
-                } else {
-                    LOGE("%s(%d): mjpeg decode failed! ret:%d  output_len: 0x%x, src_buf: %p, input_len: %d",__FUNCTION__,__LINE__,
-                        ret,output_len,srcbuf, input_len);
+                ret = mMjpegDecoder.decode(mMjpegDecoder.decoder,(unsigned char*)&outbuf, &output_len, 
+    				                          (unsigned char*)srcbuf, &input_len,dstphy);
+                if (ret < 0){
+                    LOGE("%s(%d): mjpeg stream is error!",__FUNCTION__,__LINE__);
                 }
             }
             break;
@@ -5090,6 +5278,15 @@ void CameraHal::release()
     	mDisplayThread.clear();
 	}
 	if(mPreviewThread != NULL){
+        if (mPreviewProcessThread != NULL) {
+            mPreviewProcessThread->requestExitAndWait();
+    	    mPreviewProcessThread.clear();
+        }
+        if (mPreviewDispatchThread != NULL) {
+            mPreviewDispatchThread->requestExitAndWait();
+    	    mPreviewDispatchThread.clear();
+        }
+    
     	mPreviewThread->requestExitAndWait();
     	mPreviewThread.clear();
 	}

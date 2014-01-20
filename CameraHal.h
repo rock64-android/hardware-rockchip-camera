@@ -51,6 +51,7 @@
 #endif
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
+#include "../jpeghw/release/encode_release/rk29-ipp.h"
 #include "../libon2/vpu_global.h"
 
 
@@ -253,9 +254,15 @@ namespace android {
 *
 *v0.4.0x27:
 *         1) get_class_On2JpegDecoder interface is in librk_on2.so for android 4.4;
+*v0.4.0x29:
+*         1)exposure instead of brightness for uvc;
+*         2)digital zoom for uvc;
+*         3)create preview process thread and preview dispatch thread for uvc mjpeg decode;
+*         4)create buffer independent in ion for cache flush independent;
+*         5)dec_oneframe_class_On2JpegDecoder change to dec_oneframe_On2JpegDecoder in android4.4;
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x27) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x29) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -401,7 +408,7 @@ typedef int (*initMjpegDecoderFun)(void* jpegDecoder);
 typedef int (*deInitMjpegDecoderFun)(void* jpegDecoder);
 
 typedef int (*mjpegDecodeOneFrameFun)(void * jpegDecoder,uint8_t* aOutBuffer, uint32_t *aOutputLength,
-        uint8_t* aInputBuf, uint32_t* aInBufSize);
+        uint8_t* aInputBuf, uint32_t* aInBufSize, uint32_t out_phyaddr);
 
 typedef struct mjpeg_interface {
     void*                       decoder;
@@ -690,8 +697,36 @@ private:
         }
     };
 
+    class PreviewProcessThread : public Thread {
+        CameraHal* mHardware;
+    public:
+        PreviewProcessThread(CameraHal* hw)
+            : Thread(false), mHardware(hw) { }
+
+        virtual bool threadLoop() {
+            mHardware->previewProcessThread();
+
+            return false;
+        }
+    };
+
+    class PreviewDispatchThread : public Thread {
+        CameraHal* mHardware;
+    public:
+        PreviewDispatchThread(CameraHal* hw)
+            : Thread(false), mHardware(hw) { }
+
+        virtual bool threadLoop() {
+            mHardware->previewDispatchThread();
+
+            return false;
+        }
+    };
+
     void displayThread();
     void previewThread();
+    void previewProcessThread();
+    void previewDispatchThread();
 	void commandThread();
     void pictureThread();
     void snapshotThread();
@@ -739,6 +774,8 @@ private:
 
     int cameraParametersGet(CameraParameters &params);
     int cameraParametersSet(CameraParameters &params);
+
+    void previewDispatch(unsigned int buf_idx, bool snapshot, bool bypass);
     
     char *cameraDevicePathCur;    
     char cameraCallProcess[30];
@@ -791,6 +828,8 @@ private:
     
     sp<DisplayThread>  mDisplayThread;
     sp<PreviewThread>  mPreviewThread;
+    sp<PreviewProcessThread>  mPreviewProcessThread;
+    sp<PreviewDispatchThread>  mPreviewDispatchThread;
 	sp<CommandThread>  mCommandThread;
     sp<PictureThread>  mPictureThread;
     sp<SnapshotThread>  mSnapshotThread;
@@ -798,6 +837,8 @@ private:
     int mSnapshotRunning;
     int mCommandRunning;
     unsigned int mPreviewRunning;
+    bool mPreviewProcessRunning;
+    bool mPreviewDispatchRunning;
     Mutex mPreviewLock;
     Condition mPreviewCond;
     bool mPreviewCmdReceived;
@@ -889,6 +930,18 @@ private:
         CMD_PREVIEW_VIDEOSNAPSHOT,
         CMD_PREVIEW_INVAL
     };
+    enum PreviewProcessThreadCmds {
+        CMD_PREVIEW_PROCESS_PAUSE,
+        CMD_PREVIEW_PROCESS_START,
+        CMD_PREVIEW_PROCESS_CONVERT_UVC,
+        CMD_PREVIEW_PROCESS_EXIT
+    };
+    enum PreviewDispatchThreadCmds {
+        CMD_PREVIEW_DISPATCH_PAUSE,
+        CMD_PREVIEW_DISPATCH_START,
+        CMD_PREVIEW_DISPATCH_FRAME,
+        CMD_PREVIEW_DISPATCH_EXIT
+    };
     enum CommandThreadCommands { 
 		// Comands
         CMD_PREVIEW_START,
@@ -914,9 +967,13 @@ private:
     MessageQueue    displayThreadCommandQ;
     MessageQueue    displayThreadAckQ;
     MessageQueue    previewThreadCommandQ;
-    MessageQueue    snapshotThreadAckQ;
-    MessageQueue    snapshotThreadCommandQ;
     MessageQueue    previewThreadAckQ;
+    MessageQueue    previewProcessThreadCmdQ;
+    MessageQueue    previewProcessThreadAckQ;
+    MessageQueue    previewDispatchThreadCmdQ;
+    MessageQueue    previewDispatchThreadAckQ;
+    MessageQueue    snapshotThreadAckQ;
+    MessageQueue    snapshotThreadCommandQ;    
     MessageQueue    commandThreadCommandQ;
     MessageQueue    commandThreadAckQ;
     
@@ -926,6 +983,7 @@ private:
     camera_request_memory mRequestMemory;
     void  *mCallbackCookie;
     MemManagerBase* mCamBuffer;
+	int uvcZoomVal;
 };
 
 }; // namespace android
