@@ -260,6 +260,9 @@ namespace android {
 *         3)create preview process thread and preview dispatch thread for uvc mjpeg decode;
 *         4)create buffer independent in ion for cache flush independent;
 *         5)dec_oneframe_class_On2JpegDecoder change to dec_oneframe_On2JpegDecoder in android4.4;
+*v0.4.0x2b:
+		  1)didn't ummap buffer if  usb capture erro,fix it
+		  2)increase raw buffer size for 1M.
 */
 
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x29) 
@@ -312,7 +315,7 @@ namespace android {
 #define RAW_BUFFER_SIZE_5M         (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ? 0x9A0000:0x740000)
 #define RAW_BUFFER_SIZE_3M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ?0x600000 :0x480000)
 #define RAW_BUFFER_SIZE_2M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ?0x3A0000 :0x2c0000)
-#define RAW_BUFFER_SIZE_1M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565)? 0x180000 :0x120000)
+#define RAW_BUFFER_SIZE_1M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565)? 0x180000 :0x1c2000)
 #define RAW_BUFFER_SIZE_0M3         (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565)?0x150000 :0x100000)
 
 #define JPEG_BUFFER_SIZE_8M          0x700000

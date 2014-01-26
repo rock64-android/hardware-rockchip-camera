@@ -726,13 +726,6 @@ capturePicture_streamoff:
 	}
 
 
-    if (mCamDriverV4l2MemType == V4L2_MEMORY_MMAP) {
-        if (camDriverV4l2Buffer != NULL) {
-            if (munmap((void*)camDriverV4l2Buffer, buffer.length) < 0)
-                LOGE("%s camDriverV4l2Buffer munmap failed : %s",__FUNCTION__,strerror(errno));
-            camDriverV4l2Buffer = NULL;
-        }
-    }
     
     if (rotation == 180) {
         if (driver_mirror_fail == true) {
@@ -854,6 +847,13 @@ exit:
     /* ddl@rock-chips.com: v0.4.11 */
     /* ddl@rock-chips.com: Release v4l2 buffer must by close device, buffer isn't release in VIDIOC_STREAMOFF ioctl */
     if (CAMERA_IS_UVC_CAMERA()) {
+		if (mCamDriverV4l2MemType == V4L2_MEMORY_MMAP) {
+        	if (camDriverV4l2Buffer != NULL) {
+            	if (munmap((void*)camDriverV4l2Buffer, buffer.length) < 0)
+                	LOGE("%s camDriverV4l2Buffer munmap failed : %s",__FUNCTION__,strerror(errno));
+            		camDriverV4l2Buffer = NULL;
+        		}
+    		}
         close(iCamFd);
         iCamFd = open(cameraDevicePathCur, O_RDWR);
         if (iCamFd < 0) {
