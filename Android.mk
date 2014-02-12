@@ -30,7 +30,7 @@ LOCAL_SHARED_LIBRARIES:= \
     libgui\
     libjpeg\
     libjpeghwenc\
-    libion\
+    libion_rk\
     libvpu\
     libdl
 
