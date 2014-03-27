@@ -8,6 +8,12 @@ struct Message
     void*        arg2;
     void*        arg3;
     void*        arg4;
+    Message(){
+        arg1 = NULL;
+        arg2 = NULL;
+        arg3 = NULL;
+        arg4 = NULL;
+    }
 };
 
 class MessageQueue

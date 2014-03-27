@@ -2,6 +2,7 @@
 #define ANDROID_HARDWARE_CAMERA_HARDWARE_MODULE_H
 #include <linux/videodev2.h>
 #include <utils/threads.h>
+#include "CameraHal_board_xml_parse.h"
 
 using namespace android;
 
@@ -21,6 +22,7 @@ typedef struct rk_cam_info_s {
     unsigned int version;
     struct camera_info facing_info;
     struct v4l2_frmivalenum fival_list[10];   // default preview framerate, dc preview framerate, dv preview framerate(highe quality/low quality)   
+    struct rk_cam_total_info *pcam_total_info;
 }rk_cam_info_t;
 
 

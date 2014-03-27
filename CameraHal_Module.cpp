@@ -600,6 +600,171 @@ int camera_get_number_of_cameras(void)
     char version[PROPERTY_VALUE_MAX];
     char property[PROPERTY_VALUE_MAX];
     int hwrotation = 0;
+	camera_board_profiles * profiles = NULL;
+    size_t nCamDev = 0;
+    
+    if (gCamerasNumber > 0)
+        goto camera_get_number_of_cameras_end;
+    
+    memset(version,0x00,sizeof(version));
+    sprintf(version,"%d.%d.%d",((CONFIG_CAMERAHAL_VERSION&0xff0000)>>16),
+        ((CONFIG_CAMERAHAL_VERSION&0xff00)>>8),CONFIG_CAMERAHAL_VERSION&0xff);
+    property_set(CAMERAHAL_VERSION_PROPERTY_KEY,version);
+    
+    memset(&camInfoTmp[0],0x00,sizeof(rk_cam_info_t));
+    memset(&camInfoTmp[1],0x00,sizeof(rk_cam_info_t));
+
+    profiles = camera_board_profiles::getInstance();
+    camera_board_profiles::LoadSensor(profiles);
+    nCamDev = profiles->mDevieVector.size();
+    for (i=0; (i<CAMERAS_SUPPORT_MAX && i<nCamDev); i++) 
+    {  
+        rk_sensor_info *pSensorInfo = &(profiles->mDevieVector[i]->mHardInfo.mSensorInfo);
+        
+        camInfoTmp[cam_cnt&0x01].pcam_total_info = profiles->mDevieVector[i];     
+        strncpy(camInfoTmp[cam_cnt&0x01].device_path, pSensorInfo->mCamsysDevPath, sizeof(camInfoTmp[cam_cnt&0x01].device_path));
+        strncpy(camInfoTmp[cam_cnt&0x01].driver, pSensorInfo->mSensorDriver, sizeof(camInfoTmp[cam_cnt&0x01].driver));
+        if(pSensorInfo->mFacing == RK_CAM_FACING_FRONT){     
+            camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_FRONT;
+        } else {
+            camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_BACK;
+        } 
+        
+        camInfoTmp[cam_cnt&0x01].facing_info.orientation = pSensorInfo->mOrientation;
+        cam_cnt++;
+
+        #if 0
+        memset(version,0x00,sizeof(version));
+        sprintf(version,"%d.%d.%d",((capability.version&0xff0000)>>16),
+            ((capability.version&0xff00)>>8),capability.version&0xff);
+        property_set(CAMERADRIVER_VERSION_PROPERTY_KEY,version);
+        LOGD("%s(%d): %s:%s",__FUNCTION__,__LINE__,CAMERADRIVER_VERSION_PROPERTY_KEY,version);
+        #endif
+    }
+
+   if(cam_cnt<2){
+        for (i=cam_cnt; i<10; i++) {
+            cam_path[0] = 0x00;
+            strcat(cam_path, CAMERA_DEVICE_NAME);
+            sprintf(cam_num, "%d", i);
+            strcat(cam_path,cam_num);
+            fd = open(cam_path, O_RDONLY);
+            if (fd < 0) {
+                LOGE("Open %s failed! strr: %s",cam_path,strerror(errno));
+                break;
+            }
+
+            memset(&capability, 0, sizeof(struct v4l2_capability));
+            if (ioctl(fd, VIDIOC_QUERYCAP, &capability) < 0) {
+            	LOGE("Video device(%s): query capability not supported.\n",cam_path);
+                goto loop_continue;
+            }
+            
+            if ((capability.capabilities & (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING)) != (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING)) {
+        	    LOGD("Video device(%s): video capture not supported.\n",cam_path);
+            } else {
+                memset(camInfoTmp[cam_cnt&0x01].device_path,0x00, sizeof(camInfoTmp[cam_cnt&0x01].device_path));
+                strcat(camInfoTmp[cam_cnt&0x01].device_path,cam_path);
+                memset(camInfoTmp[cam_cnt&0x01].fival_list,0x00, sizeof(camInfoTmp[cam_cnt&0x01].fival_list));
+                memcpy(camInfoTmp[cam_cnt&0x01].driver,capability.driver, sizeof(camInfoTmp[cam_cnt&0x01].driver));
+                camInfoTmp[cam_cnt&0x01].version = capability.version;
+                if (strstr((char*)&capability.card[0], "front") != NULL) {
+                    camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_FRONT;
+                } else {
+                    camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_BACK;
+                }  
+                ptr = strstr((char*)&capability.card[0],"-");
+                if (ptr != NULL) {
+                    ptr++;
+                    camInfoTmp[cam_cnt&0x01].facing_info.orientation = atoi(ptr);
+                } else {
+                    camInfoTmp[cam_cnt&0x01].facing_info.orientation = 0;
+                }
+                cam_cnt++;
+
+                memset(version,0x00,sizeof(version));
+                sprintf(version,"%d.%d.%d",((capability.version&0xff0000)>>16),
+                    ((capability.version&0xff00)>>8),capability.version&0xff);
+                property_set(CAMERADRIVER_VERSION_PROPERTY_KEY,version);
+
+                LOGD("%s(%d): %s:%s",__FUNCTION__,__LINE__,CAMERADRIVER_VERSION_PROPERTY_KEY,version);
+                
+                if (cam_cnt >= CAMERAS_SUPPORT_MAX)
+                    i = 10;
+            }
+    loop_continue:
+            if (fd > 0) {
+                close(fd);
+                fd = -1;
+            }
+            continue;    
+        }
+   }
+    
+    gCamerasNumber = cam_cnt;
+
+#if CONFIG_AUTO_DETECT_FRAMERATE
+    rk29_cam[0] = 0xff;
+    rk29_cam[1] = 0xff;
+    for (i=0; i<cam_cnt; i++) {
+        if (strcmp((char*)&camInfoTmp[i].driver[0],"rk29xx-camera") == 0) {
+            if (strcmp((char*)&camInfoTmp[i].driver[0],(char*)&gCamInfos[i].driver[0]) != 0) {
+                rk29_cam[i] = i; 
+            }
+        } else {
+            rk29_cam[i] = 0xff;
+        }
+    }
+
+    if ((rk29_cam[0] != 0xff) || (rk29_cam[1] != 0xff)) {
+        if (gCameraFpsDetectThread == NULL) {
+            gCameraFpsDetectThread = new CameraFpsDetectThread();
+            LOGD("%s create CameraFpsDetectThread for enum camera framerate!!",__FUNCTION__);
+            gCameraFpsDetectThread->run("CameraFpsDetectThread", ANDROID_PRIORITY_AUDIO);
+        }
+    }
+#endif
+
+    #if CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS
+    if ((gCamerasNumber==1) && (camInfoTmp[0].facing_info.facing==CAMERA_FACING_FRONT)) {
+        gCamerasNumber = 2;
+        memcpy(&camInfoTmp[1],&camInfoTmp[0], sizeof(rk_cam_info_t));
+        camInfoTmp[1].facing_info.facing = CAMERA_FACING_BACK;
+    }
+    #endif
+    
+    memcpy(&gCamInfos[0], &camInfoTmp[0], sizeof(rk_cam_info_t));
+    memcpy(&gCamInfos[1], &camInfoTmp[1], sizeof(rk_cam_info_t));
+
+
+    property_get("ro.sf.hwrotation", property, "0");
+    hwrotation = strtol(property,0,0);
+
+    if (hwrotation == 0) {
+        gCamInfos[0].facing_info.orientation = 0;    /* ddl@rock-chips.com: v0.4.17 */ 
+        gCamInfos[1].facing_info.orientation = 0;
+    }
+//for test isp,zyc
+//  gCamerasNumber =1;
+//  gCamInfos[0].facing_info.orientation = 180;
+    
+camera_get_number_of_cameras_end:
+    LOGD("%s(%d): Current board have %d cameras attached.",__FUNCTION__, __LINE__, gCamerasNumber);
+    return gCamerasNumber;
+}
+
+#if 0
+int camera_get_number_of_cameras(void)
+{
+    char cam_path[20];
+    char cam_num[3],i;
+    int cam_cnt=0,fd=-1,rk29_cam[CAMERAS_SUPPORT_MAX];
+    struct v4l2_capability capability;
+    rk_cam_info_t camInfoTmp[CAMERAS_SUPPORT_MAX];
+    char *ptr,**ptrr;
+    char version[PROPERTY_VALUE_MAX];
+    char property[PROPERTY_VALUE_MAX];
+    int hwrotation = 0;
 
 	//oyyf@rock-chips.com:  modify /data/media_profiles.xml
 	struct timeval t0, t1;
@@ -722,7 +887,7 @@ loop_continue:
     memcpy(&gCamInfos[0], &camInfoTmp[0], sizeof(rk_cam_info_t));
     memcpy(&gCamInfos[1], &camInfoTmp[1], sizeof(rk_cam_info_t));
 
-#if 0
+
     property_get("ro.sf.hwrotation", property, "0");
     hwrotation = strtol(property,0,0);
 
@@ -730,14 +895,15 @@ loop_continue:
         gCamInfos[0].facing_info.orientation = 0;    /* ddl@rock-chips.com: v0.4.17 */ 
         gCamInfos[1].facing_info.orientation = 0;
     }
-#endif    
+//for test isp,zyc
+  gCamerasNumber =1;
+    
 camera_get_number_of_cameras_end:
     LOGD("%s(%d): Current board have %d cameras attached.",__FUNCTION__, __LINE__, gCamerasNumber);
     return gCamerasNumber;
 }
-static int getCallingPid() {
-    return IPCThreadState::self()->getCallingPid();
-}
+#endif
+
 int camera_get_camera_info(int camera_id, struct camera_info *info)
 {
     int rv = 0,fp;

@@ -46,14 +46,15 @@
 #include <camera/Camera.h>
 #include <hardware/camera.h>
 #include <camera/CameraParameters.h>
+#include "Semaphore.h"
 #if defined(TARGET_RK29)
 #include <linux/android_pmem.h>
 #endif
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
 #include "../jpeghw/release/encode_release/rk29-ipp.h"
-#include "../libon2/vpu_global.h"
-
+#include "CameraHal_Module.h"
+#include "common_type.h"
 
 /* 
 *NOTE: 
@@ -77,195 +78,38 @@
 
 
 #include "CameraHal_Mem.h"
+
+extern "C" int getCallingPid();
+extern "C" int cameraPixFmt2HalPixFmt(const char *fmt);
+extern "C" void arm_nv12torgb565(int width, int height, char *src, short int *dst,int dstbuf_w);
+extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short int *dst, 
+                                int dstbuf_width,int dst_width,int dst_height);
+extern "C" int rk_camera_yuv_scale_crop_ipp(int v4l2_fmt_src, int v4l2_fmt_dst, 
+	            int srcbuf, int dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool rotation_180);
+extern "C"  int YData_Mirror_Line(int v4l2_fmt_src, int *psrc, int *pdst, int w);
+extern "C"  int UVData_Mirror_Line(int v4l2_fmt_src, int *psrc, int *pdst, int w);
+extern "C"  int YuvData_Mirror_Flip(int v4l2_fmt_src, char *pdata, char *pline_tmp, int w, int h);
+extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigned char* srcuv,
+                   unsigned char* dsty, int dst_stride, unsigned char* dstuv,
+                   int width, int height,int rotate_angle);
+extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst, 
+									char *srcbuf, char *dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool mirror);
+extern "C" char* getCallingProcess();
+
+extern "C" void arm_yuyv_to_nv12(int src_w, int src_h,char *srcbuf, char *dstbuf);
+
+extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, 
+							char *srcbuf, char *dstbuf,int srcphy,int dstphy,int src_size,
+							int src_w, int src_h, int srcbuf_w,
+							int dst_w, int dst_h, int dstbuf_w,
+							bool mirror);
+
+
+extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
+
 namespace android {
 
-/*
-*v0.1.0 : CameraHal support for android 4.0(ICS);
-*v0.1.1 : CameraHal support query framerate from driver, display thread support NativeWindow sync and asyc mode;
-*v0.1.2 : CameraHal support video snap;
-*v0.1.3 : CameraHal display NativeWindow in async mode;
-*v0.1.5 : CameraHal support send rgb565 to NativeWindow for display, facelock activity fix rgb565;
-*v0.1.6 : Camera and Facelock activity fix rgb565 display, but send yuv420 to JAVA for Facelock;
-*v0.2.0 : Camera CTS test PASS(android.hardware.cts.CameraTest) and support usb camera(UVC);
-*v0.2.1 : Camera CTS test PASS(android.hardware.cts.CameraGLTest);
-*v0.2.2 : 
-*         1) CameraHal fix send yuv data to app error when attach usb camera(UVC);
-*         2) CameraHal add support exposure,but sensor driver must support it;
-*         3) CameraHal fix send 160x120 resolution to facelock for speed up facelock;
-*v0.2.3 : 
-*         1) CameraHal support 240x160 for fring;
-*         2) CameraHal support query version by getprop sys_graphic.camerahal.version;
-*         3) CameraHal display format add check hwc module version;
-*v0.2.4 : CameraHal support obtain necessary memory(preview/raw/jpeg) from pmem or ion device;
-*v0.2.5 : 
-*         1) CameraHal compatible for camera driver v0.x.9
-*         2) CameraHal_Utils don't call msgTypeEnabled,may be deadlock;
-*v0.2.6 :
-*         1) CameraHal compatible for RK30XX and RK29XX;
-*         2) CameraHal support mirror frame which sended by mDataCb and from front camera,
-*            config by CONFIG_CAMERA_FRONT_MIRROR_MDATACB;
-*v0.2.7 :
-*         1) CameraHal support CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS
-*v0.2.8 :
-*         1) CameraHal support CONFIG_CAMERA_XXX_PREVIEW_FPS_XXX for cts 
-*            android.hardware.cts.CameraGLTest#testCameraToSurfaceTextureMetadata
-*            android.hardware.cts.CameraTest#testPreviewFpsRange
-*         2) CameraHal support nv12->rgb565 by rga in rk30xx
-*v0.2.9 : modify the condition of raw and jpeg size , avoid the failure of unstandard mCamDriverFrmWidthMax value
-          from driver.
-*v0.2.a : 
-*         1) Print all resolution framerate in KEY_SUPPORTED_PREVIEW_FRAME_RATES;
-*         2) CONFIG_CAMERA_XXX_PREVIEW_FPS_XXX direct validate;
-*v0.2.b : 
-*         1) fix preview thread may be asynchronous with command thread when take picture frequently in rk30;
-*         2) improve messagequeue between thread communication;
-*         3) fix KEY_ZOOM_SUPPORTED config error in initDefaultParameters when digital zoom isn't supported;
-*         4) fix mDisplayFormat is NV21, but mNativeWindow buffer format is NV12;
-*         5) add CONFIG_CAMERA_UVC_INVAL_FRAMECNT config invaildate first some frame in uvc camera;
-
-*v0.2.c:
-*		  1) add lock when display and preview thread receive pause message,ensure that the thread is indeed in pause
-            status before the command thread send start message.
-		  2)  the second parameter of erro callback message is wrong ,fix it
-          3) status of pic thread setting is moved to pic thread before capture, and unset after capture , to avoid the thread 
-			 asynchronous.
-*v0.2.d:
-	      1) adjust the timeout interval of takepic , display thread pause and preview thread pause.
-		  2) update the version to odd ,from this version on ,we use the odd number to indicate that this is not sure the stable.
-		  3) fix uvc camera convert display format is error in rk30;
-
-*v0.2.e:  
-*         1) display thread must check whether message queue is empty;
-*v0.3.0: just update the version num
-*v0.3.1:  
-*         1) Only one usb sensor in board config as back;
-*         2) add configuration sensor orientation in skype app;
-*v0.3.3:
-*         1) add CONFIG_CAMERA_ORIENTATION_SKYPE
-*v0.3.5:
-*         1) Stop camera driver before stop preview thread;
-*         2) Camera command thread is scheduled before wait for NativeWindow, so main thread can't wake up command thread;
-*v0.3.7:
-*         1) Display thread support ANativeWindow dequeue buffer operation is block, and is sync mode;
-*
-*v0.3.9:
-*         1) fix mCamDriverStreamLock may be lost unlock in preview thread;
-*v0.3.b:
-	      1) support driver preview  format rgb565
-*v0.3.d:
-*         1) fix preview data callback mirror local value have not been init before used;
-*         2) fix preview lock may be unlock, and display thread api lock and signal order;
-*v0.3.f:
-*         1) use arm to do rotation when taking pic if no ipp supported;
-*v0.3.11:
-*         1) add support rk3066b;
-		  2) command thread may trap when native window is null , fix it. 
-*v0.3.13:
-		  1) default preview size is setted to svga if driver supported for RK30;
-		  2) fix uvc camera may be panic when close;
-
-*0.3.15:  
-*         1) if there is no ipp, do picture rotation of 90 an 180 degree  by arm 
-*v0.3.17:
-*         1) Support config whether mirror the preview data which send to apk by apk name;
-*v0.3.19: 
-*         1) fix operate mCamId before initiation in v0.3.17 version;
-*         2) add support 8Mega picture; 
-*v0.3.21: 1) add focus zone support
-*v0.3.23:
-*         1)fix uvc camera erro when taking pic,must unmap buffer
-*         2)throw erro exception if failure to allocate preview memory
-*         3)add mirror preview data which send to yahoo messager apk
-*v0.3.25:
-*         1)fix some print error and picturesize array size no enough in initDefaultParameters;
-*         2)pmem code invalidate by CONFIG_CAMERA_MEM;
-*         3)rga code invalidate by CONFIG_CAMERA_INVALIDATE_RGA;
-*         4)support android-4.2 directly;
-*v0.3.27:
-*         1)support FOCUS_MODE_CONTINUOUS_PICTURE;
-*         2)fix falsh menu error in initDefaultParameters;
-*
-*v0.3.29:
-*         1)add support preview format yuv420p(yv12) for CtsVerifter, and delete rgb565 in preview support format;
-*v0.3.2b: 1)add face detection support
-*		  2)stop camera stream befor set previewthread status  when taking pic 
-*v0.3.2d: 
-*         1)fix panorama preview error after take picture twice when in uvc camera; because some preview buffer state(displaying)
-*           is invalidate in camera start. the state is preview thread set, but display thread has been pause.
-*         2)fix mCamDriverStreamLock isn't unlock when streamoff error in cameraStream function;
-*v0.3.2f:
-*         1)fix preview thread and command thread may dead lock in mPreviewLock when fast take picture frequently;
-*v0.3.31:
-*         1)fix testFocusAreas faild in CTS;
-*v0.3.33:
-*         1)fix v0.3.33 version zoneStr haven't check is NULL;
-*
-*v0.4.1 :
-*         1)compatible with generic_sensor driver;
-*         2)support auto create media_profiles.xml;
-*         3)fix take picture encode error if rotate 90 or 270 in rk2928;
-*         4)fix fill data to display buffer ignore stride, rk3066b display 176x144 error;
-*v0.4.3:
-*         1)fix convert nv12 to rgb565 by rga must set alpha_rop_flag bit;
-*
-*v0.4.5:
-*         1)fix setParameters dead lock in mlock for camera service, because picture thread run in mDataCb;
-*v0.4.7:
-*         1)fix snapshot error when recording for uvc camera;
-*         2)pause display thread when pause preview thread;
-*v0.4.9:
-*		  1)fix video snapshot orientation erro of 180 degree
-*         2)add support white balance control for uvc camera;
-*v0.4.b:
-*         1)fix uvc camera cts pass for 4.2_r4;
-*         2)fix deadlock in testPreviewCallbackWithPicture test;
-*
-*v0.4.e:
-*         1)fix media_profiles.xml which auto created obtain some element's resolution is bigger than sensor resolution;
-*
-*v0.4.f:
-*         1)fix cam_size local variable is overflow in initDefaultParameters;
-*v0.4.11:
-*         1)fix raw data buffer haven't cacheflush in capture for uvc camera;
-*         2)fix uvc camera haven't close when capture error;
-*
-*v0.4.13
-*         1)fix display buffer may be changed when rorate;
-*v0.4.15:
-*         1)support query fov from kernel;
-*         2)support create media_profiles.xml auto for uvc camera;
-*         3)fix snapshot error when recording for uvc camera;  for v0.4.7
-*v0.4.17:
-*         1)support VIDIOC_S_CROP for fied of view; it is for CTS Verifyer FOV;
-*v0.4.19:
-*         1)support anti-banding and exposure manual for uvc;
-*v0.4.1b:
-*		  1)fix video snapshot erro when orientation is 180 degree.
-*
-*v0.4.1d:
-*         1)support mjpeg format for uvc camera;
-*v0.4.1f:
-*         1)mjpeg mirror;
-*v0.4.0x21:
-*         1)It isn't support set framerate after start preview for uvc; 
-*           This would be lead to CTS failed;
-*v0.4.0x23
-*         1)cameraFormatConvert parameters error in captureVideoPicture; Snapshot during recording is error;
-*
-*v0.4.0x27:
-*         1) get_class_On2JpegDecoder interface is in librk_on2.so for android 4.4;
-*v0.4.0x29:
-*         1)exposure instead of brightness for uvc;
-*         2)digital zoom for uvc;
-*         3)create preview process thread and preview dispatch thread for uvc mjpeg decode;
-*         4)create buffer independent in ion for cache flush independent;
-*         5)dec_oneframe_class_On2JpegDecoder change to dec_oneframe_On2JpegDecoder in android4.4;
-*v0.4.0x2b:
-		  1)didn't ummap buffer if  usb capture erro,fix it
-		  2)increase raw buffer size for 1M.
-*/
-
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x29) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x1f) 
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
@@ -276,7 +120,7 @@ namespace android {
 *       CONFIG_CAMERA_DISPLAY_FORCE and CONFIG_CAMERA_DISPLAY_FORCE_FORMAT is debug macro, 
 *    CONFIG_CAMERA_DISPLAY_FORCE must equal to 0 in official version.     
 */
-#define CONFIG_CAMERA_DISPLAY_FORCE     0
+#define CONFIG_CAMERA_DISPLAY_FORCE     1
 #define CONFIG_CAMERA_DISPLAY_FORCE_FORMAT CAMERA_DISPLAY_FORMAT_RGB565
 
 #define CONFIG_CAMERA_SINGLE_SENSOR_FORCE_BACK_FOR_CTS   0
@@ -284,27 +128,21 @@ namespace android {
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL  0
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>"
-#define CONFIG_CAMERA_PRVIEW_BUF_CNT        4
+
+#define CONFIG_CAMERA_PREVIEW_BUF_CNT 4
+#define CONFIG_CAMERA_DISPLAY_BUF_CNT		4
+#define CONFIG_CAMERA_VIDEO_BUF_CNT 4
+#define CONFIG_CAMERA_VIDEOENC_BUF_CNT		4
+
 #define CONFIG_CAMERA_UVC_INVAL_FRAMECNT    5
 #define CONFIG_CAMERA_ORIENTATION_SKYPE     0
 #define CONFIG_CAMERA_FRONT_ORIENTATION_SKYPE     0
 #define CONFIG_CAMERA_BACK_ORIENTATION_SKYPE      0
-#define CONFIG_CAMERA_UVC_MJPEG_SUPPORT           1
-
-#define CONFIG_CAMERA_UVC_MANEXP                1
-#define CONFIG_CAMERA_UVC_MANEXP_MINUS_3        100
-#define CONFIG_CAMERA_UVC_MANEXP_MINUS_2        150
-#define CONFIG_CAMERA_UVC_MANEXP_MINUS_1        200
-#define CONFIG_CAMERA_UVC_MANEXP_DEFAULT        300
-#define CONFIG_CAMERA_UVC_MANEXP_PLUS_1         400
-#define CONFIG_CAMERA_UVC_MANEXP_PLUS_2         450
-#define CONFIG_CAMERA_UVC_MANEXP_PLUS_3         550
-
 
 #define CONFIG_CAMERA_FRONT_PREVIEW_FPS_MIN    3000        // 3fps
-#define CONFIG_CAMERA_FRONT_PREVIEW_FPS_MAX    30000        //30fps
+#define CONFIG_CAMERA_FRONT_PREVIEW_FPS_MAX    40000        //30fps
 #define CONFIG_CAMERA_BACK_PREVIEW_FPS_MIN     3000        
-#define CONFIG_CAMERA_BACK_PREVIEW_FPS_MAX     30000
+#define CONFIG_CAMERA_BACK_PREVIEW_FPS_MAX     40000
 
 #define CAMERAHAL_VERSION_PROPERTY_KEY       "sys_graphic.cam_hal.ver"
 #define CAMERADRIVER_VERSION_PROPERTY_KEY    "sys_graphic.cam_driver.ver"
@@ -315,7 +153,7 @@ namespace android {
 #define RAW_BUFFER_SIZE_5M         (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ? 0x9A0000:0x740000)
 #define RAW_BUFFER_SIZE_3M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ?0x600000 :0x480000)
 #define RAW_BUFFER_SIZE_2M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565) ?0x3A0000 :0x2c0000)
-#define RAW_BUFFER_SIZE_1M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565)? 0x180000 :0x1c2000)
+#define RAW_BUFFER_SIZE_1M          (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565)? 0x180000 :0x1d0000)
 #define RAW_BUFFER_SIZE_0M3         (( mCamDriverPreviewFmt == V4L2_PIX_FMT_RGB565)?0x150000 :0x100000)
 
 #define JPEG_BUFFER_SIZE_8M          0x700000
@@ -324,6 +162,10 @@ namespace android {
 #define JPEG_BUFFER_SIZE_2M          0x300000
 #define JPEG_BUFFER_SIZE_1M          0x200000
 #define JPEG_BUFFER_SIZE_0M3         0x100000
+
+#define OPTIMIZE_MEMORY_USE
+#define VIDEO_ENC_BUFFER            0x151800  
+
 
 #define V4L2_BUFFER_MAX             32
 #define V4L2_BUFFER_MMAP_MAX        16
@@ -359,73 +201,583 @@ namespace android {
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->iHeight)    
 #endif
 
-struct CamCaptureInfo_s
+#define RK_VIDEOBUF_CODE_CHK(rk_code)		((rk_code&(('R'<<24)|('K'<<16)))==(('R'<<24)|('K'<<16)))
+
+
+
+class FrameProvider
 {
-	int input_phy_addr;
-	int input_vir_addr;
-	int output_phy_addr;
-	int output_vir_addr;
-	int output_buflen;
+public:
+   virtual int returnFrame(int index,int cmd)=0;
+   virtual ~FrameProvider(){};
+   FrameProvider(){};
+   FramInfo_s mPreviewFrameInfos[CONFIG_CAMERA_PREVIEW_BUF_CNT];
 };
 
-struct CamMemHeapInfo_s
-{
-	sp<MemoryHeapBase> heap;
-    sp<IMemory> buffer; 
-};
-
-typedef struct rk_previewbuf_info {
-    Mutex *lock;
-    buffer_handle_t* buffer_hnd;
-    NATIVE_HANDLE_TYPE *priv_hnd;
-    camera_memory_t* video_buf;
+typedef struct rk_buffer_info {
+    Mutex* lock;
     int phy_addr;
     int vir_addr;
     int buf_state;
-    int stride;
-} rk_previewbuf_info_t;
+} rk_buffer_info_t;
 
-enum PreviewBufStatus {
-    CMD_PREVIEWBUF_DISPING = 0x01,
-    CMD_PREVIEWBUF_ENCING = 0x02,
-    CMD_PREVIEWBUF_SNAPSHOT_ENCING = 0x04,
-    CMD_PREVIEWBUF_WRITING = 0x08,
+class BufferProvider{
+public:
+    int createBuffer(int count,int perbufsize,buffer_type_enum buftype);
+    int freeBuffer();
+    virtual int setBufferStatus(int bufindex,int status,int cmd=0);
+    virtual int getOneAvailableBuffer(int *buf_phy,int *buf_vir);
+    int getBufferStatus(int bufindex);
+    int getBufCount();
+    int getBufPhyAddr(int bufindex);
+    int getBufVirAddr(int bufindex);
+    int flushBuffer(int bufindex);
+    BufferProvider(MemManagerBase* memManager):mCamBuffer(memManager),mBufInfo(NULL){}
+    virtual ~BufferProvider(){mCamBuffer = NULL;mBufInfo = NULL;}
+protected:
+    rk_buffer_info_t* mBufInfo;
+    int mBufCount;
+    buffer_type_enum mBufType;
+    MemManagerBase* mCamBuffer;
 };
 
+//preview buffer 管理
+class PreviewBufferProvider:public BufferProvider
+{
+public:
+
+    enum PREVIEWBUFSTATUS {
+        CMD_PREVIEWBUF_DISPING = 0x01,
+        CMD_PREVIEWBUF_VIDEO_ENCING = 0x02,
+        CMD_PREVIEWBUF_SNAPSHOT_ENCING = 0x04,
+        CMD_PREVIEWBUF_DATACB = 0x08,
+        CMD_PREVIEWBUF_WRITING = 0x10,
+    };
+    
 #define CAMERA_PREVIEWBUF_ALLOW_DISPLAY(a) ((a&CMD_PREVIEWBUF_WRITING)==0x00)
 #define CAMERA_PREVIEWBUF_ALLOW_ENC(a) ((a&CMD_PREVIEWBUF_WRITING)==0x00)
 #define CAMERA_PREVIEWBUF_ALLOW_ENC_PICTURE(a) ((a&CMD_PREVIEWBUF_WRITING)==0x00)
-#define CAMERA_PREVIEWBUF_ALLOW_WRITE(a)   ((a&(CMD_PREVIEWBUF_DISPING|CMD_PREVIEWBUF_ENCING|CMD_PREVIEWBUF_SNAPSHOT_ENCING|CMD_PREVIEWBUF_WRITING))==0x00)
+#define CAMERA_PREVIEWBUF_ALLOW_DATA_CB(a)  ((a&CMD_PREVIEWBUF_WRITING)==0x00)
+#define CAMERA_PREVIEWBUF_ALLOW_WRITE(a)   ((a&(CMD_PREVIEWBUF_DISPING|CMD_PREVIEWBUF_VIDEO_ENCING|CMD_PREVIEWBUF_SNAPSHOT_ENCING|CMD_PREVIEWBUF_DATACB|CMD_PREVIEWBUF_WRITING))==0x00)
 
-
-#define CAMERA_IS_UVC_CAMERA()  (strcmp((char*)&mCamDriverCapability.driver[0],"uvcvideo") == 0)
-#define CAMERA_IS_RKSOC_CAMERA()  ((strstr((char*)&mCamDriverCapability.driver[0],"rk") != NULL)\
-                                    && (strstr((char*)&mCamDriverCapability.driver[0],"-camera") != NULL))
-
-
-/* mjpeg decoder interface in libvpu.*/
-typedef void* (*getMjpegDecoderFun)(void);
-typedef void (*destroyMjpegDecoderFun)(void* jpegDecoder);
-
-typedef int (*initMjpegDecoderFun)(void* jpegDecoder);
-typedef int (*deInitMjpegDecoderFun)(void* jpegDecoder);
-
-typedef int (*mjpegDecodeOneFrameFun)(void * jpegDecoder,uint8_t* aOutBuffer, uint32_t *aOutputLength,
-        uint8_t* aInputBuf, uint32_t* aInBufSize, uint32_t out_phyaddr);
-
-typedef struct mjpeg_interface {
-    void*                       decoder;
-    int                         state;
+    virtual int setBufferStatus(int bufindex,int status,int cmd);
     
-    getMjpegDecoderFun          get;
-    destroyMjpegDecoderFun      destroy;
-    initMjpegDecoderFun         init;
-    deInitMjpegDecoderFun       deInit;
-    mjpegDecodeOneFrameFun      decode;
-} mjpeg_interface_t;
+    PreviewBufferProvider(MemManagerBase* memManager):BufferProvider(memManager){}
+    ~PreviewBufferProvider(){}
+};
 
 
-class CameraHal {
+class DisplayAdapter;
+class AppMsgNotifier;
+//diplay buffer 由display adapter类自行管理。
+
+/*************************
+CameraAdapter 负责与驱动通信，且为帧数据的提供者，为display及msgcallback提供数据。
+***************************/
+class CameraAdapter:public FrameProvider
+{
+public:
+    CameraAdapter(int cameraId);
+    virtual ~CameraAdapter();
+
+    DisplayAdapter* getDisplayAdapterRef(){return mRefDisplayAdapter;}
+    void setDisplayAdapterRef(DisplayAdapter& refDisplayAdap);
+    void setEventNotifierRef(AppMsgNotifier& refEventNotify);
+    void setPreviewBufProvider(BufferProvider* bufprovider);
+    CameraParameters & getParameters();
+    virtual int getCurPreviewState(int *drv_w,int *drv_h);
+    int getCameraFd();
+   int initialize();
+    
+    virtual status_t startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture);
+    virtual status_t stopPreview();
+   // virtual int initialize() = 0;
+    virtual int returnFrame(int index,int cmd);
+    virtual int setParameters(const CameraParameters &params_set);
+    virtual void initDefaultParameters();
+    virtual status_t autoFocus();
+
+    virtual void dump();
+protected:
+    //talk to driver
+    virtual int cameraCreate(int cameraId);
+    virtual int cameraDestroy();
+    
+    virtual int cameraSetSize(int w, int h, int fmt, bool is_capture); 
+    virtual int cameraStream(bool on);
+    virtual int cameraStart();
+    virtual int cameraStop();
+    //dqbuf
+    virtual int getFrame(FramInfo_s** frame); 
+    virtual int cameraAutoFocus(bool auto_trig_only);
+
+    //qbuf
+ //   virtual status_t fillThisBuffer();
+
+    //define  the frame info ,such as w, h ,fmt ,dealflag(preview callback ? display ? video enc ? picture?)
+    virtual void reprocessFrame(FramInfo_s* frame);
+    virtual int adapterReturnFrame(int index,int cmd);
+
+private:
+    //该线程置于继承类中?
+    class CameraPreviewThread :public Thread
+    {
+        //deque 到帧后根据需要分发给DisplayAdapter类及EventNotifier类。
+        CameraAdapter* mPreivewCameraAdapter;
+    public:
+        CameraPreviewThread(CameraAdapter* adapter)
+            : Thread(false), mPreivewCameraAdapter(adapter) { }
+
+        virtual bool threadLoop() {
+            mPreivewCameraAdapter->previewThread();
+
+            return false;
+        }
+    };
+
+    class AutoFocusThread : public Thread {
+        CameraAdapter* mFocusCameraAdapter;
+    public:
+        AutoFocusThread(CameraAdapter* hw)
+            : Thread(false), mFocusCameraAdapter(hw) { }
+
+        virtual bool threadLoop() {
+            mFocusCameraAdapter->autofocusThread();
+
+            return false;
+        }
+    };
+
+    void autofocusThread();
+    sp<AutoFocusThread>  mAutoFocusThread;
+
+
+
+protected:    
+    virtual void previewThread();
+protected:
+    DisplayAdapter* mRefDisplayAdapter;
+    AppMsgNotifier* mRefEventNotifier;
+    sp<CameraPreviewThread> mCameraPreviewThread;
+    int mPreviewRunning;
+	int mPictureRunning;
+    BufferProvider* mPreviewBufProvider;
+    int mCamDrvWidth;
+    int mCamDrvHeight;
+    int mCamPreviewH ;
+    int mCamPreviewW ;
+
+    unsigned int mCamDriverSupportFmt[CAMERA_DRIVER_SUPPORT_FORMAT_MAX];
+    enum v4l2_memory mCamDriverV4l2MemType;
+
+    unsigned int mCamDriverPreviewFmt;
+    struct v4l2_capability mCamDriverCapability;
+
+    int mPreviewErrorFrameCount;
+    int mPreviewFrameIndex;
+
+    Mutex mCamDriverStreamLock;
+    bool mCamDriverStream;
+
+    bool camera_device_error;
+
+    CameraParameters mParameters;
+    unsigned int CameraHal_SupportFmt[6];
+
+    char *mCamDriverV4l2Buffer[V4L2_BUFFER_MAX];
+    unsigned int mCamDriverV4l2BufferLen;
+
+    int mCamFd;
+    int mCamId;
+
+    Mutex mAutoFocusLock;
+    Condition mAutoFocusCond;
+    bool mExitAutoFocusThread; 
+};
+
+//soc camera adapter
+class CameraSOCAdapter: public CameraAdapter
+{
+public:
+    CameraSOCAdapter(int cameraId);
+    virtual ~CameraSOCAdapter();
+
+    /*********************
+    talk to driver 
+    **********************/
+    //parameters
+    virtual int setParameters(const CameraParameters &params_set);
+    virtual void initDefaultParameters();
+    virtual int cameraAutoFocus(bool auto_trig_only);
+    
+private:    
+    int cameraFramerateQuery(unsigned int format, unsigned int w, unsigned int h, int *min, int *max);
+    int cameraFpsInfoSet(CameraParameters &params);
+    int cameraConfig(const CameraParameters &tmpparams,bool isInit);
+
+
+    int mCamDriverFrmWidthMax;
+    int mCamDriverFrmHeightMax;
+    String8 mSupportPreviewSizeReally;
+ 
+    struct v4l2_querymenu mWhiteBalance_menu[20];
+    int mWhiteBalance_number;
+    
+    struct v4l2_querymenu mEffect_menu[20];
+    int mEffect_number;
+    
+    struct v4l2_querymenu mScene_menu[20];
+    int mScene_number;
+    
+    struct v4l2_querymenu mAntibanding_menu[20];
+    int mAntibanding_number;
+    
+    int mZoomMin;
+    int mZoomMax;
+    int mZoomStep;
+    
+    struct v4l2_querymenu mFlashMode_menu[20];
+    int mFlashMode_number;
+
+	//TAE & TAF
+	__u32 m_focus_mode;
+	static const __u32 focus_fixed = 0xFFFFFFFF;
+	__u32 m_focus_value;
+	__s32 m_taf_roi[4];
+
+	void GetAFParameters(const char* focusmode = NULL);
+	int AndroidZoneMapping(
+			const char* tag,
+			__s32 pre_w,
+			__s32 pre_h,
+			__s32 drv_w,
+			__s32 drv_h,
+			bool bPre2Drv,
+			__s32 *zone);
+
+};
+
+//usb camera adapter
+
+class CameraUSBAdapter: public CameraAdapter
+{
+public:
+    CameraUSBAdapter(int cameraId):CameraAdapter(cameraId){};
+    virtual ~CameraUSBAdapter(){};
+};
+/*************************
+DisplayAdapter 为帧数据消费者，从CameraAdapter接收帧数据并显示
+***************************/
+class DisplayAdapter
+{
+    class DisplayThread : public Thread {
+        DisplayAdapter* mDisplayAdapter;        
+    public:
+        DisplayThread(DisplayAdapter* disadap)
+            : Thread(false), mDisplayAdapter(disadap){}
+
+        virtual bool threadLoop() {
+            mDisplayAdapter->displayThread();
+
+            return false;
+        }
+    };
+
+public:
+    enum DisplayThreadCommands {
+		// Comands
+		CMD_DISPLAY_PAUSE,        
+        CMD_DISPLAY_START,
+        CMD_DISPLAY_STOP,
+        CMD_DISPLAY_FRAME,
+        CMD_DISPLAY_INVAL
+    };
+
+    enum DISPLAY_STATUS{
+        STA_DISPLAY_RUNNING,
+        STA_DISPLAY_PAUSE,
+        STA_DISPLAY_STOP,
+    };
+	enum DisplayCommandStatus{
+		CMD_DISPLAY_START_PREPARE = 1,
+		CMD_DISPLAY_START_DONE,
+		CMD_DISPLAY_PAUSE_PREPARE,
+		CMD_DISPLAY_PAUSE_DONE,
+		CMD_DISPLAY_STOP_PREPARE,
+		CMD_DISPLAY_STOP_DONE,
+		CMD_DISPLAY_FRAME_PREPARE,
+		CMD_DISPLAY_FRAME_DONE,
+	};
+	
+    typedef struct rk_displaybuf_info {
+        Mutex* lock;
+        buffer_handle_t* buffer_hnd;
+        NATIVE_HANDLE_TYPE *priv_hnd;
+        int phy_addr;
+        int vir_addr;
+        int buf_state;
+        int stride;
+    } rk_displaybuf_info_t;
+
+    bool isNeedSendToDisplay();
+    void notifyNewFrame(FramInfo_s* frame);
+    
+    int startDisplay(int width, int height);
+    int stopDisplay();
+    int pauseDisplay();
+
+    int setPreviewWindow(struct preview_stream_ops* window);
+    int getDisplayStatus(void);
+    void setFrameProvider(FrameProvider* framePro);
+    void dump();
+
+    DisplayAdapter();
+    ~DisplayAdapter();
+
+    struct preview_stream_ops* getPreviewWindow();
+private:
+    int cameraDisplayBufferCreate(int width, int height, const char *fmt,int numBufs);
+    int cameraDisplayBufferDestory(void);
+    void displayThread();
+    void setBufferState(int index,int status);
+    void setDisplayState(int state);
+
+    rk_displaybuf_info_t* mDisplayBufInfo;
+    int mDislayBufNum;
+    int mDisplayWidth;
+    int mDisplayHeight;
+    int mDisplayRuning;
+    char mDisplayFormat[30];
+
+    int mDispBufUndqueueMin;
+    preview_stream_ops_t* mANativeWindow;
+    FrameProvider* mFrameProvider;
+
+    Mutex mDisplayLock;
+    Condition mDisplayCond;
+	int mDisplayState;
+
+    MessageQueue    displayThreadCommandQ;
+    sp<DisplayThread> mDisplayThread;
+};
+
+//takepicture used
+ typedef struct picture_info{
+    int num;
+    int w;
+    int h;
+    int fmt;
+	int quality ;
+	int rotation;
+	int thumbquality;
+	int thumbwidth;
+	int thumbheight;
+
+    //gps info
+	int	altitude;
+	int	latitude;
+	int	longtitude;
+	int	timestamp;    
+	char	getMethod[33];//getMethod : len <= 32
+
+	int  focalen;
+	int  isovalue;
+	int  flash;
+	int  whiteBalance;
+
+ }picture_info_s;
+
+
+//picture encode used
+struct CamCaptureInfo_s
+{
+    int input_phy_addr;
+    int input_vir_addr;
+    int output_phy_addr;
+    int output_vir_addr;
+    int output_buflen;
+};
+/**************************************
+EventNotifier   负责处理msg 的回调，拍照或者录影时也作为帧数据的消费者。
+**************************************/
+class AppMsgNotifier
+{
+private:
+	enum CameraStatus{
+		CMD_EVENT_PREVIEW_DATA_CB_PREPARE 	= 0x01,
+		CMD_EVENT_PREVIEW_DATA_CB_DONE 		= 0x02,	
+		CMD_EVENT_PREVIEW_DATA_CB_MASK 		= 0x03,	
+
+		CMD_EVENT_VIDEO_ENCING_PREPARE		= 0x04,
+		CMD_EVENT_VIDEO_ENCING_DONE			= 0x08,	
+		CMD_EVENT_VIDEO_ENCING_MASK			= 0x0C,	
+
+		CMD_EVENT_PAUSE_PREPARE				= 0x10,
+		CMD_EVENT_PAUSE_DONE				= 0x20,	
+		CMD_EVENT_PAUSE_MASK				= 0x30,	
+
+		CMD_EVENT_EXIT_PREPARE				= 0x40,
+		CMD_EVENT_EXIT_DONE					= 0x80,
+		CMD_EVENT_EXIT_MASK					= 0xC0,	
+
+		CMD_ENCPROCESS_SNAPSHOT_PREPARE		= 0x100,
+		CMD_ENCPROCESS_SNAPSHOT_DONE		= 0x200,
+		CMD_ENCPROCESS_SNAPSHOT_MASK		= 0x300,
+
+		CMD_ENCPROCESS_PAUSE_PREPARE		= 0x400,
+		CMD_ENCPROCESS_PAUSE_DONE			= 0x800,
+		CMD_ENCPROCESS_PAUSE_MASK			= 0xC00,
+
+		CMD_ENCPROCESS_EXIT_PREPARE			= 0x1000,
+		CMD_ENCPROCESS_EXIT_DONE			= 0x2000,
+		CMD_ENCPROCESS_EXIT_MASK			= 0x3000,
+
+		STA_RECORD_RUNNING				= 0x4000,
+		STA_RECEIVE_PIC_FRAME				= 0x8000,
+	};
+	
+    //处理preview data cb及video enc
+    class CameraAppMsgThread :public Thread
+    {
+    public:
+        enum EVENT_THREAD_CMD{
+            CMD_EVENT_PREVIEW_DATA_CB,
+            CMD_EVENT_VIDEO_ENCING,
+            CMD_EVENT_PAUSE,
+            CMD_EVENT_EXIT
+        };
+	protected:
+		AppMsgNotifier* mAppMsgNotifier;
+	public:
+		CameraAppMsgThread(AppMsgNotifier* hw)
+			: Thread(false),mAppMsgNotifier(hw) { }
+	
+		virtual bool threadLoop() {
+			mAppMsgNotifier->eventThread();
+	
+			return false;
+		}
+    };
+
+    //处理picture
+	class EncProcessThread : public Thread {
+	public:
+	    enum ENC_THREAD_CMD{
+            CMD_ENCPROCESS_SNAPSHOT,
+            CMD_ENCPROCESS_PAUSE,
+            CMD_ENCPROCESS_EXIT,
+	    };
+	protected:
+		AppMsgNotifier* mAppMsgNotifier;
+	public:
+		EncProcessThread(AppMsgNotifier* hw)
+			: Thread(false),mAppMsgNotifier(hw) { }
+	
+		virtual bool threadLoop() {
+			mAppMsgNotifier->encProcessThread();
+	
+			return false;
+		}
+	};
+
+	friend class EncProcessThread;
+public:
+    AppMsgNotifier();
+    ~AppMsgNotifier();
+
+    void setPictureRawBufProvider(BufferProvider* bufprovider);
+    void setPictureJpegBufProvider(BufferProvider* bufprovider);
+    
+    int takePicture(picture_info_s picinfo);
+    int flushPicture();
+    
+    void setVideoBufProvider(BufferProvider* bufprovider);
+    int startRecording(int w,int h);
+    int stopRecording();
+    void releaseRecordingFrame(const void *opaque);
+    int msgEnabled(int32_t msg_type);
+    void notifyCbMsg(int msg,int ret);
+    
+    bool isNeedSendToVideo();
+    bool isNeedSendToPicture();
+    bool isNeedSendToDataCB();
+    bool isNeedToDisableCaptureMsg();
+    void notifyNewPicFrame(FramInfo_s* frame);
+    void notifyNewPreviewCbFrame(FramInfo_s* frame);
+    void notifyNewVideoFrame(FramInfo_s* frame);
+    int enableMsgType(int32_t msgtype);
+    int disableMsgType(int32_t msgtype);
+    void setCallbacks(camera_notify_callback notify_cb,
+            camera_data_callback data_cb,
+            camera_data_timestamp_callback data_cb_timestamp,
+            camera_request_memory get_memory,
+            void *user);
+    void setFrameProvider(FrameProvider * framepro);
+    int  setPreviewDataCbRes(int w,int h, const char *fmt);
+    
+    void stopReceiveFrame();
+    void dump();
+private:
+
+   void encProcessThread();
+   void eventThread();
+
+	int captureEncProcessPicture(FramInfo_s* frame);
+    int processPreviewDataCb(FramInfo_s* frame);
+    int processVideoCb(FramInfo_s* frame);
+    
+    int copyAndSendRawImage(void *raw_image, int size);
+    int copyAndSendCompressedImage(void *compressed_image, int size);
+    int Jpegfillexifinfo(RkExifInfo *exifInfo,picture_info_s &params);
+    int Jpegfillgpsinfo(RkGPSInfo *gpsInfo,picture_info_s &params);
+    
+    int32_t mMsgTypeEnabled;
+    
+    picture_info_s mPictureInfo;
+   // bool mReceivePictureFrame;
+    int mEncPictureNum;
+    Mutex mPictureLock;
+
+    Mutex mRecordingLock;
+//    bool mRecordingRunning;
+    int mRecordW;
+    int mRecordH;
+
+    Mutex mDataCbLock;
+
+
+    sp<CameraAppMsgThread> mCameraAppMsgThread;
+    sp<EncProcessThread> mEncProcessThread;
+    BufferProvider* mRawBufferProvider;
+    BufferProvider* mJpegBufferProvider;
+    BufferProvider* mVideoBufferProvider;
+    FrameProvider* mFrameProvider;
+
+    camera_notify_callback mNotifyCb;
+    camera_data_callback mDataCb;    
+    camera_data_timestamp_callback mDataCbTimestamp;
+    camera_request_memory mRequestMemory;
+    void  *mCallbackCookie;
+
+    MessageQueue encProcessThreadCommandQ;
+    MessageQueue eventThreadCommandQ;
+
+    camera_memory_t* mVideoBufs[CONFIG_CAMERA_VIDEO_BUF_CNT];
+
+    char mPreviewDataFmt[30];
+    int mPreviewDataW;
+    int mPreviewDataH;
+	int mRunningState;
+    
+};
+
+
+/***********************
+CameraHal类负责与cameraservice联系，实现
+cameraservice要求实现的接口。此类只负责公共资源的申请，以及任务的分发。
+***********************/
+class CameraHal
+{
 public:  
 /*--------------------Interface Methods---------------------------------*/
     /** Set the ANativeWindow to which preview frames are sent */
@@ -579,6 +931,7 @@ public:
      */
     int setParameters(const char *parms);
     int setParameters(const CameraParameters &params_set);
+	int setParametersUnlock(const CameraParameters &params_set);
 
     /** Retrieve the camera parameters.  The buffer returned by the camera HAL
         must be returned back to it with put_parameters, if put_parameters
@@ -608,84 +961,101 @@ public:
      * Dump state of the camera hardware
      */
     int dump(int fd);
-
+    void dump_mem(__u16 addr_s, __u16 len, __u8* content);
 /*--------------------Internal Member functions - Public---------------------------------*/
     /** Constructor of CameraHal */
     CameraHal(int cameraId);
 
     // Destructor of CameraHal
-    ~CameraHal();    
+    virtual ~CameraHal();    
 
     int getCameraFd();
-    
+	bool isNeedToDisableCaptureMsg();
+
+public:
+    CameraAdapter* mCameraAdapter;
+    DisplayAdapter* mDisplayAdapter;
+    AppMsgNotifier*   mEventNotifier;
+    MemManagerBase* mMemoryManager;
+    BufferProvider* mPreviewBuf;
+    BufferProvider* mVideoBuf;
+    BufferProvider* mRawBuf;
+    BufferProvider* mJpegBuf;
+    MemManagerBase* mCamMemManager;
+
+
 private:
+    int selectPreferedDrvSize(int *width,int * height,bool is_capture);
+    int fillPicturInfo(picture_info_s& picinfo);
+	void setCamStatus(int status, int type);
+	int checkCamStatus(int cmd);
+    enum CommandThreadCommands { 
+		// Comands
+        CMD_PREVIEW_START = 1,
+        CMD_PREVIEW_STOP,
+        CMD_PREVIEW_CAPTURE_CANCEL,
+        CMD_CONTINUOS_PICTURE,
+        
+        CMD_AF_START,
+        CMD_AF_CANCEL,
 
-    class PreviewThread : public Thread {
-        CameraHal* mHardware;
-    public:
-        PreviewThread(CameraHal* hw)
-            : Thread(false), mHardware(hw) { }
+        CMD_SET_PREVIEW_WINDOW,
+        CMD_SET_PARAMETERS,
+        CMD_EXIT,
 
-        virtual bool threadLoop() {
-            mHardware->previewThread();
-
-            return false;
-        }
     };
 
-    class DisplayThread : public Thread {
-        CameraHal* mHardware;        
-    public:
-        DisplayThread(CameraHal* hw)
-            : Thread(false), mHardware(hw){}
+    enum CommandThreadStatus{
+       CMD_STATUS_RUN ,
+       CMD_STATUS_STOP ,
 
-        virtual bool threadLoop() {
-            mHardware->displayThread();
-
-            return false;
-        }
     };
+	
+	enum CommandStatus{
+		CMD_PREVIEW_START_PREPARE 			= 0x01,
+		CMD_PREVIEW_START_DONE				= 0x02,	
+		CMD_PREVIEW_START_MASK				= 0x11,		
+		
+		CMD_PREVIEW_STOP_PREPARE			= 0x04,
+		CMD_PREVIEW_STOP_DONE				= 0x08,
+		CMD_PREVIEW_STOP_MASK				= 0x0C,
+		
+		CMD_CONTINUOS_PICTURE_PREPARE		= 0x10,
+		CMD_CONTINUOS_PICTURE_DONE			= 0x20,
+		CMD_CONTINUOS_PICTURE_MASK			= 0x30,		
+		
+		CMD_PREVIEW_CAPTURE_CANCEL_PREPARE 	= 0x40,
+		CMD_PREVIEW_CAPTURE_CANCEL_DONE 	= 0x80,
+		CMD_PREVIEW_CAPTURE_CANCEL_MASK 	= 0xC0,		
+		
+		CMD_AF_START_PREPARE				= 0x100,
+		CMD_AF_START_DONE					= 0x200,
+		CMD_AF_START_MASK					= 0x300,		
+		
+		CMD_AF_CANCEL_PREPARE				= 0x400,
+		CMD_AF_CANCEL_DONE					= 0x800,
+		CMD_AF_CANCEL_MASK					= 0xC00,		
+		
+		CMD_SET_PREVIEW_WINDOW_PREPARE		= 0x1000,
+		CMD_SET_PREVIEW_WINDOW_DONE			= 0x2000,
+		CMD_SET_PREVIEW_WINDOW_MASK			= 0x3000,		
+		
+		CMD_SET_PARAMETERS_PREPARE			= 0x4000,
+		CMD_SET_PARAMETERS_DONE				= 0x8000,
+		CMD_SET_PARAMETERS_MASK				= 0xC000,		
+		
+		CMD_EXIT_PREPARE					= 0x10000,
+		CMD_EXIT_DONE						= 0x20000,
+		CMD_EXIT_MASK						= 0x30000,
 
-    class PictureThread : public Thread {
-    protected:
-        CameraHal* mHardware;
-    public:
-        PictureThread(CameraHal* hw)
-            : Thread(false), mHardware(hw) { }
-
-        virtual bool threadLoop() {
-            mHardware->pictureThread();
-
-            return false;
-        }
-    };
-
-    class SnapshotThread : public Thread {
-    protected:
-        CameraHal* mHardware;
-    public:
-        SnapshotThread(CameraHal* hw)
-            : Thread(false),mHardware(hw) { }
-
-        virtual bool threadLoop() {
-            mHardware->snapshotThread();
-
-            return false;
-        }
-    };
-
-    class AutoFocusThread : public Thread {
-        CameraHal* mHardware;
-    public:
-        AutoFocusThread(CameraHal* hw)
-            : Thread(false), mHardware(hw) { }
-
-        virtual bool threadLoop() {
-            mHardware->autofocusThread();
-
-            return false;
-        }
-    };
+		STA_RECORD_RUNNING					= 0x40000,
+		STA_PREVIEW_CMD_RECEIVED			= 0x80000,
+		
+		STA_DISPLAY_RUNNING					= 0x100000,
+        STA_DISPLAY_PAUSE					= 0x200000,
+        STA_DISPLAY_STOP					= 0x400000,	
+		STA_DISPLAY_MASK					= 0x700000,	       
+	};
 
 	class CommandThread : public Thread {
         CameraHal* mHardware;
@@ -700,294 +1070,72 @@ private:
         }
     };
 
-    class PreviewProcessThread : public Thread {
-        CameraHal* mHardware;
-    public:
-        PreviewProcessThread(CameraHal* hw)
-            : Thread(false), mHardware(hw) { }
+   friend class CommandThread;
+   void commandThread();
+   sp<CommandThread> mCommandThread;
+   MessageQueue commandThreadCommandQ;
+   int mCommandRunning;
 
-        virtual bool threadLoop() {
-            mHardware->previewProcessThread();
-
-            return false;
-        }
-    };
-
-    class PreviewDispatchThread : public Thread {
-        CameraHal* mHardware;
-    public:
-        PreviewDispatchThread(CameraHal* hw)
-            : Thread(false), mHardware(hw) { }
-
-        virtual bool threadLoop() {
-            mHardware->previewDispatchThread();
-
-            return false;
-        }
-    };
-
-    void displayThread();
-    void previewThread();
-    void previewProcessThread();
-    void previewDispatchThread();
-	void commandThread();
-    void pictureThread();
-    void snapshotThread();
-    void autofocusThread();
-    void initDefaultParameters();
-    int capturePicture(struct CamCaptureInfo_s *capture);
-    int captureVideoPicture(struct CamCaptureInfo_s *capture, int index);
-	int capturePicturePmemInfoSet(int pmem_fd, int input_offset, int out_offset);
-    int cameraCreate(int cameraId);
-    int cameraDestroy();
-    int cameraConfig(const CameraParameters &params);
-    int cameraQuery(CameraParameters &params);
-    int cameraSetSize(int w, int h, int fmt, bool is_capture);
-    int cameraStart();
-    int cameraStop();
-    int cameraStream(bool on);
-	int cameraAutoFocus(const char *focus, bool auto_trig_only);
-    int Jpegfillgpsinfo(RkGPSInfo *gpsInfo,CameraParameters &params);
-    int Jpegfillexifinfo(RkExifInfo *exifInfo,CameraParameters &params);
-    int copyAndSendRawImage(void *raw_image, int size);
-    int copyAndSendCompressedImage(void *compressed_image, int size);
-        
-    int cameraRawJpegBufferCreate(int rawBufferSize, int jpegBufferSize);
-    int cameraRawJpegBufferDestory();
-    int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, 
-                            char *srcbuf, char *dstbuf,int srcphy,int dstphy,int src_size,
-                            int src_w, int src_h, int srcbuf_w,
-                            int dst_w, int dst_h, int dstbuf_w,
-                            bool mirror);
-     int cameraDisplayBufferCreate(int width, int height, const char *fmt,int numBufs);
-     int cameraDisplayBufferDestory(void);
-     int cameraPreviewBufferCreate(unsigned int numBufs);
-    int cameraPreviewBufferDestory();
-    int cameraPreviewBufferSetSta(rk_previewbuf_info_t *buf_hnd,int cmd, int set);
-    int cameraFramerateQuery(unsigned int format, unsigned int w, unsigned int h, int *min, int *max);
-    int cameraFpsInfoSet(CameraParameters &params);
-
-    int cameraDisplayThreadStart(int done);
-    int cameraDisplayThreadPause(int done);
-    int cameraDisplayThreadStop(int done);
-
-    int cameraPreviewThreadSet(unsigned int setStatus,int done);
-
-	int cameraSetFaceDetect(bool window,bool on);   
-
-    int cameraParametersGet(CameraParameters &params);
-    int cameraParametersSet(CameraParameters &params);
-
-    void previewDispatch(unsigned int buf_idx, bool snapshot, bool bypass);
-    
-    char *cameraDevicePathCur;    
-    char cameraCallProcess[30];
-    struct v4l2_capability mCamDriverCapability;
-    unsigned int mCamDriverFrmWidthMax;
-    unsigned int mCamDriverFrmHeightMax;
-    unsigned int mCamDriverPreviewFmt;
-    unsigned int mCamDriverPictureFmt;
-    unsigned int mCamDriverSupportFmt[CAMERA_DRIVER_SUPPORT_FORMAT_MAX];
-    enum v4l2_memory mCamDriverV4l2MemType;
-    char *mCamDriverV4l2Buffer[V4L2_BUFFER_MAX];
-    unsigned int mCamDriverV4l2BufferLen;
-
-    mutable Mutex mLock;        // API lock -- all public methods
-    mutable Mutex mParametersLock;         /* ddl@rock-chips.com: v0.4.5 */
-    CameraParameters mParameters;
-    Mutex mANativeWindowLock;
-    Condition mANativeWindowCond;
-    preview_stream_ops_t *mANativeWindow;
-    String8 mSupportPreviewSizeReally;
-    int mMsgEnabled;
-    int mPreviewErrorFrameCount;
-	int mPreviewBufferCount;
-    int mPreviewWidth;
-    int mPreviewHeight;
-    int mPreviewFrame2AppWidth;
-    int mPreviewFrame2AppHeight;
-    int mPictureWidth;
-    int mPictureHeight;
-    int mJpegBufferSize;
-    int mRawBufferSize;
-    int mPreviewFrameSize;
-    int mPreviewFrame2AppSize;
-    int mDispBufUndqueueMin;
-    volatile int32_t mPreviewStartTimes;  
-    int mPreviewFrameIndex;
-    struct v4l2_rect mCropView;
-
-    rk_previewbuf_info_t *mPreviewBuffer[CONFIG_CAMERA_PRVIEW_BUF_CNT];
-    rk_previewbuf_info_t *mPreviewBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
-    rk_previewbuf_info_t *mDisplayBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
-    rk_previewbuf_info_t mGrallocBufferMap[CONFIG_CAMERA_PRVIEW_BUF_CNT];
-
-    camera_memory_t* mPreviewMemory;
-    unsigned char* mPreviewBufs[CONFIG_CAMERA_PRVIEW_BUF_CNT];
-    camera_memory_t* mVideoBufs[CONFIG_CAMERA_PRVIEW_BUF_CNT];
-    
-    unsigned int CameraHal_SupportFmt[6];
-    char mDisplayFormat[30];
-    
-    sp<DisplayThread>  mDisplayThread;
-    sp<PreviewThread>  mPreviewThread;
-    sp<PreviewProcessThread>  mPreviewProcessThread;
-    sp<PreviewDispatchThread>  mPreviewDispatchThread;
-	sp<CommandThread>  mCommandThread;
-    sp<PictureThread>  mPictureThread;
-    sp<SnapshotThread>  mSnapshotThread;
-    sp<AutoFocusThread>  mAutoFocusThread;
-    int mSnapshotRunning;
-    int mCommandRunning;
-    unsigned int mPreviewRunning;
-    bool mPreviewProcessRunning;
-    bool mPreviewDispatchRunning;
-    Mutex mPreviewLock;
-    Condition mPreviewCond;
-    bool mPreviewCmdReceived;
-    int mDisplayRuning;
-    Mutex mDisplayLock;
-    Condition mDisplayCond;    
-    bool mRecordRunning; 
-    Mutex mPictureLock;
-    int mPictureRunning;
-    Mutex mAutoFocusLock;
-    Condition mAutoFocusCond;
-    bool mExitAutoFocusThread; 
-    Mutex mCamDriverStreamLock;
-    bool mCamDriverStream;
-		
-    int iCamFd;
-    int mCamId;
-    int mRGAFd;
-
-    mjpeg_interface_t mMjpegDecoder;
-    void* mLibstageLibHandle;
-    
-    bool mDriverMirrorSupport;
-    bool mDriverFlipSupport;
-    bool mDataCbFrontMirror;
-    
-    struct v4l2_querymenu mWhiteBalance_menu[20];
-    int mWhiteBalance_number;
-
-    struct v4l2_querymenu mEffect_menu[20];
-    int mEffect_number;
-
-    struct v4l2_querymenu mScene_menu[20];
-    int mScene_number;
-
-    struct v4l2_querymenu mAntiBanding_menu[5];
-    int mAntiBanding_number;
-    
-    int mZoomMin;
-    int mZoomMax;
-    int mZoomStep;
-
-    struct v4l2_querymenu mFlashMode_menu[20];
-    int mFlashMode_number;
-
-    int mUvcManExposure[7];
+   void updateParameters(CameraParameters & tmpPara);
+   CameraParameters mParameters;
 
 
-    double mGps_latitude;
-    double mGps_longitude;
-    double mGps_altitude;
-    long mGps_timestamp;
-
-    enum DisplayRunStatus {
-        STA_DISPLAY_PAUSE,
-        STA_DISPLAY_RUN,
-        STA_DISPLAY_STOP
-    };
-
-    enum PreviewRunStatus {
-        STA_PREVIEW_PAUSE, // equal to CMD_PREVIEW_PAUSE 
-        STA_PREVIEW_RUN,  // equal to CMD_PREVIEW_START 
-        STA_PREVIEW_STOP, // equal to CMD_PREVIEW_STOP
-        STA_PREVIEW_INVAL = 4
-    };
-
-    enum PictureRunStatus {
-        STA_PICTURE_STOP,
-        STA_PICTURE_RUN,
-        STA_PICTURE_WAIT_STOP,
-    };
-    enum SnapshotThreadCommands {
-        CMD_SNAPSHOT_SNAPSHOT,
-        CMD_SNAPSHOT_EXIT
-    };
-    enum DisplayThreadCommands {
-		// Comands
-		CMD_DISPLAY_PAUSE,        
-        CMD_DISPLAY_START,
-        CMD_DISPLAY_STOP,
-        CMD_DISPLAY_FRAME,
-        CMD_DISPLAY_INVAL
-    };
-    enum PreviewThreadCommands {
-		// Comands       
-		CMD_PREVIEW_THREAD_PAUSE,        
-        CMD_PREVIEW_THREAD_START,
-        CMD_PREVIEW_THREAD_STOP,
-        CMD_PREVIEW_VIDEOSNAPSHOT,
-        CMD_PREVIEW_INVAL
-    };
-    enum PreviewProcessThreadCmds {
-        CMD_PREVIEW_PROCESS_PAUSE,
-        CMD_PREVIEW_PROCESS_START,
-        CMD_PREVIEW_PROCESS_CONVERT_UVC,
-        CMD_PREVIEW_PROCESS_EXIT
-    };
-    enum PreviewDispatchThreadCmds {
-        CMD_PREVIEW_DISPATCH_PAUSE,
-        CMD_PREVIEW_DISPATCH_START,
-        CMD_PREVIEW_DISPATCH_FRAME,
-        CMD_PREVIEW_DISPATCH_EXIT
-    };
-    enum CommandThreadCommands { 
-		// Comands
-        CMD_PREVIEW_START,
-        CMD_PREVIEW_STOP,
-        CMD_PREVIEW_CAPTURE,        
-        CMD_PREVIEW_CAPTURE_CANCEL,
-        CMD_PREVIEW_QBUF,        
-        
-        CMD_AF_START,
-        CMD_AF_CANCEL,
-        
-        CMD_EXIT,
-
-    };
-
-    enum ThreadCmdArgs {
-        CMDARG_ERR = -1,
-        CMDARG_OK = 0,        
-        CMDARG_ACK = 1,
-        CMDARG_NACK = 2,        
-    };
-    
-    MessageQueue    displayThreadCommandQ;
-    MessageQueue    displayThreadAckQ;
-    MessageQueue    previewThreadCommandQ;
-    MessageQueue    previewThreadAckQ;
-    MessageQueue    previewProcessThreadCmdQ;
-    MessageQueue    previewProcessThreadAckQ;
-    MessageQueue    previewDispatchThreadCmdQ;
-    MessageQueue    previewDispatchThreadAckQ;
-    MessageQueue    snapshotThreadAckQ;
-    MessageQueue    snapshotThreadCommandQ;    
-    MessageQueue    commandThreadCommandQ;
-    MessageQueue    commandThreadAckQ;
-    
-    camera_notify_callback mNotifyCb;
-    camera_data_callback mDataCb;    
-    camera_data_timestamp_callback mDataCbTimestamp;
-    camera_request_memory mRequestMemory;
-    void  *mCallbackCookie;
-    MemManagerBase* mCamBuffer;
-	int uvcZoomVal;
+   mutable Mutex mLock;        // API lock -- all public methods
+  // bool mRecordRunning;
+  // bool mPreviewCmdReceived;
+   int mCamFd;
+   int mCameraStatus;
 };
 
-}; // namespace android
+}
+
 #endif
+//CameraHardwareInterface 中接口实现说明
+/*
+enableMsgType  
+调用到EventNotifier的enableMsgType，
+EventNotifier中根据msg的enable状态决定是否需要接收CameraAdapter传过来的frame
+*/
+
+/*
+startPreview
+1、CameraHal类申请buffer等
+2、CameraAdapter类set fmt及stream on
+3、DisplayAdapter类enabledisplay
+
+考虑连拍及ZSL情况，拍完后APP会重发startpreview(拍照完后不一定发stopPreview下来)，此时
+，直接enabledisplay。
+*/
+
+/*startRecording
+*/
+
+/*
+autoFocus
+1、CameraHal 类收到focus后通知CameraAdapter
+2、CameraAdapter 通知 EventNotifier
+3、EventNotifier 回调(在线程中回调)CameraAdapter中focus具体实现
+*/
+
+/*
+takePicture
+1、是否需要restartpreview，
+2、连拍?需要暂停display ?
+3、通知EventNotifier需要接收frame作为picture
+4、拍完后(或者连拍完后)停掉EventNotifier中picture的消息接收
+*/
+
+/*
+setParameters
+
+对于zoom的处理，由camerahal来实现zoom功能；
+previewTread 中deque到frame后，frame info中加入zoom值；
+event thread，display thread收到frame后需要对zoom做出处理。
+*/
+
+/**********************************
+关于插值
+preview或者capture设置size时，如果比enum到的最大分辨率还要大，则选取
+适合的sensor分辨率，后在event ，display类中做插值处理。
+************************************/
+
