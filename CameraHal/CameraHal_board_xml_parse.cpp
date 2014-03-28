@@ -1012,13 +1012,20 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     i2cinfo.speed = pSensorInfo->mSensorI2cRate;
     
 	ALOGD("******************CAMSYS_I2CRD******************\n"); 
+	#if 1
 	err = ioctl(camsys_fd, CAMSYS_I2CWR, &i2cinfo);
-    while(err<0) {
+    if(err<0) {
         ALOGD("CAMSYS_I2CWR failed, soft reset fail, reg(0x%x) vale(0x%x)\n", i2cinfo.reg_addr, i2cinfo.val); 
-		err = ioctl(camsys_fd, CAMSYS_I2CWR, &i2cinfo);
-		//err = RK_RET_DEVICEERR;
-        //goto regist_err;
+		err = RK_RET_DEVICEERR;
+        goto regist_err;
     }
+	#else
+	err = ioctl(camsys_fd, CAMSYS_I2CWR, &i2cinfo);
+	while(err<0) {
+			ALOGD("CAMSYS_I2CWR failed, soft reset fail, reg(0x%x) vale(0x%x)\n", i2cinfo.reg_addr, i2cinfo.val);
+			err = ioctl(camsys_fd, CAMSYS_I2CWR, &i2cinfo);
+	}
+	#endif
 
     if(!ListEmpty(&(pI2cInfo->chipid_info))){
         List* l = ListHead( &(pI2cInfo->chipid_info) );
