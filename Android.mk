@@ -51,9 +51,9 @@ LOCAL_SHARED_LIBRARIES:= \
 	libstlport\
 	libexpat
 
-LOCAL_STATIC_LIBRARIES :=  libisp_calibdb libtinyxml2 libisp_cam_calibdb libisp_ebase \
-							libisp_oslayer libisp_common libisp_hal libisp_isi\
-							libisp_cam_engine  libisp_version libisp_cameric_reg_drv  \
+#LOCAL_STATIC_LIBRARIES :=  libisp_calibdb libtinyxml2 libisp_cam_calibdb libisp_ebase \
+#							libisp_oslayer libisp_common libisp_hal libisp_isi\
+#							libisp_cam_engine  libisp_version libisp_cameric_reg_drv  \
 
 #LOCAL_PREBUILT_LIBS := libisp_silicomimageisp_api.so
 endif
