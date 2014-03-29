@@ -1,7 +1,7 @@
 #include "CameraHal.h"
 namespace android{
 
-static volatile int32_t gLogLevel = 1;
+static volatile int32_t gLogLevel = 0;
 
 #ifdef ALOGD_IF
 #define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);

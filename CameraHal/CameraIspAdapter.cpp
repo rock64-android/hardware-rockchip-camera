@@ -151,32 +151,22 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         if(-1 == stop())
 			goto startPreview_end;
 
-		//LOGD("---CameraIspAdapter::startPreview----------111111111111111-----------");
         //need to change sensor resolution ?
         if((width_sensor != mCamDrvWidth) || (height_sensor != mCamDrvHeight)){
-			//LOGD("---CameraIspAdapter::startPreview----------2222222222222-----------");
-			
             m_camDevice->changeResolution(resMask,false);
-			
-			//LOGD("---CameraIspAdapter::startPreview----------333333333333-----------");
         }
         //reset dcWin,output width(data path)
             //get dcWin
-		//LOGD("---CameraIspAdapter::startPreview----------4444444444444444-----------");
-
         setupPreview(width_sensor,height_sensor,preview_w,preview_h);
 		
-		//LOGD("---CameraIspAdapter::startPreview----------55555555555555555-----------");
         m_camDevice->getPathConfig(CHAIN_MASTER,CAM_ENGINE_PATH_MAIN,mainPathConfig);
         m_camDevice->getPathConfig(CHAIN_MASTER,CAM_ENGINE_PATH_SELF,selfPathConfig);
         m_camDevice->setPathConfig( CHAIN_MASTER, mainPathConfig, selfPathConfig  );
-		//LOGD("---CameraIspAdapter::startPreview----------66666666666666-----------");
 
 		//start streaming
         if(-1 == start())
 			goto startPreview_end;
 
-		//LOGD("---CameraIspAdapter::startPreview----------777777777777777777-----------");
         //
         mCamDrvWidth = width_sensor;
         mCamDrvHeight = height_sensor;
@@ -187,19 +177,16 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         
     }else{
     
-	//LOGD("---CameraIspAdapter::startPreview----------8888888888888-----------");
         if(mPreviewRunning == 0){
 			if(-1 == start())
 				goto startPreview_end;
         }
 		
-		//LOGD("---CameraIspAdapter::startPreview----------99999999999999----------");
     }
     mPreviewRunning = 1;
     LOG_FUNCTION_NAME_EXIT
     return 0;
 startPreview_end:
-	LOGD("-----------------end-------------");
 	return -1;
 }
 status_t CameraIspAdapter::stopPreview()

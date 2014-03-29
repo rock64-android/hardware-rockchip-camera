@@ -2,7 +2,7 @@
 
 namespace android{
 #define LOG_TAG "CameraHal_CameraIspSOCAdapter"
-static volatile int32_t gLogLevel = 2;
+static volatile int32_t gLogLevel = 0;
 
 #ifdef ALOGD_IF
 #define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);

@@ -4,7 +4,7 @@ namespace android {
 
 #define LOG_TAG "CameraHal_AppMsg"
 
-static volatile int32_t gLogLevel = 1;
+static volatile int32_t gLogLevel = 0;
 
 #ifdef ALOGD_IF
 #define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
@@ -270,7 +270,6 @@ void AppMsgNotifier::releaseRecordingFrame(const void *opaque)
 			break;
 		}
 	}
-	//LOGE("%s(%d): -----------index=%d-----------------",__FUNCTION__,__LINE__,index);
 	if (index == -1) {
 		LOGE("%s(%d): this video buffer is invaildate",__FUNCTION__,__LINE__);
 		return;
@@ -297,7 +296,7 @@ int AppMsgNotifier::enableMsgType(int32_t msgtype)
     if(msgtype & (CAMERA_MSG_PREVIEW_FRAME)){
         Mutex::Autolock lock(mDataCbLock);
         mMsgTypeEnabled |= msgtype;
-			LOGE("%s(%d): this video buffer is invaildate",__FUNCTION__,__LINE__);
+		//LOGE("%s(%d): this video buffer is invaildate",__FUNCTION__,__LINE__);
     }else
         mMsgTypeEnabled |= msgtype;
     LOG_FUNCTION_NAME_EXIT
@@ -754,18 +753,13 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
         output_vir_addr = jpegbuf_vir;
 		LOGD("rawbuf_phy:%x,rawbuf_vir:%x;jpegbuf_phy = %x,jpegbuf_vir = %x",rawbuf_phy,rawbuf_vir,jpegbuf_phy,jpegbuf_vir);
 		
-		/*memset(jpegbuf_vir,0xff,pictureSize);
-				//int i;
-				for(i=0; i<100; i++)
-				   LOGD("jpegbuf_vir[%d]=0x%x",i,*((unsigned char*)(jpegbuf_vir+i)));*/
-		
 		if (mMsgTypeEnabled & CAMERA_MSG_SHUTTER)
 			mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
 		LOGD("captureEncProcessPicture,rotation = %d,jpeg_w = %d,jpeg_h = %d",rotation,jpeg_w,jpeg_h);
         //2. copy to output buffer for mirro and flip
 		/*ddl@rock-chips.com: v0.4.7*/
          bool rotat_180;
-						rotat_180   = false; //used by ipp
+		rotat_180   = false; //used by ipp
     	if ((frame->frame_fmt != picfmt) || (frame->frame_width!= jpeg_w) || (frame->frame_height != jpeg_h) 
         || (rotation == 180)|| (rotation == 90) || (frame->zoom_value != 100)) {
             if((rotation == 180) || (rotation == 90))
@@ -929,8 +923,6 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 		if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
 			LOGE("%s(%d): hw_jpeg_encode Failed, err: %d  JpegOutInfo.jpegFileLen:0x%x\n",__FUNCTION__,__LINE__,
 				err, JpegOutInfo.jpegFileLen);
-	
-			LOGE("%s(%d): JpegOutInfo.outBuflen:0x%x",__FUNCTION__,__LINE__,JpegOutInfo.outBuflen);
 			goto captureEncProcessPicture_exit;
 		} else { 
 			copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);

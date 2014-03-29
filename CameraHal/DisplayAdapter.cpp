@@ -222,7 +222,6 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
     Rect bounds;  
     int stride; 
     
-    LOGD("%s(%d): receive CMD_DISPLAY_START22222222333333333", __FUNCTION__,__LINE__);
     //LOG_FUNCTION_NAME
     if(!mANativeWindow){
         LOGE("%s(%d): nativewindow is null!",__FUNCTION__,__LINE__);
@@ -251,7 +250,6 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
         LOGE("%s(%d): set mANativeWindow run in synchronous mode failed",__FUNCTION__,__LINE__);
     }
     */
-    LOGD("%s(%d): receive CMD_DISPLAY_START99999", __FUNCTION__,__LINE__);
     mANativeWindow->get_min_undequeued_buffer_count(mANativeWindow, &undequeued);
     mDispBufUndqueueMin = undequeued;
     ///Set the number of buffers needed for camera preview
@@ -289,14 +287,12 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
 
         goto fail;
     }    
-		LOGD("%s(%d): receive CMD_DISPLAY_START888888", __FUNCTION__,__LINE__);
     mDisplayBufInfo = (rk_displaybuf_info_t*)malloc(sizeof(rk_displaybuf_info_t)*total);
     if(!mDisplayBufInfo){
         LOGE("%s(%d): malloc diaplay buffer structue failed!",__FUNCTION__,__LINE__);
         err = -1;
         goto fail;
     }
-    LOGD("%s(%d): receive CMD_DISPLAY_START77777", __FUNCTION__,__LINE__);
     for ( i=0; i < total; i++ ) {         
         err = mANativeWindow->dequeue_buffer(mANativeWindow, (buffer_handle_t**)&hnd, &stride);
 
@@ -328,13 +324,11 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
     #endif
         
     }
-		LOGD("%s(%d): receive CMD_DISPLAY_START6666", __FUNCTION__,__LINE__);
     // lock the initial queueable buffers
     bounds.left = 0;
     bounds.top = 0;
     bounds.right = width;
     bounds.bottom = height;
-	 LOGD("%s(%d): receive CMD_DISPLAY_START333333333", __FUNCTION__,__LINE__);
     for( i = 0;  i < total; i++ ) {
         void* y_uv[3];
         
