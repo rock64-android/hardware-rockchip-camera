@@ -740,10 +740,12 @@ int camera_get_number_of_cameras(void)
     property_get("ro.sf.hwrotation", property, "0");
     hwrotation = strtol(property,0,0);
 
+#if 0
     if (hwrotation == 0) {
         gCamInfos[0].facing_info.orientation = 0;    /* ddl@rock-chips.com: v0.4.17 */ 
         gCamInfos[1].facing_info.orientation = 0;
     }
+#endif
 //for test isp,zyc
 //  gCamerasNumber =1;
 //  gCamInfos[0].facing_info.orientation = 180;
