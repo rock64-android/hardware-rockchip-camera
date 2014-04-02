@@ -20,7 +20,7 @@ public:
     virtual status_t startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture);
     virtual status_t stopPreview();
     virtual int setParameters(const CameraParameters &params_set);
-    virtual void initDefaultParameters();
+    virtual void initDefaultParameters(int camFd);
     virtual status_t autoFocus();
     virtual int getCurPreviewState(int *drv_w,int *drv_h);
     void AfpsResChangeCb();

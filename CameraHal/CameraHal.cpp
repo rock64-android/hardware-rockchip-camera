@@ -885,6 +885,10 @@ get_command:
 				setCamStatus(CMD_AF_START_DONE, 1);
                 if(msg.arg1)
                     ((Semaphore*)(msg.arg1))->Signal();
+				//sleep(2);
+				//mCameraAdapter->stopAf();
+				mEventNotifier->notifyCbMsg(CAMERA_MSG_FOCUS,1);
+				LOGD("%s(%d): exit receive CMD_AF_START", __FUNCTION__,__LINE__);
                 break;
             }            
             case CMD_AF_CANCEL:

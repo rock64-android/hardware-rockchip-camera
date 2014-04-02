@@ -3,7 +3,7 @@
 
 namespace android{
 #define LOG_TAG "CameraHal_CameraIspAdapter"
-static volatile int32_t gLogLevel = 0;
+static volatile int32_t gLogLevel = 2;
 
 #ifdef ALOGD_IF
 #define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
@@ -129,7 +129,10 @@ void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int previ
 status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture)
 {
     LOG_FUNCTION_NAME
-
+	bool err_af;
+	bool err;
+	bool avail = false;
+	
     if ( ( !m_camDevice->hasSensor() ) &&
          ( !m_camDevice->hasImage()  ) ){
           goto startPreview_end;
@@ -181,23 +184,51 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
 			if(-1 == start())
 				goto startPreview_end;
         }
-		
     }
     mPreviewRunning = 1;
+
+	#if 0
+	err_af = m_camDevice->isAfAvailable(avail);
+	if ( err_af = false){
+		LOGE("%s(%d):AF is not AfAvailable ",__FUNCTION__,__LINE__);
+		//do not return false temporary ,driver may be somthing wrong,zyc@rock-chips.com
+        //err = true;
+	}else{
+		LOGD("%s(%d): AF is  AfAvailable!!!\n",__FUNCTION__,__LINE__);
+		} 
+	err_af = m_camDevice->startAfContinous(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
+	if ( err_af = false ){
+		LOGE("%s(%d): Set startAfContinous failed",__FUNCTION__,__LINE__);
+		//do not return false temporary ,driver may be somthing wrong,zyc@rock-chips.com
+	} else if( err_af = true ){
+	    LOGD("%s(%d): Set startAfContinous success;err_af = %d",__FUNCTION__,__LINE__,err_af);
+	}
+	#endif
+	
     LOG_FUNCTION_NAME_EXIT
     return 0;
 startPreview_end:
+	LOGD("%s:start preview error.",__func__);
 	return -1;
 }
 status_t CameraIspAdapter::stopPreview()
 {
     LOG_FUNCTION_NAME
+	int err;
     if(mPreviewRunning){
         if(-1 == stop())
 			return -1;
         clearFrameArray();
     }
     mPreviewRunning = 0;
+	#if 0
+	err = m_camDevice->stopAf();
+	if ( err = 0 ){
+		LOGE("%s(%d):stop AF failed ",__FUNCTION__,__LINE__);
+	}else{
+		LOGD("%s(%d): stop AF  success!!!\n",__FUNCTION__,__LINE__);
+		} 
+	#endif
     LOG_FUNCTION_NAME_EXIT
     return 0;
 }
@@ -206,19 +237,110 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
     mParameters = params_set;
     return 0;
 }
-void CameraIspAdapter::initDefaultParameters()
+void CameraIspAdapter::initDefaultParameters(int camFd)
 {
     CameraParameters params;
 	String8 parameterString;
+	LOG_FUNCTION_NAME
+	LOGD("--------------enter initDefaultParameters-----------------");
+	#if 1
+	bool err_af;
+	bool avail = false;
+	err_af = m_camDevice->isAfAvailable(avail);
+	if ( err_af = false){
+		LOGE("%s(%d):AF is not AfAvailable ",__FUNCTION__,__LINE__);
+		//do not return false temporary ,driver may be somthing wrong,zyc@rock-chips.com
+        //err = true;
+	}else{
+		LOGD("%s(%d): AF is  AfAvailable!!!\n",__FUNCTION__,__LINE__);
+		} 
+	err_af = m_camDevice->startAfContinous(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
+	if ( err_af = false ){
+		LOGE("%s(%d): Set startAfContinous failed",__FUNCTION__,__LINE__);
+		//do not return false temporary ,driver may be somthing wrong,zyc@rock-chips.com
+	} else if( err_af = true ){
+	    LOGD("%s(%d): Set startAfContinous success;err_af = %d",__FUNCTION__,__LINE__,err_af);
+	}
+	#endif
+	#if 1
+	IsiSensorCaps_t     pCaps;	
+	m_camDevice->getSensorCaps(pCaps);	//setFocus
+	LOGD("  ===pCaps.Resolution:0x%x;pCaps.AfpsResolutions:0x%x====\n",pCaps.Resolution,pCaps.AfpsResolutions);
+	/*preview size setting*/	
+	if((pCaps.Resolution & ISI_RES_TV1080P15) || (pCaps.Resolution & ISI_RES_TV1080P30)) //.....	
+	  {		
+		parameterString.append("1920x1080,1280x720,800x600,640x480");    	
+		params.setPreviewSize(1920, 1080);	
+
+		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448");
+		params.setPictureSize(2592,1944);
+	  }	else if((pCaps.Resolution & ISI_RES_1600_1200)|| (pCaps.Resolution & ISI_RES_SVGA30))	
+	  {		
+	  	parameterString.append("800x600");
+		params.setPreviewSize(800, 600);	
+
+		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1600x1200,1024x768,640x480,352x288,320x240,176x144");
+		params.setPictureSize(1600,1200);
+	  }	
+	params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());
+	#endif
+	rk_cam_total_info *pCamInfo = gCamInfos[camFd].pcam_total_info;
+	
+	#if 1
+	struct v4l2_queryctrl focus;
+
+    parameterString = CameraParameters::FOCUS_MODE_FIXED;
+    params.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_FIXED);
+    focus.id = V4L2_CID_FOCUS_AUTO;
+    //if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &focus)) {
+      if ((pCamInfo->mSoftInfo.mFocusConfig.mFocusSupport & (0x01<<FOCUS_AUTO_BITPOS))){
+        parameterString.append(",");
+        parameterString.append(CameraParameters::FOCUS_MODE_AUTO);
+        params.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_AUTO);
+		params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"1");
+    }else{
+     	params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
+		LOGD("%s(%d):AF is not AfAvailable when init ",__FUNCTION__,__LINE__);
+	}
+
+    focus.id = V4L2_CID_FOCUS_CONTINUOUS;
+    //if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &focus)) {
+    if(0){
+        parameterString.append(",");
+        parameterString.append(CameraParameters::FOCUS_MODE_CONTINUOUS_PICTURE);
+    }
+
+    focus.id = V4L2_CID_FOCUS_ABSOLUTE;
+    //if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &focus)) {
+    if(0){
+        parameterString.append(",");
+        parameterString.append(CameraParameters::FOCUS_MODE_INFINITY);
+        parameterString.append(",");
+        parameterString.append(CameraParameters::FOCUS_MODE_MACRO);
+    }
+
+	params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES, parameterString.string());
+
+	focus.id = V4L2_CID_FOCUSZONE;
+     
+	// focus area settings
+    //if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &focus)) {
+    /*if(1){
+ 	   params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"1");
+	}else{
+	   params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
+	}*/
+	#endif
+	
 	//params.setPreviewSize(1280, 720);	
 	//params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x720");
-	params.setPreviewSize(1920,1080);
-	params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1920x1080,1280x720,800x600,640x480");
+	//params.setPreviewSize(1920,1080);
+	//params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1920x1080,1280x720,800x600,640x480");
 	//params.setPreviewSize(3264,2448);
     //params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "3264x2448");
 	
-		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448");
-	params.setPictureSize(2592,1944);
+	//params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448");
+	//params.setPictureSize(2592,1944);
 	/*preview format setting*/
 	params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS, "yuv420sp,yuv420p");
 	params.set(CameraParameters::KEY_VIDEO_FRAME_FORMAT,CameraParameters::PIXEL_FORMAT_YUV420SP);
@@ -263,10 +385,10 @@ void CameraIspAdapter::initDefaultParameters()
 	 params.set(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED,"true");
      params.set(CameraParameters::KEY_AUTO_WHITEBALANCE_LOCK_SUPPORTED, "false");
      params.set(CameraParameters::KEY_AUTO_EXPOSURE_LOCK_SUPPORTED, "false");
-     params.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_FIXED);
- 	params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES,CameraParameters::FOCUS_MODE_FIXED);
+     //params.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_FIXED);
+ 	//params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES,CameraParameters::FOCUS_MODE_FIXED);
 
-     params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
+    // params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
      params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, "0");
      params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "1");
      params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "0");
@@ -283,10 +405,107 @@ void CameraIspAdapter::initDefaultParameters()
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, "10,15,30");  
 	
     mParameters = params;
-     
+
+    LOGD ("Support Preview format: %s .. %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS), params.get(CameraParameters::KEY_PREVIEW_FORMAT)); 
+	LOGD ("Support Preview sizes: %s     %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES), params.get(CameraParameters::KEY_PREVIEW_SIZE));
+	
+	LOGD ("Support Preview FPS range: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE));   
+	LOGD ("Support Preview framerate: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES));   
+	LOGD ("Support Picture sizes: %s ",params.get(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES));
+	
+	LOGD ("Support focus: %s  focus zone: %s",params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES),
+        params.get(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS));
+    LOG_FUNCTION_NAME_EXIT
 }
 status_t CameraIspAdapter::autoFocus()
 {
+	LOGD("%s(%d): enter autoFocus()!",__func__,__LINE__);
+	int err = 0,ret;
+	bool avail = false;
+	bool enable = false;
+	bool err_af;
+	CamEngineAfSearchAlgorithm_t CamEngineAfSearchAlgorithm;
+    struct v4l2_ext_control extCtrInfo;
+	struct v4l2_ext_controls extCtrInfos;
+	extCtrInfo.rect[0] = 0;
+    extCtrInfo.rect[1] = 0;
+    extCtrInfo.rect[2] = 0;
+    extCtrInfo.rect[3] = 0;   
+	//if (strcmp(focus, CameraParameters::FOCUS_MODE_AUTO) == 0) {
+	if(1){
+    LOGD("%s(%d): enter FOCUS_MODE_AUTO!!!\n",__FUNCTION__,__LINE__);
+        extCtrInfo.id = V4L2_CID_FOCUS_AUTO;
+        //if (auto_trig_only)
+        if(0)
+            extCtrInfo.value = 2;
+        else
+	        extCtrInfo.value = 1;
+		// set zone focus
+		if(mParameters.getInt(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS) == 1){
+			//parse zone,
+	    	int lx,ty,rx,dy;
+			const char* zoneStr = mParameters.get(CameraParameters::KEY_FOCUS_AREAS);
+	    	if(zoneStr){
+			//get lx
+	    	lx = strtol(zoneStr+1,0,0);
+
+	    	//get ty
+	    	char* tys = strstr(zoneStr,",");
+	    	ty = strtol(tys+1,0,0);
+		
+
+	    	//get rx
+	    	char* rxs = strstr(tys+1,",");
+	    	rx = strtol(rxs+1,0,0);
+	
+	    	//get dy
+			char* dys = strstr(rxs+1,",");
+	    	dy = strtol(dys+1,0,0);
+			extCtrInfo.rect[0] = lx;
+			extCtrInfo.rect[1] = ty;
+			extCtrInfo.rect[2] = rx;
+		    extCtrInfo.rect[3] = dy;
+			}
+		}
+	}
+	extCtrInfos.ctrl_class = V4L2_CTRL_CLASS_CAMERA;
+	extCtrInfos.count = 1;
+	extCtrInfos.controls = &extCtrInfo;
+	//err = ioctl(iCamFd, VIDIOC_S_EXT_CTRLS, &extCtrInfos);
+	//m_camDevice->setFocus(0);
+	//err = m_camDevice->setFocus(64);	//
+	err = m_camDevice->isAfAvailable(avail);
+	if ( err = 0 ){
+		LOGE("%s(%d):AF is not AfAvailable ",__FUNCTION__,__LINE__);
+		//do not return false temporary ,driver may be somthing wrong,zyc@rock-chips.com
+        //err = true;
+	}else{
+		LOGD("%s(%d): AF is  AfAvailable!!!\n",__FUNCTION__,__LINE__);
+		} 
+	err = m_camDevice->startAfOneShot(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
+	if ( err = 0 ){
+		LOGE("%s(%d): startAfOneShot() failed",__FUNCTION__,__LINE__);
+        err = true;
+	} else{
+	    LOGD("%s(%d): startAfOneShot() success;err = %d",__FUNCTION__,__LINE__,err);
+        err = false;
+	}
+	sleep(2);
+	err = m_camDevice->stopAf();
+	LOGD("%s(%d):::Stop AF focus ;err = %d",__FUNCTION__,__LINE__,err);
+	err_af = m_camDevice->startAfContinous(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
+	if ( err_af = false ){
+		LOGE("%s(%d): Set startAfContinous failed",__FUNCTION__,__LINE__);
+		//do not return false temporary ,driver may be somthing wrong,zyc@rock-chips.com
+	} else if( err_af = true ){
+	    LOGD("%s(%d):::Set startAfContinous success;err_af = %d",__FUNCTION__,__LINE__,err_af);
+	}
+	/*while( true == m_camDevice->getAfStatus(enable,CamEngineAfSearchAlgorithm)){
+		LOGD("%s(%d): AF is running",__FUNCTION__,__LINE__);
+	}*/
+
+	LOGD("%s(%d): AF has completed",__FUNCTION__,__LINE__);
+		
     return 0;
 }
 
@@ -493,6 +712,7 @@ int CameraIspAdapter::stop()
 
     if ( true == m_camDevice->stopPreview() )
     {
+    
         LOGD("%s(%d):success!",__func__,__LINE__);
 		return 0;
     }
@@ -652,7 +872,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	
 	if(preview_frame_inval > 0){
 	  	 preview_frame_inval--;
-		 LOGD("111frame_inval:%d\n",preview_frame_inval);
+		 LOGD("frame_inval:%d\n",preview_frame_inval);
 		 goto end;
 	  	}
 	//need to display ?

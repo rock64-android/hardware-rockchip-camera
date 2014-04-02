@@ -41,11 +41,11 @@ extern "C" void arm_isp_yuyv_12bit_to_8bit (int src_w, int src_h,char *srcbuf,ui
 
     for(i=0;i<(y_size>>1);i++) {
 
-        if(ycSequence == ISI_YCSEQ_YCBYCR){
-           //SRC : YUYV
-           *dst_buf++= (((*(srcint+1) >> 6) & 0xff ) << 16)| /* Y1 */
+        if(ycSequence == ISI_YCSEQ_CBYCRY){
+           //dst : YUYV
+           *dst_buf++= (((*(srcint+1) >> 6) & 0xff ) << 0)| /* Y0 */
                         ((((*(srcint+1) >> 22) & 0xff)) << 8) | /* U*/
-                        (((*(srcint) >> 6) & 0xff)) | /*Y0*/
+                        (((*(srcint) >> 6) & 0xff) << 16) | /*Y1*/
                         ((((*(srcint) >> 22) & 0xff)) << 24) /*V*/
                         ; 
         }
@@ -99,7 +99,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       }
       //add to vector
       tmpFrame->frame_index = (int)tmpFrame; 
-      tmpFrame->phy_addr = (int)writeoneframe;
+      tmpFrame->phy_addr = (int)y_addr;
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
       tmpFrame->vir_addr = y_addr_vir;

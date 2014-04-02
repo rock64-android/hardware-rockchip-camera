@@ -2,7 +2,7 @@
 namespace android{
 #define LOG_TAG "CameraHal_Display"
 
-static volatile int32_t gLogLevel = 0;
+static volatile int32_t gLogLevel = 1;
 
 #ifdef ALOGD_IF
 #define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
@@ -15,12 +15,13 @@ static volatile int32_t gLogLevel = 0;
 #define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
 #define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
 
+#define DISPLAY_FORMAT CameraParameters::PIXEL_FORMAT_YUV420P
 DisplayAdapter::DisplayAdapter()
               :displayThreadCommandQ("displayCmdQ")
 {
     LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
 //	strcpy(mDisplayFormat,CAMERA_DISPLAY_FORMAT_YUV420SP/*CAMERA_DISPLAY_FORMAT_YUV420SP*/);
-    strcpy(mDisplayFormat,CAMERA_DISPLAY_FORMAT_RGB565);
+    strcpy(mDisplayFormat,DISPLAY_FORMAT);
     mFrameProvider =  NULL;
     mDisplayRuning = -1;
     mDislayBufNum = 0;
@@ -437,6 +438,38 @@ extern "C" void arm_yuyv_to_nv12(int src_w, int src_h,char *srcbuf, char *dstbuf
 
 }
 
+extern "C" void arm_yuyv_to_yv12(int src_w, int src_h,char *srcbuf, char *dstbuf){
+
+    char *srcbuf_begin;
+    int *dstint_y, *dstint_uv, *srcint;
+    short int* dstsint_u, *dstsint_v;
+    int i = 0,j = 0;
+    int y_size = 0;
+
+    y_size = src_w*src_h;
+    dstint_y = (int*)dstbuf;
+    srcint = (int*)srcbuf;
+    for(i=0;i<(y_size>>2);i++) {
+        *dstint_y++ = ((*(srcint+1)&0x00ff0000)<<8)|((*(srcint+1)&0x000000ff)<<16)
+                    |((*srcint&0x00ff0000)>>8)|(*srcint&0x000000ff);
+
+        srcint += 2;
+    }
+    dstsint_u = (short int*)(dstbuf + y_size);
+    dstsint_v = (short int*)((char*)dstsint_u + (y_size >> 2));
+    srcint = (int*)srcbuf;
+    for(i=0;i<src_h/2; i++) {
+        for (j=0; j<(src_w>>2); j++) {
+
+            *dstsint_v++ = (((*srcint&0x0000ff00)>>8) | ((*(srcint+1)&0x0000ff00)));
+            *dstsint_u++ = (((*srcint&0xff000000)>>24) | ((*(srcint+1)&0xff000000)>>16));
+            
+            srcint += 2;
+        }
+        srcint += (src_w>>1);
+    }
+
+}
 //for soc camera test
 extern "C" void arm_yuyv_to_nv12_soc_ex(int src_w, int src_h,char *srcbuf, char *dstbuf){
     char *srcbuf_begin;
@@ -498,7 +531,6 @@ display_receive_cmd:
                 {
                     LOGD("%s(%d): receive CMD_DISPLAY_START", __FUNCTION__,__LINE__);
                     cameraDisplayBufferDestory(); 
-                    LOGD("%s(%d): receive CMD_DISPLAY_START222", __FUNCTION__,__LINE__);                   
                     cameraDisplayBufferCreate(mDisplayWidth, mDisplayHeight,mDisplayFormat,CONFIG_CAMERA_DISPLAY_BUF_CNT);
                     mDisplayRuning = STA_DISPLAY_RUNNING;
 					setDisplayState(CMD_DISPLAY_START_DONE);
@@ -590,8 +622,6 @@ display_receive_cmd:
                                     }
                                     //set buffer status,dequed,but unused
                                     setBufferState(queue_display_index, 0);
-
-                                    
                                 } else {
                                     LOGD("%s(%d): %s(err:%d) dequeueBuffer failed, so pause here", __FUNCTION__,__LINE__, strerror(-err), -err);
 
@@ -617,32 +647,23 @@ display_receive_cmd:
                   //                  (char*)(frame->vir_addr), (short int*)mDisplayBufInfo[queue_display_index].vir_addr, 
                    //                 mDisplayWidth,mDisplayWidth,mDisplayHeight);
 
-					//LOGD("%s(%d): receive CMD_DISPLAY_FRAME4444444444444", __FUNCTION__,__LINE__);
                     if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) /*&& (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0)*/)
-                        {
+                    if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420P)==0))
+                    {
 
-							void* temp_buf = malloc(frame->frame_width*frame->frame_height*3/2);
-							arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,
-											(char*)(frame->vir_addr), (char*)temp_buf);
-							arm_nv12torgb565(frame->frame_width, frame->frame_height,
-											(char*)(temp_buf), (short int*)mDisplayBufInfo[queue_display_index].vir_addr, mDisplayWidth);
-							free(temp_buf);
-
-								// arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,
-                           //     (char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr);
-                          // LOGD("%s(%d): receive CMD_DISPLAY_FRAME4444444444444555555555555", __FUNCTION__,__LINE__);
+								arm_yuyv_to_yv12(frame->frame_width, frame->frame_height,
+                                 (char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr);
 						}else if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_RGB565)==0))
+                    {
                        arm_nv12torgb565(frame->frame_width, frame->frame_height,
                 						(char*)(frame->vir_addr), (short int*)mDisplayBufInfo[queue_display_index].vir_addr,
                                          mDisplayWidth);
-                    else if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0))
+                    }else if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0))
                         arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, 
 							(char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr,
 							frame->frame_width, frame->frame_height,
 							mDisplayWidth, mDisplayHeight,
 							false);
-
-				//	LOGD("%s(%d): receive CMD_DISPLAY_FRAME5555555555555555", __FUNCTION__,__LINE__);
 #endif
 //                    LOGD("%s(%d): receive buffer %d, queue buffer %d to display", __FUNCTION__,__LINE__,queue_buf_index,queue_display_index);
 
@@ -674,12 +695,8 @@ display_receive_cmd:
                                 queue_cnt++;
                         }
 						
-					//	LOGD("%s(%d): receive CMD_DISPLAY_FRAME55555556666666;queue_cnt:%d;mDispBufUndqueueMin:%d", __FUNCTION__,__LINE__,queue_cnt,mDispBufUndqueueMin);
-
                         if (queue_cnt > mDispBufUndqueueMin) {
-                         //   LOGD("%s(%d): 66666receive CMD_DISPLAY_FRAME6666666", __FUNCTION__,__LINE__);
 							err = mANativeWindow->dequeue_buffer(mANativeWindow, (buffer_handle_t**)&hnd, &stride);
-                         //   LOGD("%s(%d): receive CMD_DISPLAY_FRAME7777777777", __FUNCTION__,__LINE__);
 							if (err == 0) {                                    
                                 // lock the initial queueable buffers
                                 bounds.left = 0;

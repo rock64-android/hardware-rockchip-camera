@@ -112,6 +112,7 @@ namespace android {
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x1f) 
 
 /*  */
+#define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
 #define CAMERA_DISPLAY_FORMAT_YUV420SP   CameraParameters::PIXEL_FORMAT_YUV420SP
 #define CAMERA_DISPLAY_FORMAT_RGB565     CameraParameters::PIXEL_FORMAT_RGB565
 #define CAMERA_DISPLAY_FORMAT_NV12       "nv12"
@@ -294,7 +295,7 @@ public:
    // virtual int initialize() = 0;
     virtual int returnFrame(int index,int cmd);
     virtual int setParameters(const CameraParameters &params_set);
-    virtual void initDefaultParameters();
+    virtual void initDefaultParameters(int camFd);
     virtual status_t autoFocus();
 
     virtual void dump();

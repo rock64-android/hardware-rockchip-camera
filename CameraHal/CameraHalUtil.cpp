@@ -78,6 +78,8 @@ extern "C" int cameraPixFmt2HalPixFmt(const char *fmt)
         hal_pixel_format = HAL_PIXEL_FORMAT_RGB_565;        
     } else if (strcmp(fmt,android::CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
         hal_pixel_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
+    }else if(strcmp(fmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0){
+        hal_pixel_format = HAL_PIXEL_FORMAT_YV12;
     } else if (strcmp(fmt,CAMERA_DISPLAY_FORMAT_NV12) == 0) {
         hal_pixel_format = HAL_PIXEL_FORMAT_YCrCb_NV12;
     } else if (strcmp(fmt,android::CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {

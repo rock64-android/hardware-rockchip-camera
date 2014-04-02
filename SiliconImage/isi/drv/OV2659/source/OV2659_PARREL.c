@@ -275,7 +275,7 @@ static RESULT OV2659_IsiGetCapsIss
         pIsiSensorCaps->BusWidth        = ISI_BUSWIDTH_12BIT;
         pIsiSensorCaps->Mode            = ISI_MODE_PICT|ISI_MODE_BT601;
         pIsiSensorCaps->FieldSelection  = ISI_FIELDSEL_BOTH;
-        pIsiSensorCaps->YCSequence      = ISI_YCSEQ_YCBYCR;           
+        pIsiSensorCaps->YCSequence      = ISI_YCSEQ_YCBYCR|ISI_YCSEQ_CBYCRY;           
         pIsiSensorCaps->Conv422         = ISI_CONV422_NOCOSITED;
         pIsiSensorCaps->BPat            = ISI_BPAT_RGRGGBGB ;
         pIsiSensorCaps->HPol            = ISI_HPOL_REFPOS;
@@ -320,7 +320,7 @@ const IsiSensorCaps_t OV2659_g_IsiSensorDefaultConfig =
     ISI_BUSWIDTH_12BIT,         // BusWidth
     ISI_MODE_BT601,              // MIPI
     ISI_FIELDSEL_BOTH,          // FieldSel
-    ISI_YCSEQ_YCBYCR,           // YCSeq
+    ISI_YCSEQ_CBYCRY,           // YCSeq
     ISI_CONV422_NOCOSITED,      // Conv422
     ISI_BPAT_RGRGGBGB,//ISI_BPAT_BGBGGRGR,          // BPat
     ISI_HPOL_REFPOS,            // HPol
@@ -928,7 +928,7 @@ static RESULT OV2659_IsiChangeSensorResolutionIss
         }
 
         // restore old exposure values (at least within new exposure values' limits)
-        uint8_t NumberOfFramesToSkip;
+        uint8_t NumberOfFramesToSkip = 0;
         float   DummySetGain;
         float   DummySetIntegrationTime;
         result = OV2659_IsiExposureControlIss( handle, OldGain, OldIntegrationTime, &NumberOfFramesToSkip, &DummySetGain, &DummySetIntegrationTime );

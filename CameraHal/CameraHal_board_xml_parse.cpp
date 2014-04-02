@@ -1714,8 +1714,9 @@ int camera_board_profiles::LoadSensor(camera_board_profiles* profiles)
     for(int i=0; (i<count && i<2); i++){
         OpenAndRegistOneSensor(profiles->mDevieVector[media_xml_device[i].index]);
         profiles->mDevieVector[media_xml_device[i].index]->mIsConnect = 1;
-        return RK_RET_SUCCESS;
+        //return RK_RET_SUCCESS;
     }
+	return RK_RET_SUCCESS;
 
 err_end:
     OpenAndRegistALLSensor(profiles);

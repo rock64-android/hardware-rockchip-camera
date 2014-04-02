@@ -54,7 +54,7 @@ int CameraAdapter::initialize()
 	if((ret = cameraCreate(mCamId)) < 0)
 		return ret;
 	
-	initDefaultParameters();
+	initDefaultParameters(mCamId);
     LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
 	return ret;
 }
@@ -198,7 +198,7 @@ int CameraAdapter::setParameters(const CameraParameters &params_set)
     
     return 0;
 }
-void CameraAdapter::initDefaultParameters()
+void CameraAdapter::initDefaultParameters(int camFd)
 {
 
 }

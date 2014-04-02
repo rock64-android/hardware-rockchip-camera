@@ -50,7 +50,7 @@ CREATE_TRACER( OV8825_REG_DEBUG, "OV8825: ", INFO, 1U );
 #define OV8825_SLAVE_AF_ADDR    0x6cU                           /**< i2c slave address of the OV8825 integrated AD5820 */
 
 #define OV8825_MIN_GAIN_STEP   ( 1.0f / 16.0f); /**< min gain step size used by GUI ( 32/(32-7) - 32/(32-6); min. reg value is 6 as of datasheet; depending on actual gain ) */
-#define OV8825_MAX_GAIN_AEC    ( 62.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
+#define OV8825_MAX_GAIN_AEC    ( 8.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
 
 
 /*!<
@@ -74,7 +74,7 @@ CREATE_TRACER( OV8825_REG_DEBUG, "OV8825: ", INFO, 1U );
  * 100us per step. A movement over the full range needs max. 102.3ms
  * (see table 9 AD5820 datasheet).
  */
-#define MDI_SLEW_RATE_CTRL 2U /* S3..0 */
+#define MDI_SLEW_RATE_CTRL 11U /* S3..0 */
 
 
 
@@ -555,7 +555,7 @@ const IsiSensorCaps_t OV8825_g_IsiSensorDefaultConfig =
     ISI_BLS_OFF,                // Bls
     ISI_GAMMA_OFF,              // Gamma
     ISI_CCONV_OFF,              // CConv
-    ISI_RES_3264_2448,          // Res
+    ISI_RES_TV1080P15,          // Res
     ISI_DWNSZ_SUBSMPL,          // DwnSz
     ISI_BLC_AUTO,               // BLC
     ISI_AGC_OFF,                // AGC
@@ -1009,9 +1009,9 @@ static RESULT OV8825_SetupOutputWindow
         {
             TRACE( OV8825_ERROR, "%s(%d): Resolution 3264x2448\n", __FUNCTION__,__LINE__ );
             usModeSelect = 0x00;
-            usPllCtrl1 = 0xce;
-            usReg0x3005 = 0x10;
-            usPllCtrl3 = 0x70;
+            usPllCtrl1 = 0xd8;   //0xce;
+            usReg0x3005 = 0x00;
+            usPllCtrl3 = 0x40;   //0x70;
             usScClkSel = 0x81;
             usAECExpoM = 0x9a;
             usAECExpoL = 0xa0;
@@ -1035,7 +1035,7 @@ static RESULT OV8825_SetupOutputWindow
             usTimeIspHo = 0x0cc0;
             usTimeIspVo = 0x0990;
             usTimeHts = 0x0e00;
-            usTimeVts = 0x0cb0;
+            usTimeVts = 0x9b0;//0x0cb0;
             usTimeHoffsL = 0x10;
             usTimeVoffsL = 0x06;
             usTimeXinc = 0x11;
@@ -2250,7 +2250,7 @@ RESULT OV8825_IsiSetGainIss
     if( NewGain < pOV8825Ctx->AecMinGain ) NewGain = pOV8825Ctx->AecMinGain;
     if( NewGain > pOV8825Ctx->AecMaxGain ) NewGain = pOV8825Ctx->AecMaxGain;
 
-    usGain = (uint16_t)(NewGain * 16.0f);
+    usGain = (uint16_t)(NewGain * 16.0f+0.5);
 
     // write new gain into sensor registers, do not write if nothing has changed
     if( (usGain != pOV8825Ctx->OldGain) )
@@ -2268,7 +2268,7 @@ RESULT OV8825_IsiSetGainIss
 
     //return current state
     *pSetGain = pOV8825Ctx->AecCurGain;
-    TRACE( OV8825_DEBUG, "%s: g=%f\n", __FUNCTION__, *pSetGain );
+    TRACE( OV8825_ERROR, "%s: psetgain=%f, NewGain=%f\n", __FUNCTION__, *pSetGain, NewGain);
 
     TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
 
@@ -2575,7 +2575,7 @@ RESULT OV8825_IsiSetIntegrationTimeIss
     //return current state
     *pSetIntegrationTime = pOV8825Ctx->AecCurIntegrationTime;
 
-    TRACE( OV8825_DEBUG, "%s: Ti=%f\n", __FUNCTION__, *pSetIntegrationTime );
+    TRACE( OV8825_ERROR, "%s: SetTi=%f NewTi=%f\n", __FUNCTION__, *pSetIntegrationTime,NewIntegrationTime);
     TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
@@ -3600,6 +3600,7 @@ static RESULT OV8825_IsiMdiFocusSet
 
     if ( pOV8825Ctx == NULL )
     {
+    	TRACE( OV8825_ERROR, "%s: pOV8825Ctx IS NULL\n", __FUNCTION__);
         return ( RET_WRONG_HANDLE );
     }
 
@@ -3608,20 +3609,20 @@ static RESULT OV8825_IsiMdiFocusSet
 
     TRACE( OV8825_INFO, "%s: focus set position_reg_value(%d) position(%d) \n", __FUNCTION__, nPosition, Position);
     
-    data[0] = (uint8_t)(0x40U | (( nPosition & 0x3F0U ) >> 4U));                 // PD,  1, D9..D4, see AD5820 datasheet
-    data[1] = (uint8_t)( ((nPosition & 0x0FU) << 4U) | MDI_SLEW_RATE_CTRL );    // D3..D0, S3..S0
+    data[1] = (uint8_t)(0x00U | (( nPosition & 0x3F0U ) >> 4U));                 // PD,  1, D9..D4, see AD5820 datasheet
+    data[0] = (uint8_t)( ((nPosition & 0x0FU) << 4U) | MDI_SLEW_RATE_CTRL );    // D3..D0, S3..S0
 
-    TRACE( OV8825_DEBUG, "%s: value = %d, 0x%02x 0x%02x\n", __FUNCTION__, nPosition, data[0], data[1] );
+    TRACE( OV8825_INFO, "%s: value = %d, 0x%02x 0x%02x\n", __FUNCTION__, nPosition, data[0], data[1] );
 
     result = HalWriteI2CMem( pOV8825Ctx->IsiCtx.HalHandle,
                              pOV8825Ctx->IsiCtx.I2cAfBusNum,
                              pOV8825Ctx->IsiCtx.SlaveAfAddress,
                              0x3618,
                              pOV8825Ctx->IsiCtx.NrOfAfAddressBytes,
-                             &data[1],
-                             1U );
+                             &data[0],
+                             2U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-
+    /*
     result = HalWriteI2CMem( pOV8825Ctx->IsiCtx.HalHandle,
                              pOV8825Ctx->IsiCtx.I2cAfBusNum,
                              pOV8825Ctx->IsiCtx.SlaveAfAddress,
@@ -3630,6 +3631,7 @@ static RESULT OV8825_IsiMdiFocusSet
                              &data[0],
                              1U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+    */
 
     TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
 
@@ -3691,8 +3693,11 @@ static RESULT OV8825_IsiMdiFocusGet
                              pOV8825Ctx->IsiCtx.SlaveAfAddress,
                              0x3618,
                              pOV8825Ctx->IsiCtx.NrOfAfAddressBytes,
-                             &data[1],
-                             1U );
+                             &data[0],
+                             2U );
+	RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+	#if 0
+	RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 	result = HalReadI2CMem( pOV8825Ctx->IsiCtx.HalHandle,
                              pOV8825Ctx->IsiCtx.I2cAfBusNum,
                              pOV8825Ctx->IsiCtx.SlaveAfAddress,
@@ -3701,12 +3706,13 @@ static RESULT OV8825_IsiMdiFocusGet
                              &data[0],
                              1U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+	#endif
 
-    TRACE( OV8825_DEBUG, "%s: value = 0x%02x 0x%02x\n", __FUNCTION__, data[0], data[1] );
+    TRACE( OV8825_INFO, "%s: value = 0x%02x 0x%02x\n", __FUNCTION__, data[1], data[0] );
 
     /* Data[0] = PD,  1, D9..D4, see AD5820 datasheet */
     /* Data[1] = D3..D0, S3..S0 */
-    *pAbsStep = ( ((uint32_t)(data[0] & 0x3FU)) << 4U ) | ( ((uint32_t)data[1]) >> 4U );
+    *pAbsStep = ( ((uint32_t)(data[1] & 0x3FU)) << 4U ) | ( ((uint32_t)data[0]) >> 4U );
 
     /* map 0 to 64 -> infinity */
     if( *pAbsStep == 0 )
