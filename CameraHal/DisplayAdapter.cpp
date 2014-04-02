@@ -647,7 +647,7 @@ display_receive_cmd:
                   //                  (char*)(frame->vir_addr), (short int*)mDisplayBufInfo[queue_display_index].vir_addr, 
                    //                 mDisplayWidth,mDisplayWidth,mDisplayHeight);
 
-                    if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) /*&& (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0)*/)
+            //        if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) /*&& (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0)*/)
                     if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420P)==0))
                     {
 
