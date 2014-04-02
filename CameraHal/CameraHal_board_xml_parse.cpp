@@ -769,13 +769,13 @@ void camera_board_profiles::OpenAndRegistALLSensor(camera_board_profiles* profil
 }
 
 
-void camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
+int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
 {
     rk_sensor_info *pSensorInfo = &(pCamInfo->mHardInfo.mSensorInfo);
     camsys_load_sensor_info* pLoadSensorInfo = &(pCamInfo->mLoadSensorInfo);
 
     if(!pCamInfo)
-        return;
+        return -1;
 
     pCamInfo->mIsConnect = 0;
     
@@ -789,7 +789,7 @@ void camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         ALOGD("dlopen err:%s.\n",dlerror()); 
         pLoadSensorInfo->mhSensorLib = NULL;
         pLoadSensorInfo->pCamDrvConfig = NULL;
-        return;
+        return -1;
     }
 
     IsiCamDrvConfig_t *pIsiCamDrvConfig = (IsiCamDrvConfig_t *)dlsym( hSensorLib, "IsiCamDrvConfig" );
@@ -801,7 +801,7 @@ void camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
             dlclose( hSensorLib );
         pLoadSensorInfo->mhSensorLib = NULL;
         pLoadSensorInfo->pCamDrvConfig = NULL;
-        return ;
+        return -1;
     }
 
     // initialize function pointer
@@ -809,11 +809,11 @@ void camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         if ( RET_SUCCESS != pIsiCamDrvConfig->pfIsiGetSensorIss( &(pIsiCamDrvConfig->IsiSensor) ) )
         {
             ALOGD("%s (IsiGetSensorIss failed)\n", __FUNCTION__ );
-            return;              
+            return -1;              
         }
     }else{
         ALOGD("%s ERROR(driver(%s) don't support IsiGetSensorIss)\n", __FUNCTION__,  pSensorInfo->mSensorName);
-        return;   
+        return -1;   
     }
 
     pLoadSensorInfo->mhSensorLib = hSensorLib;
@@ -825,7 +825,7 @@ void camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         sensor_i2c_info_t* pI2cInfo;
         if(RET_SUCCESS != pIsiCamDrvConfig->pfIsiGetSensorI2cInfo(&pI2cInfo)){
               ALOGE("GET I2C INFO ERRO !!!!!!!!!!!!!!!!");
-            return;
+            return -1;
         }
         
         pCamInfo->mLoadSensorInfo.mpI2cInfo = pI2cInfo;
@@ -840,16 +840,17 @@ void camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
 		    if(res){
                 ALOGD("load %s success\n", pLoadSensorInfo->mSensorXmlFile);
                 pCamInfo->mIsConnect = 1;
-                return;
+                return 0;
             }else{
                 ALOGD("load %s failed\n", pLoadSensorInfo->mSensorXmlFile);
-                return;
+                return -1;
             }
         }
     }else{
         ALOGD("sensor(%s)'s driver don't have func pfIsiGetSensorI2cInfo\n", pSensorInfo->mSensorName);
-        return;
+        return -1;
     }
+	return 0;
 }
 
 int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
@@ -1679,6 +1680,7 @@ int camera_board_profiles::LoadSensor(camera_board_profiles* profiles)
     char dst_file[50];
     int err = RK_RET_SUCCESS;
     int count = 0;
+	int result= 0;
 
     ALOGD("enter Load Sensor\n");
     strncpy(dst_file, RK_DST_MEDIA_PROFILES_XML_PATH, sizeof(dst_file));
@@ -1712,10 +1714,16 @@ int camera_board_profiles::LoadSensor(camera_board_profiles* profiles)
 
     //register exist sensor
     for(int i=0; (i<count && i<2); i++){
-        OpenAndRegistOneSensor(profiles->mDevieVector[media_xml_device[i].index]);
-        profiles->mDevieVector[media_xml_device[i].index]->mIsConnect = 1;
-        //return RK_RET_SUCCESS;
+        result = OpenAndRegistOneSensor(profiles->mDevieVector[media_xml_device[i].index]);
+		if(result != 0){
+			goto err_end;
+		}else{
+        	profiles->mDevieVector[media_xml_device[i].index]->mIsConnect = 1;
+		}
+       
     }
+
+	AddConnectSensorToVector(profiles);
 	return RK_RET_SUCCESS;
 
 err_end:

@@ -359,7 +359,7 @@ public:
     static void StartElementHandler(void *userData, const char *name, const char **atts);
     static bool LoadALLCalibrationData(camera_board_profiles* profiles);
     static void OpenAndRegistALLSensor(camera_board_profiles* profiles);
-    static void OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo);
+    static int OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo);
     static int RegisterSensorDevice(rk_cam_total_info* pCamInfo);
     static int ProduceNewXml(camera_board_profiles* profiles);
     static int CheckSensorSupportDV(rk_cam_total_info* pCamInfo);

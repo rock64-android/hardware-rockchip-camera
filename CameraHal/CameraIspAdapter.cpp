@@ -293,7 +293,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     params.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_FIXED);
     focus.id = V4L2_CID_FOCUS_AUTO;
     //if (!ioctl(iCamFd, VIDIOC_QUERYCTRL, &focus)) {
-      if ((pCamInfo->mSoftInfo.mFocusConfig.mFocusSupport & (0x01<<FOCUS_AUTO_BITPOS))){
+      if (false/*(pCamInfo->mSoftInfo.mFocusConfig.mFocusSupport & (0x01<<FOCUS_AUTO_BITPOS))*/){
         parameterString.append(",");
         parameterString.append(CameraParameters::FOCUS_MODE_AUTO);
         params.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_AUTO);

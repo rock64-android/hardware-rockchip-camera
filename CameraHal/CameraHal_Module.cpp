@@ -616,12 +616,12 @@ int camera_get_number_of_cameras(void)
 
     profiles = camera_board_profiles::getInstance();
     camera_board_profiles::LoadSensor(profiles);
-    nCamDev = profiles->mDevieVector.size();
+    nCamDev = profiles->mDevideConnectVector.size();
     for (i=0; (i<CAMERAS_SUPPORT_MAX && i<nCamDev); i++) 
     {  
-        rk_sensor_info *pSensorInfo = &(profiles->mDevieVector[i]->mHardInfo.mSensorInfo);
+        rk_sensor_info *pSensorInfo = &(profiles->mDevideConnectVector[i]->mHardInfo.mSensorInfo);
         
-        camInfoTmp[cam_cnt&0x01].pcam_total_info = profiles->mDevieVector[i];     
+        camInfoTmp[cam_cnt&0x01].pcam_total_info = profiles->mDevideConnectVector[i];     
         strncpy(camInfoTmp[cam_cnt&0x01].device_path, pSensorInfo->mCamsysDevPath, sizeof(camInfoTmp[cam_cnt&0x01].device_path));
         strncpy(camInfoTmp[cam_cnt&0x01].driver, pSensorInfo->mSensorDriver, sizeof(camInfoTmp[cam_cnt&0x01].driver));
         if(pSensorInfo->mFacing == RK_CAM_FACING_FRONT){     
