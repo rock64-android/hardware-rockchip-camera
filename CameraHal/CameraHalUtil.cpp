@@ -1100,22 +1100,66 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
 				 if ((src_w == dst_w) && (src_h == dst_h)) {
 					 dstint_y = (int*)dstbuf;				 
 					 srcint = (int*)srcbuf;
-					 for(i=0;i<(y_size>>2);i++) {
-						 *dstint_y++ = ((*(srcint+1)&0x00ff0000)<<8)|((*(srcint+1)&0x000000ff)<<16)
-									 |((*srcint&0x00ff0000)>>8)|(*srcint&0x000000ff);
-						 
-						 srcint += 2;
-					 }
 					 dstint_uv =  (int*)(dstbuf + y_size);
-					 srcint = (int*)srcbuf;
-					 for(i=0;i<src_h/2; i++) {
+					 /* 
+					  * author :zyh
+					  * neon code for YUYV to YUV420
+					  */
+					 for(i=0;i<src_h;i++) {
+					 int n = src_w;
+					 if(i%2 == 0) {
+							asm volatile (
+						        "   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+						        "   cmp %[n], #16                                               \n\t"
+						        "   blt 5f                                                      \n\t"
+						        "0: @ 16 pixel swap                                             \n\t"
+						        "   vld2.8  {q0,q1} , [%[src]]!  @ q0 = y q1 = uv               \n\t"
+						        "   vst1.16 {q0},[%[dst_y]]!     @ now q0  -> dst               \n\t"
+						        "   vst1.16 {q1},[%[dst_uv]]!    @ now q1  -> dst   	    	\n\t"
+						        "   sub %[n], %[n], #16                                         \n\t"
+						        "   cmp %[n], #16                                               \n\t"
+						        "   bge 0b                                                      \n\t"
+						        "5: @ end                                                       \n\t"
+						        : [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n),[i] "+r" (i)
+						        : [src_stride] "r" (src_w)
+						        : "cc", "memory", "q0", "q1", "q2"
+						        );
+
+					}else {
+							asm volatile (
+						        "   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+						        "   cmp %[n], #16                                               \n\t"
+						        "   blt 5f                                                      \n\t"
+						        "0: @ 16 pixel swap                                             \n\t"
+						        "   vld2.8  {q0,q1} , [%[src]]!   @ q0 = y q1 = uv              \n\t"
+						        "   vst1.16 {q0},[%[dst_y]]!      @ now q0 -> dst               \n\t"
+						        "   sub %[n], %[n], #16                                         \n\t"
+						        "   cmp %[n], #16                                               \n\t"
+						        "   bge 0b                                                      \n\t"
+						        "5: @ end                                                       \n\t"
+						        : [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n)
+						        : [src_stride] "r" (src_w)
+						        : "cc", "memory", "q0", "q1", "q2"
+						        );
+
+						}
+
+					 }
+					 /*
+					  * C code YUYV to YUV420
+					  */
+					 /*for(i=0;i<src_h; i++) {
 						 for (j=0; j<(src_w>>2); j++) {
-							 *dstint_uv++ = (*(srcint+1)&0xff000000)|((*(srcint+1)&0x0000ff00)<<8)
+							 if(i%2 == 0){
+								*dstint_uv++ = (*(srcint+1)&0xff000000)|((*(srcint+1)&0x0000ff00)<<8)
 										 |((*srcint&0xff000000)>>16)|((*srcint&0x0000ff00)>>8); 
+							 }
+							 *dstint_y++ = ((*(srcint+1)&0x00ff0000)<<8)|((*(srcint+1)&0x000000ff)<<16)
+							 				 |((*srcint&0x00ff0000)>>8)|(*srcint&0x000000ff);
 							 srcint += 2;
 						 }
-						 srcint += (src_w>>1);	
 					 }
+					 LOGE("---------------c code YUY to YUV420-----------------------------");*/
 					 ret = 0;
 				 } else {
 					 if (v4l2_fmt_dst) {	
