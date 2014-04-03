@@ -649,297 +649,240 @@ int AppMsgNotifier::Jpegfillgpsinfo(RkGPSInfo *gpsInfo,picture_info_s &params)
 
 int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     int ret = 0;
+	int jpeg_w,jpeg_h,i;
+	unsigned int pictureSize;
+	int jpegSize;
+	int quality;
+	int thumbquality = 0;
+	int thumbwidth	= 0;
+	int thumbheight = 0;
+	int err = 0;
+	int rotation = 0;
+	JpegEncInInfo JpegInInfo;
+	JpegEncOutInfo JpegOutInfo;  
+	RkExifInfo exifInfo;
+	RkGPSInfo gpsInfo;
+	char ExifAsciiPrefix[8] = {'A', 'S', 'C', 'I', 'I', '\0', '\0', '\0'};
+	char gpsprocessmethod[45];
+	char *getMethod = NULL;
+	double latitude,longtitude,altitude;
+	long timestamp;
+	JpegEncType encodetype;
+    int picfmt;
+    int rawbuf_phy;
+    int rawbuf_vir;
+    int jpegbuf_phy;
+    int jpegbuf_vir;
+    int input_phy_addr,input_vir_addr;
+    int output_phy_addr,output_vir_addr;
+    int jpegbuf_size;
+	int bufindex;
 
+	memset(&JpegInInfo,0x00,sizeof(JpegEncInInfo));
+	memset(&JpegOutInfo,0x00,sizeof(JpegEncOutInfo));
 
-		int jpeg_w,jpeg_h,i;
-		unsigned int pictureSize;
-		int jpegSize;
-		int quality;
-		int thumbquality = 0;
-		int thumbwidth	= 0;
-		int thumbheight = 0;
-		int err = 0;
-		int rotation = 0;
-		JpegEncInInfo JpegInInfo;
-		JpegEncOutInfo JpegOutInfo;  
-		
-		memset(&JpegInInfo,0x00,sizeof(JpegEncInInfo));
-		memset(&JpegOutInfo,0x00,sizeof(JpegEncOutInfo));
-		
-		
-		RkExifInfo exifInfo;
-		RkGPSInfo gpsInfo;
-		char ExifAsciiPrefix[8] = {'A', 'S', 'C', 'I', 'I', '\0', '\0', '\0'};
-		char gpsprocessmethod[45];
-		char *getMethod = NULL;
-		double latitude,longtitude,altitude;
-		long timestamp;
-		JpegEncType encodetype;
-        int picfmt;
-        int rawbuf_phy;
-        int rawbuf_vir;
-        int rawbuf_phy2;
-        int rawbuf_vir2;		
-        int jpegbuf_phy;
-        int jpegbuf_vir;
-        int input_phy_addr,input_vir_addr;
-        int output_phy_addr,output_vir_addr;
+	quality = mPictureInfo.quality;
+	thumbquality = mPictureInfo.thumbquality;
+	thumbwidth	= mPictureInfo.thumbwidth;
+	thumbheight = mPictureInfo.thumbheight;
+	rotation = mPictureInfo.rotation;
+    
+	jpeg_w = mPictureInfo.w;
+    jpeg_h = mPictureInfo.h;
+	/*get gps information*/
+	altitude = mPictureInfo.altitude;
+	latitude = mPictureInfo.latitude;
+	longtitude = mPictureInfo.longtitude;
+	timestamp = mPictureInfo.timestamp;    
+	getMethod = mPictureInfo.getMethod;//getMethod : len <= 32
 
-        int jpegbuf_size;
-		int bufindex;
+    picfmt = mPictureInfo.fmt;
+	
+	
+	if(picfmt ==V4L2_PIX_FMT_RGB565){
+		encodetype = HWJPEGENC_RGB565;
+		pictureSize = jpeg_w * jpeg_h *2;
+	}
+	else{
+		encodetype = JPEGENC_YUV420_SP;
+		pictureSize = jpeg_w * jpeg_h * 3/2;
+	}
+	if (pictureSize & 0xfff) {
+		pictureSize = (pictureSize & 0xfffff000) + 0x1000;
+	}
 
-		quality = mPictureInfo.quality;
-		thumbquality = mPictureInfo.thumbquality;
-		thumbwidth	= mPictureInfo.thumbwidth;
-		thumbheight = mPictureInfo.thumbheight;
-		rotation = mPictureInfo.rotation;
-        
-		jpeg_w = mPictureInfo.w;
-        jpeg_h = mPictureInfo.h;
-		/*get gps information*/
-		altitude = mPictureInfo.altitude;
-		latitude = mPictureInfo.latitude;
-		longtitude = mPictureInfo.longtitude;
-		timestamp = mPictureInfo.timestamp;    
-		getMethod = mPictureInfo.getMethod;//getMethod : len <= 32
-
-        picfmt = mPictureInfo.fmt;
-		
-		
-		if(picfmt ==V4L2_PIX_FMT_RGB565){
-			encodetype = HWJPEGENC_RGB565;
-			pictureSize = jpeg_w * jpeg_h *2;
-		}
-		else{
-			encodetype = JPEGENC_YUV420_SP;
-			pictureSize = jpeg_w * jpeg_h * 3/2;
-		}
-		if (pictureSize & 0xfff) {
-			pictureSize = (pictureSize & 0xfffff000) + 0x1000;
-		}
-
-        jpegbuf_size = 0x700000; //pictureSize;
-        //create raw & jpeg buffer
-        ret = mRawBufferProvider->createBuffer(2, pictureSize, RAWBUFFER);
-        if(ret < 0){
+    jpegbuf_size = 0x700000; //pictureSize;
+    //create raw & jpeg buffer
+    ret = mRawBufferProvider->createBuffer(1, pictureSize, RAWBUFFER);
+    if(ret < 0){
         LOGE("mRawBufferProvider->createBuffer FAILED");
         goto 	captureEncProcessPicture_exit;
-        }
-        ret =mJpegBufferProvider->createBuffer(1, jpegbuf_size,JPEGBUFFER);
-        if(ret < 0){
+    }
+    ret =mJpegBufferProvider->createBuffer(1, jpegbuf_size,JPEGBUFFER);
+    if(ret < 0){
         LOGE("mJpegBufferProvider->createBuffer FAILED");
         goto 	captureEncProcessPicture_exit;
-        }
+    }
 
-        bufindex=mRawBufferProvider->getOneAvailableBuffer(&rawbuf_phy, &rawbuf_vir);
-        if(bufindex < 0){
+    bufindex=mRawBufferProvider->getOneAvailableBuffer(&rawbuf_phy, &rawbuf_vir);
+    if(bufindex < 0){
         LOGE("mRawBufferProvider->getOneAvailableBuffer FAILED");
         goto 	captureEncProcessPicture_exit;
-        }
-				mRawBufferProvider->setBufferStatus(bufindex, 1);		
-        bufindex=mJpegBufferProvider->getOneAvailableBuffer(&jpegbuf_phy, &jpegbuf_vir);
-        if(bufindex < 0){
+    }
+	mRawBufferProvider->setBufferStatus(bufindex, 1);		
+    bufindex=mJpegBufferProvider->getOneAvailableBuffer(&jpegbuf_phy, &jpegbuf_vir);
+    if(bufindex < 0){
         LOGE("mJpegBufferProvider->getOneAvailableBuffer FAILED");
         goto 	captureEncProcessPicture_exit;
-        }
-        
-        g_rawbufProvider = mRawBufferProvider;
-        g_jpegbufProvider = mJpegBufferProvider;
-
-
-        input_phy_addr = frame->phy_addr;
-        input_vir_addr = frame->vir_addr;
-        output_phy_addr = jpegbuf_phy;
-        output_vir_addr = jpegbuf_vir;
-		LOGD("rawbuf_phy:%x,rawbuf_vir:%x;jpegbuf_phy = %x,jpegbuf_vir = %x",rawbuf_phy,rawbuf_vir,jpegbuf_phy,jpegbuf_vir);
-		
-		if (mMsgTypeEnabled & CAMERA_MSG_SHUTTER)
-			mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
-		LOGD("captureEncProcessPicture,rotation = %d,jpeg_w = %d,jpeg_h = %d",rotation,jpeg_w,jpeg_h);
-        //2. copy to output buffer for mirro and flip
-		/*ddl@rock-chips.com: v0.4.7*/
-         bool rotat_180;
-		rotat_180   = false; //used by ipp
-    	if ((frame->frame_fmt != picfmt) || (frame->frame_width!= jpeg_w) || (frame->frame_height != jpeg_h) 
-        || (rotation == 180)|| (rotation == 90) || (frame->zoom_value != 100)) {
-            if((rotation == 180) || (rotation == 90))
-                  rotat_180 = true;
-            output_phy_addr = rawbuf_phy;
-            output_vir_addr = rawbuf_vir;
-            //do rotation,scale,zoom,fmt convert.    
-			if(cameraFormatConvert(frame->frame_fmt, picfmt, NULL,
-	        (char*)input_vir_addr,(char*)output_vir_addr,0,0,jpeg_w*jpeg_h*2,
-	        jpeg_w, jpeg_h,jpeg_w,jpeg_w, jpeg_h,jpeg_w,false)==0)
-	      // arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)input_vir_addr, (char*)output_vir_addr);
-	        
-			{
-	            //change input addr
-				input_phy_addr = output_phy_addr;
-				input_vir_addr = output_vir_addr;
-				
-				mRawBufferProvider->flushBuffer(0);
-			}
-		}
-		
-		if((mMsgTypeEnabled & (CAMERA_MSG_RAW_IMAGE))|| (mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE_NOTIFY)) {
-            if(rotat_180){
-                //shouled be rotate back for raw,use jpeg buffer as middle buffer.
-                YuvData_Mirror_Flip(V4L2_PIX_FMT_NV12, (char*)input_vir_addr,
-                    (char*) jpegbuf_vir, jpeg_w, jpeg_h);
-				mRawBufferProvider->flushBuffer(0);
-                rotat_180 = false;
-                }
-			copyAndSendRawImage((void*)input_vir_addr, pictureSize);
-        }
-        
-        output_phy_addr = jpegbuf_phy;
-        output_vir_addr = jpegbuf_vir;
-
-        //3. src data will be changed by mirror and flip algorithm
-        //use jpeg buffer as line buffer
-        #if 0
-        if ((!rotat_180)&& ((rotation == 180) ||(rotation == 90))) {
-                YuvData_Mirror_Flip(V4L2_PIX_FMT_NV12, (char*)input_vir_addr,
-                    (char*) jpegbuf_vir, jpeg_w, jpeg_h);
-				mRawBufferProvider->flushBuffer(0);
-		} 
-		#endif
-		if(!rotat_180)
-		{
-			if(rotation == 180)
-			{
-				YuvData_Mirror_Flip(V4L2_PIX_FMT_NV12, (char*)input_vir_addr,
-				(char*) jpegbuf_vir, jpeg_w, jpeg_h);
-				mRawBufferProvider->flushBuffer(0);
-			}
-			if(rotation == 90||rotation == 270)
-			{
-				bufindex=mRawBufferProvider->getOneAvailableBuffer(&rawbuf_phy2, &rawbuf_vir2);
-				if(bufindex < 0){
-        LOGE("%s(%d)mRawBufferProvider->getOneAvailableBuffer FAILED",__FUNCTION__,__LINE__);
-        goto 	captureEncProcessPicture_exit;
-        }
-				mRawBufferProvider->setBufferStatus(bufindex, 1);
-				YUV420_rotate((char*)input_vir_addr, jpeg_w, (char*)input_vir_addr+jpeg_w*jpeg_h, (char*)rawbuf_vir2, jpeg_h, (char*)rawbuf_vir2+jpeg_w*jpeg_h,jpeg_w,jpeg_h,rotation);
-				input_phy_addr = rawbuf_phy2;
-				input_vir_addr = rawbuf_vir2;
-			}
-		}
-	
-		JpegInInfo.frameHeader = 1;
-		JpegInInfo.yuvaddrfor180 = (int)NULL;
-		JpegInInfo.type = encodetype;
-		JpegInInfo.y_rgb_addr = input_phy_addr;
-		JpegInInfo.uv_addr = input_phy_addr + jpeg_w*jpeg_h;	 
-		//JpegInInfo.y_vir_addr = input_vir_addr;
-		//JpegInInfo.uv_vir_addr = input_vir_addr + jpeg_w*jpeg_h;
-		JpegInInfo.inputW = jpeg_w;
-		JpegInInfo.inputH = jpeg_h;
-		if ((rotation == 0) ){
-			JpegInInfo.rotateDegree = DEGREE_0;    
-		}else if((rotation == 180)) {
-			JpegInInfo.rotateDegree = DEGREE_0; 
-		}else if (rotation == 90) {
-			//JpegInInfo.rotateDegree = DEGREE_270; 
-			JpegInInfo.rotateDegree = DEGREE_0; 
-			JpegInInfo.inputW = jpeg_h;
-			JpegInInfo.inputH = jpeg_w;			
-		} else if (rotation == 270) {
-			//JpegInInfo.rotateDegree = DEGREE_270; 
-			JpegInInfo.rotateDegree = DEGREE_0; 
-			JpegInInfo.inputW = jpeg_h;
-			JpegInInfo.inputH = jpeg_w;				
-		}
-		JpegInInfo.qLvl = quality/10;
-		if (JpegInInfo.qLvl < 5) {
-			JpegInInfo.qLvl = 5;
-		}
-		JpegInInfo.thumbqLvl = thumbquality /10;
-		if (JpegInInfo.thumbqLvl < 5) {
-			JpegInInfo.thumbqLvl = 5;
-		}
-		if(JpegInInfo.thumbqLvl  >10) {
-			JpegInInfo.thumbqLvl = 9;
-		}
-	
-		if(thumbwidth !=0 && thumbheight !=0) {
-			JpegInInfo.doThumbNail = 1; 		 //insert thumbnail at APP0 extension
-			JpegInInfo.thumbData = NULL;		 //if thumbData is NULL, do scale, the type above can not be 420_P or 422_UYVY
-			JpegInInfo.thumbDataLen = -1;
-			JpegInInfo.thumbW = thumbwidth;
-			JpegInInfo.thumbH = thumbheight;
-			JpegInInfo.y_vir_addr = (unsigned char*)input_vir_addr;
-			JpegInInfo.uv_vir_addr = (unsigned char*)input_vir_addr+jpeg_w*jpeg_h;
-		}else{	  
-			JpegInInfo.doThumbNail = 0; 		 //insert thumbnail at APP0 extension	
-		}
-		
-		Jpegfillexifinfo(&exifInfo,mPictureInfo);
-		JpegInInfo.exifInfo =&exifInfo;
-
-		if((longtitude!=-1)&& (latitude!=-1)&&(timestamp!=-1)&&(getMethod!=NULL)) {    
-			Jpegfillgpsinfo(&gpsInfo,mPictureInfo);  
-			memset(gpsprocessmethod,0,45);	 
-			memcpy(gpsprocessmethod,ExifAsciiPrefix,8);   
-			memcpy(gpsprocessmethod+8,getMethod,strlen(getMethod)+1);		   
-			gpsInfo.GpsProcessingMethodchars = strlen(getMethod)+1+8;
-			gpsInfo.GPSProcessingMethod  = gpsprocessmethod;
-			LOGD("\nGpsProcessingMethodchars =%d",gpsInfo.GpsProcessingMethodchars);
-			JpegInInfo.gpsInfo = &gpsInfo;
-		} else {
-			JpegInInfo.gpsInfo = NULL;
-		}
-	
-		JpegOutInfo.outBufPhyAddr = output_phy_addr;
-		JpegOutInfo.outBufVirAddr = (unsigned char*)output_vir_addr;
-		JpegOutInfo.outBuflen = jpegbuf_size;
-		JpegOutInfo.jpegFileLen = 0x00;
-		JpegOutInfo.cacheflush= jpegEncFlushBufferCb;
-		LOGD("JpegOutInfo.outBufPhyAddr:%x,JpegOutInfo.outBufVirAddr:%x,jpegbuf_size:%d",JpegOutInfo.outBufPhyAddr,JpegOutInfo.outBufVirAddr,jpegbuf_size);
-	
-		#if 0
-                if(1){
-                    //write file
-                    	FILE* fp =NULL;
-                	char filename[40];
-
-                	filename[0] = 0x00;
-                	sprintf(filename, "/data/raw8_%dx%d.raw",jpeg_w,jpeg_h);
-                	fp = fopen(filename, "wb+");
-                	if (fp > 0) {
-                		fwrite((char*)input_vir_addr, 1,jpeg_w*jpeg_h*3/2,fp);
-                	//	fwrite((char*)uv_addr_vir, 1,width*height*3/2,fp); //yuv422
-
-                		fclose(fp);
-                		LOGD("Write success yuv data to %s",filename);
-                	} else {
-                		LOGE("Create %s failed(%d, %s)",filename,fp, strerror(errno));
-                	}
-                }
-				#endif
-	
-		err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
-		
-		if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
-			LOGE("%s(%d): hw_jpeg_encode Failed, err: %d  JpegOutInfo.jpegFileLen:0x%x\n",__FUNCTION__,__LINE__,
-				err, JpegOutInfo.jpegFileLen);
-			goto captureEncProcessPicture_exit;
-		} else { 
-			copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);
-		}
-	captureEncProcessPicture_exit: 
-     //destroy raw and jpeg buffer
-        mRawBufferProvider->freeBuffer();
-        mJpegBufferProvider->freeBuffer();
-		if(err < 0) {
-			LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
-			if (mNotifyCb && (mMsgTypeEnabled & CAMERA_MSG_ERROR)) {						
-				mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
-			}
-		} 
-
+    }
     
-    return ret;
+    g_rawbufProvider = mRawBufferProvider;
+    g_jpegbufProvider = mJpegBufferProvider;
+
+
+    input_phy_addr = frame->phy_addr;
+    input_vir_addr = frame->vir_addr;
+    output_phy_addr = jpegbuf_phy;
+    output_vir_addr = jpegbuf_vir;
+	LOGD("rawbuf_phy:%x,rawbuf_vir:%x;jpegbuf_phy = %x,jpegbuf_vir = %x",rawbuf_phy,rawbuf_vir,jpegbuf_phy,jpegbuf_vir);
+	
+	if (mMsgTypeEnabled & CAMERA_MSG_SHUTTER)
+		mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
+	LOGD("captureEncProcessPicture,rotation = %d,jpeg_w = %d,jpeg_h = %d",rotation,jpeg_w,jpeg_h);
+    //2. copy to output buffer for mirro and flip
+	/*ddl@rock-chips.com: v0.4.7*/
+    // bool rotat_180 = false; //used by ipp
+
+	if ((frame->frame_fmt != picfmt) || (frame->frame_width!= jpeg_w) || (frame->frame_height != jpeg_h) 
+    	|| (frame->zoom_value != 100)) {
+
+        output_phy_addr = rawbuf_phy;
+        output_vir_addr = rawbuf_vir;
+        //do rotation,scale,zoom,fmt convert.   
+		if(cameraFormatConvert(frame->frame_fmt, picfmt, NULL,
+        (char*)input_vir_addr,(char*)output_vir_addr,0,0,jpeg_w*jpeg_h*2,
+        jpeg_w, jpeg_h,jpeg_w,jpeg_w, jpeg_h,jpeg_w,false)==0)
+      // arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)input_vir_addr, (char*)output_vir_addr);
+        {
+            //change input addr
+			input_phy_addr = output_phy_addr;
+			input_vir_addr = output_vir_addr;
+			mRawBufferProvider->flushBuffer(0);
+		}
+	}
+	
+	if((mMsgTypeEnabled & (CAMERA_MSG_RAW_IMAGE))|| (mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE_NOTIFY)) {
+		copyAndSendRawImage((void*)input_vir_addr, pictureSize);
+    }
+    
+    output_phy_addr = jpegbuf_phy;
+    output_vir_addr = jpegbuf_vir;
+
+    //3. src data will be changed by mirror and flip algorithm
+    //use jpeg buffer as line buffer
+
+	if(rotation == 0)
+	{
+		JpegInInfo.rotateDegree = DEGREE_0; 
+	}
+	else if(rotation == 180)
+	{
+		YuvData_Mirror_Flip(V4L2_PIX_FMT_NV12, (char*)input_vir_addr,
+		(char*) jpegbuf_vir, jpeg_w, jpeg_h);
+		mRawBufferProvider->flushBuffer(0);
+		JpegInInfo.rotateDegree = DEGREE_0; 
+	}
+	else if(rotation == 90)
+	{
+		YuvData_Mirror_Flip(V4L2_PIX_FMT_NV12, (char*)input_vir_addr,
+		(char*) jpegbuf_vir, jpeg_w, jpeg_h);
+		mRawBufferProvider->flushBuffer(0);	
+		JpegInInfo.rotateDegree = DEGREE_270;
+	}
+	else if(rotation == 270)
+	{
+		JpegInInfo.rotateDegree = DEGREE_270; 		
+	}
+
+	JpegInInfo.frameHeader = 1;
+	JpegInInfo.yuvaddrfor180 = (int)NULL;
+	JpegInInfo.type = encodetype;
+	JpegInInfo.y_rgb_addr = input_phy_addr;
+	JpegInInfo.uv_addr = input_phy_addr + jpeg_w*jpeg_h;	 
+	//JpegInInfo.y_vir_addr = input_vir_addr;
+	//JpegInInfo.uv_vir_addr = input_vir_addr + jpeg_w*jpeg_h;
+	JpegInInfo.inputW = jpeg_w;
+	JpegInInfo.inputH = jpeg_h;
+
+	JpegInInfo.qLvl = quality/10;
+	if (JpegInInfo.qLvl < 5) {
+		JpegInInfo.qLvl = 5;
+	}
+	JpegInInfo.thumbqLvl = thumbquality /10;
+	if (JpegInInfo.thumbqLvl < 5) {
+		JpegInInfo.thumbqLvl = 5;
+	}
+	if(JpegInInfo.thumbqLvl  >10) {
+		JpegInInfo.thumbqLvl = 9;
+	}
+
+	if(thumbwidth !=0 && thumbheight !=0) {
+		JpegInInfo.doThumbNail = 1; 		 //insert thumbnail at APP0 extension
+		JpegInInfo.thumbData = NULL;		 //if thumbData is NULL, do scale, the type above can not be 420_P or 422_UYVY
+		JpegInInfo.thumbDataLen = -1;
+		JpegInInfo.thumbW = thumbwidth;
+		JpegInInfo.thumbH = thumbheight;
+		JpegInInfo.y_vir_addr = (unsigned char*)input_vir_addr;
+		JpegInInfo.uv_vir_addr = (unsigned char*)input_vir_addr+jpeg_w*jpeg_h;
+	}else{	  
+		JpegInInfo.doThumbNail = 0; 		 //insert thumbnail at APP0 extension	
+	}
+	
+	Jpegfillexifinfo(&exifInfo,mPictureInfo);
+	JpegInInfo.exifInfo =&exifInfo;
+
+	if((longtitude!=-1)&& (latitude!=-1)&&(timestamp!=-1)&&(getMethod!=NULL)) {    
+		Jpegfillgpsinfo(&gpsInfo,mPictureInfo);  
+		memset(gpsprocessmethod,0,45);	 
+		memcpy(gpsprocessmethod,ExifAsciiPrefix,8);   
+		memcpy(gpsprocessmethod+8,getMethod,strlen(getMethod)+1);		   
+		gpsInfo.GpsProcessingMethodchars = strlen(getMethod)+1+8;
+		gpsInfo.GPSProcessingMethod  = gpsprocessmethod;
+		LOGD("\nGpsProcessingMethodchars =%d",gpsInfo.GpsProcessingMethodchars);
+		JpegInInfo.gpsInfo = &gpsInfo;
+	} else {
+		JpegInInfo.gpsInfo = NULL;
+	}
+
+	JpegOutInfo.outBufPhyAddr = output_phy_addr;
+	JpegOutInfo.outBufVirAddr = (unsigned char*)output_vir_addr;
+	JpegOutInfo.outBuflen = jpegbuf_size;
+	JpegOutInfo.jpegFileLen = 0x00;
+	JpegOutInfo.cacheflush= jpegEncFlushBufferCb;
+	LOGD("JpegOutInfo.outBufPhyAddr:%x,JpegOutInfo.outBufVirAddr:%x,jpegbuf_size:%d",JpegOutInfo.outBufPhyAddr,JpegOutInfo.outBufVirAddr,jpegbuf_size);
+
+	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
+	
+	if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
+		LOGE("%s(%d): hw_jpeg_encode Failed, err: %d  JpegOutInfo.jpegFileLen:0x%x\n",__FUNCTION__,__LINE__,
+			err, JpegOutInfo.jpegFileLen);
+		goto captureEncProcessPicture_exit;
+	} else { 
+		copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);
+	}
+captureEncProcessPicture_exit: 
+ //destroy raw and jpeg buffer
+    mRawBufferProvider->freeBuffer();
+    mJpegBufferProvider->freeBuffer();
+	if(err < 0) {
+		LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
+		if (mNotifyCb && (mMsgTypeEnabled & CAMERA_MSG_ERROR)) {						
+			mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
+		}
+	} 
+
+
+return ret;
 }
 
 int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
