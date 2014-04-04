@@ -411,7 +411,53 @@ extern "C" void arm_yuyv_to_nv12(int src_w, int src_h,char *srcbuf, char *dstbuf
     int i = 0,j = 0;
     int y_size = 0;
 
-    y_size = src_w*src_h;
+	y_size = src_w*src_h;
+	dstint_y = (int*)dstbuf;
+	srcint = (int*)srcbuf;
+	dstint_uv =  (int*)(dstbuf + y_size);
+	//LOGE("-----------%s----------------zyh",__FUNCTION__);
+	/*
+	 * author :zyh
+	 * neon code for YUYV to NV12
+	 */
+	for(i=0;i<src_h;i++) {
+		int n = src_w;
+		if(i%2 == 0) {
+			asm volatile (
+					"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+					"   cmp %[n], #16                                               \n\t"
+					"   blt 5f                                                      \n\t"
+					"0: @ 16 pixel swap                                             \n\t"
+					"   vld2.8  {q0,q1} , [%[src]]!  @ q0 = y q1 = uv               \n\t"
+					"   vst1.16 {q0},[%[dst_y]]!     @ now q0  -> dst               \n\t"
+					"   vst1.16 {q1},[%[dst_uv]]!    @ now q1  -> dst   	    	\n\t"
+					"   sub %[n], %[n], #16                                         \n\t"
+					"   cmp %[n], #16                                               \n\t"
+					"   bge 0b                                                      \n\t"
+					"5: @ end                                                       \n\t"
+					: [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n),[i] "+r" (i)
+					: [src_stride] "r" (src_w)
+					: "cc", "memory", "q0", "q1", "q2"
+					);
+		}else {
+			asm volatile (
+					"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+					"   cmp %[n], #16                                               \n\t"
+					"   blt 5f                                                      \n\t"
+					"0: @ 16 pixel swap                                             \n\t"
+					"   vld2.8  {q0,q1} , [%[src]]!   @ q0 = y q1 = uv              \n\t"
+					"   vst1.16 {q0},[%[dst_y]]!      @ now q0 -> dst               \n\t"
+					"   sub %[n], %[n], #16                                         \n\t"
+					"   cmp %[n], #16                                               \n\t"
+					"   bge 0b                                                      \n\t"
+					"5: @ end                                                       \n\t"
+					: [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n)
+					: [src_stride] "r" (src_w)
+					: "cc", "memory", "q0", "q1", "q2"
+					);
+		}
+	}
+    /*y_size = src_w*src_h;
     dstint_y = (int*)dstbuf;
     srcint = (int*)srcbuf;
     for(i=0;i<(y_size>>2);i++) {
@@ -434,7 +480,7 @@ extern "C" void arm_yuyv_to_nv12(int src_w, int src_h,char *srcbuf, char *dstbuf
             srcint += 2;
         }
         srcint += (src_w>>1);
-    }
+    }*/
 
 }
 
@@ -442,11 +488,60 @@ extern "C" void arm_yuyv_to_yv12(int src_w, int src_h,char *srcbuf, char *dstbuf
 
     char *srcbuf_begin;
     int *dstint_y, *dstint_uv, *srcint;
-    short int* dstsint_u, *dstsint_v;
+    char* dstsint_u, *dstsint_v;
     int i = 0,j = 0;
     int y_size = 0;
+	y_size = src_w*src_h;
+	dstint_y = (int*)dstbuf;
+	srcint = (int*)srcbuf;
+	dstsint_u = (char*)(dstbuf + y_size);
+	dstsint_v = (char*)((char*)dstsint_u + (y_size >> 2));
+	//LOGE("-----------%s----------------zyh",__FUNCTION__);
+	/*
+	 * author :zyh
+	 * neon code for YUYV to YV12
+	 */
+	for(i=0;i<src_h;i++) {
+		int n = src_w;
+		if(i%2 == 0) {
+			asm volatile (
+					"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+					"   cmp %[n], #16                                               \n\t"
+					"   blt 5f                                                      \n\t"
+					"0: @ 16 pixel swap                                             \n\t"
+					"   vld2.8  {q0,q1} , [%[src]]!  @ q0 = y q1 = uv               \n\t"
+					"   vuzp.8 q1, q2                @ d1 = u d5 = v                \n\t"
+					"   vst1.16 {q0},[%[dst_y]]!     @ now q0   -> dst              \n\t"
+					"   vst1.8  {d4},[%[dst_u]]!     @ now d0  -> dst   	    	\n\t"
+					"   vst1.8  {d2},[%[dst_v]]!     @ now d1  -> dst   	    	\n\t"
+					"   sub %[n], %[n], #16                                         \n\t"
+					"   cmp %[n], #16                                               \n\t"
+					"   bge 0b                                                      \n\t"
+					"5: @ end                                                       \n\t"
+					: [dst_y] "+r" (dstint_y), [dst_u] "+r" (dstsint_u),[dst_v] "+r" (dstsint_v),[src] "+r" (srcint), [n] "+r" (n)
+					: [src_stride] "r" (src_w)
+					: "cc", "memory", "q0", "q1", "q2"
+					);
 
-    y_size = src_w*src_h;
+		}else {
+			asm volatile (
+					"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+					"   cmp %[n], #16                                               \n\t"
+					"   blt 5f                                                      \n\t"
+					"0: @ 16 pixel swap                                             \n\t"
+					"   vld2.8  {q0,q1} , [%[src]]!   @ q0 = y q1 = uv              \n\t"
+					"   vst1.16 {q0},[%[dst_y]]!      @ now q0 -> dst               \n\t"
+					"   sub %[n], %[n], #16                                         \n\t"
+					"   cmp %[n], #16                                               \n\t"
+					"   bge 0b                                                      \n\t"
+					"5: @ end                                                       \n\t"
+					: [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n)
+					: [src_stride] "r" (src_w)
+					: "cc", "memory", "q0", "q1", "q2"
+					);
+		}
+	}
+    /*y_size = src_w*src_h;
     dstint_y = (int*)dstbuf;
     srcint = (int*)srcbuf;
     for(i=0;i<(y_size>>2);i++) {
@@ -467,7 +562,7 @@ extern "C" void arm_yuyv_to_yv12(int src_w, int src_h,char *srcbuf, char *dstbuf
             srcint += 2;
         }
         srcint += (src_w>>1);
-    }
+    }*/
 
 }
 //for soc camera test
