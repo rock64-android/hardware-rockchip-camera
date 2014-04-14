@@ -6,6 +6,8 @@
 #include "cam_api/camdevice.h"
 #include <string>
 #include <utils/KeyedVector.h>
+#include <linux/camsys_head.h>
+
 
 
 namespace android{

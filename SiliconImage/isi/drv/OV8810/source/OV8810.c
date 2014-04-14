@@ -277,6 +277,7 @@ static RESULT OV8810_IsiMdiSetupMotoDrive( IsiSensorHandle_t handle, uint32_t *p
 static RESULT OV8810_IsiMdiFocusSet( IsiSensorHandle_t handle, const uint32_t Position );
 static RESULT OV8810_IsiMdiFocusGet( IsiSensorHandle_t handle, uint32_t *pAbsStep );
 static RESULT OV8810_IsiMdiFocusCalibrate( IsiSensorHandle_t handle );
+static RESULT OV8810_IsiGetSensorIsiVersion(  IsiSensorHandle_t   handle, unsigned int* pVersion);
 
 
 static double floor( const double f )
@@ -476,6 +477,7 @@ static RESULT OV8810_IsiGetCapsIss
         pIsiSensorCaps->SmiaMode        = ISI_SMIA_OFF;
         pIsiSensorCaps->MipiMode        = ISI_MIPI_OFF;
         pIsiSensorCaps->AfpsResolutions = ISI_AFPS_NOTSUPP;
+		pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_RAW;
     }
 
     TRACE( OV8810_INFO, "%s (exit)\n", __FUNCTION__);
@@ -518,7 +520,8 @@ const IsiSensorCaps_t OV8810_g_IsiSensorDefaultConfig =
     ISI_CIEPROF_F11,            // CieProfile, this is also used as start profile for AWB (if not altered by menu settings)
     ISI_SMIA_OFF,               // SmiaMode
     ISI_MIPI_OFF,               // MipiMode
-    ISI_AFPS_NOTSUPP            // AfpsResolutions
+    ISI_AFPS_NOTSUPP,            // AfpsResolutions
+    ISI_SENSOR_OUTPUT_MODE_RAW,
 };
 
 
@@ -3353,7 +3356,33 @@ RESULT OV8810_IsiDumpAllRegisters
     return ( result );
 }
 
+static RESULT OV8810_IsiGetSensorIsiVersion
+(  IsiSensorHandle_t   handle,
+   unsigned int*     pVersion
+)
+{
+    OV8810_Context_t *pOV8810Ctx = (OV8810_Context_t *)handle;
 
+    RESULT result = RET_SUCCESS;
+
+
+    TRACE( OV8810_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pOV8810Ctx == NULL )
+    {
+    	TRACE( OV8810_ERROR, "%s: pOV8810Ctx IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+    }
+
+	if(pVersion == NULL)
+	{
+		TRACE( OV8810_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+	}
+
+	*pVersion = CONFIG_ISI_VERSION;
+	return result;
+}
 
 
 /*****************************************************************************/
@@ -3383,7 +3412,8 @@ RESULT OV8810_IsiGetSensorIss
         pIsiSensor->pszName                         = OV8810_g_acName;
         pIsiSensor->pRegisterTable                  = OV8810_g_aRegDescription;
         pIsiSensor->pIsiSensorCaps                  = &OV8810_g_IsiSensorDefaultConfig;
-
+		pIsiSensor->pIsiGetSensorIsiVer				= OV8810_IsiGetSensorIsiVersion;
+		
         pIsiSensor->pIsiCreateSensorIss             = OV8810_IsiCreateSensorIss;
         pIsiSensor->pIsiReleaseSensorIss            = OV8810_IsiReleaseSensorIss;
         pIsiSensor->pIsiGetCapsIss                  = OV8810_IsiGetCapsIss;
@@ -3500,6 +3530,8 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pszName */
         0,                      /**< IsiSensor_t.pRegisterTable */
         0,                      /**< IsiSensor_t.pIsiSensorCaps */
+        0,
+        0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

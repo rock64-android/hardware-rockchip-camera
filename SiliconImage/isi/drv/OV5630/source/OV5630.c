@@ -28,6 +28,7 @@
 
 #include "OV5630_priv.h"
 
+#define  OV5630_NEWEST_TUNING_XML "26-Jul-2011_HVO_OV5630_sample01_v1.0"
 
 
 /******************************************************************************
@@ -427,6 +428,9 @@ static RESULT OV5630_IsiMdiFocusCalibrate( IsiSensorHandle_t handle );
 
 static RESULT OV5630_IsiActivateTestPattern( IsiSensorHandle_t handle, const bool_t enable );
 
+static RESULT OV5630_IsiGetSensorIsiVersion(  IsiSensorHandle_t   handle, unsigned int* pVersion);
+static RESULT OV5630_IsiGetSensorTuningXmlVersion(  IsiSensorHandle_t handle, char** pTuningXmlVersion);
+
 
 
 
@@ -640,6 +644,7 @@ static RESULT OV5630_IsiGetCapsIss
         pIsiSensorCaps->SmiaMode        = ISI_SMIA_OFF;
         pIsiSensorCaps->MipiMode        = ISI_MIPI_OFF;
         pIsiSensorCaps->AfpsResolutions = ISI_AFPS_NOTSUPP;
+		pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_RAW;
     }
 
     TRACE( OV5630_INFO, "%s (exit)\n", __FUNCTION__);
@@ -681,7 +686,8 @@ const IsiSensorCaps_t OV5630_g_IsiSensorDefaultConfig =
     ISI_CIEPROF_F11,            // CieProfile, this is also used as start profile for AWB (if not altered by menu settings)
     ISI_SMIA_OFF,               // SmiaMode
     ISI_MIPI_OFF,               // MipiMode
-    ISI_AFPS_NOTSUPP            // AfpsResolutions
+    ISI_AFPS_NOTSUPP,            // AfpsResolutions
+    ISI_SENSOR_OUTPUT_MODE_RAW,
 };
 
 
@@ -3725,6 +3731,61 @@ static RESULT OV5630_IsiActivateTestPattern
     return ( result );
 }
 
+static RESULT OV5630_IsiGetSensorIsiVersion
+(  IsiSensorHandle_t   handle,
+   unsigned int*     pVersion
+)
+{
+    OV5630_Context_t *pOV5630Ctx = (OV5630_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+
+    TRACE( OV5630_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pOV5630Ctx == NULL )
+    {
+    	TRACE( OV5630_ERROR, "%s: pOV5630Ctx IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+    }
+
+	if(pVersion == NULL)
+	{
+		TRACE( OV5630_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+	}
+
+	*pVersion = CONFIG_ISI_VERSION;
+	return result;
+}
+
+static RESULT OV5630_IsiGetSensorTuningXmlVersion
+(  IsiSensorHandle_t   handle,
+   char**     pTuningXmlVersion
+)
+{
+    OV5630_Context_t *pOV5630Ctx = (OV5630_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+
+    TRACE( OV5630_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pOV5630Ctx == NULL )
+    {
+    	TRACE( OV5630_ERROR, "%s: pOV5630Ctx IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+    }
+
+	if(pTuningXmlVersion == NULL)
+	{
+		TRACE( OV5630_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+	}
+
+	*pTuningXmlVersion = OV5630_NEWEST_TUNING_XML;
+	return result;
+}
 
 
 /*****************************************************************************/
@@ -3883,6 +3944,8 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pszName */
         0,                      /**< IsiSensor_t.pRegisterTable */
         0,                      /**< IsiSensor_t.pIsiSensorCaps */
+        0,
+        0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

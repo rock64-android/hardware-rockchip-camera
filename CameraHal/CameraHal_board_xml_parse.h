@@ -26,6 +26,7 @@ using namespace android;
 #define RK_RET_NOSETUP  (-3)
 #define RK_RET_NODEVICE (-4)
 #define RK_RET_DEVICEERR (-5)
+#define RK_RET_FUNC_FAILED (-6)
 
 #define RK_SENSOR_LIB_PATH "/system/lib/hw/libisp_isi_drv_"
 #define RK_BOARD_XML_PATH "/etc/cam_board.xml"
@@ -314,6 +315,7 @@ struct rk_cam_total_info{
     rk_cam_hardware_info mHardInfo;
     rk_camera_softinfo_config mSoftInfo;
     camsys_load_sensor_info mLoadSensorInfo;
+	camsys_version_t mCamsysVersion;
     int mDeviceIndex;
     int mIsConnect;
 };

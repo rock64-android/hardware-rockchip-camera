@@ -147,7 +147,7 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const char **atts
         ALOGD("%s(%d): SensorDriver(%s) \n", __FUNCTION__, __LINE__, atts[1]);
         strncpy(pSensorInfo->mSensorDriver, atts[1], sizeof(pSensorInfo->mSensorDriver));
     }else if(strcmp(name, "SensorPhy")==0){
-        ALOGD("%s(%d): SensorDriver(%s) \n", __FUNCTION__, __LINE__, atts[1]);
+        ALOGD("%s(%d): SensorPhy(%s) \n", __FUNCTION__, __LINE__, atts[1]);
         if(strcmp(atts[1], "CamSys_Phy_Mipi")==0){
             pSensorInfo->mPhy.type = CamSys_Phy_Mipi;
             pSensorInfo->mPhy.info.mipi.data_en_bit = atoi(atts[3]);
@@ -775,7 +775,7 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
     camsys_load_sensor_info* pLoadSensorInfo = &(pCamInfo->mLoadSensorInfo);
 
     if(!pCamInfo)
-        return -1;
+        return RK_RET_NULL_POINTER;
 
     pCamInfo->mIsConnect = 0;
     
@@ -789,7 +789,7 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         ALOGD("dlopen err:%s.\n",dlerror()); 
         pLoadSensorInfo->mhSensorLib = NULL;
         pLoadSensorInfo->pCamDrvConfig = NULL;
-        return -1;
+        return RK_RET_NULL_POINTER;
     }
 
     IsiCamDrvConfig_t *pIsiCamDrvConfig = (IsiCamDrvConfig_t *)dlsym( hSensorLib, "IsiCamDrvConfig" );
@@ -801,7 +801,7 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
             dlclose( hSensorLib );
         pLoadSensorInfo->mhSensorLib = NULL;
         pLoadSensorInfo->pCamDrvConfig = NULL;
-        return -1;
+        return RK_RET_NULL_POINTER;
     }
 
     // initialize function pointer
@@ -809,11 +809,11 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         if ( RET_SUCCESS != pIsiCamDrvConfig->pfIsiGetSensorIss( &(pIsiCamDrvConfig->IsiSensor) ) )
         {
             ALOGD("%s (IsiGetSensorIss failed)\n", __FUNCTION__ );
-            return -1;              
+            return RK_RET_FUNC_FAILED;              
         }
     }else{
         ALOGD("%s ERROR(driver(%s) don't support IsiGetSensorIss)\n", __FUNCTION__,  pSensorInfo->mSensorName);
-        return -1;   
+        return RK_RET_NULL_POINTER;   
     }
 
     pLoadSensorInfo->mhSensorLib = hSensorLib;
@@ -824,8 +824,8 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
     if(pIsiCamDrvConfig->pfIsiGetSensorI2cInfo){
         sensor_i2c_info_t* pI2cInfo;
         if(RET_SUCCESS != pIsiCamDrvConfig->pfIsiGetSensorI2cInfo(&pI2cInfo)){
-              ALOGE("GET I2C INFO ERRO !!!!!!!!!!!!!!!!");
-            return -1;
+        	ALOGE("GET I2C INFO ERRO !!!!!!!!!!!!!!!!");
+            return RK_RET_FUNC_FAILED;
         }
         
         pCamInfo->mLoadSensorInfo.mpI2cInfo = pI2cInfo;
@@ -833,23 +833,31 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         int err = RegisterSensorDevice(pCamInfo);
         if(!err)
         {
-            CalibDb *pcalidb = &(pCamInfo->mLoadSensorInfo.calidb);
-            sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName);
-            bool res = pcalidb->CreateCalibDb(pLoadSensorInfo->mSensorXmlFile);
-           	ALOGD("-----------%s--------------",pLoadSensorInfo->mSensorXmlFile);
-		    if(res){
-                ALOGD("load %s success\n", pLoadSensorInfo->mSensorXmlFile);
+        	if(pIsiCamDrvConfig->IsiSensor.pIsiSensorCaps->SensorOutputMode == ISI_SENSOR_OUTPUT_MODE_RAW){
+	            CalibDb *pcalidb = &(pCamInfo->mLoadSensorInfo.calidb);
+	            sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName);
+	            bool res = pcalidb->CreateCalibDb(pLoadSensorInfo->mSensorXmlFile);
+	           	ALOGD("-----------%s--------------",pLoadSensorInfo->mSensorXmlFile);
+			    if(res){
+	                ALOGD("load %s success\n", pLoadSensorInfo->mSensorXmlFile);
+	                pCamInfo->mIsConnect = 1;
+	                return RK_RET_SUCCESS;
+	            }else{
+	                ALOGD("load %s failed\n", pLoadSensorInfo->mSensorXmlFile);
+	                return RK_RET_FUNC_FAILED;
+	            }
+    		}else{
                 pCamInfo->mIsConnect = 1;
-                return 0;
-            }else{
-                ALOGD("load %s failed\n", pLoadSensorInfo->mSensorXmlFile);
-                return -1;
-            }
-        }
+                return RK_RET_SUCCESS;
+			}
+        }else{
+			return RK_RET_NOSETUP;
+    	}
     }else{
         ALOGD("sensor(%s)'s driver don't have func pfIsiGetSensorI2cInfo\n", pSensorInfo->mSensorName);
-        return -1;
+        return RK_RET_NULL_POINTER;
     }
+	
 	return 0;
 }
 
@@ -866,6 +874,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     unsigned char *i2cchar;
     int camsys_fd=-1;
     int regist_ret=-1;
+	int ret = RK_RET_SUCCESS;
 
     //for test 
     //return RK_RET_SUCCESS;
@@ -930,10 +939,20 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     
     extdev.clk.in_rate = pSensorInfo->mMclkRate;
 
+	//oyyf before register sensor driver, check the kernel camsys version
+	err = ioctl(camsys_fd, CAMSYS_VERCHK, &(pCamInfo->mCamsysVersion));
+	if(!err){
+		ALOGD("------------%s.%s(%d)  get camsys head version (%x), driver version(%x), now camerahal camsys head version(%x)----------\n", 
+			__FILE__, __FUNCTION__,__LINE__,pCamInfo->mCamsysVersion.head_ver,pCamInfo->mCamsysVersion.drv_ver,CAMSYS_HEAD_VERSION);
+	}else{
+		ALOGE("-----------%s.%s(%d) get camsys head version failed! ---------\n", __FILE__, __FUNCTION__,__LINE__);
+		goto regist_err;
+	}
+	
     regist_ret = ioctl(camsys_fd, CAMSYS_REGISTER_DEVIO, &extdev);
     if (regist_ret<0) {
         ALOGD("CAMSYS_REGISTER_DEVIO failed\n");
-        err = RK_RET_DEVICEERR;
+        ret = RK_RET_DEVICEERR;
         goto regist_err;
     }
 
@@ -943,8 +962,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_Avdd on failed!\n");
-        err = RK_RET_DEVICEERR;
-        goto regist_err;
+        ret = RK_RET_DEVICEERR;
+        goto power_off;
     }
     
     sysctl.ops = CamSys_Dovdd;
@@ -952,8 +971,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_Dovdd on failed!\n");
-        err = RK_RET_DEVICEERR;
-        goto regist_err;
+        ret = RK_RET_DEVICEERR;
+        goto power_off;
     }
     usleep(5000);
     sysctl.dev_mask = (pSensorInfo->mHostDevid|pSensorInfo->mCamDevid); //need modify
@@ -963,8 +982,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_ClkIn on failed\n");
-        err = RK_RET_DEVICEERR;
-        goto regist_err;
+        ret = RK_RET_DEVICEERR;
+        goto power_off;
     }
 
     //1)power en
@@ -975,8 +994,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_PwrDn on failed\n");
-        err = RK_RET_DEVICEERR;
-        goto regist_err;
+        ret = RK_RET_DEVICEERR;
+        goto power_off;
     }
 
     //2)reset 
@@ -987,8 +1006,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_PwrDn on failed\n");
-        err = RK_RET_DEVICEERR;
-        goto regist_err;
+        ret = RK_RET_DEVICEERR;
+        goto power_off;
     }
     //3)power down control
     usleep(1000);
@@ -998,8 +1017,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_PwrDn on failed\n");
-        err = RK_RET_DEVICEERR;
-        goto regist_err;
+        ret = RK_RET_DEVICEERR;
+        goto power_off;
     }
     usleep(2000);
     
@@ -1017,8 +1036,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 	err = ioctl(camsys_fd, CAMSYS_I2CWR, &i2cinfo);
     if(err<0) {
         ALOGD("CAMSYS_I2CWR failed, soft reset fail, reg(0x%x) vale(0x%x)\n", i2cinfo.reg_addr, i2cinfo.val); 
-		err = RK_RET_DEVICEERR;
-        goto regist_err;
+		ret = RK_RET_DEVICEERR;
+        goto power_off;
     }
 	#else
 	err = ioctl(camsys_fd, CAMSYS_I2CWR, &i2cinfo);
@@ -1041,8 +1060,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
             } else {
                 ALOGD("WARNING: I2c read: addr(0x%x) : read(0x%x) default(0x%x)\n",i2cinfo.reg_addr, i2cinfo.val, pChipIDInfo->chipid_reg_value);
                 if(i2cinfo.val!=pChipIDInfo->chipid_reg_value){
-                    err = RK_RET_DEVICEERR;
-                    goto regist_err;
+                    ret = RK_RET_DEVICEERR;
+                    goto power_off;
                 }
             }
             
@@ -1050,20 +1069,20 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
         }
     }else{
         ALOGD("ERROR: sensor dirver don't have chip id info\n");
-        err = RK_RET_DEVICEERR;
-        goto regist_err;
+        ret = RK_RET_DEVICEERR;
+        goto power_off;
     }
 
 //  power off
-
+power_off:
     sysctl.dev_mask = pSensorInfo->mCamDevid;
     sysctl.ops = CamSys_PwrDn;
     sysctl.on = 1;
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_PwrDn off failed\n");
-        err = RK_RET_DEVICEERR;
-        goto unmap_pos;
+        ret = RK_RET_DEVICEERR;
+        
     }
 
     sysctl.dev_mask = pSensorInfo->mCamDevid;
@@ -1072,8 +1091,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_Rst off failed\n");
-        err = RK_RET_DEVICEERR;
-        goto unmap_pos;
+        ret = RK_RET_DEVICEERR;
+        
     }
 
     sysctl.dev_mask = pSensorInfo->mCamDevid;
@@ -1082,8 +1101,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_PwrEn off failed\n");
-        err = RK_RET_DEVICEERR;
-        goto unmap_pos;
+        ret = RK_RET_DEVICEERR;
+       
     }
     
     usleep(1000);
@@ -1094,8 +1113,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_ClkIn off failed\n");
-        err = RK_RET_DEVICEERR;
-        goto unmap_pos;
+        ret = RK_RET_DEVICEERR;
+        
     }
 
     usleep(2000);
@@ -1105,8 +1124,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_Avdd off failed!\n");
-        err = RK_RET_DEVICEERR;
-        goto unmap_pos;
+        ret = RK_RET_DEVICEERR;
+        
     }
 
     sysctl.dev_mask = pSensorInfo->mCamDevid;
@@ -1115,20 +1134,20 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
         ALOGD("CamSys_Dovdd off failed!\n");
-        err = RK_RET_DEVICEERR;
-        goto unmap_pos;
+        ret = RK_RET_DEVICEERR;
+       
     }
 
 
 unmap_pos:
     
 regist_err: 
-    if(regist_ret==0 && err<0){
+    if(regist_ret==0 && ret<0){
         // unregister device  need modify
         err = ioctl(camsys_fd, CAMSYS_DEREGISTER_DEVIO, &sysctl);
         if(err<0){
             ALOGD("CamSys_Dovdd off failed!\n");
-            err = RK_RET_DEVICEERR;
+            ret = RK_RET_DEVICEERR;
         }   
     }
     
@@ -1138,7 +1157,7 @@ regist_err:
     }
    
 end:
-	return err;   
+	return ret;   
 }
 
 int camera_board_profiles::CheckSensorSupportDV(rk_cam_total_info* pCamInfo)
@@ -1723,8 +1742,11 @@ int camera_board_profiles::LoadSensor(camera_board_profiles* profiles)
        
     }
 
-	AddConnectSensorToVector(profiles);
-	return RK_RET_SUCCESS;
+	if(profiles->mDevieVector.size()>0){
+		AddConnectSensorToVector(profiles);
+		return RK_RET_SUCCESS;
+	}else
+		return RK_RET_NOSETUP;
 
 err_end:
     OpenAndRegistALLSensor(profiles);

@@ -35,7 +35,10 @@ extern "C"
 {
 #endif
 
-
+//oyyf add 
+#define ISI_SENSOR_OUTPUT_MODE_RAW	0x00000001U
+#define ISI_SENSOR_OUTPUT_MODE_YUV  0x00000002U
+#define ISI_SENSOR_OUTPUT_MODE_RGB  0x00000004U
 
 /*****************************************************************************/
 /*!

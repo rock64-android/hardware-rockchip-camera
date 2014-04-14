@@ -30,6 +30,7 @@
 
 #include "OV8825_MIPI_priv.h"
 
+#define  OV8825_NEWEST_TUNING_XML "08-Jan-2014_OUYANG_OV8825_sample_01_v1.0"
 
 #define CC_OFFSET_SCALING  2.0f
 #define I2C_COMPLIANT_STARTBIT 1U
@@ -316,6 +317,8 @@ static RESULT OV8825_IsiMdiFocusGet( IsiSensorHandle_t handle, uint32_t *pAbsSte
 static RESULT OV8825_IsiMdiFocusCalibrate( IsiSensorHandle_t handle );
 
 static RESULT OV8825_IsiGetSensorMipiInfoIss( IsiSensorHandle_t handle, IsiSensorMipiInfo *ptIsiSensorMipiInfo);
+static RESULT OV8825_IsiGetSensorIsiVersion(  IsiSensorHandle_t   handle, unsigned int* pVersion);
+static RESULT OV8825_IsiGetSensorTuningXmlVersion(  IsiSensorHandle_t   handle, char** pTuningXmlVersion);
 
 
 static float dctfloor( const float f )
@@ -524,6 +527,7 @@ static RESULT OV8825_IsiGetCapsIss
         pIsiSensorCaps->SmiaMode        = ISI_SMIA_OFF;
         pIsiSensorCaps->MipiMode        = ISI_MIPI_MODE_RAW_10;
         pIsiSensorCaps->AfpsResolutions = ( ISI_AFPS_NOTSUPP );
+		pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_RAW;
     }
 
     TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
@@ -566,6 +570,7 @@ const IsiSensorCaps_t OV8825_g_IsiSensorDefaultConfig =
     ISI_SMIA_OFF,               // SmiaMode
     ISI_MIPI_MODE_RAW_10,       // MipiMode
     ISI_AFPS_NOTSUPP,           // AfpsResolutions
+    ISI_SENSOR_OUTPUT_MODE_RAW,
 };
 
 
@@ -955,9 +960,9 @@ static RESULT OV8825_SetupOutputWindow
         {
             TRACE( OV8825_ERROR, "%s(%d): Resolution 1920x1080\n", __FUNCTION__,__LINE__ );
             usModeSelect = 0x00;
-            usPllCtrl1 = 0xd8;
+            usPllCtrl1 = 0xd2; //0xd8;//0xd2;
             usReg0x3005 = 0x00;
-            usPllCtrl3 = 0x20;
+            usPllCtrl3 = 0x10;//0x20;//0x10;
             usScClkSel = 0x01;
             usAECExpoM = 0x74;
             usAECExpoL = 0x60;
@@ -991,7 +996,7 @@ static RESULT OV8825_SetupOutputWindow
             usPsramCtrl = 0x02;
             usBLSctr5 = 0x18;
             usVFIFOReadST= 0x0100;
-            usMIPIPclk = 0x1e;
+            usMIPIPclk = 0x15;//0x1e;//0x15;
             usHscalCtrl = 0x53;
             usVscalCtrl = 0x53;
             usModeSelect = 0x01;
@@ -3874,6 +3879,62 @@ static RESULT OV8825_IsiGetSensorMipiInfoIss
     return ( result );
 }
 
+static RESULT OV8825_IsiGetSensorIsiVersion
+(  IsiSensorHandle_t   handle,
+   unsigned int*     pVersion
+)
+{
+    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+
+    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pOV8825Ctx == NULL )
+    {
+    	TRACE( OV8825_ERROR, "%s: pOV8825Ctx IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+    }
+
+	if(pVersion == NULL)
+	{
+		TRACE( OV8825_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+	}
+
+	*pVersion = CONFIG_ISI_VERSION;
+	return result;
+}
+
+static RESULT OV8825_IsiGetSensorTuningXmlVersion
+(  IsiSensorHandle_t   handle,
+   char**     pTuningXmlVersion
+)
+{
+    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+
+    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pOV8825Ctx == NULL )
+    {
+    	TRACE( OV8825_ERROR, "%s: pOV8825Ctx IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+    }
+
+	if(pTuningXmlVersion == NULL)
+	{
+		TRACE( OV8825_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+	}
+
+	*pTuningXmlVersion = OV8825_NEWEST_TUNING_XML;
+	return result;
+}
+
 
 /*****************************************************************************/
 /**
@@ -3902,7 +3963,8 @@ RESULT OV8825_IsiGetSensorIss
         pIsiSensor->pszName                             = OV8825_g_acName;
         pIsiSensor->pRegisterTable                      = OV8825_g_aRegDescription;
         pIsiSensor->pIsiSensorCaps                      = &OV8825_g_IsiSensorDefaultConfig;
-
+		pIsiSensor->pIsiGetSensorIsiVer					= OV8825_IsiGetSensorIsiVersion;//oyyf
+		pIsiSensor->pIsiGetSensorTuningXmlVersion		= OV8825_IsiGetSensorTuningXmlVersion;//oyyf
         pIsiSensor->pIsiCreateSensorIss                 = OV8825_IsiCreateSensorIss;
         pIsiSensor->pIsiReleaseSensorIss                = OV8825_IsiReleaseSensorIss;
         pIsiSensor->pIsiGetCapsIss                      = OV8825_IsiGetCapsIss;
@@ -4028,6 +4090,7 @@ static RESULT OV8825_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
  * See header file for detailed comment.
  *****************************************************************************/
 
+
 /*****************************************************************************/
 /**
  */
@@ -4040,6 +4103,8 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pszName */
         0,                      /**< IsiSensor_t.pRegisterTable */
         0,                      /**< IsiSensor_t.pIsiSensorCaps */
+        0,						/**< IsiSensor_t.pIsiGetSensorIsiVer_t>*/   //oyyf add
+        0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

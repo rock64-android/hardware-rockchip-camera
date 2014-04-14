@@ -60,7 +60,7 @@ public:
     /**
      * @brief Standard constructor for the CamDevice object.
      */
-    CamDevice( HalHandle_t hHal, AfpsResChangeCb_t *pcbResChange = NULL, void *ctxCbResChange = NULL,void* hParent=NULL );
+    CamDevice( HalHandle_t hHal, AfpsResChangeCb_t *pcbResChange = NULL, void *ctxCbResChange = NULL,void* hParent=NULL, int mipiLaneNum=1 );
     ~CamDevice();
 
 private:

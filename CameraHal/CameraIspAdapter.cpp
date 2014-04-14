@@ -76,8 +76,23 @@ int CameraIspAdapter::cameraCreate(int cameraId)
     LOG_FUNCTION_NAME
 	rk_cam_total_info *pCamInfo = gCamInfos[cameraId].pcam_total_info;
 	char* dev_filename = pCamInfo->mHardInfo.mSensorInfo.mCamsysDevPath;
-    m_camDevice = new CamDevice( HalHolder::handle(dev_filename), CameraIspAdapter_AfpsResChangeCb, (void*)this ,NULL );
-    //load sensor
+	int mipiLaneNum = 0;
+	int i =0;
+	unsigned int ispVersion;
+	
+	for(i=0; i<4; i++){
+		mipiLaneNum += (pCamInfo->mHardInfo.mSensorInfo.mPhy.info.mipi.data_en_bit>>i)&0x01;
+	}
+	
+    m_camDevice = new CamDevice( HalHolder::handle(dev_filename), CameraIspAdapter_AfpsResChangeCb, (void*)this ,NULL, mipiLaneNum);
+	if(m_camDevice){
+		m_camDevice->getIspVersion(&ispVersion);
+		LOGD("%s(%d)  camerahal.ispversion(%x) libisp.ispversion(%x)\n", __FUNCTION__,__LINE__,CONFIG_SILICONIMAGE_LIBISP_VERSION,ispVersion);
+		if(ispVersion != CONFIG_SILICONIMAGE_LIBISP_VERSION){
+			;
+		}
+	}
+	//load sensor
     loadSensor( cameraId);
     //open image
     //openImage("/system/lib/libisp_isi_drv_OV8825.so");
@@ -604,6 +619,9 @@ void CameraIspAdapter::loadSensor( const int cameraId)
         rk_cam_total_info *pCamInfo = gCamInfos[cameraId].pcam_total_info;
         if ( true == m_camDevice->openSensor( pCamInfo, mSensorItfCur ) )
         {
+        	bool res = m_camDevice->checkVersion(pCamInfo);
+			if(res!=true)
+			return;
 #if 1
             // connect
             uint32_t resMask;

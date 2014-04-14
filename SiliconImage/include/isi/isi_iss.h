@@ -105,6 +105,10 @@ typedef struct IsiRegisterFlags_s
 } IsiRegDescription_t;
 
 
+typedef RESULT (IsiGetSensorIsiVer_t)               ( IsiSensorHandle_t handle, unsigned int* pVersion );//oyyf 
+typedef RESULT (IsiGetSensorTuningXmlVersion_t)               ( IsiSensorHandle_t handle, char** pTuningXmlVersion);//oyyf 
+
+
 typedef RESULT (IsiCreateSensorIss_t)               ( IsiSensorInstanceConfig_t *pConfig );
 typedef RESULT (IsiReleaseSensorIss_t)              ( IsiSensorHandle_t handle );
 typedef RESULT (IsiGetCapsIss_t)                    ( IsiSensorHandle_t handle, IsiSensorCaps_t *pIsiSensorCaps );
@@ -172,6 +176,10 @@ struct IsiSensor_s
     const IsiRegDescription_t           *pRegisterTable;                /**< pointer to register table */
     const IsiSensorCaps_t               *pIsiSensorCaps;                /**< pointer to sensor capabilities */
 
+	//oyyf add
+	IsiGetSensorIsiVer_t				*pIsiGetSensorIsiVer;
+	IsiGetSensorTuningXmlVersion_t		*pIsiGetSensorTuningXmlVersion;
+	
     IsiCreateSensorIss_t                *pIsiCreateSensorIss;           /**< create a sensor handle */
     IsiReleaseSensorIss_t               *pIsiReleaseSensorIss;          /**< release a sensor handle */
     IsiGetCapsIss_t                     *pIsiGetCapsIss;                /**< get sensor capabilities */

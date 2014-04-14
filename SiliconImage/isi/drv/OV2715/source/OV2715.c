@@ -28,6 +28,8 @@
 
 #include "OV2715_priv.h"
 
+#define  OV2715_NEWEST_TUNING_XML "16-Nov-2011_AN_OV2715_pentax_v1.0"
+
 #define CC_OFFSET_SCALING  2.0f
 
 /******************************************************************************
@@ -272,6 +274,8 @@ static RESULT OV2715_IsiGetCalibClipParam( IsiSensorHandle_t   handle, IsiAwbCli
 static RESULT OV2715_IsiGetCalibGlobalFadeParam( IsiSensorHandle_t       handle, IsiAwbGlobalFadeParm_t  **ptIsiGlobalFadeParam);
 static RESULT OV2715_IsiGetCalibFadeParam( IsiSensorHandle_t   handle, IsiAwbFade2Parm_t   **ptIsiFadeParam);
 static RESULT OV2715_IsiGetIlluProfile( IsiSensorHandle_t   handle, const uint32_t CieProfile, IsiIlluProfile_t **ptIsiIlluProfile );
+static RESULT OV2715_IsiGetSensorIsiVersion(  IsiSensorHandle_t   handle, unsigned int* pVersion);
+static RESULT OV2715_IsiGetSensorTuningXmlVersion(  IsiSensorHandle_t handle, char** pTuningXmlVersion);
 
 
 
@@ -479,6 +483,7 @@ static RESULT OV2715_IsiGetCapsIss
         pIsiSensorCaps->SmiaMode        = ISI_SMIA_OFF;
         pIsiSensorCaps->MipiMode        = ISI_MIPI_OFF;
         pIsiSensorCaps->AfpsResolutions = ( ISI_RES_TV1080P24 | ISI_RES_TV1080P20 | ISI_RES_TV1080P15 );
+		pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_RAW;
     }
 
     TRACE( OV2715_INFO, "%s (exit)\n", __FUNCTION__);
@@ -520,7 +525,8 @@ const IsiSensorCaps_t OV2715_g_IsiSensorDefaultConfig =
     ISI_CIEPROF_F11,            // CieProfile, this is also used as start profile for AWB (if not altered by menu settings)
     ISI_SMIA_OFF,               // SmiaMode
     ISI_MIPI_OFF,               // MipiMode
-    ( ISI_AFPS_NOTSUPP | ISI_RES_TV1080P24 | ISI_RES_TV1080P20 | ISI_RES_TV1080P15 ) // AfpsResolutions
+    ( ISI_AFPS_NOTSUPP | ISI_RES_TV1080P24 | ISI_RES_TV1080P20 | ISI_RES_TV1080P15 ), // AfpsResolutions
+    ISI_SENSOR_OUTPUT_MODE_RAW,
 };
 
 
@@ -3865,6 +3871,61 @@ static RESULT OV2715_IsiActivateTestPattern
     return ( result );
 }
 
+static RESULT OV2715_IsiGetSensorIsiVersion
+(  IsiSensorHandle_t   handle,
+   unsigned int*     pVersion
+)
+{
+    OV2715_Context_t *pOV2715Ctx = (OV2715_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+
+    TRACE( OV2715_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pOV2715Ctx == NULL )
+    {
+    	TRACE( OV2715_ERROR, "%s: pOV2715Ctx IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+    }
+
+	if(pVersion == NULL)
+	{
+		TRACE( OV2715_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+	}
+
+	*pVersion = CONFIG_ISI_VERSION;
+	return result;
+}
+
+static RESULT OV2715_IsiGetSensorTuningXmlVersion
+(  IsiSensorHandle_t   handle,
+   char**     pTuningXmlVersion
+)
+{
+    OV2715_Context_t *pOV2715Ctx = (OV2715_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+
+    TRACE( OV2715_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pOV2715Ctx == NULL )
+    {
+    	TRACE( OV2715_ERROR, "%s: pOV2715Ctx IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+    }
+
+	if(pTuningXmlVersion == NULL)
+	{
+		TRACE( OV2715_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+	}
+
+	*pTuningXmlVersion = OV2715_NEWEST_TUNING_XML;
+	return result;
+}
 
 
 /*****************************************************************************/
@@ -3902,7 +3963,9 @@ RESULT OV2715_IsiGetSensorIss
         pIsiSensor->pszName                         = OV2715_g_acName;
         pIsiSensor->pRegisterTable                  = OV2715_g_aRegDescription;
         pIsiSensor->pIsiSensorCaps                  = &OV2715_g_IsiSensorDefaultConfig;
-
+		pIsiSensor->pIsiGetSensorIsiVer				= OV2715_IsiGetSensorIsiVersion; //oyyf
+		pIsiSensor->pIsiGetSensorTuningXmlVersion	= OV2715_IsiGetSensorTuningXmlVersion;//oyyf
+		
         pIsiSensor->pIsiCreateSensorIss             = OV2715_IsiCreateSensorIss;
         pIsiSensor->pIsiReleaseSensorIss            = OV2715_IsiReleaseSensorIss;
         pIsiSensor->pIsiGetCapsIss                  = OV2715_IsiGetCapsIss;
@@ -4020,6 +4083,8 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pszName */
         0,                      /**< IsiSensor_t.pRegisterTable */
         0,                      /**< IsiSensor_t.pIsiSensorCaps */
+        0,						/**< IsiSensor_t.pIsiGetSensorIsiVer_t>*/   //oyyf add
+        0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

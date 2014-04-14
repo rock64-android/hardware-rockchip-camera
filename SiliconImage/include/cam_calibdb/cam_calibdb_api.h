@@ -124,6 +124,12 @@ RESULT CamCalibDbSetMetaData
     CamCalibDbMetaData_t    *pParam
 );
 
+RESULT CamCalibDbGetMetaData
+(
+    CamCalibDbHandle_t      hCamCalibDb,
+    CamCalibDbMetaData_t    *pMeta
+);
+
 
 
 /*****************************************************************************/

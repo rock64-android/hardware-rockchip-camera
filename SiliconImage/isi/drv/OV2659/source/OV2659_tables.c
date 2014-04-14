@@ -79,7 +79,7 @@ const IsiRegDescription_t OV2659_g_aRegDescription[] =
 	{0x370a, 0x52,"",eReadWrite},
 	{0x4608, 0x00,"",eReadWrite},
 	{0x4609, 0x80,"",eReadWrite},
-	{0x4300, 0x32,"",eReadWrite},
+	{0x4300, 0x32,"",eReadWrite}, //0x32:uyvy,0x30,yuyv
 	{0x5086, 0x02,"",eReadWrite},
 	{0x5000, 0xfb,"",eReadWrite},
 	{0x5001, 0x1f,"",eReadWrite},
@@ -318,7 +318,7 @@ const IsiRegDescription_t OV2659_g_1600x1200[] =
 
 	{0x3a0a, 0x00,"",eReadWrite}, 
 	{0x3a0b, 0x3e,"",eReadWrite},//7b 				
-	{0x3a0d, 0x13,"",eReadWrite},//0a 		
+	{0x3a0d, 0x13,"",eReadWrite},//0a 	
 
 	{0x4003, 0x88,"",eReadWrite},
     {0x0000 ,0x00,"eTableEnd",eTableEnd}

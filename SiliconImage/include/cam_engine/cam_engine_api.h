@@ -120,6 +120,7 @@ typedef struct CamEngineInstanceConfig_s
 typedef struct CamEngineConfig_s
 {
     CamEngineModeType_t     mode;
+	int mipiLaneNum;
     CamEnginePathConfig_t   pathConfigMaster[CAM_ENGINE_PATH_MAX];
     CamEnginePathConfig_t   pathConfigSlave[CAM_ENGINE_PATH_MAX];
 

@@ -109,7 +109,8 @@ extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
 namespace android {
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x1f) 
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x20)
+//v0.4.20  camerahal support version check
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

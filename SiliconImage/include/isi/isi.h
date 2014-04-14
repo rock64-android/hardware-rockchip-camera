@@ -32,6 +32,10 @@
 #include <hal/hal_api.h>
 
 #include <isi/isi_common.h>
+#include <linux/version.h>
+
+
+#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 1, 0x00) 
 
 
 #ifdef __cplusplus
@@ -92,6 +96,7 @@ typedef struct IsiSensorCaps_s
     uint32_t SmiaMode;
     uint32_t MipiMode;
     uint32_t AfpsResolutions;           /**< resolutions supported by Afps */
+	uint32_t SensorOutputMode;
 } IsiSensorCaps_t;
 
 
@@ -172,7 +177,32 @@ typedef struct IsiAfpsInfo_s
     float       CurrMaxIntTime;                     /**< maximum integration time of current resolution */
 } IsiAfpsInfo_t;
 
+/*****************************************************************************/
+/**
+ *          IsiGetSensorIsiVer
+ *
+ * @brief   This function creates a new sensor instance.
+ *
+ * @param	handle		sensor instance handle
+ * @param	version		sensor match isi version
+ *
+ * @return  Return the result of the function call.
+ * @retval  RET_SUCCESS
+ * @retval  RET_NULL_POINTER
+ * @retval  RET_OUTOFMEM
+ *
+ *****************************************************************************/
+RESULT IsiGetSensorIsiVer
+(
+    IsiSensorHandle_t   handle,
+    unsigned int* pVersion
+);
 
+RESULT IsiGetSensorTuningXmlVersion
+(
+    IsiSensorHandle_t   handle,
+    char** pTuningXmlVersion
+);
 
 /*****************************************************************************/
 /**

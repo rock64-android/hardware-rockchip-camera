@@ -602,7 +602,10 @@ int camera_get_number_of_cameras(void)
     int hwrotation = 0;
 	camera_board_profiles * profiles = NULL;
     size_t nCamDev = 0;
-    
+
+	struct timeval t0, t1;
+    ::gettimeofday(&t0, NULL);
+	
     if (gCamerasNumber > 0)
         goto camera_get_number_of_cameras_end;
     
@@ -633,16 +636,18 @@ int camera_get_number_of_cameras(void)
         camInfoTmp[cam_cnt&0x01].facing_info.orientation = pSensorInfo->mOrientation;
         cam_cnt++;
 
-        #if 0
+		unsigned int CamsysDrvVersion = profiles->mDevideConnectVector[i]->mCamsysVersion.drv_ver;
+        #if 1
         memset(version,0x00,sizeof(version));
-        sprintf(version,"%d.%d.%d",((capability.version&0xff0000)>>16),
-            ((capability.version&0xff00)>>8),capability.version&0xff);
+        sprintf(version,"%d.%d.%d",((CamsysDrvVersion&0xff0000)>>16),
+            ((CamsysDrvVersion&0xff00)>>8),CamsysDrvVersion&0xff);
         property_set(CAMERADRIVER_VERSION_PROPERTY_KEY,version);
         LOGD("%s(%d): %s:%s",__FUNCTION__,__LINE__,CAMERADRIVER_VERSION_PROPERTY_KEY,version);
         #endif
     }
 
-   if(cam_cnt<2){
+	#if 0
+   	if(cam_cnt<2){
         for (i=cam_cnt; i<10; i++) {
             cam_path[0] = 0x00;
             strcat(cam_path, CAMERA_DEVICE_NAME);
@@ -699,8 +704,9 @@ int camera_get_number_of_cameras(void)
             }
             continue;    
         }
-   }
-    
+   	}
+   	#endif
+	
     gCamerasNumber = cam_cnt;
 
 #if CONFIG_AUTO_DETECT_FRAMERATE
@@ -752,6 +758,9 @@ int camera_get_number_of_cameras(void)
     
 camera_get_number_of_cameras_end:
     LOGD("%s(%d): Current board have %d cameras attached.",__FUNCTION__, __LINE__, gCamerasNumber);
+
+	::gettimeofday(&t1, NULL);
+	LOGD("meida_profiles_xml_control time (%ld)us\n", (t1.tv_sec*1000000 + t1.tv_usec) - (t0.tv_sec*1000000 + t0.tv_usec));
     return gCamerasNumber;
 }
 

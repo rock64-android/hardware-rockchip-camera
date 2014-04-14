@@ -50,6 +50,10 @@
 #include <vector>
 
 #include <CameraHal_board_xml_parse.h>
+#include <linux/version.h>
+
+
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 1, 0x00) 
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);
@@ -64,7 +68,7 @@ public:
     /**
      * @brief Standard constructor for the CamEngineItf object.
      */
-    CamEngineItf( HalHandle_t hHal, AfpsResChangeCb_t *pcbResChange = NULL, void *ctxCbResChange = NULL );
+    CamEngineItf( HalHandle_t hHal, AfpsResChangeCb_t *pcbResChange = NULL, void *ctxCbResChange = NULL, int mipiLaneNum=1);
     ~CamEngineItf();
 
 public:
@@ -109,7 +113,16 @@ public:
     uint32_t    camerIcMasterId() const;
     uint32_t    camerIcSlaveId() const;
     bool        isBitstream3D() const;
-
+	//oyyf add
+	void getIspVersion(unsigned int* version);
+	//oyyf add
+	bool getSensorIsiVersion(unsigned int* pVersion);
+	//oyyf add
+	bool getSensorTuningXmlVersion(char** pTuningXmlVersion);
+	//oyyf adds
+	bool getLibispIsiVersion(unsigned int* pVersion) ;
+	//oyyf add
+	bool checkVersion(rk_cam_total_info *pCamInfo);
     //zyc add
     bool getPreferedSensorRes(int width_in ,int height_in ,int *width_out,int *height_out,uint32_t* mask);
     bool previewSetup_ex(CamEngineWindow_t dcWin,int usr_w,int usr_h,CamerIcMiDataMode_t mode,CamerIcMiDataLayout_t layout,bool_t dcEnable);

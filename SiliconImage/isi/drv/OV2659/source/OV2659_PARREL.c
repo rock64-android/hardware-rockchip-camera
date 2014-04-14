@@ -113,6 +113,8 @@ static RESULT OV2659_IsiMdiFocusGet( IsiSensorHandle_t handle, uint32_t *pAbsSte
 static RESULT OV2659_IsiMdiFocusCalibrate( IsiSensorHandle_t handle );
 
 static RESULT OV2659_IsiGetSensorMipiInfoIss( IsiSensorHandle_t handle, IsiSensorMipiInfo *ptIsiSensorMipiInfo);
+static RESULT OV2659_IsiGetSensorIsiVersion(  IsiSensorHandle_t   handle, unsigned int* pVersion);
+
 
 
 /*****************************************************************************/
@@ -298,6 +300,7 @@ static RESULT OV2659_IsiGetCapsIss
         pIsiSensorCaps->SmiaMode        = ISI_SMIA_OFF;
         pIsiSensorCaps->MipiMode        = ISI_MIPI_OFF;
         pIsiSensorCaps->AfpsResolutions = ( ISI_AFPS_NOTSUPP );
+		pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_YUV;
     }
 
     TRACE( OV2659_INFO, "%s (exit)\n", __FUNCTION__);
@@ -340,6 +343,7 @@ const IsiSensorCaps_t OV2659_g_IsiSensorDefaultConfig =
     ISI_SMIA_OFF,               // SmiaMode
     ISI_MIPI_OFF,       // MipiMode
     ISI_AFPS_NOTSUPP,           // AfpsResolutions
+    ISI_SENSOR_OUTPUT_MODE_YUV,
 };
 
 
@@ -2683,6 +2687,34 @@ static RESULT OV2659_IsiGetSensorMipiInfoIss
     return ( result );
 }
 
+static RESULT OV2659_IsiGetSensorIsiVersion
+(  IsiSensorHandle_t   handle,
+   unsigned int*     pVersion
+)
+{
+    OV2659_Context_t *pOV2659Ctx = (OV2659_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+
+    TRACE( OV2659_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pOV2659Ctx == NULL )
+    {
+    	TRACE( OV2659_ERROR, "%s: pOV2659Ctx IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+    }
+
+	if(pVersion == NULL)
+	{
+		TRACE( OV2659_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+	}
+
+	*pVersion = CONFIG_ISI_VERSION;
+	return result;
+}
+
 
 /*****************************************************************************/
 /**
@@ -2711,6 +2743,7 @@ RESULT OV2659_IsiGetSensorIss
         pIsiSensor->pszName                             = OV2659_g_acName;
         pIsiSensor->pRegisterTable                      = OV2659_g_aRegDescription;
         pIsiSensor->pIsiSensorCaps                      = &OV2659_g_IsiSensorDefaultConfig;
+		pIsiSensor->pIsiGetSensorIsiVer					= OV2659_IsiGetSensorIsiVersion;
 
         pIsiSensor->pIsiCreateSensorIss                 = OV2659_IsiCreateSensorIss;
         pIsiSensor->pIsiReleaseSensorIss                = OV2659_IsiReleaseSensorIss;
@@ -2849,6 +2882,8 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pszName */
         0,                      /**< IsiSensor_t.pRegisterTable */
         0,                      /**< IsiSensor_t.pIsiSensorCaps */
+        0,						/**< IsiSensor_t.pIsiGetSensorIsiVer_t>*/   //oyyf add
+        0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */
