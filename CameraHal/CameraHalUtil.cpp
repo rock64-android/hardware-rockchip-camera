@@ -1105,50 +1105,36 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
 					  * author :zyh
 					  * neon code for YUYV to YUV420
 					  */
+#ifdef HAVE_ARM_NEON
 					 for(i=0;i<src_h;i++) {
-					 int n = src_w;
-					 if(i%2 == 0) {
-							asm volatile (
-						        "   pld [%[src], %[src_stride], lsl #2]                         \n\t"
-						        "   cmp %[n], #16                                               \n\t"
-						        "   blt 5f                                                      \n\t"
-						        "0: @ 16 pixel swap                                             \n\t"
-						        "   vld2.8  {q0,q1} , [%[src]]!  @ q0 = y q1 = uv               \n\t"
-						        "   vst1.16 {q0},[%[dst_y]]!     @ now q0  -> dst               \n\t"
-						        "   vst1.16 {q1},[%[dst_uv]]!    @ now q1  -> dst   	    	\n\t"
-						        "   sub %[n], %[n], #16                                         \n\t"
-						        "   cmp %[n], #16                                               \n\t"
-						        "   bge 0b                                                      \n\t"
-						        "5: @ end                                                       \n\t"
-						        : [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n),[i] "+r" (i)
-						        : [src_stride] "r" (src_w)
-						        : "cc", "memory", "q0", "q1", "q2"
-						        );
-
-					}else {
-							asm volatile (
-						        "   pld [%[src], %[src_stride], lsl #2]                         \n\t"
-						        "   cmp %[n], #16                                               \n\t"
-						        "   blt 5f                                                      \n\t"
-						        "0: @ 16 pixel swap                                             \n\t"
-						        "   vld2.8  {q0,q1} , [%[src]]!   @ q0 = y q1 = uv              \n\t"
-						        "   vst1.16 {q0},[%[dst_y]]!      @ now q0 -> dst               \n\t"
-						        "   sub %[n], %[n], #16                                         \n\t"
-						        "   cmp %[n], #16                                               \n\t"
-						        "   bge 0b                                                      \n\t"
-						        "5: @ end                                                       \n\t"
-						        : [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n)
-						        : [src_stride] "r" (src_w)
-						        : "cc", "memory", "q0", "q1", "q2"
-						        );
-
-						}
-
+						 int n = src_w;
+						 char tmp = i%2;//get uv only when in even row
+						 asm volatile (
+							"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+							"   cmp %[n], #16                                               \n\t"
+							"   blt 5f                                                      \n\t"
+							"0: @ 16 pixel swap                                             \n\t"
+							"   vld2.8  {q0,q1} , [%[src]]!  @ q0 = y q1 = uv               \n\t"
+							"   vst1.16 {q0},[%[dst_y]]!     @ now q0  -> dst               \n\t"
+							"   cmp %[tmp], #1                                              \n\t"
+							"   bge 1f                                                      \n\t"
+							"   vst1.16 {q1},[%[dst_uv]]!    @ now q1  -> dst   	    	\n\t"
+							"1: @ don't need get uv in odd row                              \n\t"
+							"   sub %[n], %[n], #16                                         \n\t"
+							"   cmp %[n], #16                                               \n\t"
+							"   bge 0b                                                      \n\t"
+							"5: @ end                                                       \n\t"
+							: [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n),[tmp] "+r" (tmp)
+							: [src_stride] "r" (src_w)
+							: "cc", "memory", "q0", "q1", "q2"
+							);
 					 }
+					 //LOGE("---------------neon code YUY to YUV420-----------------------------");
 					 /*
 					  * C code YUYV to YUV420
 					  */
-					 /*for(i=0;i<src_h; i++) {
+#else
+					 for(i=0;i<src_h; i++) {
 						 for (j=0; j<(src_w>>2); j++) {
 							 if(i%2 == 0){
 								*dstint_uv++ = (*(srcint+1)&0xff000000)|((*(srcint+1)&0x0000ff00)<<8)
@@ -1159,7 +1145,8 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
 							 srcint += 2;
 						 }
 					 }
-					 LOGE("---------------c code YUY to YUV420-----------------------------");*/
+					 //LOGE("---------------c code YUY to YUV420-----------------------------");
+#endif
 					 ret = 0;
 				 } else {
 					 if (v4l2_fmt_dst) {	

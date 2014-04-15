@@ -420,150 +420,111 @@ extern "C" void arm_yuyv_to_nv12(int src_w, int src_h,char *srcbuf, char *dstbuf
 	 * author :zyh
 	 * neon code for YUYV to NV12
 	 */
+#if HAVE_ARM_NEON
 	for(i=0;i<src_h;i++) {
-		int n = src_w;
-		if(i%2 == 0) {
-			asm volatile (
-					"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
-					"   cmp %[n], #16                                               \n\t"
-					"   blt 5f                                                      \n\t"
-					"0: @ 16 pixel swap                                             \n\t"
-					"   vld2.8  {q0,q1} , [%[src]]!  @ q0 = y q1 = uv               \n\t"
-					"   vst1.16 {q0},[%[dst_y]]!     @ now q0  -> dst               \n\t"
-					"   vst1.16 {q1},[%[dst_uv]]!    @ now q1  -> dst   	    	\n\t"
-					"   sub %[n], %[n], #16                                         \n\t"
-					"   cmp %[n], #16                                               \n\t"
-					"   bge 0b                                                      \n\t"
-					"5: @ end                                                       \n\t"
-					: [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n),[i] "+r" (i)
-					: [src_stride] "r" (src_w)
-					: "cc", "memory", "q0", "q1", "q2"
-					);
-		}else {
-			asm volatile (
-					"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
-					"   cmp %[n], #16                                               \n\t"
-					"   blt 5f                                                      \n\t"
-					"0: @ 16 pixel swap                                             \n\t"
-					"   vld2.8  {q0,q1} , [%[src]]!   @ q0 = y q1 = uv              \n\t"
-					"   vst1.16 {q0},[%[dst_y]]!      @ now q0 -> dst               \n\t"
-					"   sub %[n], %[n], #16                                         \n\t"
-					"   cmp %[n], #16                                               \n\t"
-					"   bge 0b                                                      \n\t"
-					"5: @ end                                                       \n\t"
-					: [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n)
-					: [src_stride] "r" (src_w)
-					: "cc", "memory", "q0", "q1", "q2"
-					);
-		}
-	}
-    /*y_size = src_w*src_h;
-    dstint_y = (int*)dstbuf;
-    srcint = (int*)srcbuf;
-    for(i=0;i<(y_size>>2);i++) {
-        *dstint_y++ = ((*(srcint+1)&0x00ff0000)<<8)|((*(srcint+1)&0x000000ff)<<16)
-                    |((*srcint&0x00ff0000)>>8)|(*srcint&0x000000ff);
-
-        srcint += 2;
-    }
-    dstint_uv =  (int*)(dstbuf + y_size);
-    srcint = (int*)srcbuf;
-    for(i=0;i<src_h/2; i++) {
-        for (j=0; j<(src_w>>2); j++) {
-			#if 1
-            *dstint_uv++ = (*(srcint+1)&0xff000000)|((*(srcint+1)&0x0000ff00)<<8)
-                        |((*srcint&0xff000000)>>16)|((*srcint&0x0000ff00)>>8);
-			#else
-			*dstint_uv++ = (((*(srcint+1)&0xff000000)>>8)|((*(srcint+1)&0x0000ff00)<<16)
-                        |((*srcint&0xff000000)>>24)|(*srcint&0x0000ff00));
-			#endif
-            srcint += 2;
-        }
-        srcint += (src_w>>1);
-    }*/
-
+         int n = src_w;
+		 char tmp = i%2;//get uv only when in even row
+		 asm volatile (
+			"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+			"   cmp %[n], #16                                               \n\t"
+			"   blt 5f                                                      \n\t"
+			"0: @ 16 pixel swap                                             \n\t"
+			"   vld2.8  {q0,q1} , [%[src]]!  @ q0 = y q1 = uv               \n\t"
+			"   vst1.16 {q0},[%[dst_y]]!     @ now q0  -> dst               \n\t"
+			"   cmp %[tmp], #1                                              \n\t"
+			"   bge 1f                                                      \n\t"
+			"   vst1.16 {q1},[%[dst_uv]]!    @ now q1  -> dst   	    	\n\t"
+			"1: @ don't need get uv in odd row                              \n\t"
+			"   sub %[n], %[n], #16                                         \n\t"
+			"   cmp %[n], #16                                               \n\t"
+			"   bge 0b                                                      \n\t"
+			"5: @ end                                                       \n\t"
+			: [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n),[tmp] "+r" (tmp)
+			: [src_stride] "r" (src_w)
+			: "cc", "memory", "q0", "q1", "q2"
+			);
+	 }
+	 //LOGE("---------------neon code arm_yuyv_to_nv12-----------------------------");
+	 /*
+	  * C code YUYV to YUV420
+	  */
+#else
+    for(i=0;i<src_h; i++) {
+		for (j=0; j<(src_w>>2); j++) {
+			if(i%2 == 0){
+			    *dstint_uv++ = (*(srcint+1)&0xff000000)|((*(srcint+1)&0x0000ff00)<<8)
+				        |((*srcint&0xff000000)>>16)|((*srcint&0x0000ff00)>>8);
+			 }
+			 *dstint_y++ = ((*(srcint+1)&0x00ff0000)<<8)|((*(srcint+1)&0x000000ff)<<16)
+			            |((*srcint&0x00ff0000)>>8)|(*srcint&0x000000ff);
+		     srcint += 2;
+		 }
+	 }
+	 //LOGE("---------------c code arm_yuyv_to_nv12-----------------------------");
+#endif
 }
 
 extern "C" void arm_yuyv_to_yv12(int src_w, int src_h,char *srcbuf, char *dstbuf){
 
     char *srcbuf_begin;
-    int *dstint_y, *dstint_uv, *srcint;
-    char* dstsint_u, *dstsint_v;
+    int *dst_y, *dst_uv, *src;
+    short int *dst_u, *dst_v;
     int i = 0,j = 0;
     int y_size = 0;
-	y_size = src_w*src_h;
-	dstint_y = (int*)dstbuf;
-	srcint = (int*)srcbuf;
-	dstsint_u = (char*)(dstbuf + y_size);
-	dstsint_v = (char*)((char*)dstsint_u + (y_size >> 2));
+    y_size = src_w*src_h;
+    dst_y  = (int*)dstbuf;
+    src = (int*)srcbuf;
+    dst_u  = (short int*)(dstbuf + y_size);
+    dst_v  = (short int*)((char*)dst_u + (y_size >> 2));
 	//LOGE("-----------%s----------------zyh",__FUNCTION__);
 	/*
 	 * author :zyh
 	 * neon code for YUYV to YV12
 	 */
+#if HAVE_ARM_NEON
 	for(i=0;i<src_h;i++) {
-		int n = src_w;
-		if(i%2 == 0) {
-			asm volatile (
-					"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
-					"   cmp %[n], #16                                               \n\t"
-					"   blt 5f                                                      \n\t"
-					"0: @ 16 pixel swap                                             \n\t"
-					"   vld2.8  {q0,q1} , [%[src]]!  @ q0 = y q1 = uv               \n\t"
-					"   vuzp.8 q1, q2                @ d1 = u d5 = v                \n\t"
-					"   vst1.16 {q0},[%[dst_y]]!     @ now q0   -> dst              \n\t"
-					"   vst1.8  {d4},[%[dst_u]]!     @ now d0  -> dst   	    	\n\t"
-					"   vst1.8  {d2},[%[dst_v]]!     @ now d1  -> dst   	    	\n\t"
-					"   sub %[n], %[n], #16                                         \n\t"
-					"   cmp %[n], #16                                               \n\t"
-					"   bge 0b                                                      \n\t"
-					"5: @ end                                                       \n\t"
-					: [dst_y] "+r" (dstint_y), [dst_u] "+r" (dstsint_u),[dst_v] "+r" (dstsint_v),[src] "+r" (srcint), [n] "+r" (n)
-					: [src_stride] "r" (src_w)
-					: "cc", "memory", "q0", "q1", "q2"
-					);
-
-		}else {
-			asm volatile (
-					"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
-					"   cmp %[n], #16                                               \n\t"
-					"   blt 5f                                                      \n\t"
-					"0: @ 16 pixel swap                                             \n\t"
-					"   vld2.8  {q0,q1} , [%[src]]!   @ q0 = y q1 = uv              \n\t"
-					"   vst1.16 {q0},[%[dst_y]]!      @ now q0 -> dst               \n\t"
-					"   sub %[n], %[n], #16                                         \n\t"
-					"   cmp %[n], #16                                               \n\t"
-					"   bge 0b                                                      \n\t"
-					"5: @ end                                                       \n\t"
-					: [dst_y] "+r" (dstint_y), [dst_uv] "+r" (dstint_uv),[src] "+r" (srcint), [n] "+r" (n)
-					: [src_stride] "r" (src_w)
-					: "cc", "memory", "q0", "q1", "q2"
-					);
-		}
+        int n = src_w;
+        char tmp = i%2;//get uv only when in even row
+		asm volatile (
+				"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+				"   cmp %[n], #16                                               \n\t"
+				"   blt 5f                                                      \n\t"
+				"0: @ 16 pixel swap                                             \n\t"
+				"   vld2.8  {q0,q1} , [%[src]]!  @ q0 = y q1 = uv               \n\t"
+				"   vuzp.8 q1, q2                @ d1 = u d5 = v                \n\t"
+				"   vst1.16 {q0},[%[dst_y]]!     @ now q0   -> dst              \n\t"
+				"   cmp %[tmp], #1                                              \n\t"
+				"   bge 1f                                                      \n\t"
+				"   vst1.8  {d4},[%[dst_u]]!     @ now d0  -> dst   	    	\n\t"
+				"   vst1.8  {d2},[%[dst_v]]!     @ now d1  -> dst   	    	\n\t"
+				"1: @ don't need get uv in odd row                              \n\t"
+				"   sub %[n], %[n], #16                                         \n\t"
+				"   cmp %[n], #16                                               \n\t"
+				"   bge 0b                                                      \n\t"
+				"5: @ end                                                       \n\t"
+				: [dst_y] "+r" (dst_y), [dst_u] "+r" (dst_u),[dst_v] "+r" (dst_v),[src] "+r" (src), [n] "+r" (n),[tmp] "+r" (tmp)
+				: [src_stride] "r" (src_w)
+				: "cc", "memory", "q0", "q1", "q2"
+				);
 	}
-    /*y_size = src_w*src_h;
-    dstint_y = (int*)dstbuf;
-    srcint = (int*)srcbuf;
-    for(i=0;i<(y_size>>2);i++) {
-        *dstint_y++ = ((*(srcint+1)&0x00ff0000)<<8)|((*(srcint+1)&0x000000ff)<<16)
-                    |((*srcint&0x00ff0000)>>8)|(*srcint&0x000000ff);
-
-        srcint += 2;
-    }
-    dstsint_u = (short int*)(dstbuf + y_size);
-    dstsint_v = (short int*)((char*)dstsint_u + (y_size >> 2));
-    srcint = (int*)srcbuf;
-    for(i=0;i<src_h/2; i++) {
+    //LOGE("---------------neon code arm_yuyv_to_yv12-----------------------------");
+	/*
+	 * C code YUYV to YUV420
+	 */
+#else
+	for(i=0;i<src_h; i++) {
         for (j=0; j<(src_w>>2); j++) {
-
-            *dstsint_v++ = (((*srcint&0x0000ff00)>>8) | ((*(srcint+1)&0x0000ff00)));
-            *dstsint_u++ = (((*srcint&0xff000000)>>24) | ((*(srcint+1)&0xff000000)>>16));
-            
-            srcint += 2;
+             if(i%2 == 0){
+                 *dst_v++ = (((*src&0x0000ff00)>>8) | ((*(src+1)&0x0000ff00)));
+                 *dst_u++ = (((*src&0xff000000)>>24) | ((*(src+1)&0xff000000)>>16));
+             }
+             *dst_y++ = ((*(src+1)&0x00ff0000)<<8)|((*(src+1)&0x000000ff)<<16)
+                                    |((*src&0x00ff0000)>>8)|(*src&0x000000ff);
+             src += 2;
         }
-        srcint += (src_w>>1);
-    }*/
-
+	 }
+    //LOGE("---------------c code arm_yuyv_to_yv12-----------------------------");
+#endif
 }
 //for soc camera test
 extern "C" void arm_yuyv_to_nv12_soc_ex(int src_w, int src_h,char *srcbuf, char *dstbuf){
