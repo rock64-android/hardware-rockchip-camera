@@ -77,10 +77,10 @@ extern "C" int cameraPixFmt2HalPixFmt(const char *fmt)
     if (strcmp(fmt,android::CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
         hal_pixel_format = HAL_PIXEL_FORMAT_RGB_565;        
     } else if (strcmp(fmt,android::CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
-        hal_pixel_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
+        hal_pixel_format = HAL_PIXEL_FORMAT_YCrCb_NV12;
     }else if(strcmp(fmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0){
         hal_pixel_format = HAL_PIXEL_FORMAT_YV12;
-    } else if (strcmp(fmt,CAMERA_DISPLAY_FORMAT_NV12) == 0) {
+    }else if (strcmp(fmt,CAMERA_DISPLAY_FORMAT_NV12) == 0) {
         hal_pixel_format = HAL_PIXEL_FORMAT_YCrCb_NV12;
     } else if (strcmp(fmt,android::CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
         hal_pixel_format = HAL_PIXEL_FORMAT_YCbCr_422_SP;
@@ -395,6 +395,13 @@ extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst,
 		LOGE("%s:%d,not suppport this format ",__FUNCTION__,__LINE__);
 		return -1;
 	}
+
+    //just copy ?
+    if((v4l2_fmt_src == v4l2_fmt_dst) && (mirror == false)
+        &&(src_w == dst_w) && (src_h == dst_h)){
+        memcpy(dstbuf,srcbuf,src_w*src_h*3/2);
+        return 0;
+    }
 
 	if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV21)){
 		nv21DstFmt = true;

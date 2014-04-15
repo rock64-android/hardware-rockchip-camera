@@ -2,7 +2,7 @@
 namespace android{
 #define LOG_TAG "CameraHal_Display"
 
-static volatile int32_t gLogLevel = 1;
+static volatile int32_t gLogLevel = 0;
 
 #ifdef ALOGD_IF
 #define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
@@ -15,12 +15,12 @@ static volatile int32_t gLogLevel = 1;
 #define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
 #define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
 
-#define DISPLAY_FORMAT CameraParameters::PIXEL_FORMAT_YUV420P
+#define DISPLAY_FORMAT CAMERA_DISPLAY_FORMAT_YUV420SP/*CAMERA_DISPLAY_FORMAT_YUV420P*/
+
 DisplayAdapter::DisplayAdapter()
               :displayThreadCommandQ("displayCmdQ")
 {
     LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
-//	strcpy(mDisplayFormat,CAMERA_DISPLAY_FORMAT_YUV420SP/*CAMERA_DISPLAY_FORMAT_YUV420SP*/);
     strcpy(mDisplayFormat,DISPLAY_FORMAT);
     mFrameProvider =  NULL;
     mDisplayRuning = -1;
@@ -35,7 +35,7 @@ DisplayAdapter::DisplayAdapter()
 
     mDisplayThread = new DisplayThread(this);
     mDisplayThread->run("DisplayThread",ANDROID_PRIORITY_DISPLAY);
-    LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
+    LOGD("%s(%d):OUT, display format is ",__FUNCTION__,__LINE__,mDisplayFormat);
 }
 DisplayAdapter::~DisplayAdapter()
 {
@@ -707,9 +707,15 @@ display_receive_cmd:
                     if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420P)==0))
                     {
 
-								arm_yuyv_to_yv12(frame->frame_width, frame->frame_height,
-                                 (char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr);
-						}else if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_RGB565)==0))
+						arm_yuyv_to_yv12(frame->frame_width, frame->frame_height,
+                         (char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr);
+					}else if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0))
+                    {
+						arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,
+                         (char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr);
+                        LOGD("display got a frame");
+                    }
+                    else if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_RGB565)==0))
                     {
                        arm_nv12torgb565(frame->frame_width, frame->frame_height,
                 						(char*)(frame->vir_addr), (short int*)mDisplayBufInfo[queue_display_index].vir_addr,
