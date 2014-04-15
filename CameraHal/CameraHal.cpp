@@ -30,7 +30,7 @@ extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 namespace android {
 // Logging support -- this is for debugging only
 // Use "adb shell dumpsys media.camera " to change it.
-static volatile int32_t gLogLevel = 0;
+static volatile int32_t gLogLevel = 1;
 
 #ifdef ALOGD_IF
 #define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);

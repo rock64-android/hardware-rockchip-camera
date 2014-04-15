@@ -150,7 +150,23 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const char **atts
         ALOGD("%s(%d): SensorPhy(%s) \n", __FUNCTION__, __LINE__, atts[1]);
         if(strcmp(atts[1], "CamSys_Phy_Mipi")==0){
             pSensorInfo->mPhy.type = CamSys_Phy_Mipi;
-            pSensorInfo->mPhy.info.mipi.data_en_bit = atoi(atts[3]);
+			int laneNum = atoi(atts[3]);
+			if(laneNum<=1 || laneNum>4){
+			
+				ALOGE("%s(%d): SensorPhy laneNum wrong (%s) range(1,4)\n", __FUNCTION__, __LINE__, atts[3]);
+				if(laneNum<1)
+					laneNum=1;
+				if(laneNum>4)
+					laneNum=4;
+			}
+			int data_en_bit = 0;
+			int i=0;
+			while(laneNum){
+				data_en_bit |= (1<<i) ;
+				laneNum--;
+				i++;
+			}
+            pSensorInfo->mPhy.info.mipi.data_en_bit = data_en_bit;
         }else if(strcmp(atts[1], "CamSys_Phy_Cif")==0){
             pSensorInfo->mPhy.type = CamSys_Phy_Cif;
             pSensorInfo->mPhy.info.cif.cif_num = atoi(atts[5]);

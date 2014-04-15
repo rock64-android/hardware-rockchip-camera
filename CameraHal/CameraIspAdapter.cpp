@@ -16,6 +16,9 @@ static volatile int32_t gLogLevel = 2;
 #define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
 #define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
 
+#define ISP_OUT_YUV420SP   0
+#define ISP_OUT_YUV422_INTERLEAVED  1
+#define ISP_OUT_FORMAT  ISP_OUT_YUV422_INTERLEAVED
 
 /******************************************************************************
  * MainWindow_AfpsResChangeCb
@@ -136,9 +139,18 @@ void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int previ
         dcWin.hOffset = 0;
         dcWin.vOffset = 0;
     }
+#if (ISP_OUT_FORMAT == ISP_OUT_YUV422_INTERLEAVED)
     m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
                                 CAMERIC_MI_DATAMODE_YUV422,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)true);
+    LOGD("%s:isp out put format is YUV422 interleaved.",__func__);
+#elif(ISP_OUT_FORMAT == ISP_OUT_YUV420SP)
 
+    m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
+                                CAMERIC_MI_DATAMODE_YUV420,CAMERIC_MI_DATASTORAGE_SEMIPLANAR,(bool_t)true);
+    LOGD("%s:isp out put format is YUV420SP.",__func__);
+#else
+    LOGE("%s:isp don't support this format %s now",__func__,ISP_OUT_FORMAT);
+#endif
 
 }
 status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture)
@@ -291,7 +303,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 		params.setPictureSize(2592,1944);
 	  }	else if((pCaps.Resolution & ISI_RES_1600_1200)|| (pCaps.Resolution & ISI_RES_SVGA30))	
 	  {		
-	  	parameterString.append("800x600");
+	  	parameterString.append("800x600");    	
 		params.setPreviewSize(800, 600);	
 
 		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1600x1200,1024x768,640x480,352x288,320x240,176x144");
@@ -794,15 +806,14 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     int fmt = 0;
 	int tem_val;
 	
-
-	//LOG_FUNCTION_NAME
 	
+	//LOG_FUNCTION_NAME
 	
 	Mutex::Autolock lock(mLock);
     // get & check buffer meta data
     PicBufMetaData_t *pPicBufMetaData = (PicBufMetaData_t *)(pMediaBuffer->pMetaData);
     HalHandle_t  tmpHandle = m_camDevice->getHalHandle();
-    
+    //
     if(pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr420 || pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr422){
             if(pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr420){
                 fmt = V4L2_PIX_FMT_NV12;
@@ -829,8 +840,8 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 	sprintf(filename, "/data/yuv420_%dx%d.bin",width,height);
                 	fp = fopen(filename, "wb+");
                 	if (fp > 0) {
-                		fwrite((char*)y_addr_vir, 1,width*height,fp);
-                		fwrite((char*)uv_addr_vir, 1,width*height/2,fp); //yuv422
+                		fwrite((char*)y_addr_vir, 1,width*height*3/2,fp);
+                //		fwrite((char*)uv_addr_vir, 1,width*height/2,fp); //yuv422
 
                 		fclose(fp);
                 		LOGD("Write success yuv data to %s",filename);
