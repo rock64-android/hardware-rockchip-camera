@@ -18,7 +18,7 @@ static volatile int32_t gLogLevel = 2;
 
 #define ISP_OUT_YUV420SP   0
 #define ISP_OUT_YUV422_INTERLEAVED  1
-#define ISP_OUT_FORMAT  ISP_OUT_YUV422_INTERLEAVED
+#define ISP_OUT_FORMAT  ISP_OUT_YUV420SP //ISP_OUT_YUV422_INTERLEAVED
 
 /******************************************************************************
  * MainWindow_AfpsResChangeCb

@@ -713,7 +713,7 @@ display_receive_cmd:
                     {
 						arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,
                          (char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr);
-                        LOGD("display got a frame");
+                        //LOGD("display got a frame");
                     }
                     else if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_RGB565)==0))
                     {
