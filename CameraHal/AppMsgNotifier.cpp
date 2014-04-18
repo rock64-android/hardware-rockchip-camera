@@ -752,8 +752,18 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     //2. copy to output buffer for mirro and flip
 	/*ddl@rock-chips.com: v0.4.7*/
     // bool rotat_180 = false; //used by ipp
-
-	if ((frame->frame_fmt != picfmt) || (frame->frame_width!= jpeg_w) || (frame->frame_height != jpeg_h) 
+    if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
+        output_phy_addr = rawbuf_phy;
+        output_vir_addr = rawbuf_vir;
+        arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
+            (char*)rawbuf_vir,frame->frame_width, frame->frame_height,
+             jpeg_w, jpeg_h,false);
+        input_phy_addr = output_phy_addr;
+        input_vir_addr = output_vir_addr;
+        mRawBufferProvider->flushBuffer(0);
+        LOGE("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
+    }
+	/*if ((frame->frame_fmt != picfmt) || (frame->frame_width!= jpeg_w) || (frame->frame_height != jpeg_h) 
     	|| (frame->zoom_value != 100)) {
 
         output_phy_addr = rawbuf_phy;
@@ -769,7 +779,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 			input_vir_addr = output_vir_addr;
 			mRawBufferProvider->flushBuffer(0);
 		}
-	}
+	}*/
 	
 	if((mMsgTypeEnabled & (CAMERA_MSG_RAW_IMAGE))|| (mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE_NOTIFY)) {
 		copyAndSendRawImage((void*)input_vir_addr, pictureSize);
@@ -928,7 +938,16 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
     }
 
     mVideoBufferProvider->setBufferStatus(buf_index, 1);
-    //fill video buffer
+    if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
+        arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
+            (char*)buf_vir,frame->frame_width, frame->frame_height,
+            mRecordW, mRecordH,false);
+
+        mVideoBufferProvider->flushBuffer(buf_index);
+        mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_index], 0, mCallbackCookie);
+        LOGE("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
+    }
+	/*//fill video buffer
 	if(cameraFormatConvert(frame->frame_fmt, V4L2_PIX_FMT_NV12, NULL,
     (char*)frame->vir_addr,(char*)buf_vir,0,0,frame->frame_width*frame->frame_height*2,
     frame->frame_width, frame->frame_height,frame->frame_width,frame->frame_width, frame->frame_height,frame->frame_width,false)==0)
@@ -939,7 +958,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 		mVideoBufferProvider->flushBuffer(buf_index);
 
 		mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_index], 0, mCallbackCookie);												    	
-	}	
+	}*/
 	
     return ret;
 }

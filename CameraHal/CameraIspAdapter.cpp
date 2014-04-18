@@ -303,7 +303,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 		params.setPictureSize(2592,1944);
 	  }	else if((pCaps.Resolution & ISI_RES_1600_1200)|| (pCaps.Resolution & ISI_RES_SVGA30))	
 	  {		
-	  	parameterString.append("800x600");    	
+	  	parameterString.append("1280x720,800x600,720x480,640x480");    	
 		params.setPreviewSize(800, 600);	
 
 		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1600x1200,1024x768,640x480,352x288,320x240,176x144");
