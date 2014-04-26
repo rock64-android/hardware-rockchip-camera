@@ -297,8 +297,10 @@ int AppMsgNotifier::enableMsgType(int32_t msgtype)
         Mutex::Autolock lock(mDataCbLock);
         mMsgTypeEnabled |= msgtype;
 		//LOGE("%s(%d): this video buffer is invaildate",__FUNCTION__,__LINE__);
-    }else
+    }else {
         mMsgTypeEnabled |= msgtype;
+        LOGE("-----------%s:%d-------------",__FUNCTION__,msgtype);
+    }
     LOG_FUNCTION_NAME_EXIT
 
     return 0;
@@ -327,18 +329,6 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
                 LOGD("%s%d: release mDataCbLock",__FUNCTION__,__LINE__);
 
             }
-            //send a msg to disable preview frame cb
-            Message msg;
-            Semaphore sem;
-
-            msg.command = CameraAppMsgThread::CMD_EVENT_PAUSE;
-            sem.Create();
-            msg.arg1 = (void*)(&sem);
-            eventThreadCommandQ.put(&msg);
-            if(msg.arg1){
-                sem.Wait();
-            }
-            LOGD("%s%d: disable CAMERA_MSG_PREVIEW_FRAME success",__FUNCTION__,__LINE__);
     }
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -897,6 +887,7 @@ return ret;
 
 int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
     int ret = 0;
+    mDataCbLock.lock();
     if ((mMsgTypeEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
         //compute request mem size
         int tempMemSize = 0;
@@ -906,26 +897,36 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
         if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
             tempMemSize = mPreviewDataH*mPreviewDataH*2;        
         } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
-            tempMemSize = mPreviewDataH*mPreviewDataH*3/2;        
+            tempMemSize = mPreviewDataH*mPreviewDataH*2;//Maybe it need more buffer when voip        
         } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
             tempMemSize = mPreviewDataH*mPreviewDataH*2;        
         } else {
             LOGE("%s(%d): pixel format %s is unknow!",__FUNCTION__,__LINE__,mPreviewDataFmt);        
         }
-        
+        mDataCbLock.unlock();
 	    tmpPreviewMemory = mRequestMemory(-1, tempMemSize, 1, NULL);
-
-        //fill the tmpPreviewMemory
-
-        //callback
-
-        mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
-
-        //release buffer
-        tmpPreviewMemory->release(tmpPreviewMemory);
-
+        if (tmpPreviewMemory) {
+            //fill the tmpPreviewMemory
+            arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
+                (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,false);
+            //if(cameraFormatConvert(frame->frame_fmt, V4L2_PIX_FMT_NV12, NULL,
+            //		(char*)frame->vir_addr,(char*)tmpPreviewMemory->data,0,0,tempMemSize,
+            //		frame->frame_width, frame->frame_height,frame->frame_width,mPreviewDataW, mPreviewDataH, mPreviewDataW,false)==0)
+            //arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
+            //fill the tmpPreviewMemory
+            //callback
+            mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
+            //release buffer
+            tmpPreviewMemory->release(tmpPreviewMemory);
+        } else {
+            LOGE("%s(%d): mPreviewMemory create failed",__FUNCTION__,__LINE__);
+        }
     }
-
+	else
+	{
+		mDataCbLock.unlock();
+		LOGE("%s(%d): preview data callback is unable",__FUNCTION__,__LINE__);
+	}
     return ret;
 }
 int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
@@ -1069,9 +1070,6 @@ void AppMsgNotifier::eventThread()
           case CameraAppMsgThread::CMD_EVENT_PAUSE:
 				{
                     LOGD("%s(%d),receive CameraAppMsgThread::CMD_EVENT_PAUSE",__FUNCTION__,__LINE__);
-                    if(msg.arg1)
-                        ((Semaphore*)(msg.arg1))->Signal();
-                   //wake up waiter
 					break; 
 				}
           case CameraAppMsgThread::CMD_EVENT_EXIT:

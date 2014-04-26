@@ -965,6 +965,22 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 
 	//preview data callback ?
 	if(mRefEventNotifier->isNeedSendToDataCB()){
+		MediaBufLockBuffer( pMediaBuffer );
+		//new frames
+		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+		if(!tmpFrame){
+			MediaBufUnlockBuffer( pMediaBuffer );
+			return;
+		}
+	  //add to vector
+	  tmpFrame->frame_index = (int)tmpFrame; 
+	  tmpFrame->phy_addr = (int)y_addr;
+	  tmpFrame->frame_width = width;
+	  tmpFrame->frame_height= height;
+	  tmpFrame->vir_addr = y_addr_vir;
+	  tmpFrame->frame_fmt = fmt;
+	  mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+	  mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);
 	}
 	#endif
 

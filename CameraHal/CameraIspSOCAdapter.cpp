@@ -239,8 +239,28 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	}
 
 	//preview data callback ?
+	//LOGE("----------------isNeedSendToDataCB,before---------");
 	if(mRefEventNotifier->isNeedSendToDataCB()){
+		//LOGE("----------------isNeedSendToDataCB,IN---------");
+	    MediaBufLockBuffer( pMediaBuffer );
+		//new frames
+		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+		if(!tmpFrame){
+			MediaBufUnlockBuffer( pMediaBuffer );
+			return;
+		}
+	  //add to vector
+	  //fmt = V4L2_PIX_FMT_NV12;
+	  tmpFrame->frame_index = (int)tmpFrame; 
+	  tmpFrame->phy_addr = (int)(y_addr+width*height*2);
+	  tmpFrame->frame_width = width;
+	  tmpFrame->frame_height= height;
+	  tmpFrame->vir_addr = y_addr_vir+width*height*2;
+	  tmpFrame->frame_fmt = fmt;
+	  mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+	  mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);	
 	}
+	//LOGE("----------------isNeedSendToDataCB,OUT---------");
 	#endif
 }
 

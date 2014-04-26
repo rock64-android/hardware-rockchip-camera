@@ -881,7 +881,7 @@ get_command:
             case CMD_AF_START:
             {
                 LOGD("%s(%d): receive CMD_AF_START", __FUNCTION__,__LINE__);
-                mCameraAdapter->autoFocus();
+                //mCameraAdapter->autoFocus();
 				setCamStatus(CMD_AF_START_DONE, 1);
                 if(msg.arg1)
                     ((Semaphore*)(msg.arg1))->Signal();
