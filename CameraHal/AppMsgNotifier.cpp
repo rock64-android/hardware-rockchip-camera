@@ -329,6 +329,16 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
                 LOGD("%s%d: release mDataCbLock",__FUNCTION__,__LINE__);
 
             }
+            //send a msg to disable preview frame cb
+            Message msg;
+
+            msg.command = CameraAppMsgThread::CMD_EVENT_PAUSE;
+
+            msg.arg1  = NULL;
+
+            eventThreadCommandQ.put(&msg);
+
+            LOGD("%s%d: disable CAMERA_MSG_PREVIEW_FRAME success",__FUNCTION__,__LINE__);
     }
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -946,7 +956,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 
         mVideoBufferProvider->flushBuffer(buf_index);
         mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_index], 0, mCallbackCookie);
-        LOGE("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
+        //LOGE("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
     }
 	/*//fill video buffer
 	if(cameraFormatConvert(frame->frame_fmt, V4L2_PIX_FMT_NV12, NULL,
@@ -1070,6 +1080,9 @@ void AppMsgNotifier::eventThread()
           case CameraAppMsgThread::CMD_EVENT_PAUSE:
 				{
                     LOGD("%s(%d),receive CameraAppMsgThread::CMD_EVENT_PAUSE",__FUNCTION__,__LINE__);
+                    if(msg.arg1)
+                        ((Semaphore*)(msg.arg1))->Signal();
+                   //wake up waiter
 					break; 
 				}
           case CameraAppMsgThread::CMD_EVENT_EXIT:
