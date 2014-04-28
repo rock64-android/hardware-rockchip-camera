@@ -103,9 +103,11 @@ int CameraAdapter::getCurPreviewState(int *drv_w,int *drv_h)
 	*drv_h = mCamDrvHeight;
     return mPreviewRunning;
 }
-void CameraAdapter::dump()
+void CameraAdapter::dump(int cameraId)
 {
-
+	LOG2("%s CameraAdapter dump cameraId(%d)\n", __FUNCTION__,cameraId);
+	LOGE("%s CameraAdapter dump cameraId(%d)\n", __FUNCTION__,cameraId);
+	LOGD("%s CameraAdapter dump cameraId(%d)\n", __FUNCTION__,cameraId);
 }
 
 status_t CameraAdapter::startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture)

@@ -299,7 +299,7 @@ public:
     virtual void initDefaultParameters(int camFd);
     virtual status_t autoFocus();
 
-    virtual void dump();
+    virtual void dump(int cameraId);
 protected:
     //talk to driver
     virtual int cameraCreate(int cameraId);
@@ -1087,6 +1087,7 @@ private:
   // bool mPreviewCmdReceived;
    int mCamFd;
    int mCameraStatus;
+   int mCamId;
 };
 
 }

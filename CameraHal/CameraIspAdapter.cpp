@@ -990,5 +990,13 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 		tem_val =0 ;
 }
 
+void CameraIspAdapter::dump(int cameraId)
+{
+	LOG2("%s dump cameraId(%d)\n", __FUNCTION__,cameraId);
+	rk_cam_total_info *pCamInfo = gCamInfos[cameraId].pcam_total_info;
+	m_camDevice->checkVersion(pCamInfo);
+
+}
+
 }
 

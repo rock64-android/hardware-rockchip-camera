@@ -29,6 +29,8 @@ public:
     virtual void bufferCb( MediaBuffer_t* pMediaBuffer );
 
     virtual void setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h);
+
+	virtual void dump(int cameraId);
     
 private:
     //talk to driver

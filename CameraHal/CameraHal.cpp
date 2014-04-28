@@ -69,6 +69,7 @@ CameraHal::CameraHal(int cameraId)
 	LOG_FUNCTION_NAME
     //mPreviewCmdReceived = false;
    // mRecordRunning = false;
+    mCamId = cameraId;
     mCamFd = -1;
     mCommandRunning = -1;
 	mCameraStatus = 0;
@@ -581,7 +582,7 @@ int CameraHal::dump(int fd)
     
     commandThreadCommandQ.dump();
     if(mCameraAdapter)
-        mCameraAdapter->dump();
+        mCameraAdapter->dump(mCamId);
     if(mDisplayAdapter)
         mDisplayAdapter->dump();
     if(mEventNotifier)
