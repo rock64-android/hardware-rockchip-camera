@@ -905,11 +905,11 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
         camera_memory_t* tmpPreviewMemory = NULL;
 
         if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
-            tempMemSize = mPreviewDataH*mPreviewDataH*2;        
+            tempMemSize = mPreviewDataW*mPreviewDataH*2;        
         } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
-            tempMemSize = mPreviewDataH*mPreviewDataH*2;//Maybe it need more buffer when voip        
+            tempMemSize = mPreviewDataW*mPreviewDataH*3/2;        
         } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
-            tempMemSize = mPreviewDataH*mPreviewDataH*2;        
+            tempMemSize = mPreviewDataW*mPreviewDataH*2;        
         } else {
             LOGE("%s(%d): pixel format %s is unknow!",__FUNCTION__,__LINE__,mPreviewDataFmt);        
         }

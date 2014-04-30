@@ -383,7 +383,7 @@ int DisplayAdapter::cameraDisplayBufferDestory(void)
             free(mDisplayBufInfo);
             mDisplayBufInfo = NULL;
             mDislayBufNum = 0;
-            mANativeWindow = NULL;
+            //mANativeWindow = NULL;//video may lock
         }
     } else {
         LOGD("%s(%d): mANativeWindow is NULL, destory is ignore",__FUNCTION__,__LINE__);
