@@ -44,7 +44,7 @@ static volatile int32_t gLogLevel = 1;
 
 #define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
 #define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
-#define CAMERAHAL_VERSION "CAMERAHAL_VERSION:V0.4.22,fix system may lock when take picture in video"
+#define CAMERAHAL_VERSION "CAMERAHAL_VERSION:V0.4.23,memset exifInfo to fix snapshot error in video"
 /************************
 接口实现有两种方式
 1。接口由command线程负责具体实现

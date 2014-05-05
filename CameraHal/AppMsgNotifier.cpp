@@ -680,6 +680,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 
 	memset(&JpegInInfo,0x00,sizeof(JpegEncInInfo));
 	memset(&JpegOutInfo,0x00,sizeof(JpegEncOutInfo));
+	memset(&exifInfo,0x00,sizeof(exifInfo));
 
 	quality = mPictureInfo.quality;
 	thumbquality = mPictureInfo.thumbquality;
