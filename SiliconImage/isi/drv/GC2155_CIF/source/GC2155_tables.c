@@ -9,12 +9,9 @@
 #include "isi_priv.h"
 #include "GC2155_priv.h"
 
-
-
 /*****************************************************************************
  * DEFINES
  *****************************************************************************/
-
 
 /*****************************************************************************
  * GLOBALS
@@ -153,12 +150,12 @@ const IsiRegDescription_t GC2155_g_aRegDescription[] =
 	{0x0a , 0xc2,"",eReadWrite,},
 	{0x0b , 0x11,"",eReadWrite,},
 	{0x0c , 0x10,"",eReadWrite,},
-	{0x13 , 0x2a,"",eReadWrite,},
+	{0x13 , 0x25,"",eReadWrite,},  // 2a
 	{0x17 , 0x00,"",eReadWrite,},
 	{0x1c , 0x11,"",eReadWrite,},
 	{0x1e , 0x61,"",eReadWrite,},
-	{0x1f , 0x30,"",eReadWrite,},
-	{0x20 , 0x40,"",eReadWrite,},
+	{0x1f , 0x30,"",eReadWrite,},  // 30
+	{0x20 , 0x3b,"",eReadWrite,},  // 40
 	{0x22 , 0x80,"",eReadWrite,},
 	{0x23 , 0x20,"",eReadWrite,},
 
@@ -191,7 +188,7 @@ const IsiRegDescription_t GC2155_g_aRegDescription[] =
 	{0x80 , 0xc1,"",eReadWrite,},
 	{0x81 , 0x08,"",eReadWrite,},
 	{0x82 , 0x05,"",eReadWrite,},
-	{0x83 , 0x04,"",eReadWrite,},
+	{0x83 , 0x25,"",eReadWrite,},  // 04
 	{0x84 , 0x0a,"",eReadWrite,},
 	{0x86 , 0x80,"",eReadWrite,},
 	{0x87 , 0x30,"",eReadWrite,},
@@ -207,8 +204,8 @@ const IsiRegDescription_t GC2155_g_aRegDescription[] =
 	{0xfe , 0x02,"",eReadWrite,},
 	{0x3c , 0x06,"",eReadWrite,},
 	{0x3d , 0x40,"",eReadWrite,},
-	{0x48 , 0x30,"",eReadWrite,},
-	{0x49 , 0x06,"",eReadWrite,},
+	{0x48 , 0x40,"",eReadWrite,},  // 30
+	{0x49 , 0x02,"",eReadWrite,},  // 06
 	{0x4b , 0x08,"",eReadWrite,},
 	{0x4c , 0x20,"",eReadWrite,},
 	{0xa3 , 0x40,"",eReadWrite,},
@@ -217,7 +214,7 @@ const IsiRegDescription_t GC2155_g_aRegDescription[] =
 	{0xa6 , 0x80,"",eReadWrite,},
 	{0xab , 0x20,"",eReadWrite,},
 	{0xae , 0x0c,"",eReadWrite,},
-	{0xb3 , 0x42,"",eReadWrite,},
+	{0xb3 , 0x50,"",eReadWrite,},  // 42
 	{0xb4 , 0x24,"",eReadWrite,},
 	{0xb6 , 0x50,"",eReadWrite,},
 	{0xb7 , 0x01,"",eReadWrite,},

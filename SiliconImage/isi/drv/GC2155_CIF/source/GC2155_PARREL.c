@@ -908,6 +908,65 @@ static RESULT GC2155_IsiChangeSensorResolutionIss
 
         // update resolution in copy of config in context
         pGC2155Ctx->Config.Resolution = Resolution;
+        
+        // hkw add for gc2155 exposure;
+        #if 1
+        if(Resolution == ISI_RES_1600_1200){
+		    uint32_t value;
+			unsigned   int pid=0,shutter,temp_reg;
+			TRACE( GC2155_ERROR, "---------enter %s----------------:\n", __FUNCTION__);
+			result = IsiWriteRegister( handle, 0xfe, 0X00 );
+            if ( result != RET_SUCCESS )
+            {
+               TRACE( GC2155_ERROR, "%s: IsiWriteRegister failed.\n", __FUNCTION__);
+            }
+				result = IsiWriteRegister( handle, 0xb6, 0X00 );
+            if ( result != RET_SUCCESS )
+            {
+               TRACE( GC2155_ERROR, "%s: IsiWriteRegister failed.\n", __FUNCTION__);
+            }	 
+					 
+			result = IsiReadRegister( handle, 0x03, &value );
+            if ( result != RET_SUCCESS )
+            {
+                TRACE( GC2155_ERROR, "%s: failed to read reg 0x03, value: %d\n", 
+                            __FUNCTION__,  value );
+                
+            }
+            TRACE( GC2155_ERROR, "%s: ---- read reg 0x03, value: 0x%x----\n", 
+                            __FUNCTION__,  value );
+			pid |= (value << 8);
+			result = IsiReadRegister( handle, 0x04, &value );
+            if ( result != RET_SUCCESS )
+            {
+                TRACE( GC2155_ERROR, "%s: failed to read 0x04, value:0x%x\n", 
+                            __FUNCTION__,    value );
+                
+            }
+			TRACE( GC2155_ERROR, "%s:  ----read 0x04, value:0x%x----\n", 
+                            __FUNCTION__,    value );
+			pid |= (value & 0xff);
+			TRACE( GC2155_ERROR, "%s:  ----pid:0x%x----\n", 
+                            __FUNCTION__,    pid);
+			shutter=pid;
+			
+			temp_reg= shutter/2;
+					
+		    if(temp_reg < 1) temp_reg = 1;
+					
+			result = IsiWriteRegister( handle, 0x03, ((temp_reg>>8)&0x1f) );
+            if ( result != RET_SUCCESS )
+            {
+               TRACE( GC2155_ERROR, "%s: IsiWriteRegister failed.\n", __FUNCTION__);
+            }
+				result = IsiWriteRegister( handle, 0x04, (temp_reg&0xff) );
+            if ( result != RET_SUCCESS )
+            {
+               TRACE( GC2155_ERROR, "%s: IsiWriteRegister failed.\n", __FUNCTION__);
+            }	 
+        }
+        #endif
+        
         // tell sensor about that
         result = GC2155_SetupOutputWindow( pGC2155Ctx, &pGC2155Ctx->Config );
         if ( result != RET_SUCCESS )
@@ -915,7 +974,7 @@ static RESULT GC2155_IsiChangeSensorResolutionIss
             TRACE( GC2155_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
             return ( result );
         }
-
+        osSleep(200);
         // remember old exposure values
         float OldGain = pGC2155Ctx->AecCurGain;
         float OldIntegrationTime = pGC2155Ctx->AecCurIntegrationTime;
