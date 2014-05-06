@@ -83,7 +83,7 @@
 #include <cameric_drv/cameric_drv_api.h>
 #include <cameric_drv/cameric_isp_drv_api.h>
 #include <cameric_drv/cameric_mi_drv_api.h>
-
+#include <cameric_drv/cameric_isp_flash_drv_api.h>
 #include <cam_calibdb/cam_calibdb_api.h>
 
 #include "cam_engine_common.h"
@@ -121,6 +121,8 @@ typedef struct CamEngineConfig_s
 {
     CamEngineModeType_t     mode;
 	int mipiLaneNum;
+	uint32_t mipiLaneFreq;
+	uint32_t phyAttachedDevId;
     CamEnginePathConfig_t   pathConfigMaster[CAM_ENGINE_PATH_MAX];
     CamEnginePathConfig_t   pathConfigSlave[CAM_ENGINE_PATH_MAX];
 
@@ -534,6 +536,44 @@ RESULT CamEngineUnlock
     CamEngineLockType_t locks
 );
 
+
+/******************************************************************************
+ * CamEngineStartPixelIf
+ *****************************************************************************/
+RESULT CamEngineStartPixelIfApi
+(
+    CamEngineHandle_t  hCamEngine,
+    CamEngineConfig_t   *pConfig
+);
+
+
+/******************************************************************************
+ * CamEngineConfigureFlash
+ *****************************************************************************/
+RESULT CamEngineConfigureFlash
+(
+    CamEngineHandle_t  hCamEngine,
+    CamerIcIspFlashCfg_t *cfgFsh
+);
+
+/******************************************************************************
+ * CamEngineStartFlash
+ *****************************************************************************/
+RESULT CamEngineStartFlash
+(
+    CamEngineHandle_t  hCamEngine,
+    bool_t operate_now
+);
+
+
+/******************************************************************************
+ * CamEngineStopFlash
+ *****************************************************************************/
+RESULT CamEngineStopFlash
+(
+    CamEngineHandle_t  hCamEngine,
+    bool_t operate_now
+);
 
 #ifdef __cplusplus
 }

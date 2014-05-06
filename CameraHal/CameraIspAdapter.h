@@ -4,13 +4,15 @@
 //usb camera adapter
 #include "CameraHal.h"
 #include "cam_api/camdevice.h"
+#include "oslayer/oslayer.h"
 #include <string>
 #include <utils/KeyedVector.h>
-#include <linux/camsys_head.h>
 
 
 
 namespace android{
+
+
 class CameraIspAdapter: public CameraAdapter,public BufferCb
 {
 public:
@@ -55,6 +57,9 @@ private:
     int start();
     int pause();
     int stop();
+
+    int afListenerThread(void);
+    
 protected:
     CamDevice       *m_camDevice;
     KeyedVector<void *, void *> mFrameInfoArray;
@@ -63,14 +68,33 @@ protected:
 
     std::string mSensorDriverFile[3];
     int mSensorItfCur;
+
+
+    class CameraAfThread :public Thread
+    {
+        CameraIspAdapter* mCameraAdapter;
+    public:
+        CameraAfThread(CameraIspAdapter* adapter)
+            : Thread(false), mCameraAdapter(adapter) { }
+
+        virtual bool threadLoop() {
+            mCameraAdapter->afListenerThread();
+
+            return false;
+        }
+    };
+    
+    CamEngineAfEvtQue_t  mAfListenerQue; 
+    sp<CameraAfThread>   mAfListenerThread;
+    
 };
 
 class CameraIspSOCAdapter: public CameraIspAdapter
 {
 public:
 
-    CameraIspSOCAdapter(int cameraId):CameraIspAdapter(cameraId){};
-    virtual ~CameraIspSOCAdapter(){};
+    CameraIspSOCAdapter(int cameraId);
+    virtual ~CameraIspSOCAdapter();
 #if 0
     virtual int setParameters(const CameraParameters &params_set);
     virtual void initDefaultParameters()
@@ -82,6 +106,10 @@ public:
 #endif
     virtual void setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h);
     virtual void bufferCb( MediaBuffer_t* pMediaBuffer );
+
+private:
+    bool    mIs8bit; 
+    bool    mIs10bit0To0;
 
 };
 

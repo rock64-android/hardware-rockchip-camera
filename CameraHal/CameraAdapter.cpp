@@ -1,19 +1,6 @@
 #include "CameraHal.h"
 namespace android{
-#define LOG_TAG "CameraHal_CameraAdapter"
 
-static volatile int32_t gLogLevel = 1;
-
-#ifdef ALOGD_IF
-#define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#else
-#define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#endif
-
-#define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
-#define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
 
 CameraAdapter::CameraAdapter(int cameraId):mCamId(cameraId),
                                         mPreviewRunning(0)
@@ -32,7 +19,6 @@ CameraAdapter::CameraAdapter(int cameraId):mCamId(cameraId),
     mPreviewFrameIndex = 0;
     mPreviewErrorFrameCount = 0;
     mCamFd = -1;
-    mAutoFocusThread =NULL;
     mCamDriverPreviewFmt = 0;
 
     CameraHal_SupportFmt[0] = V4L2_PIX_FMT_NV12;
@@ -49,8 +35,7 @@ int CameraAdapter::initialize()
 	int ret = -1;
     //create focus thread
     LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
-    mAutoFocusThread = new AutoFocusThread(this);
-	mAutoFocusThread->run("CameraAutoFocusThread", ANDROID_PRIORITY_DISPLAY);
+    
 	if((ret = cameraCreate(mCamId)) < 0)
 		return ret;
 	
@@ -61,14 +46,6 @@ int CameraAdapter::initialize()
 CameraAdapter::~CameraAdapter()
 {
     LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
-    mAutoFocusLock.lock();
-    mExitAutoFocusThread = true;
-    mAutoFocusLock.unlock();
-    mAutoFocusCond.signal();
-	if(mAutoFocusThread != NULL){
-	    mAutoFocusThread->requestExitAndWait();
-	    mAutoFocusThread.clear();
-	}
 
     if(mPreviewBufProvider)
         mPreviewBufProvider->freeBuffer();
@@ -106,8 +83,7 @@ int CameraAdapter::getCurPreviewState(int *drv_w,int *drv_h)
 void CameraAdapter::dump(int cameraId)
 {
 	LOG2("%s CameraAdapter dump cameraId(%d)\n", __FUNCTION__,cameraId);
-	LOGE("%s CameraAdapter dump cameraId(%d)\n", __FUNCTION__,cameraId);
-	LOGD("%s CameraAdapter dump cameraId(%d)\n", __FUNCTION__,cameraId);
+	
 }
 
 status_t CameraAdapter::startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture)
@@ -177,19 +153,21 @@ start_preview_end:
 status_t CameraAdapter::stopPreview()
 {
     LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
-    //camera stop
-    cameraStream(false);
-    cameraStop();
-    //quit preview thread
-	if(mCameraPreviewThread != NULL){
-    	mCameraPreviewThread->requestExitAndWait();
-    	mCameraPreviewThread.clear();
-        mCameraPreviewThread = NULL;
-	}
-    //destroy preview buffer
-    if(mPreviewBufProvider)
-        mPreviewBufProvider->freeBuffer();
-    mPreviewRunning = 0;
+    if(mPreviewRunning == 1){
+        //camera stop
+        cameraStream(false);
+        cameraStop();
+        //quit preview thread
+    	if(mCameraPreviewThread != NULL){
+        	mCameraPreviewThread->requestExitAndWait();
+        	mCameraPreviewThread.clear();
+            mCameraPreviewThread = NULL;
+    	}
+        //destroy preview buffer
+        if(mPreviewBufProvider)
+            mPreviewBufProvider->freeBuffer();
+        mPreviewRunning = 0;
+    }
     mCamDrvWidth = 0;
     mCamDrvHeight = 0;
     LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
@@ -206,9 +184,6 @@ void CameraAdapter::initDefaultParameters(int camFd)
 }
 status_t CameraAdapter::autoFocus()
 {
-    LOGD("%s(%d): receive CMD_AF_START", __FUNCTION__,__LINE__);
-    mAutoFocusCond.signal();
-    LOGD("%s(%d): CMD_AF_START", __FUNCTION__,__LINE__);
     return 0;
 }
 
@@ -228,8 +203,64 @@ int CameraAdapter::cameraCreate(int cameraId)
     char *ptr_tmp;
     struct v4l2_fmtdesc fmtdesc;
     char *cameraDevicePathCur = NULL;
+    char decode_name[50];
     
     LOG_FUNCTION_NAME
+        
+    memset(decode_name,0x00,sizeof(decode_name));
+    mLibstageLibHandle = dlopen("libstagefright.so", RTLD_NOW);    
+    if (mLibstageLibHandle == NULL) {
+        LOGE("%s(%d): open libstagefright.so fail",__FUNCTION__,__LINE__);
+    } else {
+        mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");         
+    }
+
+    if (mMjpegDecoder.get == NULL) {
+        if (mLibstageLibHandle != NULL)
+            dlclose(mLibstageLibHandle);            /* ddl@rock-chips.com: v0.4.0x27 */
+        mLibstageLibHandle = dlopen("librk_on2.so", RTLD_NOW);    
+        if (mLibstageLibHandle == NULL) {
+            LOGE("%s(%d): open librk_on2.so fail",__FUNCTION__,__LINE__);
+        } else {
+            mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");
+            if (mMjpegDecoder.get == NULL) {
+                LOGE("%s(%d): dlsym get_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+            } else {
+                strcat(decode_name,"dec_oneframe_On2JpegDecoder");
+            }
+        }
+    } else {
+        strcat(decode_name,"dec_oneframe_class_On2JpegDecoder");
+    }
+
+
+    if (mMjpegDecoder.get != NULL) {
+        mMjpegDecoder.decoder = mMjpegDecoder.get();
+        if (mMjpegDecoder.decoder==NULL) {
+            LOGE("%s(%d): get mjpeg decoder failed",__FUNCTION__,__LINE__);
+        } else {
+            mMjpegDecoder.destroy =(destroyMjpegDecoderFun)dlsym(mLibstageLibHandle, "destroy_class_On2JpegDecoder");
+            if (mMjpegDecoder.destroy == NULL)
+                LOGE("%s(%d): dlsym destroy_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+
+            mMjpegDecoder.init = (initMjpegDecoderFun)dlsym(mLibstageLibHandle, "init_class_On2JpegDecoder");
+            if (mMjpegDecoder.init == NULL)
+                LOGE("%s(%d): dlsym init_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+
+            mMjpegDecoder.deInit =(deInitMjpegDecoderFun)dlsym(mLibstageLibHandle, "deinit_class_On2JpegDecoder");
+            if (mMjpegDecoder.deInit == NULL)
+                LOGE("%s(%d): dlsym deinit_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+
+            mMjpegDecoder.decode =(mjpegDecodeOneFrameFun)dlsym(mLibstageLibHandle, decode_name);
+            if (mMjpegDecoder.decode == NULL)
+                LOGE("%s(%d): dlsym %s fail",__FUNCTION__,__LINE__,decode_name); 
+
+            if ((mMjpegDecoder.deInit != NULL) && (mMjpegDecoder.init != NULL) &&
+                (mMjpegDecoder.destroy != NULL) && (mMjpegDecoder.decode != NULL)) {
+                mMjpegDecoder.state = mMjpegDecoder.init(mMjpegDecoder.decoder);
+            }
+        }
+    }
 
 	
     cameraDevicePathCur = (char*)&gCamInfos[cameraId].device_path[0];
@@ -264,10 +295,12 @@ int CameraAdapter::cameraCreate(int cameraId)
     
     i = 0;    
     while (CameraHal_SupportFmt[i]) {
-        LOGD("CameraHal_SupportFmt:fmt = %d,index = %d",CameraHal_SupportFmt[i],i);
+        LOG1("CameraHal_SupportFmt:fmt = %d,index = %d",CameraHal_SupportFmt[i],i);
         j = 0;
         while (mCamDriverSupportFmt[j]) {
             if (mCamDriverSupportFmt[j] == CameraHal_SupportFmt[i]) {
+                if ((mCamDriverSupportFmt[j] == V4L2_PIX_FMT_MJPEG) && (mMjpegDecoder.state == -1))
+                    continue;
                 break;
             }
             j++;
@@ -321,7 +354,14 @@ int CameraAdapter::cameraDestroy()
     int err,i;
 
     LOG_FUNCTION_NAME
-    LOG_FUNCTION_NAME_EXIT
+    if (mMjpegDecoder.state == 0) {
+        mMjpegDecoder.deInit(mMjpegDecoder.decoder);
+        mMjpegDecoder.destroy(mMjpegDecoder.decoder);
+        mMjpegDecoder.decoder = NULL;
+
+        dlclose(mLibstageLibHandle);
+        mLibstageLibHandle = NULL;
+    }    LOG_FUNCTION_NAME_EXIT
     return 0;
 }
 
@@ -420,7 +460,7 @@ int CameraAdapter::cameraStart()
                 mCamDriverV4l2Buffer[i] = (char*)mPreviewBufProvider->getBufVirAddr(i);
             } else if (buffer.memory == V4L2_MEMORY_MMAP) {
                 mCamDriverV4l2Buffer[i] = (char*)mmap(0 /* start anywhere */ ,
-                                    buffer.length, PROT_READ, MAP_SHARED, mCamId,
+                                    buffer.length, PROT_READ, MAP_SHARED, mCamFd,
                                     buffer.m.offset);
                 if (mCamDriverV4l2Buffer[i] == MAP_FAILED) {
                     LOGE("%s(%d): Unable to map buffer(length:0x%x offset:0x%x) %s(err:%d)\n",__FUNCTION__,__LINE__, buffer.length,buffer.m.offset,strerror(errno),errno);
@@ -460,39 +500,6 @@ int CameraAdapter::cameraAutoFocus(bool auto_trig_only)
     return 0;
 }
 
-void CameraAdapter::autofocusThread()
-{
-    int err=0;
-    
-    while (1) {
-        mAutoFocusLock.lock();
-        /* check early exit request */
-        if (mExitAutoFocusThread) {
-            mAutoFocusLock.unlock();
-            LOG1("%s(%d) exit", __FUNCTION__,__LINE__);
-            goto autofocusThread_end;
-        }
-        mAutoFocusCond.wait(mAutoFocusLock);
-        /* check early exit request */
-        if (mExitAutoFocusThread) {
-            mAutoFocusLock.unlock();
-            LOG1("%s(%d) exit", __FUNCTION__,__LINE__);
-            goto autofocusThread_end;
-        }
-        mAutoFocusLock.unlock();
-
-       err = cameraAutoFocus(false);
-
-        //focus callback
-        mRefEventNotifier->notifyCbMsg(CAMERA_MSG_FOCUS, err);
-        
-    }
-
-autofocusThread_end: 
-    LOG_FUNCTION_NAME_EXIT
-    return;
-}
-
 //dqbuf
 int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
 
@@ -502,7 +509,8 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
     cfilledbuffer1.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     cfilledbuffer1.memory = mCamDriverV4l2MemType;
     cfilledbuffer1.reserved = 0;
-    
+
+    FILTER_FRAMES:
     /* De-queue the next avaliable buffer */            
     LOG2("%s(%d): get frame in",__FUNCTION__,__LINE__);
     if (ioctl(mCamFd, VIDIOC_DQBUF, &cfilledbuffer1) < 0) {
@@ -536,9 +544,14 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
     } else {
         mPreviewErrorFrameCount = 0;
     }
-    LOG2("%s(%d): deque a  frame success",__FUNCTION__,__LINE__);
+    LOG2("%s(%d): deque a  frame %d success",__FUNCTION__,__LINE__,cfilledbuffer1.index);
 
-    mPreviewFrameIndex++; 
+    if(mPreviewFrameIndex++ < FILTER_FRAME_NUMBER)
+    {
+        LOG2("%s:filter frame %d",__FUNCTION__,mPreviewFrameIndex);
+        ioctl(mCamFd, VIDIOC_QBUF, &cfilledbuffer1);
+        goto FILTER_FRAMES; 
+    }
     // fill frame info:w,h,phy,vir
     mPreviewFrameInfos[cfilledbuffer1.index].frame_fmt=  mCamDriverPreviewFmt;
     mPreviewFrameInfos[cfilledbuffer1.index].frame_height = mCamDrvHeight;
@@ -552,6 +565,7 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
     //get zoom_value
     mPreviewFrameInfos[cfilledbuffer1.index].zoom_value = 100;
     mPreviewFrameInfos[cfilledbuffer1.index].used_flag = 0;
+    mPreviewFrameInfos[cfilledbuffer1.index].frame_size = cfilledbuffer1.bytesused;
 
     *tmpFrame = &(mPreviewFrameInfos[cfilledbuffer1.index]);
     LOG2("%s(%d): fill  frame info success",__FUNCTION__,__LINE__);
@@ -601,9 +615,10 @@ int CameraAdapter::returnFrame(int index,int cmd)
 }
 
 //define  the frame info ,such as w, h ,fmt 
-void CameraAdapter::reprocessFrame(FramInfo_s* frame)
+int CameraAdapter::reprocessFrame(FramInfo_s* frame)
 {
     //  usb camera may do something
+    return 0;
 }
 void CameraAdapter::previewThread(){
     bool loop = true;
@@ -628,7 +643,11 @@ void CameraAdapter::previewThread(){
             LOG2("%s(%d),frame addr = 0x%x,%dx%d,index(%d)",__FUNCTION__,__LINE__,tmpFrame,tmpFrame->frame_width,tmpFrame->frame_height,tmpFrame->frame_index);
             if((ret!=-1) && (!camera_device_error)){
                 //set preview buffer status
-                reprocessFrame(tmpFrame);
+                ret = reprocessFrame(tmpFrame);
+                if(ret < 0){
+                    returnFrame(tmpFrame->frame_index,buffer_log);
+                    continue;
+                }
                 mPreviewBufProvider->setBufferStatus(tmpFrame->frame_index, 0,PreviewBufferProvider::CMD_PREVIEWBUF_WRITING);
 
                 buffer_log = 0;

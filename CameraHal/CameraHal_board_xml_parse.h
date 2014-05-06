@@ -9,10 +9,17 @@
 #include <list>
 #include <isp_cam_api/calib_xml/calibdb.h>
 #include <isi/isi_iss.h>
-#include <linux/camsys_head.h>
+#include "camsys_head.h"
 
 using namespace android;
+/*
+*       CAMERA HAL BOARD XML PARSER VERSION NOTE
+*
+*
+*/
+#define ConfigBoardXmlVersion KERNEL_VERSION(0, 2, 0x00) 
 
+#define UVC_CAM_NAME "UVC Camera"
 #define RK_CAM_FACING_FRONT (1)
 #define RK_CAM_FACING_BACK  (0)
 #define INVALID_VALUE -1
@@ -35,14 +42,19 @@ using namespace android;
 #define RK_TMP_MEDIA_PROFILES_XML_PATH "/data/media_profiles_tmp.xml"
 #define RK_SENSOR_XML_PATH "/etc/"
 
-typedef enum sensor_output_mode_s{
+
+
+#define CONFIG_BOARDXML_VERSION       "v0.1.0"
+
+
+typedef enum sensor_interface_s{
     OUTPUT_MODE_MIN,
-    DVP,
-    MIPI_2_LANE,
-    MIPI_4_LANE,
+    CCIR601,
     CCIR656,
+    MIPI,
+    SMIA,
     OUTPUT_MODE_MAX   
-}sensor_output_mode_t;
+}sensor_interface_t;
 
 
 #define AWB_AUTO_BITPOS                (0)
@@ -143,8 +155,8 @@ struct rk_sensor_info{
     //facing: front or back camera
     int mFacing;
 
-    //mipi_2_lane, mipi_4_lane, DVP, CCIR656
-    sensor_output_mode_t mMode;
+    //CCIR601, CCIR656, MIPI, SMIA
+    sensor_interface_t mMode;
 
     //mirror and flip 00 01 10 11
     int mMirrorFilp;
@@ -156,6 +168,8 @@ struct rk_sensor_info{
     unsigned int *mI2cbase;
 
     camsys_extdev_phy_t mPhy;
+	camsys_fmt_t fmt;
+	int laneNum;
     
 
 };
@@ -186,11 +200,10 @@ struct rk_flash_info{
     unsigned int mFlashI2cBusNum;
     unsigned int mFlashI2cRate;
     
-    int mI2cAddrBytes;
-    camsys_regulator_info_t mFlashVdd; //"NC" describe no regulator
+    int mI2cAddrBytes;    
     
-    camsys_gpio_info_t mFlashGpioPwdn;
-    camsys_gpio_info_t mFlashGpioPower;
+    camsys_gpio_info_t mFlashTrigger;
+    camsys_gpio_info_t mFlashEn;
 };
 
 struct rk_cam_hardware_info{
@@ -316,6 +329,7 @@ struct rk_cam_total_info{
     rk_camera_softinfo_config mSoftInfo;
     camsys_load_sensor_info mLoadSensorInfo;
 	camsys_version_t mCamsysVersion;
+	unsigned int mLibIspVersion; 
     int mDeviceIndex;
     int mIsConnect;
 };
@@ -346,7 +360,6 @@ public:
     	int isAddMark;
     };
 
-    
     static camera_board_profiles* getInstance();
     static camera_board_profiles*  createInstance();
     static void ParserSensorInfo(const char *name, const char **atts, void *userData);
@@ -373,6 +386,7 @@ public:
     static int LoadSensor(camera_board_profiles* profiles);
     static int BoardFileHaveDev(camera_board_profiles* profiles, xml_DEV_name_s* media_xml_device);
     static void AddConnectSensorToVector(camera_board_profiles* profiles);
+	static int ConnectDevHaveDev(camera_board_profiles* profiles, xml_DEV_name_s* media_xml_device );
 
 
     Vector<rk_cam_total_info*> mDevieVector;
@@ -381,6 +395,9 @@ public:
     rk_cam_total_info *mCurDevice;
 
     xml_DEV_name_s mXmlDevInfo[2];
+	int xml_device_count;
+
+	int mBoardXmlVersion;
 
 };
 

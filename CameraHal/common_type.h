@@ -15,6 +15,7 @@ typedef struct FramInfo
     int frame_fmt;
     int zoom_value;
     int used_flag;
+    int frame_size;
 
 }FramInfo_s;
 

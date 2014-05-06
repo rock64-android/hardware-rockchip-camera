@@ -594,6 +594,16 @@ RESULT HalDisconnectIrq
     HalIrqCtx_t *pIrqCtx
 );
 
+RESULT HalPhyCtrl
+(
+    HalHandle_t HalHandle,
+    uint32_t dev_mask,
+    uint32_t on,
+    uint32_t data_en_bit,
+    uint32_t bit_rate
+);
+
+
 /******************************************************************************
  * inline implementations of API
  *****************************************************************************/

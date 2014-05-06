@@ -57,6 +57,7 @@ extern "C"
 {
 #endif
 
+
 /* must be defined even for release */
 #include "linux_compat.h"
 #include "types.h"
@@ -67,9 +68,12 @@ enum
 {
     TRACE_OFF   = 0x00,
     INFO        = 0x01,
-    WARNING     = 0x02,
-    ERROR       = 0x04,
-    MAX_LEVEL   = (0x01U | 0x02U | 0x04U)
+    TRACE_DEBUG = 0x02,
+    TRACE_NOTICE1= 0x04,
+    TRACE_NOTICE0= 0x08,
+    WARNING     = 0x10,
+    ERROR       = 0x20,
+    MAX_LEVEL   = 0x3F
 };
 
 typedef struct tracer_s

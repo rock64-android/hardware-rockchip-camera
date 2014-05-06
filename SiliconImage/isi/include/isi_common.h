@@ -730,6 +730,8 @@ typedef struct IsiLscMatrixTable_s
 typedef struct
 {
     uint8_t  ucMipiLanes;             // number of used MIPI lanes by sensor
+    uint32_t   ulMipiFreq;
+    uint32_t    sensorHalDevID;
 } IsiSensorMipiInfo;
 
 /*****************************************************************************/

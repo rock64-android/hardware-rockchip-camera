@@ -1,6 +1,8 @@
 #ifndef __MESSAGEQUEUE_H__
 #define __MESSAGEQUEUE_H__
 
+#include "CameraHal_Tracer.h"
+namespace android {
 struct Message
 {
     unsigned int command;
@@ -32,6 +34,6 @@ private:
     int fd_read;
     int fd_write;
 };
-
+}
 #endif
 

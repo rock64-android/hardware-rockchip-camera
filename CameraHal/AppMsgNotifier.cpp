@@ -2,20 +2,6 @@
 
 namespace android {
 
-#define LOG_TAG "CameraHal_AppMsg"
-
-static volatile int32_t gLogLevel = 1;
-
-#ifdef ALOGD_IF
-#define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#else
-#define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#endif
-
-#define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
-#define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
 
 #define EXIF_DEF_MAKER          "rockchip"
 #define EXIF_DEF_MODEL          "rk29sdk"
@@ -297,10 +283,8 @@ int AppMsgNotifier::enableMsgType(int32_t msgtype)
         Mutex::Autolock lock(mDataCbLock);
         mMsgTypeEnabled |= msgtype;
 		//LOGE("%s(%d): this video buffer is invaildate",__FUNCTION__,__LINE__);
-    }else {
+    }else
         mMsgTypeEnabled |= msgtype;
-        LOGE("-----------%s:%d-------------",__FUNCTION__,msgtype);
-    }
     LOG_FUNCTION_NAME_EXIT
 
     return 0;
@@ -323,22 +307,18 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
     }else if(msgtype & (CAMERA_MSG_PREVIEW_FRAME)){
             
             {
-                LOGD("%s%d: get mDataCbLock",__FUNCTION__,__LINE__);
+                LOG1("%s%d: get mDataCbLock",__FUNCTION__,__LINE__);
                 Mutex::Autolock lock(mDataCbLock);
                 mMsgTypeEnabled &= ~msgtype;
-                LOGD("%s%d: release mDataCbLock",__FUNCTION__,__LINE__);
+                LOG1("%s%d: release mDataCbLock",__FUNCTION__,__LINE__);
 
             }
-            //send a msg to disable preview frame cb
+            //send a msg to disable preview frame cb 
             Message msg;
-
-            msg.command = CameraAppMsgThread::CMD_EVENT_PAUSE;
-
-            msg.arg1  = NULL;
-
-            eventThreadCommandQ.put(&msg);
-
-            LOGD("%s%d: disable CAMERA_MSG_PREVIEW_FRAME success",__FUNCTION__,__LINE__);
+			msg.command = CameraAppMsgThread::CMD_EVENT_PAUSE;
+			msg.arg1 = NULL;
+			eventThreadCommandQ.put(&msg);
+			LOG1("%s%d: disable CAMERA_MSG_PREVIEW_FRAME success",__FUNCTION__,__LINE__);			
     }
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -479,7 +459,7 @@ int AppMsgNotifier::Jpegfillexifinfo(RkExifInfo *exifInfo,picture_info_s &params
 		return 0;
 	}
 	
-	/*fill in jpeg exif tag*/  
+	/*fill in jpeg exif tag*/ 
 	property_get("ro.product.brand", property, EXIF_DEF_MAKER);
 	strncpy((char *)ExifMaker, property,sizeof(ExifMaker) - 1);
 	ExifMaker[sizeof(ExifMaker) - 1] = '\0';
@@ -762,7 +742,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
         input_phy_addr = output_phy_addr;
         input_vir_addr = output_vir_addr;
         mRawBufferProvider->flushBuffer(0);
-        LOGE("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
+        LOG1("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
     }
 	/*if ((frame->frame_fmt != picfmt) || (frame->frame_width!= jpeg_w) || (frame->frame_height != jpeg_h) 
     	|| (frame->zoom_value != 100)) {
@@ -848,7 +828,8 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	}else{	  
 		JpegInInfo.doThumbNail = 0; 		 //insert thumbnail at APP0 extension	
 	}
-	
+
+    memset(&exifInfo,0,sizeof(exifInfo));
 	Jpegfillexifinfo(&exifInfo,mPictureInfo);
 	JpegInInfo.exifInfo =&exifInfo;
 
@@ -870,7 +851,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	JpegOutInfo.outBuflen = jpegbuf_size;
 	JpegOutInfo.jpegFileLen = 0x00;
 	JpegOutInfo.cacheflush= jpegEncFlushBufferCb;
-	LOGD("JpegOutInfo.outBufPhyAddr:%x,JpegOutInfo.outBufVirAddr:%x,jpegbuf_size:%d",JpegOutInfo.outBufPhyAddr,JpegOutInfo.outBufVirAddr,jpegbuf_size);
+	LOG1("JpegOutInfo.outBufPhyAddr:%x,JpegOutInfo.outBufVirAddr:%x,jpegbuf_size:%d",JpegOutInfo.outBufPhyAddr,JpegOutInfo.outBufVirAddr,jpegbuf_size);
 
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
 	
@@ -898,7 +879,7 @@ return ret;
 
 int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
     int ret = 0;
-    mDataCbLock.lock();
+	mDataCbLock.lock();
     if ((mMsgTypeEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
         //compute request mem size
         int tempMemSize = 0;
@@ -957,7 +938,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 
         mVideoBufferProvider->flushBuffer(buf_index);
         mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_index], 0, mCallbackCookie);
-        //LOGE("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
+        LOG1("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
     }
 	/*//fill video buffer
 	if(cameraFormatConvert(frame->frame_fmt, V4L2_PIX_FMT_NV12, NULL,
@@ -1082,8 +1063,8 @@ void AppMsgNotifier::eventThread()
 				{
                     LOGD("%s(%d),receive CameraAppMsgThread::CMD_EVENT_PAUSE",__FUNCTION__,__LINE__);
                     if(msg.arg1)
-                        ((Semaphore*)(msg.arg1))->Signal();
-                   //wake up waiter
+						((Semaphore*)(msg.arg1))->Signal();
+					//wake up waiter					
 					break; 
 				}
           case CameraAppMsgThread::CMD_EVENT_EXIT:

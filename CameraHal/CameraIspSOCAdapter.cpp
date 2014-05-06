@@ -1,24 +1,20 @@
 #include "CameraIspAdapter.h"
 
 namespace android{
-#define LOG_TAG "CameraHal_CameraIspSOCAdapter"
-static volatile int32_t gLogLevel = 0;
 
-#ifdef ALOGD_IF
-#define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#else
-#define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#endif
-
-#define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
-#define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
 
 /*
  * zyh neon optimize
  */
 #define HAVE_ARM_NEON 1
+
+CameraIspSOCAdapter::CameraIspSOCAdapter(int cameraId):CameraIspAdapter(cameraId)
+{
+}
+CameraIspSOCAdapter::~CameraIspSOCAdapter()
+{
+}
+
 
 void CameraIspSOCAdapter::setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h)
 {
@@ -27,13 +23,40 @@ void CameraIspSOCAdapter::setupPreview(int width_sensor,int height_sensor,int pr
     dcWin.height = height_sensor;
     dcWin.hOffset = 0;
     dcWin.vOffset = 0;
-    m_camDevice->previewSetup_ex( dcWin, width_sensor*2, height_sensor,
+
+    //
+	rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
+
+    if((pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Yuv420_8b)
+        && (m_camDevice->getBusWidth() == ISI_BUSWIDTH_8BIT_ZZ))
+    {
+        mIs8bit = true;
+    }else if((pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Raw_10b)
+        && (m_camDevice->getBusWidth() == ISI_BUSWIDTH_12BIT)){
+        mIs8bit = false;
+        if(pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.cifio == CamSys_SensorBit0_CifBit0)
+            mIs10bit0To0 = true;
+        else
+            mIs10bit0To0 = false;
+    }else{
+        mIs10bit0To0 = false;
+        mIs8bit = false;
+        LOGE("%s:erro:board xml format is %d,sensor driver bus width is %d",__FUNCTION__,pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.fmt,m_camDevice->getBusWidth());
+    }
+
+
+    if(!mIs8bit){
+        m_camDevice->previewSetup_ex( dcWin, width_sensor*2, height_sensor,
                                 CAMERIC_MI_DATAMODE_RAW12,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)false);
+    }else{
+        m_camDevice->previewSetup_ex( dcWin, width_sensor*2, height_sensor,
+                                CAMERIC_MI_DATAMODE_YUV420,CAMERIC_MI_DATASTORAGE_SEMIPLANAR,(bool_t)false);
+    }
 }
 
 //for soc camera test
 int writeframe = 0;
-extern "C" void arm_isp_yuyv_12bit_to_8bit (int src_w, int src_h,char *srcbuf,uint32_t ycSequence){
+extern "C" void arm_isp_yuyv_12bit_to_8bit (int src_w, int src_h,char *srcbuf,uint32_t ycSequence,bool is0bitto0bit){
     int  *srcint;
     int i = 0;
     unsigned int y_size = 0;
@@ -51,27 +74,49 @@ extern "C" void arm_isp_yuyv_12bit_to_8bit (int src_w, int src_h,char *srcbuf,ui
     }*/
     if(ycSequence == ISI_YCSEQ_CBYCRY){
 		int n = y_size;
-		asm volatile (
-				"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
-				"   cmp %[n], #8                                                \n\t"
-				"   blt 5f                                                      \n\t"
-				"0: @ 16 pixel swap                                             \n\t"
-				"   vld2.32 {q0,q1} , [%[src]]!  @ q0 = dat0 q1 = dat1          \n\t"
-				"   vshr.u32 q0,q0,#6            @ now q0  -> y1 00 v0 00       \n\t"
-				"   vshr.u32 q1,q1,#6            @ now q1  -> y0 00 u0 00       \n\t"
-				"   vswp q0, q1                  @ now q0 = q1 q1 = q0          \n\t"
-				//"   vswp d1, d2                  @ now q0 = q1 q1 = q0          \n\t"
-				"   vuzp.u8 q0,q4                @ now d0 = y0u0.. d8  = 00..   \n\t"
-				"   vuzp.u8 q1,q5                @ now d2 = y1v0.. d10 = 00..   \n\t"
-				"   vst2.16 {d0,d2},[%[dst_buf]]!@ now q0  -> dst               \n\t"
-				"   sub %[n], %[n], #8                                          \n\t"
-				"   cmp %[n], #8                                                \n\t"
-				"   bge 0b                                                      \n\t"
-				"5: @ end                                                       \n\t"
-				: [dst_buf] "+r" (dst_buf),[src] "+r" (srcint), [n] "+r" (n)
-				: [src_stride] "r" (y_size)
-				: "cc", "memory", "q0", "q1", "q2","q3"
-				);
+        if(!is0bitto0bit){
+    		asm volatile (
+    				"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+    				"   cmp %[n], #8                                                \n\t"
+    				"   blt 5f                                                      \n\t"
+    				"0: @ 16 pixel swap                                             \n\t"
+    				"   vld2.32 {q0,q1} , [%[src]]!  @ q0 = dat0 q1 = dat1          \n\t"
+    				"   vshr.u32 q0,q0,#6            @ now q0  -> y1 00 v0 00       \n\t"
+    				"   vshr.u32 q1,q1,#6            @ now q1  -> y0 00 u0 00       \n\t"
+    				"   vswp q0, q1                  @ now q0 = q1 q1 = q0          \n\t"
+    				"   vuzp.u8 q0,q4                @ now d0 = y0u0.. d8  = 00..   \n\t"
+    				"   vuzp.u8 q1,q5                @ now d2 = y1v0.. d10 = 00..   \n\t"
+    				"   vst2.16 {d0,d2},[%[dst_buf]]!@ now q0  -> dst               \n\t"
+    				"   sub %[n], %[n], #8                                          \n\t"
+    				"   cmp %[n], #8                                                \n\t"
+    				"   bge 0b                                                      \n\t"
+    				"5: @ end                                                       \n\t"
+    				: [dst_buf] "+r" (dst_buf),[src] "+r" (srcint), [n] "+r" (n) ,[tmp] "+r" (is0bitto0bit)
+    				: [src_stride] "r" (y_size)
+    				: "cc", "memory", "q0", "q1", "q2","q3"
+    				);
+        }else{
+    		asm volatile (
+    				"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+    				"   cmp %[n], #8                                                \n\t"
+    				"   blt 5f                                                      \n\t"
+    				"0: @ 16 pixel swap                                             \n\t"
+    				"   vld2.32 {q0,q1} , [%[src]]!  @ q0 = dat0 q1 = dat1          \n\t"
+    				"   vshr.u32 q0,q0,#4            @ now q0  -> y1 00 v0 00       \n\t"
+    				"   vshr.u32 q1,q1,#4            @ now q1  -> y0 00 u0 00       \n\t"
+    				"   vswp q0, q1                  @ now q0 = q1 q1 = q0          \n\t"
+    				"   vuzp.u8 q0,q4                @ now d0 = y0u0.. d8  = 00..   \n\t"
+    				"   vuzp.u8 q1,q5                @ now d2 = y1v0.. d10 = 00..   \n\t"
+    				"   vst2.16 {d0,d2},[%[dst_buf]]!@ now q0  -> dst               \n\t"
+    				"   sub %[n], %[n], #8                                          \n\t"
+    				"   cmp %[n], #8                                                \n\t"
+    				"   bge 0b                                                      \n\t"
+    				"5: @ end                                                       \n\t"
+    				: [dst_buf] "+r" (dst_buf),[src] "+r" (srcint), [n] "+r" (n) ,[tmp] "+r" (is0bitto0bit)
+    				: [src_stride] "r" (y_size)
+    				: "cc", "memory", "q0", "q1", "q2","q3"
+    				);
+        }
         y_size = src_w * src_h;
         srcint = ( int*)srcbuf;
         dst_y = ( int*)(srcint+(y_size>>1));
@@ -166,8 +211,18 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 height = pPicBufMetaData->Data.raw.PicHeightPixel;
                 HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
                 m_camDevice->getYCSequence();
-                arm_isp_yuyv_12bit_to_8bit(width,height,y_addr_vir,m_camDevice->getYCSequence());
-      }else{
+                arm_isp_yuyv_12bit_to_8bit(width,height,y_addr_vir,m_camDevice->getYCSequence(),mIs10bit0To0);
+                y_addr += width*height*2;
+                y_addr_vir += width*height*2;
+                
+    }else if(pPicBufMetaData->Type ==PIC_BUF_TYPE_YCbCr420){
+
+                fmt = V4L2_PIX_FMT_NV12;
+                y_addr = (uint32_t)(pPicBufMetaData->Data.raw.pBuffer );
+                width = pPicBufMetaData->Data.raw.PicWidthPixel >> 1;
+                height = pPicBufMetaData->Data.raw.PicHeightPixel;
+                HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
+    }else{
            LOGE("not support this type(%dx%d)  ,just support  yuv20 now",width,height);
            return;
     }
@@ -189,10 +244,10 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       }
       //add to vector
       tmpFrame->frame_index = (int)tmpFrame; 
-      tmpFrame->phy_addr = (int)(y_addr+width*height*2);
+      tmpFrame->phy_addr = (int)(y_addr);
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
-      tmpFrame->vir_addr = y_addr_vir+width*height*2;
+      tmpFrame->vir_addr = y_addr_vir;
       tmpFrame->frame_fmt = fmt;
       mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
       mRefDisplayAdapter->notifyNewFrame(tmpFrame);
@@ -209,10 +264,10 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       }
       //add to vector
       tmpFrame->frame_index = (int)tmpFrame; 
-      tmpFrame->phy_addr = (int)(y_addr+width*height*2);
+      tmpFrame->phy_addr = (int)(y_addr);
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
-      tmpFrame->vir_addr = y_addr_vir+width*height*2;
+      tmpFrame->vir_addr = y_addr_vir;
       tmpFrame->frame_fmt = fmt;
       mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
       mRefEventNotifier->notifyNewVideoFrame(tmpFrame);		
@@ -229,20 +284,18 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  //add to vector
 	  //fmt = V4L2_PIX_FMT_NV12;
 	  tmpFrame->frame_index = (int)tmpFrame; 
-	  tmpFrame->phy_addr = (int)(y_addr+width*height*2);
+	  tmpFrame->phy_addr = (int)(y_addr);
 	  tmpFrame->frame_width = width;
 	  tmpFrame->frame_height= height;
-	  tmpFrame->vir_addr = y_addr_vir+width*height*2;
+	  tmpFrame->vir_addr = y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
 	  mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
 	  mRefEventNotifier->notifyNewPicFrame(tmpFrame);	
 	}
 
 	//preview data callback ?
-	//LOGE("----------------isNeedSendToDataCB,before---------");
 	if(mRefEventNotifier->isNeedSendToDataCB()){
-		//LOGE("----------------isNeedSendToDataCB,IN---------");
-	    MediaBufLockBuffer( pMediaBuffer );
+		MediaBufLockBuffer( pMediaBuffer );
 		//new frames
 		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
 		if(!tmpFrame){
@@ -250,17 +303,15 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 			return;
 		}
 	  //add to vector
-	  //fmt = V4L2_PIX_FMT_NV12;
 	  tmpFrame->frame_index = (int)tmpFrame; 
-	  tmpFrame->phy_addr = (int)(y_addr+width*height*2);
+	  tmpFrame->phy_addr = (int)(y_addr);
 	  tmpFrame->frame_width = width;
 	  tmpFrame->frame_height= height;
-	  tmpFrame->vir_addr = y_addr_vir+width*height*2;
+	  tmpFrame->vir_addr =  y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
 	  mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
-	  mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);	
+	  mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);			
 	}
-	//LOGE("----------------isNeedSendToDataCB,OUT---------");
 	#endif
 }
 

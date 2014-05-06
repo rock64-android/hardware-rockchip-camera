@@ -178,7 +178,20 @@ typedef enum CamEngineFlickerPeriod_e
     CAM_ENGINE_FLICKER_120HZ = 0x02
 } CamEngineFlickerPeriod_t;
 
+typedef enum CamEngineFlashMode_e
+{
+    CAM_ENGINE_FLASH_OFF = 0x00,
+    CAM_ENGINE_FLASH_AUTO = 0x01,
+    CAM_ENGINE_FLASH_ON = 0x02,
+    CAM_ENGINE_FLASH_RED_EYE = 0x03,
+    CAM_ENGINE_FLASH_TORCH = 0x05
+} CamEngineFlashMode_t;
 
+typedef struct CamEngineFlashCfg_s 
+{
+    CamEngineFlashMode_t mode;   
+    
+} CamEngineFlashCfg_t;
 /*****************************************************************************/
 /**
  *  @brief Command completion signaling callback

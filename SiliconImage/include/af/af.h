@@ -115,6 +115,39 @@ typedef struct AfConfig_s
 
 
 
+typedef enum AfEvtId_e 
+{
+    AFM_AUTOFOCUS_MOVE        = 0,  /* <Notify on autofocus start and stop. This is useful in continuous > */
+    AFM_AUTOFOCUS_FINISHED    = 1,
+} AfEvtId_t;
+
+typedef struct AfMoveEvt_s 
+{
+    bool_t start;
+} AfMoveEvt_t;
+
+typedef struct AfFinshEvt_s
+{
+    bool_t focus;
+} AfFinshEvt_t;
+
+typedef struct AfEvt_s 
+{
+    AfEvtId_t              evnt_id;
+    union {
+        AfMoveEvt_t         mveEvt;
+        AfFinshEvt_t        fshEvt;
+    } info;
+    void                   *pEvntCtx;   
+} AfEvt_t;
+
+
+typedef struct AfEvtQue_s 
+{
+    List                   list;
+    osQueue                queue;
+} AfEvtQue_t;
+
 /*****************************************************************************/
 /**
  *          AfInit()
@@ -365,6 +398,34 @@ RESULT AfUnLock
 
 
 
+/******************************************************************************
+ * AfShotCheck()
+ *****************************************************************************/
+RESULT AfShotCheck
+(
+    AfHandle_t                  handle,
+    bool_t                      *shot
+);
+
+
+
+/******************************************************************************
+ * AfRegisterEvtQue
+ *****************************************************************************/
+RESULT AfRegisterEvtQue
+(
+    AfHandle_t                  handle,
+    AfEvtQue_t                  *evtQue
+);
+
+/******************************************************************************
+ * AfReset()
+ *****************************************************************************/
+RESULT AfReset
+(
+    AfHandle_t                handle,
+    const AfSearchStrategy_t  fss
+);
 #ifdef __cplusplus
 }
 #endif

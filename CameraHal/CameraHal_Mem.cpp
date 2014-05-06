@@ -8,20 +8,7 @@
 
 
 namespace android {
-#define LOG_TAG "CameraHal_Mem"
 
-static volatile int32_t gLogLevel = 0;
-
-#ifdef ALOGD_IF
-#define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#else
-#define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#endif
-
-#define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
-#define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
 
 /******************ION BUFFER START*******************/
 MemManagerBase::MemManagerBase()
@@ -80,12 +67,7 @@ getVirAddr_end:
 
 int MemManagerBase::dump()
 {
-    if (gLogLevel < 2) 
-        android_atomic_inc(&gLogLevel);
-    else
-        android_atomic_write(0,&gLogLevel);
-
-    LOGD("Set %s log level to %d",LOG_TAG,gLogLevel);
+    
     return 0;
 }
 

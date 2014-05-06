@@ -53,6 +53,8 @@
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
 #include "../jpeghw/release/encode_release/rk29-ipp.h"
+#include "../libon2/vpu_global.h"
+
 #include "CameraHal_Module.h"
 #include "common_type.h"
 
@@ -78,6 +80,7 @@
 
 
 #include "CameraHal_Mem.h"
+#include "CameraHal_Tracer.h"
 
 extern "C" int getCallingPid();
 extern "C" int cameraPixFmt2HalPixFmt(const char *fmt);
@@ -109,8 +112,19 @@ extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
 namespace android {
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 4, 0x21)
-//v0.4.21  add previewdatacallback
+/*
+*       CAMERA HAL VERSION NOTE
+*
+*v0.2.0x00: add continues focus/auto focus, log level;
+*v0.3.0x00: add usb camera support;
+*v0.4.0x00: add flash;
+*v0.5.0x00: check whether focus and flash is available
+*v0.6.0x00: sync camerahal
+*/
+
+
+
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 6, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -166,7 +180,9 @@ namespace android {
 #define JPEG_BUFFER_SIZE_0M3         0x100000
 
 #define OPTIMIZE_MEMORY_USE
-#define VIDEO_ENC_BUFFER            0x151800  
+#define VIDEO_ENC_BUFFER            0x151800 
+#define FILTER_FRAME_NUMBER (3)
+
 
 
 #define V4L2_BUFFER_MAX             32
@@ -180,18 +196,9 @@ namespace android {
                              GRALLOC_USAGE_SW_WRITE_MASK| \
                              GRALLOC_USAGE_SW_READ_RARELY*/ 
 #define CAMERA_IPP_NAME                  "/dev/rk29-ipp"
-#ifdef ALOGD
-#define LOGD      ALOGD
-#endif
-#ifdef ALOGV
-#define LOGV      ALOGV
-#endif
-#ifdef ALOGE
-#define LOGE      ALOGE
-#endif
-#ifdef ALOGI
-#define LOGI      ALOGI
-#endif
+
+
+
 
 #if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928)                         
     #define NATIVE_HANDLE_TYPE             private_handle_t
@@ -204,7 +211,6 @@ namespace android {
 #endif
 
 #define RK_VIDEOBUF_CODE_CHK(rk_code)		((rk_code&(('R'<<24)|('K'<<16)))==(('R'<<24)|('K'<<16)))
-
 
 
 class FrameProvider
@@ -273,6 +279,28 @@ class DisplayAdapter;
 class AppMsgNotifier;
 //diplay buffer 由display adapter类自行管理。
 
+/* mjpeg decoder interface in libvpu.*/
+typedef void* (*getMjpegDecoderFun)(void);
+typedef void (*destroyMjpegDecoderFun)(void* jpegDecoder);
+
+typedef int (*initMjpegDecoderFun)(void* jpegDecoder);
+typedef int (*deInitMjpegDecoderFun)(void* jpegDecoder);
+
+typedef int (*mjpegDecodeOneFrameFun)(void * jpegDecoder,uint8_t* aOutBuffer, uint32_t *aOutputLength,
+        uint8_t* aInputBuf, uint32_t* aInBufSize, uint32_t out_phyaddr);
+
+typedef struct mjpeg_interface {
+    void*                       decoder;
+    int                         state;
+    
+    getMjpegDecoderFun          get;
+    destroyMjpegDecoderFun      destroy;
+    initMjpegDecoderFun         init;
+    deInitMjpegDecoderFun       deInit;
+    mjpegDecodeOneFrameFun      decode;
+} mjpeg_interface_t;
+
+
 /*************************
 CameraAdapter 负责与驱动通信，且为帧数据的提供者，为display及msgcallback提供数据。
 ***************************/
@@ -317,11 +345,10 @@ protected:
  //   virtual status_t fillThisBuffer();
 
     //define  the frame info ,such as w, h ,fmt ,dealflag(preview callback ? display ? video enc ? picture?)
-    virtual void reprocessFrame(FramInfo_s* frame);
+    virtual int reprocessFrame(FramInfo_s* frame);
     virtual int adapterReturnFrame(int index,int cmd);
 
 private:
-    //该线程置于继承类中?
     class CameraPreviewThread :public Thread
     {
         //deque 到帧后根据需要分发给DisplayAdapter类及EventNotifier类。
@@ -336,23 +363,6 @@ private:
             return false;
         }
     };
-
-    class AutoFocusThread : public Thread {
-        CameraAdapter* mFocusCameraAdapter;
-    public:
-        AutoFocusThread(CameraAdapter* hw)
-            : Thread(false), mFocusCameraAdapter(hw) { }
-
-        virtual bool threadLoop() {
-            mFocusCameraAdapter->autofocusThread();
-
-            return false;
-        }
-    };
-
-    void autofocusThread();
-    sp<AutoFocusThread>  mAutoFocusThread;
-
 
 
 protected:    
@@ -389,12 +399,13 @@ protected:
     char *mCamDriverV4l2Buffer[V4L2_BUFFER_MAX];
     unsigned int mCamDriverV4l2BufferLen;
 
+    mjpeg_interface_t mMjpegDecoder;
+    void* mLibstageLibHandle;
+
+    int mZoomVal;
+
     int mCamFd;
     int mCamId;
-
-    Mutex mAutoFocusLock;
-    Condition mAutoFocusCond;
-    bool mExitAutoFocusThread; 
 };
 
 //soc camera adapter
@@ -409,7 +420,7 @@ public:
     **********************/
     //parameters
     virtual int setParameters(const CameraParameters &params_set);
-    virtual void initDefaultParameters();
+    virtual void initDefaultParameters(int camFd);
     virtual int cameraAutoFocus(bool auto_trig_only);
     
 private:    
@@ -461,16 +472,50 @@ private:
 
 //usb camera adapter
 
+
+
 class CameraUSBAdapter: public CameraAdapter
 {
 public:
-    CameraUSBAdapter(int cameraId):CameraAdapter(cameraId){};
-    virtual ~CameraUSBAdapter(){};
+    CameraUSBAdapter(int cameraId);
+    virtual ~CameraUSBAdapter();
+    virtual int cameraStop();
+    virtual int setParameters(const CameraParameters &params_set);
+    virtual void initDefaultParameters(int camFd);
+    virtual int reprocessFrame(FramInfo_s* frame);
+
+
+private:
+    int cameraConfig(const CameraParameters &tmpparams,bool isInit);
+    
+    int mCamDriverFrmWidthMax;
+    int mCamDriverFrmHeightMax;
+    String8 mSupportPreviewSizeReally;
+ 
+    struct v4l2_querymenu mWhiteBalance_menu[20];
+    int mWhiteBalance_number;
+    
+    struct v4l2_querymenu mEffect_menu[20];
+    int mEffect_number;
+    
+    struct v4l2_querymenu mScene_menu[20];
+    int mScene_number;
+    
+    struct v4l2_querymenu mAntibanding_menu[20];
+    int mAntibanding_number;
+    
+    int mZoomMin;
+    int mZoomMax;
+    int mZoomStep;
+    
+    struct v4l2_querymenu mFlashMode_menu[20];
+    int mFlashMode_number;
+
 };
 /*************************
 DisplayAdapter 为帧数据消费者，从CameraAdapter接收帧数据并显示
 ***************************/
-class DisplayAdapter
+class DisplayAdapter//:public CameraHal_Tracer
 {
     class DisplayThread : public Thread {
         DisplayAdapter* mDisplayAdapter;        
@@ -1093,52 +1138,5 @@ private:
 }
 
 #endif
-//CameraHardwareInterface 中接口实现说明
-/*
-enableMsgType  
-调用到EventNotifier的enableMsgType，
-EventNotifier中根据msg的enable状态决定是否需要接收CameraAdapter传过来的frame
-*/
 
-/*
-startPreview
-1、CameraHal类申请buffer等
-2、CameraAdapter类set fmt及stream on
-3、DisplayAdapter类enabledisplay
-
-考虑连拍及ZSL情况，拍完后APP会重发startpreview(拍照完后不一定发stopPreview下来)，此时
-，直接enabledisplay。
-*/
-
-/*startRecording
-*/
-
-/*
-autoFocus
-1、CameraHal 类收到focus后通知CameraAdapter
-2、CameraAdapter 通知 EventNotifier
-3、EventNotifier 回调(在线程中回调)CameraAdapter中focus具体实现
-*/
-
-/*
-takePicture
-1、是否需要restartpreview，
-2、连拍?需要暂停display ?
-3、通知EventNotifier需要接收frame作为picture
-4、拍完后(或者连拍完后)停掉EventNotifier中picture的消息接收
-*/
-
-/*
-setParameters
-
-对于zoom的处理，由camerahal来实现zoom功能；
-previewTread 中deque到frame后，frame info中加入zoom值；
-event thread，display thread收到frame后需要对zoom做出处理。
-*/
-
-/**********************************
-关于插值
-preview或者capture设置size时，如果比enum到的最大分辨率还要大，则选取
-适合的sensor分辨率，后在event ，display类中做插值处理。
-************************************/
 

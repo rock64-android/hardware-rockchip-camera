@@ -5,20 +5,10 @@
 #include <sys/poll.h>
 #include <unistd.h>
 
-#define LOG_TAG "MessageQueue"
 #include <utils/Log.h>
 #include "CameraHal.h"
 #include "MessageQueue.h"
-
-static volatile int32_t gLogLevel = 0;
-
-#ifdef ALOGD_IF
-#define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#else
-#define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#endif
+namespace android {
 
 static char gDisplayThreadCommands[][30] = {
 		{"CMD_DISPLAY_PAUSE"},
@@ -250,12 +240,8 @@ bool MessageQueue::isEmpty()
 
 int MessageQueue::dump()
 {
-    if (gLogLevel < 2) 
-        android_atomic_inc(&gLogLevel);
-    else 
-        android_atomic_write(0,&gLogLevel);   
-    LOGD("Set %s log level to %d",LOG_TAG,gLogLevel);
-
     return 0;
+}
+
 }
 

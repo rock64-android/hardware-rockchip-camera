@@ -128,6 +128,7 @@ typedef struct IsiSensorInstanceConfig_s
     uint16_t            SlaveAddr;          /**< The I2C slave addr the sensor is configured to. */
     uint8_t             I2cAfBusNum;        /**< The I2C bus the ad module is connected to. */
     uint16_t            SlaveAfAddr;        /**< The I2C slave addr of the af module is configured to */
+    uint16_t            mipiLaneNum;
 
     IsiSensor_t         *pSensor;           /**< Sensor driver interface */
 

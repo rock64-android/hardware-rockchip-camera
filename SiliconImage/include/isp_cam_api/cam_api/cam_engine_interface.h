@@ -52,8 +52,16 @@
 #include <CameraHal_board_xml_parse.h>
 #include <linux/version.h>
 
+/*
+*              SILICONIMAGE LIBISP VERSION NOTE
+*
+*v0.2.0x00 : add checkAfShot and registerAfEvtQue api, log level;
+*v0.3.0x00 : add configFlash/startFlash/stopFlash
+*
+*/
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 1, 0x00) 
+
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 3, 0x00) 
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);
@@ -241,11 +249,19 @@ public:
 
     // auto focus functions
     bool isAfAvailable( bool &available );
+    bool resetAf( const CamEngineAfSearchAlgorithm_t &searchAlgorithm );
     bool startAfContinous( const CamEngineAfSearchAlgorithm_t &searchAlgorithm );
     bool startAfOneShot( const CamEngineAfSearchAlgorithm_t &searchAlgorithm );
     bool stopAf();
     bool getAfStatus( bool &enabled, CamEngineAfSearchAlgorithm_t &seachAlgorithm );
+    bool checkAfShot( bool *shot );  /* ddl@rock-chips.com */
+    bool registerAfEvtQue( CamEngineAfEvtQue_t *evtQue );   /* ddl@rock-chips.com */
 
+    // flash   ddl@rock-chips.com
+    bool configureFlash( CamEngineFlashCfg_t *cfgFsh );
+    bool startFlash ( bool operate_now );
+    bool stopFlash ( bool operate_now );
+    
     // auto white balance functions
     bool isAwbEnabled();
     bool startAwb( const CamEngineAwbMode_t &mode, const uint32_t idx, const bool_t damp );
@@ -367,8 +383,9 @@ public:
     void dcropSpWindowSet( bool  enable , uint16_t  x,  uint16_t y, uint16_t  width, uint16_t  height );
 
 
-    bool isSOCSensor12Bit(); // zyc add
+    bool isSOCSensor(); // zyc add
     uint32_t getYCSequence(); //zyc add
+    uint32_t getBusWidth(); //zyc add
 
 private:
     void closeSensor();
@@ -381,6 +398,8 @@ private:
 
     bool setupCamerIC();
     void doneCamerIC();
+    bool restartMipiDrv(); //zyc add
+
 
 public:
     class SensorHolder;

@@ -1,5 +1,4 @@
 
-#define LOG_TAG "BoardProfiles"
 
 #include <stdlib.h>
 #include <utils/Log.h>
@@ -39,10 +38,9 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const char **atts
 	camera_board_profiles *pCamInfoProfiles = (camera_board_profiles *) userData;
 	rk_cam_total_info *pCamInfo = pCamInfoProfiles->mCurDevice;
     rk_sensor_info *pSensorInfo = &(pCamInfo->mHardInfo.mSensorInfo);
-	int result;
+	int result;    
 
     if (strcmp(name, "SensorName")==0) {
-	    ALOGD("%s(%d): SensorName(%s)\n", __FUNCTION__, __LINE__, atts[1]);
         strncpy(pSensorInfo->mSensorName, atts[1], strlen(atts[1]));
         ALOGD("%s(%d): SensorName(%s)\n", __FUNCTION__, __LINE__, pSensorInfo->mSensorName);
     } else if (strcmp(name, "SensorDevID")==0) {
@@ -121,18 +119,18 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const char **atts
         }else{
             ALOGD("%s(%d): SensorFacing(%s) is wrong \n", __FUNCTION__, __LINE__, atts[1]);
         }
-    } else if (strcmp(name,"SensorMode")==0){
-        ALOGD("%s(%d): SensorMode(%s) \n", __FUNCTION__, __LINE__, atts[1]);
-        if(strcmp("MIPI_2_LANE", atts[1])==0){
-            pSensorInfo->mMode = MIPI_2_LANE;
-        }else if(strcmp("MIPI_4_LANE", atts[1])==0){
-            pSensorInfo->mMode = MIPI_4_LANE;
-        }else if(strcmp("DVP", atts[1])==0){
-            pSensorInfo->mMode = DVP;
+    } else if (strcmp(name,"SensorInterface")==0){
+        ALOGD("%s(%d): SensorInterface(%s) \n", __FUNCTION__, __LINE__, atts[1]);
+        if(strcmp("CCIR601", atts[1])==0){
+            pSensorInfo->mMode = CCIR601;
+        }else if(strcmp("MIPI", atts[1])==0){
+            pSensorInfo->mMode = MIPI;
+        }else if(strcmp("SMIA", atts[1])==0){
+            pSensorInfo->mMode = SMIA;
         }else if(strcmp("CCIR656", atts[1])==0){
             pSensorInfo->mMode = CCIR656;
         }else{
-            ALOGD("%s(%d): SensorMode(%s) don't support \n", __FUNCTION__, __LINE__, atts[1]);
+            ALOGD("%s(%d): SensorInterface(%s) don't support \n", __FUNCTION__, __LINE__, atts[1]);
         }
     } else if (strcmp(name,"SensorMirrorFlip")==0){
         ALOGD("%s(%d): SensorMirrorFlip(%s) \n", __FUNCTION__, __LINE__, atts[1]);
@@ -147,18 +145,45 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const char **atts
         ALOGD("%s(%d): SensorDriver(%s) \n", __FUNCTION__, __LINE__, atts[1]);
         strncpy(pSensorInfo->mSensorDriver, atts[1], sizeof(pSensorInfo->mSensorDriver));
     }else if(strcmp(name, "SensorPhy")==0){
-        ALOGD("%s(%d): SensorPhy(%s) \n", __FUNCTION__, __LINE__, atts[1]);
+        camsys_fmt_t fmt;
+        
+        if(strcmp(atts[7], "CamSys_Fmt_Yuv420_8b")==0){
+            fmt = CamSys_Fmt_Yuv420_8b;
+        }else if(strcmp(atts[7], "CamSys_Fmt_Yuv420_10b")==0){
+            fmt = CamSys_Fmt_Yuv420_10b;
+        }else if(strcmp(atts[7], "CamSys_Fmt_LegacyYuv420_8b")==0){
+            fmt = CamSys_Fmt_LegacyYuv420_8b;
+        }else if(strcmp(atts[7], "CamSys_Fmt_Yuv422_8b")==0){
+            fmt = CamSys_Fmt_Yuv422_8b;
+        }else if(strcmp(atts[7], "CamSys_Fmt_Yuv422_10b")==0){
+            fmt = CamSys_Fmt_Yuv422_10b;
+        }else if(strcmp(atts[7], "CamSys_Fmt_Raw_6b")==0){
+            fmt = CamSys_Fmt_Raw_6b;
+        }else if(strcmp(atts[7], "CamSys_Fmt_Raw_7b")==0){
+            fmt = CamSys_Fmt_Raw_7b;
+        }else if(strcmp(atts[7], "CamSys_Fmt_Raw_8b")==0){
+            fmt = CamSys_Fmt_Raw_8b;
+        }else if(strcmp(atts[7], "CamSys_Fmt_Raw_10b")==0){
+            fmt = CamSys_Fmt_Raw_10b;
+        }else if(strcmp(atts[7], "CamSys_Fmt_Raw_12b")==0){
+            fmt = CamSys_Fmt_Raw_12b;
+        }else if(strcmp(atts[7], "CamSys_Fmt_Raw_14b")==0){
+            fmt = CamSys_Fmt_Raw_14b;
+        }else {
+           ALOGE("%s(%d):  unknown fmt (%s) \n", __FUNCTION__, __LINE__ , atts[7]); 
+        }
+    
         if(strcmp(atts[1], "CamSys_Phy_Mipi")==0){
             pSensorInfo->mPhy.type = CamSys_Phy_Mipi;
 			int laneNum = atoi(atts[3]);
-			if(laneNum<=1 || laneNum>4){
-			
-				ALOGE("%s(%d): SensorPhy laneNum wrong (%s) range(1,4)\n", __FUNCTION__, __LINE__, atts[3]);
+			if(laneNum<=1 || laneNum>4){		
+				ALOGE("%s(%d): SensorPhy laneNum wrong (%s) range[1,4]\n", __FUNCTION__, __LINE__, atts[3]);
 				if(laneNum<1)
 					laneNum=1;
 				if(laneNum>4)
 					laneNum=4;
 			}
+			
 			int data_en_bit = 0;
 			int i=0;
 			while(laneNum){
@@ -166,37 +191,39 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const char **atts
 				laneNum--;
 				i++;
 			}
+			
+			int phyIndex = atoi(atts[5]);
+			if(phyIndex<0 || phyIndex>1){
+				ALOGE("%s(%d): SensorPhy phyIndex wrong (%s) range[0,1]\n", __FUNCTION__, __LINE__, atts[9]);
+				if(phyIndex<0)
+					phyIndex = 0;
+				if(phyIndex>1)
+					phyIndex = 1;
+			}
+			
             pSensorInfo->mPhy.info.mipi.data_en_bit = data_en_bit;
+			pSensorInfo->mPhy.info.mipi.phy_index = phyIndex;
+			pSensorInfo->laneNum = atoi(atts[3]);
+            pSensorInfo->fmt = fmt;
+            ALOGD("%s(%d): SensorPhy: MIPI  lane: %d  phyindex: %d  fmt: 0x%x\n",
+                __FUNCTION__,__LINE__,pSensorInfo->laneNum, pSensorInfo->mPhy.info.mipi.phy_index , fmt);
         }else if(strcmp(atts[1], "CamSys_Phy_Cif")==0){
             pSensorInfo->mPhy.type = CamSys_Phy_Cif;
-            pSensorInfo->mPhy.info.cif.cif_num = atoi(atts[5]);
-            if(strcmp(atts[7], "CamSys_Fmt_Yuv420_8b")==0){
-                pSensorInfo->mPhy.info.cif.fmt = CamSys_Fmt_Yuv420_8b;
-            }else if(strcmp(atts[7], "CamSys_Fmt_Yuv420_10b")==0){
-                pSensorInfo->mPhy.info.cif.fmt = CamSys_Fmt_Yuv420_10b;
-            }else if(strcmp(atts[7], "CamSys_Fmt_LegacyYuv420_8b")==0){
-                pSensorInfo->mPhy.info.cif.fmt = CamSys_Fmt_LegacyYuv420_8b;
-            }else if(strcmp(atts[7], "CamSys_Fmt_Yuv422_8b")==0){
-                pSensorInfo->mPhy.info.cif.fmt = CamSys_Fmt_Yuv422_8b;
-            }else if(strcmp(atts[7], "CamSys_Fmt_Yuv422_10b")==0){
-                pSensorInfo->mPhy.info.cif.fmt = CamSys_Fmt_Yuv422_10b;
-            }else if(strcmp(atts[7], "CamSys_Fmt_Raw_6b")==0){
-                pSensorInfo->mPhy.info.cif.fmt = CamSys_Fmt_Raw_6b;
-            }else if(strcmp(atts[7], "CamSys_Fmt_Raw_7b")==0){
-                pSensorInfo->mPhy.info.cif.fmt = CamSys_Fmt_Raw_7b;
-            }else if(strcmp(atts[7], "CamSys_Fmt_Raw_8b")==0){
-                pSensorInfo->mPhy.info.cif.fmt = CamSys_Fmt_Raw_8b;
-            }else if(strcmp(atts[7], "CamSys_Fmt_Raw_10b")==0){
-                pSensorInfo->mPhy.info.cif.fmt = CamSys_Fmt_Raw_10b;
-            }else if(strcmp(atts[7], "CamSys_Fmt_Raw_12b")==0){
-                pSensorInfo->mPhy.info.cif.fmt = CamSys_Fmt_Raw_12b;
-            }else if(strcmp(atts[7], "CamSys_Fmt_Raw_14b")==0){
-                pSensorInfo->mPhy.info.cif.fmt = CamSys_Fmt_Raw_14b;
-            }else {
-               ALOGE("%s(%d): unknown fmt (%s) \n", __FUNCTION__, __LINE__, atts[1]); 
+
+            if (strcmp(atts[3], "0") == 0) {
+                pSensorInfo->mPhy.info.cif.cifio = CamSys_SensorBit0_CifBit0;
+            } else if (strcmp(atts[3], "2") == 0) {
+                pSensorInfo->mPhy.info.cif.cifio = CamSys_SensorBit0_CifBit2;
             }
+                
+            pSensorInfo->mPhy.info.cif.cif_num = atoi(atts[5]);            
+            pSensorInfo->mPhy.info.cif.fmt = fmt;
+
+            ALOGD("%s(%d): SensorPhy: CIF sensor_d0_to_cif_d: %s  cifnum: %d  fmt: 0x%x\n",
+                __FUNCTION__,__LINE__,atts[3], pSensorInfo->mPhy.info.cif.cif_num , fmt);
+            
         }else{
-           ALOGE("%s(%d): unknown phy mode(%s) \n", __FUNCTION__, __LINE__, atts[1]); 
+           ALOGE("%s(%d): unknown phy mode(%s) \n" ,__FUNCTION__,__LINE__, atts[1]); 
         }
         strncpy(pSensorInfo->mSensorDriver, atts[1], sizeof(pSensorInfo->mSensorDriver));
     }
@@ -247,7 +274,7 @@ void camera_board_profiles::ParserFlashInfo(const char *name, const char **atts,
 
     if (strcmp(name, "FlashName")==0) {
         ALOGD("%s(%d): FlashName(%s)\n", __FUNCTION__, __LINE__, atts[1]);
-        strncpy(pFlashInfo->mFlashName, atts[1], strlen(atts[1]));
+        strncpy(pFlashInfo->mFlashName, atts[1], strlen(atts[1]));        
     } else if (strcmp(name, "FlashI2cBusNum")==0) {
         ALOGD("%s(%d): FlashI2cBusNum(%s)\n", __FUNCTION__, __LINE__, atts[1]);
         pFlashInfo->mFlashI2cBusNum = atoi(atts[1]);
@@ -257,19 +284,14 @@ void camera_board_profiles::ParserFlashInfo(const char *name, const char **atts,
     } else if (strcmp(name,"FlashI2cRate")==0){
         ALOGD("%s(%d): FlashI2cRate(%s)\n", __FUNCTION__, __LINE__, atts[1]);
         pFlashInfo->mFlashI2cRate = atoi(atts[1]);
-    } else if (strcmp(name,"FlashGpioPwdn")==0){
-        ALOGD("%s(%d): FlashGpioPwdn(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
-        strncpy(pFlashInfo->mFlashGpioPwdn.name, atts[1], strlen(atts[1]));
-        pFlashInfo->mFlashGpioPwdn.active = atoi(atts[3]);
-    } else if (strcmp(name,"FlashGpioPower")==0){
-        ALOGD("%s(%d): FlashGpioPower(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
-        strncpy(pFlashInfo->mFlashGpioPower.name, atts[1], strlen(atts[1]));
-        pFlashInfo->mFlashGpioPower.active = atoi(atts[3]);
-    } else if (strcmp(name,"FlashVdd")==0){
-        ALOGD("%s(%d): FlashVdd(%s) min(%s) max(%s)\n", __FUNCTION__, __LINE__, atts[1], atts[3], atts[5]);
-        strncpy(pFlashInfo->mFlashVdd.name, atts[1], strlen(atts[1]));       
-        pFlashInfo->mFlashVdd.min_uv= atoi(atts[3]);
-        pFlashInfo->mFlashVdd.max_uv= atoi(atts[5]);
+    } else if (strcmp(name,"FlashTrigger")==0){
+        ALOGD("%s(%d): FlashTrigger(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
+        strncpy(pFlashInfo->mFlashTrigger.name, atts[1], strlen(atts[1]));
+        pFlashInfo->mFlashTrigger.active = atoi(atts[3]);
+    } else if (strcmp(name,"FlashEn")==0){
+        ALOGD("%s(%d): FlashEn(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
+        strncpy(pFlashInfo->mFlashEn.name, atts[1], strlen(atts[1]));
+        pFlashInfo->mFlashEn.active = atoi(atts[3]);     
     } else if (strcmp(name, "Flash_Mode_Off")==0) {
         support = atoi(atts[1]);
 	    if(support==1)
@@ -629,7 +651,25 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
 	rk_cam_total_info *pCamInfo = pCamInfoProfiles->mCurDevice;
 	int support = 0;
 
-	if(strcmp(name,"CamDevie")==0){
+	if(strcmp(name,"BoardXmlVersion")==0){
+		ALOGD("%s(%d): BoardXmlVersion (%s) \n", __FUNCTION__,__LINE__, atts[1]);
+		int highBit = 0;
+		int middleBit = 0;
+		int lowBit = 0;
+		sscanf(atts[1], "v%x.%x.%x", &highBit, &middleBit, &lowBit);
+		pCamInfoProfiles->mBoardXmlVersion = ( (highBit&0xff)<<16 ) + ( (middleBit&0xff)<<8 ) + (lowBit&0xff) ;
+		if(pCamInfoProfiles->mBoardXmlVersion != ConfigBoardXmlVersion){
+			ALOGD("%s(%d): \n", __FUNCTION__,__LINE__);
+			ALOGD("%s(%d): \n", __FUNCTION__,__LINE__);
+			ALOGD("%s(%d): \n", __FUNCTION__,__LINE__);
+			
+			ALOGD("%s(%d):   ConfigBoardXmlVersion(%06x)  parse boardxml(%06x)\n", __FUNCTION__,__LINE__, ConfigBoardXmlVersion, pCamInfoProfiles->mBoardXmlVersion);
+			
+			ALOGD("%s(%d): \n", __FUNCTION__,__LINE__);
+			ALOGD("%s(%d): \n", __FUNCTION__,__LINE__);
+			ALOGD("%s(%d): \n", __FUNCTION__,__LINE__);
+		}
+	}else if(strcmp(name,"CamDevie")==0){
 	    rk_cam_total_info* pNewCamInfo = new rk_cam_total_info();
 	    if(pNewCamInfo){
 	        ALOGD("%s(%d):  camdevice malloc success! (%p) \n", __FUNCTION__,__LINE__, pNewCamInfo);
@@ -847,7 +887,7 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         pCamInfo->mLoadSensorInfo.mpI2cInfo = pI2cInfo;
         //register i2c device 
         int err = RegisterSensorDevice(pCamInfo);
-        if(!err)
+        if(err==RK_RET_SUCCESS)
         {
         	if(pIsiCamDrvConfig->IsiSensor.pIsiSensorCaps->SensorOutputMode == ISI_SENSOR_OUTPUT_MODE_RAW){
 	            CalibDb *pcalidb = &(pCamInfo->mLoadSensorInfo.calidb);
@@ -898,16 +938,20 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     rk_sensor_info *pSensorInfo = &(pCamInfo->mHardInfo.mSensorInfo);
     rk_vcm_info *pVcmInfo = &(pCamInfo->mHardInfo.mVcmInfo);
     camsys_load_sensor_info *pLoadInfo = &(pCamInfo->mLoadSensorInfo);
+    rk_flash_info *pFlashInfo = &(pCamInfo->mHardInfo.mFlashInfo);
     sensor_i2c_info_t *pI2cInfo = pLoadInfo->mpI2cInfo;
     
     camsys_fd = open(pSensorInfo->mCamsysDevPath, O_RDWR);
     if (camsys_fd < 0) {
         ALOGD("Open (%s) failed, error=(%s)\n", pSensorInfo->mCamsysDevPath,strerror(errno));
         err = RK_RET_NOFILE;
+		ret = RK_RET_NOFILE;
         goto end;
     }    
 
+    memset(&extdev,0x00, sizeof(camsys_devio_name_t));
     pCamInfo->mLoadSensorInfo.mCamsysFd = camsys_fd;
+    
     extdev.dev_id = pSensorInfo->mCamDevid;
     strlcpy((char*)extdev.avdd.name, pSensorInfo->mAvdd.name,sizeof(extdev.avdd.name));
     //strlcpy((char*)extdev.avdd.name, pSensorInfo->mAvdd.name,2);
@@ -935,6 +979,10 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     extdev.afpwrdn.active = pVcmInfo->mVcmGpioPwdn.active;
     strlcpy((char*)extdev.afpwr.name, pVcmInfo->mVcmGpioPower.name,sizeof(extdev.afpwr.name));
     extdev.afpwr.active = pVcmInfo->mVcmGpioPower.active;
+    
+    if (strcmp("Internal",pFlashInfo->mFlashName) == 0) {
+        extdev.dev_cfg |= CAMSYS_DEVCFG_FLASHLIGHT;
+    }
 
     #if 1
     if(pSensorInfo->mPhy.type == CamSys_Phy_Cif){
@@ -944,6 +992,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     }else if(pSensorInfo->mPhy.type == CamSys_Phy_Mipi){
         extdev.phy.type = CamSys_Phy_Mipi;
         extdev.phy.info.mipi.data_en_bit = pSensorInfo->mPhy.info.mipi.data_en_bit;
+        extdev.phy.info.mipi.phy_index = pSensorInfo->mPhy.info.mipi.phy_index;
+
     }else{
         ALOGE("%s %d: unknow phy type(%d)\n", pSensorInfo->mPhy.type);
     }
@@ -1184,17 +1234,25 @@ int camera_board_profiles::CheckSensorSupportDV(rk_cam_total_info* pCamInfo)
         for(int i=0; i<nDvVector; i++){
             rk_DV_info *pDVInfo = pCamInfo->mSoftInfo.mDV_vector[i];
 
-            if((pDVInfo->mResolution & pCamInfo->mLoadSensorInfo.mpI2cInfo->resolution) 
-                && pDVInfo->mIsSupport){
-                pDVInfo->mAddMask = 0;
-                ALOGD("(%s) resolution(%dx%d) is support by sensor \n", pCamInfo->mHardInfo.mSensorInfo.mSensorName, pDVInfo->mWidth, pDVInfo->mHeight);
-            }else{
-                if(pDVInfo->mIsSupport)
-                    pDVInfo->mAddMask = 0;
-                else
-                    pDVInfo->mAddMask = 1;
-                ALOGD("NOTICE: (%s)  resolution(%dx%d) is scale or crop from other resolution\n", pCamInfo->mHardInfo.mSensorInfo.mSensorName, pDVInfo->mWidth, pDVInfo->mHeight);
-            }
+			if(strcmp(pCamInfo->mHardInfo.mSensorInfo.mSensorName, UVC_CAM_NAME)==0){
+					if(pDVInfo->mIsSupport)
+	                    pDVInfo->mAddMask = 0;
+	                else
+	                    pDVInfo->mAddMask = 1;
+					ALOGD("(%s) UVC camera resolution(%dx%d) is support \n", pCamInfo->mHardInfo.mSensorInfo.mSensorName, pDVInfo->mWidth, pDVInfo->mHeight);
+			}else{
+	            if((pDVInfo->mResolution & pCamInfo->mLoadSensorInfo.mpI2cInfo->resolution) 
+	                && pDVInfo->mIsSupport){
+	                pDVInfo->mAddMask = 0;
+	                ALOGD("(%s) resolution(%dx%d) is support by sensor \n", pCamInfo->mHardInfo.mSensorInfo.mSensorName, pDVInfo->mWidth, pDVInfo->mHeight);
+	            }else{
+	                if(pDVInfo->mIsSupport)
+	                    pDVInfo->mAddMask = 0;
+	                else
+	                    pDVInfo->mAddMask = 1;
+	                ALOGD("NOTICE: (%s)  resolution(%dx%d) is scale or crop from other resolution\n", pCamInfo->mHardInfo.mSensorInfo.mSensorName, pDVInfo->mWidth, pDVInfo->mHeight);
+	            }
+			}
            
         }
     }else{
@@ -1671,20 +1729,32 @@ int camera_board_profiles::ProduceNewXml(camera_board_profiles* profiles)
     char dst_file[50];
     char default_file[50];
     int err=0;
+	int res=0;
 
     //CheckSensorSupportDV
     AddConnectSensorToVector(profiles);
-    size_t nCamNum =profiles->mDevideConnectVector.size();
-    
+	size_t nCamNum =profiles->mDevideConnectVector.size();
+	
+	//verrify media_xml_device is supported by board xml 
+    for(int i=0; (i<profiles->xml_device_count && i<2); i++)
+    {
+    	res |= ConnectDevHaveDev(profiles, (profiles->mXmlDevInfo + i));
+    }
+
+    if(res == RK_RET_SUCCESS && profiles->xml_device_count==nCamNum){
+		ALOGD("not produce new xml\n");
+        return RK_RET_SUCCESS;
+    }
+
+	
     if(nCamNum>=1){ 
         ALOGD("enter produce new xml\n");
         //new xml file name
         strncpy(default_file, RK_DEFAULT_MEDIA_PROFILES_XML_PATH, sizeof(default_file));
         strncpy(dst_file, RK_DST_MEDIA_PROFILES_XML_PATH, sizeof(dst_file));
         strncpy(temp_dst_file, RK_TMP_MEDIA_PROFILES_XML_PATH, sizeof(temp_dst_file));
-
-        for(int i=0; i<nCamNum; i++){
-            profiles->mDevideConnectVector[i]->mLoadSensorInfo.mpI2cInfo->resolution = 0;
+		
+        for(int i=0; i<nCamNum; i++){		
             CheckSensorSupportDV(profiles->mDevideConnectVector[i]);
         }
         
@@ -1728,19 +1798,20 @@ int camera_board_profiles::LoadSensor(camera_board_profiles* profiles)
     }
 
     //read sensor name
-    xml_DEV_name_s media_xml_device[2];
-    memset(&media_xml_device, 0x00, sizeof(xml_DEV_name_s));
-    count = ReadDevNameFromXML(fp, media_xml_device);
+    count = ReadDevNameFromXML(fp, profiles->mXmlDevInfo);
+	profiles->xml_device_count = count;
     if(count<1){
         ALOGD("media_profiles.xml not have any camera device\n");
         goto err_end;
     }
 
-    ALOGD("find camera count(%d) cam1(%s)\n", count, media_xml_device[0].camera_name);
+    ALOGD("find camera count(%d) cam1(%s) cam2(%s)\n", count, profiles->mXmlDevInfo[0].camera_name,  profiles->mXmlDevInfo[1].camera_name);
     //verrify media_xml_device is supported by board xml 
     for(int i=0; (i<count && i<2); i++)
     {
-        err |= BoardFileHaveDev(profiles, (media_xml_device+i));
+    	if(strcmp(profiles->mXmlDevInfo[i].camera_name, UVC_CAM_NAME)!= 0){
+        	err |= BoardFileHaveDev(profiles, (profiles->mXmlDevInfo+i));
+		}
     }
 
     if(err != RK_RET_SUCCESS){
@@ -1749,24 +1820,26 @@ int camera_board_profiles::LoadSensor(camera_board_profiles* profiles)
 
     //register exist sensor
     for(int i=0; (i<count && i<2); i++){
-        result = OpenAndRegistOneSensor(profiles->mDevieVector[media_xml_device[i].index]);
+		if(strcmp(profiles->mXmlDevInfo[i].camera_name, UVC_CAM_NAME)== 0){
+			continue;
+		}
+				
+        result = OpenAndRegistOneSensor(profiles->mDevieVector[profiles->mXmlDevInfo[i].index]);
 		if(result != 0){
 			goto err_end;
-		}else{
-        	profiles->mDevieVector[media_xml_device[i].index]->mIsConnect = 1;
 		}
        
     }
 
 	if(profiles->mDevieVector.size()>0){
-		AddConnectSensorToVector(profiles);
+		
 		return RK_RET_SUCCESS;
 	}else
 		return RK_RET_NOSETUP;
 
 err_end:
     OpenAndRegistALLSensor(profiles);
-    ProduceNewXml(profiles);
+    //ProduceNewXml(profiles);
     ALOGD("enter Load Sensor\n");
     return err;
     
@@ -1787,7 +1860,7 @@ int camera_board_profiles::BoardFileHaveDev(camera_board_profiles* profiles, xml
         }  
     }
 
-    ALOGD("BoardFileHaveDev exit \n");
+    ALOGD("BoardFileHaveDev exit not have dev\n");
     return RK_RET_NOSETUP;
 }
 
@@ -1803,5 +1876,26 @@ void camera_board_profiles::AddConnectSensorToVector(camera_board_profiles* prof
         }
     }
 }
+
+int camera_board_profiles::ConnectDevHaveDev(camera_board_profiles* profiles, xml_DEV_name_s* media_xml_device )
+{
+    size_t nCamNum = profiles->mDevideConnectVector.size();
+
+    ALOGD("ConnectDevHaveDev enter \n");
+
+	for(int i=0; i<nCamNum; i++)
+    {
+        rk_sensor_info *pSensorInfo =  &(profiles->mDevideConnectVector[i]->mHardInfo.mSensorInfo);
+        if(!strcmp(media_xml_device->camera_name, pSensorInfo->mSensorName) 
+            && (media_xml_device->facing == pSensorInfo->mFacing))
+        {
+            return RK_RET_SUCCESS;
+        }  
+    }
+
+    ALOGD("ConnectDevHaveDev exit not have dev \n");
+    return RK_RET_NOSETUP;
+}
+
 
 

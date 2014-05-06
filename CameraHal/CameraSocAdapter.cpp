@@ -1,18 +1,6 @@
 #include "CameraHal.h"
 namespace android{
-#define LOG_TAG "CameraHal_CameraSOCAdapter"
-static volatile int32_t gLogLevel = 0;
 
-#ifdef ALOGD_IF
-#define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#else
-#define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#endif
-
-#define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
-#define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
 
 
 CameraSOCAdapter::CameraSOCAdapter(int cameraId)
@@ -154,7 +142,7 @@ int CameraSOCAdapter::cameraFpsInfoSet(CameraParameters &params)
 
     return 0;
 }
-void CameraSOCAdapter::initDefaultParameters()
+void CameraSOCAdapter::initDefaultParameters(int camFd)
 {
 	CameraParameters params;
 	String8 parameterString;

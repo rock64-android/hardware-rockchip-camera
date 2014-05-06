@@ -18,11 +18,14 @@ LOCAL_SRC_FILES:=\
 	DisplayAdapter.cpp\
 	CameraAdapter.cpp\
 	CameraSocAdapter.cpp\
+	CameraUSBAdapter.cpp\
 	CameraIspAdapter.cpp\
 	CameraIspSOCAdapter.cpp\
 	CameraHal.cpp\
 	CameraHal_board_xml_parse.cpp\
-
+	CameraHal_Tracer.c
+	
+  
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)	 
 LOCAL_C_INCLUDES += \
 	frameworks/base/include/ui \

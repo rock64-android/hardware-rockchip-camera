@@ -46,6 +46,10 @@ extern "C"
 #define ISI_I2C_NR_DAT_BYTES_2  (2)                     // sensor has some 16-bit registers
 #define ISI_I2C_NR_DAT_BYTES_4  (4)                     // sensor has some 32-bit registers
 
+#define SUPPORT_MIPI_ONE_LANE  0x1
+#define SUPPORT_MIPI_TWO_LANE  0x2
+#define SUPPORT_MIPI_FOUR_LANE 0x4
+
 
 /******************************************************************************
 * TYPEDEFS

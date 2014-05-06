@@ -62,6 +62,8 @@ typedef struct MipiConfig_s
     MipiDataType_t                  DataType;       //!< Type of data to be exchanged.
     MipiDataCompressionScheme_t     CompScheme;     //!< Compression scheme to use.
     MipiPredictorBlock_t            PredBlock;      //!< Predictor block to use.
+    uint32_t                        Freq;
+    uint32_t                        DevId;          //attach to which sensor device
 } MipiConfig_t;
 
 

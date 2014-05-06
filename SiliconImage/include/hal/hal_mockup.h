@@ -38,7 +38,7 @@ extern "C"
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <linux/camsys_head.h>
+#include "camsys_head.h"
 #include <common/list.h>
 
 

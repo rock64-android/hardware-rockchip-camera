@@ -21,7 +21,6 @@
 *
 */
 
-#define LOG_TAG "CameraHal_Module"
 
 #include <utils/threads.h>
 #include <binder/IPCThreadState.h>
@@ -602,7 +601,7 @@ int camera_get_number_of_cameras(void)
     int hwrotation = 0;
 	camera_board_profiles * profiles = NULL;
     size_t nCamDev = 0;
-
+    char trace_level[PROPERTY_VALUE_MAX];
 	struct timeval t0, t1;
     ::gettimeofday(&t0, NULL);
 	
@@ -613,45 +612,52 @@ int camera_get_number_of_cameras(void)
     sprintf(version,"%d.%d.%d",((CONFIG_CAMERAHAL_VERSION&0xff0000)>>16),
         ((CONFIG_CAMERAHAL_VERSION&0xff00)>>8),CONFIG_CAMERAHAL_VERSION&0xff);
     property_set(CAMERAHAL_VERSION_PROPERTY_KEY,version);
+
+    property_get(CAMERAHAL_TRACE_LEVEL_PROPERTY_KEY, trace_level, "-1");
+    if (strcmp(trace_level,"-1")==0) {
+        property_set(CAMERAHAL_TRACE_LEVEL_PROPERTY_KEY, "0");
+    }
     
     memset(&camInfoTmp[0],0x00,sizeof(rk_cam_info_t));
     memset(&camInfoTmp[1],0x00,sizeof(rk_cam_info_t));
 
     profiles = camera_board_profiles::getInstance();
     camera_board_profiles::LoadSensor(profiles);
-    nCamDev = profiles->mDevideConnectVector.size();
+    nCamDev = profiles->mDevieVector.size();
     for (i=0; (i<CAMERAS_SUPPORT_MAX && i<nCamDev); i++) 
     {  
-        rk_sensor_info *pSensorInfo = &(profiles->mDevideConnectVector[i]->mHardInfo.mSensorInfo);
-        
-        camInfoTmp[cam_cnt&0x01].pcam_total_info = profiles->mDevideConnectVector[i];     
-        strncpy(camInfoTmp[cam_cnt&0x01].device_path, pSensorInfo->mCamsysDevPath, sizeof(camInfoTmp[cam_cnt&0x01].device_path));
-        strncpy(camInfoTmp[cam_cnt&0x01].driver, pSensorInfo->mSensorDriver, sizeof(camInfoTmp[cam_cnt&0x01].driver));
-        if(pSensorInfo->mFacing == RK_CAM_FACING_FRONT){     
-            camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_FRONT;
-        } else {
-            camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_BACK;
-        } 
-        
-        camInfoTmp[cam_cnt&0x01].facing_info.orientation = pSensorInfo->mOrientation;
-        cam_cnt++;
+    	if(profiles->mDevieVector[i]->mIsConnect==1){
+	        rk_sensor_info *pSensorInfo = &(profiles->mDevieVector[i]->mHardInfo.mSensorInfo);
+	        
+	        camInfoTmp[cam_cnt&0x01].pcam_total_info = profiles->mDevieVector[i];     
+	        strncpy(camInfoTmp[cam_cnt&0x01].device_path, pSensorInfo->mCamsysDevPath, sizeof(camInfoTmp[cam_cnt&0x01].device_path));
+	        strncpy(camInfoTmp[cam_cnt&0x01].driver, pSensorInfo->mSensorDriver, sizeof(camInfoTmp[cam_cnt&0x01].driver));
+	        if(pSensorInfo->mFacing == RK_CAM_FACING_FRONT){     
+	            camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_FRONT;
+	        } else {
+	            camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_BACK;
+	        } 
+	        
+	        camInfoTmp[cam_cnt&0x01].facing_info.orientation = pSensorInfo->mOrientation;
+	        cam_cnt++;
 
-		unsigned int CamsysDrvVersion = profiles->mDevideConnectVector[i]->mCamsysVersion.drv_ver;
-        #if 1
-        memset(version,0x00,sizeof(version));
-        sprintf(version,"%d.%d.%d",((CamsysDrvVersion&0xff0000)>>16),
-            ((CamsysDrvVersion&0xff00)>>8),CamsysDrvVersion&0xff);
-        property_set(CAMERADRIVER_VERSION_PROPERTY_KEY,version);
-        LOGD("%s(%d): %s:%s",__FUNCTION__,__LINE__,CAMERADRIVER_VERSION_PROPERTY_KEY,version);
-        #endif
+			unsigned int CamsysDrvVersion = profiles->mDevieVector[i]->mCamsysVersion.drv_ver;
+	        #if 1
+	        memset(version,0x00,sizeof(version));
+	        sprintf(version,"%d.%d.%d",((CamsysDrvVersion&0xff0000)>>16),
+	            ((CamsysDrvVersion&0xff00)>>8),CamsysDrvVersion&0xff);
+	        property_set(CAMERADRIVER_VERSION_PROPERTY_KEY,version);
+	        LOGD("%s(%d): %s:%s",__FUNCTION__,__LINE__,CAMERADRIVER_VERSION_PROPERTY_KEY,version);
+	        #endif
+		}
     }
 
-	#if 0
+	#if 1
    	if(cam_cnt<2){
         for (i=cam_cnt; i<10; i++) {
             cam_path[0] = 0x00;
             strcat(cam_path, CAMERA_DEVICE_NAME);
-            sprintf(cam_num, "%d", i);
+            sprintf(cam_num, "%d", i-cam_cnt);
             strcat(cam_path,cam_num);
             fd = open(cam_path, O_RDONLY);
             if (fd < 0) {
@@ -685,7 +691,6 @@ int camera_get_number_of_cameras(void)
                 } else {
                     camInfoTmp[cam_cnt&0x01].facing_info.orientation = 0;
                 }
-                cam_cnt++;
 
                 memset(version,0x00,sizeof(version));
                 sprintf(version,"%d.%d.%d",((capability.version&0xff0000)>>16),
@@ -693,7 +698,46 @@ int camera_get_number_of_cameras(void)
                 property_set(CAMERADRIVER_VERSION_PROPERTY_KEY,version);
 
                 LOGD("%s(%d): %s:%s",__FUNCTION__,__LINE__,CAMERADRIVER_VERSION_PROPERTY_KEY,version);
-                
+
+				//add usb camera to board_profiles 
+				rk_cam_total_info* pNewCamInfo = new rk_cam_total_info();
+				rk_DV_info *pDVResolution = new rk_DV_info();
+				memset(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, 0x00, sizeof(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName));
+				strcpy(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, UVC_CAM_NAME);
+				//DV
+				strcpy(pDVResolution->mName, "480p");
+	    	    pDVResolution->mWidth = 640;
+	    	    pDVResolution->mHeight = 480;
+	    	    pDVResolution->mFps = 10;
+	    	    pDVResolution->mIsSupport =  1;
+	            pDVResolution->mResolution = ISI_RES_VGA;
+	            pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);
+				
+				//paremeters
+				pNewCamInfo->mSoftInfo.mAntiBandingConfig.mAntiBandingSupport = 0;
+				pNewCamInfo->mSoftInfo.mAntiBandingConfig.mDefault = 0;
+				pNewCamInfo->mSoftInfo.mAwbConfig.mAwbSupport = 0;
+				pNewCamInfo->mSoftInfo.mAwbConfig.mDefault = 0;
+				pNewCamInfo->mSoftInfo.mContinue_snapshot_config= 0;
+				pNewCamInfo->mSoftInfo.mEffectConfig.mEffectSupport = 0;
+				pNewCamInfo->mSoftInfo.mEffectConfig.mDefault = 0;
+				pNewCamInfo->mSoftInfo.mFlashConfig.mFlashSupport= 0;
+				pNewCamInfo->mSoftInfo.mFlashConfig.mDefault = 0;
+				pNewCamInfo->mSoftInfo.mFocusConfig.mFocusSupport= 0;
+				pNewCamInfo->mSoftInfo.mFocusConfig.mDefault = 0;
+				pNewCamInfo->mSoftInfo.mHDRConfig= 0;
+				pNewCamInfo->mSoftInfo.mSenceConfig.mSenceSupport= 0;
+				pNewCamInfo->mSoftInfo.mSenceConfig.mDefault = 0;
+				pNewCamInfo->mSoftInfo.mZSLConfig = 0;
+				
+            	pNewCamInfo->mDeviceIndex = (profiles->mDevieVector.size()) - 1;
+				pNewCamInfo->mIsConnect = 1;
+				profiles->mCurDevice= pNewCamInfo;
+            	profiles->mDevieVector.add(pNewCamInfo);
+				//profiles->AddConnectUVCSensorToVector(pNewCamInfo, profiles);
+
+                gCamInfos[cam_cnt].pcam_total_info = pNewCamInfo;
+                cam_cnt++;
                 if (cam_cnt >= CAMERAS_SUPPORT_MAX)
                     i = 10;
             }
@@ -706,6 +750,9 @@ int camera_get_number_of_cameras(void)
         }
    	}
    	#endif
+
+   
+	camera_board_profiles::ProduceNewXml(profiles);
 	
     gCamerasNumber = cam_cnt;
 

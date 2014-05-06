@@ -154,6 +154,39 @@ typedef enum CamEngineAfSearchAlgorithm_e
 } CamEngineAfSearchAlgorithm_t;
 
 
+typedef enum CamEngineAfEvtId_e 
+{
+    CAM_ENGINE_AUTOFOCUS_MOVE        = 0,  /* <Notify on autofocus start and stop. This is useful in continuous > */
+    CAM_ENGINE_AUTOFOCUS_FINISHED    = 1,
+} CamEngineAfEvtId_t;
+
+typedef struct CamEngineAfMoveEvt_s 
+{
+    bool_t start;
+} CamEngineAfMoveEvt_t;
+
+typedef struct CamEngineAfFinshEvt_s
+{
+    bool_t focus;
+} CamEngineAfFinshEvt_t;
+
+typedef struct CamEngineAfEvt_s 
+{
+    CamEngineAfEvtId_t              evnt_id;
+    union {
+        CamEngineAfMoveEvt_t         mveEvt;
+        CamEngineAfFinshEvt_t        fshEvt;
+    } info;
+    void                   *pEvntCtx;   
+} CamEngineAfEvt_t;
+
+
+typedef struct CamEngineAfEvtQue_s 
+{
+    List                   list;
+    osQueue                queue;
+} CamEngineAfEvtQue_t;
+
 /*****************************************************************************/
 /**
  * @brief   This functions starts the Auto-White-Balance.
@@ -510,8 +543,32 @@ RESULT CamEngineAfStatus
     CamEngineAfSearchAlgorithm_t        *pSearchAgoritm
 );
 
+/******************************************************************************
+ * CamEngineAfShotCheck()
+ *****************************************************************************/
+RESULT CamEngineAfShotCheck
+(
+    CamEngineHandle_t               hCamEngine,
+    bool_t                          *shot
+);
 
+/******************************************************************************
+ * CamEngineAfShotCheck()
+ *****************************************************************************/
+RESULT CamEngineAfRegisterEvtQue
+(
+    CamEngineHandle_t               hCamEngine,
+    CamEngineAfEvtQue_t             *evtQue
+);
 
+/******************************************************************************
+ * CamEngineAfReset()
+ *****************************************************************************/
+RESULT CamEngineAfReset
+(
+    CamEngineHandle_t                    hCamEngine,
+    const CamEngineAfSearchAlgorithm_t   searchAgoritm
+);
 /*****************************************************************************/
 /**
  * @brief   This function starts the Adaptive-DPF-Control.

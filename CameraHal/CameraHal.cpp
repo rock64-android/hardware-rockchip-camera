@@ -28,23 +28,7 @@
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
 namespace android {
-// Logging support -- this is for debugging only
-// Use "adb shell dumpsys media.camera " to change it.
-static volatile int32_t gLogLevel = 1;
 
-#ifdef ALOGD_IF
-#define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#else
-#define LOG1(...) LOGD_IF(gLogLevel >= 1, __VA_ARGS__);
-#define LOG2(...) LOGD_IF(gLogLevel >= 2, __VA_ARGS__);
-#endif
-    
-#define LOG_TAG "CameraHal"
-
-#define LOG_FUNCTION_NAME           LOG1("%s Enter", __FUNCTION__);
-#define LOG_FUNCTION_NAME_EXIT      LOG1("%s Exit ", __FUNCTION__);
-#define CAMERAHAL_VERSION "CAMERAHAL_VERSION:V0.4.23,memset exifInfo to fix snapshot error in video"
 /************************
 接口实现有两种方式
 1。接口由command线程负责具体实现
@@ -68,9 +52,19 @@ CameraHal::CameraHal(int cameraId)
           :commandThreadCommandQ("commandCmdQ")
 {
 	LOG_FUNCTION_NAME
-    //mPreviewCmdReceived = false;
-   // mRecordRunning = false;
-    LOGD(CAMERAHAL_VERSION);
+    
+	{
+        char trace_level[PROPERTY_VALUE_MAX];
+        int level;
+
+        property_get(CAMERAHAL_TRACE_LEVEL_PROPERTY_KEY, trace_level, "0");
+
+        sscanf(trace_level,"%d",&level);
+        
+        setTracerLevel(level);
+
+	}
+
     mCamId = cameraId;
     mCamFd = -1;
     mCommandRunning = -1;
@@ -100,17 +94,23 @@ CameraHal::CameraHal(int cameraId)
     mJpegBuf = new BufferProvider(mCamMemManager);
 
 
-    if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_Cif)
-        mCameraAdapter = new CameraIspSOCAdapter(cameraId);
-    else if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_Mipi)
-        mCameraAdapter = new CameraIspAdapter(cameraId);
-    else if((strcmp(gCamInfos[cameraId].driver,"uvcvideo") == 0)) {
-        LOGD("%s(%d):it is a uvc camera!",__FUNCTION__,__LINE__);
+    if((strcmp(gCamInfos[cameraId].driver,"uvcvideo") == 0)) {
+        LOGD("it is a uvc camera!");
         mCameraAdapter = new CameraUSBAdapter(cameraId);
-    }else{
-        LOGD("%s(%d):it is a soc camera!",__FUNCTION__,__LINE__);
+    }
+    else if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_Cif){
+        LOGD("it is a isp soc camera");
+        mCameraAdapter = new CameraIspSOCAdapter(cameraId);
+    }
+    else if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_Mipi){
+        LOGD("it is a isp  camera");
+        mCameraAdapter = new CameraIspAdapter(cameraId);
+    }
+    else{
+        LOGD("it is a soc camera!");
         mCameraAdapter = new CameraSOCAdapter(cameraId);
     }
+
     //initialize
     mCameraAdapter->initialize();
     updateParameters(mParameters);
@@ -127,6 +127,7 @@ CameraHal::CameraHal(int cameraId)
     //command thread
     mCommandThread = new CommandThread(this);
 	mCommandThread->run("CameraCmdThread", ANDROID_PRIORITY_URGENT_DISPLAY);
+    
 	LOG_FUNCTION_NAME_EXIT
 
     
@@ -196,6 +197,7 @@ CameraHal::~CameraHal()
 	}
     
     LOGD("CameraHal destory success");
+    LOG_FUNCTION_NAME_EXIT
 }
 void CameraHal::release()
 {
@@ -308,6 +310,7 @@ int CameraHal::msgTypeEnabled(int32_t msgType)
 {
     LOG_FUNCTION_NAME
     return  mEventNotifier->msgEnabled(msgType);
+    LOG_FUNCTION_NAME_EXIT
 }
 
 int CameraHal::autoFocus()
@@ -316,6 +319,7 @@ int CameraHal::autoFocus()
     Message msg; 
     Semaphore sem;
     Mutex::Autolock lock(mLock);
+    
     if ((mCommandThread != NULL)) {
         msg.command = CMD_AF_START;
         sem.Create();
@@ -342,11 +346,8 @@ int CameraHal::cancelAutoFocus()
         msg.command = CMD_AF_CANCEL;
         sem.Create();
         msg.arg1 = NULL;
-     //   msg.arg1 = (void*)(&sem);
         commandThreadCommandQ.put(&msg);
-     //   if(msg.arg1){
-     //       sem.Wait();
-      //  }
+     
     }
 
     LOG_FUNCTION_NAME_EXIT
@@ -357,7 +358,6 @@ int CameraHal::previewEnabled()
     LOG_FUNCTION_NAME
     Mutex::Autolock lock(mLock);
     LOG_FUNCTION_NAME_EXIT
-   // return mPreviewCmdReceived;
     return (mCameraStatus&STA_PREVIEW_CMD_RECEIVED);
 }
 int CameraHal::storeMetaDataInBuffers(int enable)
@@ -573,14 +573,14 @@ int CameraHal::sendCommand(int32_t cmd, int32_t arg1, int32_t arg2)
 int CameraHal::dump(int fd)
 {   
     int i;
+    char trace_level[PROPERTY_VALUE_MAX];
+    int level;
+
+    property_get(CAMERAHAL_TRACE_LEVEL_PROPERTY_KEY, trace_level, "0");
+
+    sscanf(trace_level,"%d",&level);
     
-    if (gLogLevel < 2) 
-        android_atomic_inc(&gLogLevel);
-    else 
-        android_atomic_write(0,&gLogLevel);
-
-    LOGD("Set %s log level to %d",LOG_TAG,gLogLevel);
-
+    setTracerLevel(level);
     
     commandThreadCommandQ.dump();
     if(mCameraAdapter)
@@ -884,13 +884,11 @@ get_command:
             case CMD_AF_START:
             {
                 LOGD("%s(%d): receive CMD_AF_START", __FUNCTION__,__LINE__);
-                //mCameraAdapter->autoFocus();
+                mCameraAdapter->autoFocus();
+                
 				setCamStatus(CMD_AF_START_DONE, 1);
                 if(msg.arg1)
-                    ((Semaphore*)(msg.arg1))->Signal();
-				//sleep(2);
-				//mCameraAdapter->stopAf();
-				mEventNotifier->notifyCbMsg(CAMERA_MSG_FOCUS,1);
+                    ((Semaphore*)(msg.arg1))->Signal();				
 				LOGD("%s(%d): exit receive CMD_AF_START", __FUNCTION__,__LINE__);
                 break;
             }            
