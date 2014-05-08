@@ -307,10 +307,10 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
     }else if(msgtype & (CAMERA_MSG_PREVIEW_FRAME)){
             
             {
-                LOGD("%s%d: get mDataCbLock",__FUNCTION__,__LINE__);
+                LOG1("%s%d: get mDataCbLock",__FUNCTION__,__LINE__);
                 Mutex::Autolock lock(mDataCbLock);
                 mMsgTypeEnabled &= ~msgtype;
-                LOGD("%s%d: release mDataCbLock",__FUNCTION__,__LINE__);
+                LOG1("%s%d: release mDataCbLock",__FUNCTION__,__LINE__);
 
             }
             //send a msg to disable preview frame cb 
@@ -318,7 +318,7 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
 			msg.command = CameraAppMsgThread::CMD_EVENT_PAUSE;
 			msg.arg1 = NULL;
 			eventThreadCommandQ.put(&msg);
-			LOGD("%s%d: disable CAMERA_MSG_PREVIEW_FRAME success",__FUNCTION__,__LINE__);			
+			LOG1("%s%d: disable CAMERA_MSG_PREVIEW_FRAME success",__FUNCTION__,__LINE__);			
     }
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -916,7 +916,7 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 	else
 	{
 		mDataCbLock.unlock();
-		LOGE("%s(%d): preview data callback is unable",__FUNCTION__,__LINE__);
+		LOG1("%s(%d): needn't to send preview datacb",__FUNCTION__,__LINE__);
 	}
     return ret;
 }
@@ -1060,7 +1060,7 @@ void AppMsgNotifier::eventThread()
                 break;
           case CameraAppMsgThread::CMD_EVENT_PAUSE:
 				{
-                    LOGD("%s(%d),receive CameraAppMsgThread::CMD_EVENT_PAUSE",__FUNCTION__,__LINE__);
+                    LOG1("%s(%d),receive CameraAppMsgThread::CMD_EVENT_PAUSE",__FUNCTION__,__LINE__);
                     if(msg.arg1)
 						((Semaphore*)(msg.arg1))->Signal();
 					//wake up waiter					

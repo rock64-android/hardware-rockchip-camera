@@ -504,7 +504,7 @@ int CameraHal::setParameters(const CameraParameters &params_set)
             sem.Wait();
         }
 		if(mCameraStatus&CMD_SET_PARAMETERS_DONE)
-			LOGD("set parameters OK.");
+			LOG1("set parameters OK.");
     }
     LOG_FUNCTION_NAME_EXIT
     return err;
@@ -793,7 +793,7 @@ get_command:
             }
             case CMD_SET_PARAMETERS:
             {
-                LOGD("%s(%d): receive CMD_SET_PARAMETERS", __FUNCTION__,__LINE__);
+                LOG1("%s(%d): receive CMD_SET_PARAMETERS", __FUNCTION__,__LINE__);
                 //set parameters
                 CameraParameters* para = (CameraParameters*)msg.arg2;
                 mCameraAdapter->setParameters(*para);
@@ -803,7 +803,7 @@ get_command:
 				setCamStatus(CMD_SET_PARAMETERS_DONE, 1);					
                 if(msg.arg1)
                     ((Semaphore*)(msg.arg1))->Signal();
-                LOGD("%s(%d): CMD_SET_PARAMETERS out",__FUNCTION__,__LINE__);
+                LOG1("%s(%d): CMD_SET_PARAMETERS out",__FUNCTION__,__LINE__);
                 break;
                     
             }

@@ -782,18 +782,22 @@ int CameraIspAdapter::adapterReturnFrame(int index,int cmd){
 	#if 1
     FramInfo_s* tmpFrame = ( FramInfo_s *)index;
     Mutex::Autolock lock(mFrameArrayLock);
-    if(mFrameInfoArray.indexOfKey((void*)tmpFrame) < 0){
-        LOGE("%s:this frame is not in frame array,used_flag is %d!",__func__,tmpFrame->used_flag);
-    }else{
-        MediaBuffer_t *pMediaBuffer = (MediaBuffer_t *)mFrameInfoArray.valueFor((void*)tmpFrame);
-        {	
-            //remove item
-            mFrameInfoArray.removeItem((void*)tmpFrame);
-            free(tmpFrame);
+    if(mFrameInfoArray.size() > 0){
+        if(mFrameInfoArray.indexOfKey((void*)tmpFrame) < 0){
+            LOGE("%s:this frame is not in frame array,used_flag is %d!",__func__,tmpFrame->used_flag);
+        }else{
+            MediaBuffer_t *pMediaBuffer = (MediaBuffer_t *)mFrameInfoArray.valueFor((void*)tmpFrame);
+            {	
+                //remove item
+                mFrameInfoArray.removeItem((void*)tmpFrame);
+                free(tmpFrame);
 
-            //unlock
-            MediaBufUnlockBuffer( pMediaBuffer );
+                //unlock
+                MediaBufUnlockBuffer( pMediaBuffer );
+            }
         }
+    }else{
+        LOGD("%s:frame array has been cleard!",__func__);
     }
     #endif
 	#if 0
