@@ -105,7 +105,7 @@ int CameraIspAdapter::cameraDestroy()
         CamEngineAfEvt_t cmd;
         int ret;
 
-        cmd.evnt_id = 0xfefe5aa5;
+        cmd.evnt_id = (CamEngineAfEvtId_t)0xfefe5aa5;
         
         osQueueWrite(&mAfListenerQue.queue, &cmd);
         
@@ -282,12 +282,12 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
                 // Continues picture focus
                 if (strcmp(params_set.get(CameraParameters::KEY_FOCUS_MODE),CameraParameters::FOCUS_MODE_CONTINUOUS_PICTURE)==0) {
                     err_af = m_camDevice->startAfContinous(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
-                	if ( err_af = false ){
+                	if ( err_af == false ){
                 		TRACE_E("Set startAfContinous failed");        		
                 	} 
                 }  
 
-                if( err_af = true )
+                if( err_af == true )
                     TRACE_D(1,"Set focus mode: %s success",params_set.get(CameraParameters::KEY_FOCUS_MODE));
             }
         } else {
@@ -520,7 +520,7 @@ status_t CameraIspAdapter::autoFocus()
     if (shot == true) {
         TRACE_D(1, "Single auto focus must be trigger");
         err_af = m_camDevice->startAfOneShot(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
-    	if ( err_af = false ){
+    	if ( err_af == false ){
     		TRACE_E("Trigger a single auto focus failed!");        		
     	} else {
             TRACE_D(1,"Trigger a single auto focus success");
@@ -759,29 +759,41 @@ void CameraIspAdapter::clearFrameArray(){
     LOG_FUNCTION_NAME
     MediaBuffer_t *pMediaBuffer = NULL;
     FramInfo_s *tmpFrame = NULL;
+    Mutex::Autolock lock(mFrameArrayLock);
+
     int num = mFrameInfoArray.size();
     while(--num >= 0){
-        tmpFrame = ( FramInfo_s *)mFrameInfoArray.keyAt(num );
-        pMediaBuffer = (MediaBuffer_t *)mFrameInfoArray.valueAt(num);
-        //remove item
-        mFrameInfoArray.removeItem((void*)tmpFrame);
-        free(tmpFrame);
-        //unlock
-        MediaBufUnlockBuffer( pMediaBuffer );
+        tmpFrame = (FramInfo_s *)mFrameInfoArray.keyAt(num);
+        if(mFrameInfoArray.indexOfKey((void*)tmpFrame) < 0){
+            LOGE("%s:this frame is not in frame array,used_flag is %d!",__func__,tmpFrame->used_flag);
+        }else{
+            pMediaBuffer = (MediaBuffer_t *)mFrameInfoArray.valueAt(num);
+            //remove item
+            mFrameInfoArray.removeItem((void*)tmpFrame);
+            free(tmpFrame);
+            //unlock
+            MediaBufUnlockBuffer( pMediaBuffer );
+        }
     }
+    mFrameInfoArray.clear();
     LOG_FUNCTION_NAME_EXIT
 }
 int CameraIspAdapter::adapterReturnFrame(int index,int cmd){
 	#if 1
     FramInfo_s* tmpFrame = ( FramInfo_s *)index;
-    MediaBuffer_t *pMediaBuffer = (MediaBuffer_t *)mFrameInfoArray.valueFor((void*)tmpFrame);
-    {	
-        //remove item
-        mFrameInfoArray.removeItem((void*)tmpFrame);
-        free(tmpFrame);
+    Mutex::Autolock lock(mFrameArrayLock);
+    if(mFrameInfoArray.indexOfKey((void*)tmpFrame) < 0){
+        LOGE("%s:this frame is not in frame array,used_flag is %d!",__func__,tmpFrame->used_flag);
+    }else{
+        MediaBuffer_t *pMediaBuffer = (MediaBuffer_t *)mFrameInfoArray.valueFor((void*)tmpFrame);
+        {	
+            //remove item
+            mFrameInfoArray.removeItem((void*)tmpFrame);
+            free(tmpFrame);
 
-        //unlock
-        MediaBufUnlockBuffer( pMediaBuffer );
+            //unlock
+            MediaBufUnlockBuffer( pMediaBuffer );
+        }
     }
     #endif
 	#if 0
@@ -802,9 +814,9 @@ int CameraIspAdapter::getCurPreviewState(int *drv_w,int *drv_h)
 void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 {
     static int writeoneframe = 0;
-    uint32_t y_addr,uv_addr;
+    uint32_t y_addr = 0,uv_addr = 0;
     void* y_addr_vir = NULL,*uv_addr_vir = NULL ;
-    int width,height;
+    int width = 0,height = 0;
     int fmt = 0;
 	int tem_val;
 	
@@ -917,9 +929,14 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->phy_addr = (int)y_addr;
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
-      tmpFrame->vir_addr = y_addr_vir;
+      tmpFrame->vir_addr = (int)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
-      mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+	  
+      tmpFrame->used_flag = 0;
+      {
+        Mutex::Autolock lock(mFrameArrayLock);
+        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      }
       mRefDisplayAdapter->notifyNewFrame(tmpFrame);
     }
 
@@ -937,9 +954,13 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->phy_addr = (int)y_addr;
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
-      tmpFrame->vir_addr = y_addr_vir;
+      tmpFrame->vir_addr = (int)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
-      mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      tmpFrame->used_flag = 1;
+      {
+        Mutex::Autolock lock(mFrameArrayLock);
+        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      }
       mRefEventNotifier->notifyNewVideoFrame(tmpFrame);		
 	}
 	//picture ?
@@ -956,9 +977,13 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->phy_addr = (int)y_addr;
 	  tmpFrame->frame_width = width;
 	  tmpFrame->frame_height= height;
-	  tmpFrame->vir_addr = y_addr_vir;
+	  tmpFrame->vir_addr = (int)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
-	  mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      tmpFrame->used_flag = 2;
+      {
+        Mutex::Autolock lock(mFrameArrayLock);
+        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      }
 	  mRefEventNotifier->notifyNewPicFrame(tmpFrame);	
 	}
 
@@ -976,9 +1001,13 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->phy_addr = (int)y_addr;
 	  tmpFrame->frame_width = width;
 	  tmpFrame->frame_height= height;
-	  tmpFrame->vir_addr = y_addr_vir;
+	  tmpFrame->vir_addr = (int)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
-	  mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      tmpFrame->used_flag = 3;
+      {
+        Mutex::Autolock lock(mFrameArrayLock);
+        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      }
 	  mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);			
 	}
 	#endif
@@ -1006,7 +1035,7 @@ int CameraIspAdapter::afListenerThread(void)
     {
         CamEngineAfEvt_t afEvt;        
         
-        OSLAYER_STATUS osStatus = osQueueRead(&mAfListenerQue.queue, &afEvt); 
+        OSLAYER_STATUS osStatus = (OSLAYER_STATUS)osQueueRead(&mAfListenerQue.queue, &afEvt); 
         if (OSLAYER_OK != osStatus)
         {
             TRACE_E( "receiving af event failed -> OSLAYER_RESULT=%d\n", osStatus );

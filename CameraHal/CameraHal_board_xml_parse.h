@@ -43,10 +43,6 @@ using namespace android;
 #define RK_SENSOR_XML_PATH "/etc/"
 
 
-
-#define CONFIG_BOARDXML_VERSION       "v0.1.0"
-
-
 typedef enum sensor_interface_s{
     OUTPUT_MODE_MIN,
     CCIR601,
@@ -362,7 +358,7 @@ public:
 
     static camera_board_profiles* getInstance();
     static camera_board_profiles*  createInstance();
-    static void ParserSensorInfo(const char *name, const char **atts, void *userData);
+    static void ParserSensorInfo(const char *name, const  char **atts, void *userData);
     static void ParserVCMInfo(const char *name, const char **atts, void *userData);
     static void ParserFlashInfo(const char *name, const char **atts, void *userData);
     static void ParserAwbConfig(const char *name, const char **atts, void *userData);

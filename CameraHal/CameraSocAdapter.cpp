@@ -1110,7 +1110,7 @@ void CameraSOCAdapter::GetAFParameters(const char* focusmode)
 
 		LOG1("%s(%d): %s is not need config sensor driver",__FUNCTION__,__LINE__,CameraParameters::FOCUS_MODE_FIXED);
 	} else {
-		LOGE("%s(%d): %s is not support in camera driver",__FUNCTION__,__LINE__);
+		LOGE("%s(%d): focus is not support in camera driver",__FUNCTION__,__LINE__);
 	}
 }
 

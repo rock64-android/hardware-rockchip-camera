@@ -76,7 +76,7 @@ struct xml_video_name{
 
 int CameraGroupFound_new(struct xml_video_name* video_name)
 {
-    int media_profiles_id=0,i,len,front_id,back_id;
+    int media_profiles_id=0,i,len,front_id = 0,back_id = 0;
     struct xml_video_name* pst_video_name = video_name;
     char camera_link[30];
     char *camera_name = pst_video_name->camera_name;
@@ -180,7 +180,7 @@ int find_camId_fseek(FILE* fp, struct xml_fp_position* fp_pos){
 	int find_fmt_sign=0;
 	char *leave_line, *leave_line1, *leave_line2;
 	char str_camId[4];
-	char *equal_sign = "="; 
+	const char *equal_sign = "="; 
 	int count=0;
 	
 	if(fp==NULL)
@@ -257,10 +257,10 @@ int xml_read_camname(FILE* fp, struct xml_video_name* video_name, int video_coun
 	char one_line_buf[256];
 	char *leave_line0, *leave_line1, *leave_line2;
 	int leave_num;
-	char* equal_sign = "=";
-	char* mark_sign_start = "<!--";
-	char* mark_sign_end = "-->";
-	char* videoname_sign = "videoname";
+	const char* equal_sign = "=";
+	const char* mark_sign_start = "<!--";
+	const char* mark_sign_end = "-->";
+	const char* videoname_sign = "videoname";
 	struct xml_video_name* pst_video_name = video_name;
 	int count = 0;
 	
@@ -317,7 +317,7 @@ int xml_read_camname(FILE* fp, struct xml_video_name* video_name, int video_coun
 }
 
 
-int xml_copy_and_write_camname(char* src_file, char* dst_file, struct xml_video_name* video_name, int video_count)
+int xml_copy_and_write_camname(const char* src_file, char* dst_file, struct xml_video_name* video_name, int video_count)
 {
 	FILE *fpsrc, *fpdst; 
 	char one_line_buf[256]; 
@@ -381,18 +381,18 @@ int xml_copy_and_write_camname(char* src_file, char* dst_file, struct xml_video_
 	return 0;
 }
 
-int xml_alter(char* src_xml_file, char* dst_xml_file, struct xml_video_element* pst_element, int element_count)
+int xml_alter(char* src_xml_file, const char* dst_xml_file, struct xml_video_element* pst_element, int element_count)
 {
-	int ret, err=0;
+	int ret = 0, err=0;
 	int alter_sign = 0;
 	int find_fmt_sign=0;
 	int leave_num=0;
 	long now_fp_pos;
-	char *equal_sign = "="; 
-	FILE *src_fp, *dst_fp;
+	const char *equal_sign = "="; 
+	FILE *src_fp = NULL, *dst_fp = NULL;
 	char one_line_buf[256];
 	char frontpart_line[50];
-	long front_fptmp,back_fptmp;
+	long front_fptmp = 0,back_fptmp = 0;
 	struct xml_fp_position fp_pos[2];
 	struct xml_video_element find_element;
 	char *leave_line, *leave_line1, *leave_line2;
@@ -593,7 +593,7 @@ alter_exit:
 }
 
 
-int camera_request_framerate(char* dev_path, int camid, struct xml_video_element* pst_element, int element_count)
+int camera_request_framerate(const char* dev_path, int camid, struct xml_video_element* pst_element, int element_count)
 {
     int err,i;
     int nSizeBytes;
@@ -611,7 +611,7 @@ int camera_request_framerate(char* dev_path, int camid, struct xml_video_element
 	struct xml_video_element* element_tmp;
 	int resolution_index;
 	struct v4l2_format fmt; 
-    unsigned int sensor_resolution_w=0,sensor_resolution_h=0;
+    int sensor_resolution_w=0,sensor_resolution_h=0;
     
     iCamFd = open(dev_path, O_RDWR);
 

@@ -63,6 +63,7 @@ private:
 protected:
     CamDevice       *m_camDevice;
     KeyedVector<void *, void *> mFrameInfoArray;
+    Mutex  mFrameArrayLock;     
     void clearFrameArray();
 	mutable Mutex mLock;
 
@@ -72,6 +73,7 @@ protected:
 
     class CameraAfThread :public Thread
     {
+        //deque 到帧后根据需要分发给DisplayAdapter类及EventNotifier类。
         CameraIspAdapter* mCameraAdapter;
     public:
         CameraAfThread(CameraIspAdapter* adapter)

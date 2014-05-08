@@ -6,6 +6,7 @@
 
 namespace android{
 
+
 CameraUSBAdapter::CameraUSBAdapter(int cameraId)
                    :CameraAdapter(cameraId)
 {
@@ -97,7 +98,7 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
             sprintf((char*)(&str_element[strlen(str_element)]),"%d",fsize.discrete.height);
             parameterString.append((const char*)str_element);
 
-            if (fsize.discrete.width > mCamDriverFrmWidthMax) {
+            if (fsize.discrete.width > (unsigned int)mCamDriverFrmWidthMax) {
                 mCamDriverFrmWidthMax = fsize.discrete.width;
                 mCamDriverFrmHeightMax = fsize.discrete.height;
             }
@@ -881,7 +882,7 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
         ret = mMjpegDecoder.decode(mMjpegDecoder.decoder,
                                     (unsigned char*)&outbuf, &output_len, 
     		                          (unsigned char*)frame->vir_addr, &input_len,
-    		                          (unsigned char*)mPreviewBufProvider->getBufPhyAddr(frame->frame_index));
+    		                          mPreviewBufProvider->getBufPhyAddr(frame->frame_index));
         if (ret < 0){
             LOGE("%s(%d): mjpeg stream is error!",__FUNCTION__,__LINE__);
         }
@@ -898,7 +899,7 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
         }
 
     }else{
-        LOGE("camerahal not support this format",frame->frame_fmt);
+        LOGE("camerahal not support this format %d",frame->frame_fmt);
         ret =  -1;
     }
 

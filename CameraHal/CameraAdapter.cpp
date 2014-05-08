@@ -2,8 +2,8 @@
 namespace android{
 
 
-CameraAdapter::CameraAdapter(int cameraId):mCamId(cameraId),
-                                        mPreviewRunning(0)
+CameraAdapter::CameraAdapter(int cameraId):mPreviewRunning(0),
+                                           mCamId(cameraId)
 {
     LOG_FUNCTION_NAME
     mRefDisplayAdapter = NULL;
@@ -640,7 +640,7 @@ void CameraAdapter::previewThread(){
             
             ret = getFrame(&tmpFrame);
 
-            LOG2("%s(%d),frame addr = 0x%x,%dx%d,index(%d)",__FUNCTION__,__LINE__,tmpFrame,tmpFrame->frame_width,tmpFrame->frame_height,tmpFrame->frame_index);
+            LOG2("%s(%d),frame addr = %p,%dx%d,index(%d)",__FUNCTION__,__LINE__,tmpFrame,tmpFrame->frame_width,tmpFrame->frame_height,tmpFrame->frame_index);
             if((ret!=-1) && (!camera_device_error)){
                 //set preview buffer status
                 ret = reprocessFrame(tmpFrame);

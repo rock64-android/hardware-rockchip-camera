@@ -156,7 +156,7 @@ setBufferStatus_end:
 
 int BufferProvider::getOneAvailableBuffer(int *buf_phy,int *buf_vir)
 {
-	unsigned int i;
+	int i;
 	for ( i=0; i < mBufCount; i++) {
 			if((mBufInfo[i].buf_state) ==0)
 				break;

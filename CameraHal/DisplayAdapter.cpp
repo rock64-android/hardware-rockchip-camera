@@ -7,6 +7,7 @@ DisplayAdapter::DisplayAdapter()
               :displayThreadCommandQ("displayCmdQ")
 {
     LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
+//	strcpy(mDisplayFormat,CAMERA_DISPLAY_FORMAT_YUV420SP/*CAMERA_DISPLAY_FORMAT_YUV420SP*/);
     strcpy(mDisplayFormat,DISPLAY_FORMAT);
     mFrameProvider =  NULL;
     mDisplayRuning = -1;
@@ -21,7 +22,7 @@ DisplayAdapter::DisplayAdapter()
 
     mDisplayThread = new DisplayThread(this);
     mDisplayThread->run("DisplayThread",ANDROID_PRIORITY_DISPLAY);
-    LOGD("%s(%d):OUT, display format is ",__FUNCTION__,__LINE__,mDisplayFormat);
+    LOGD("%s(%d):OUT, display format is %s",__FUNCTION__,__LINE__,mDisplayFormat);
 }
 DisplayAdapter::~DisplayAdapter()
 {
@@ -656,9 +657,6 @@ display_receive_cmd:
                                     if(i == CONFIG_CAMERA_DISPLAY_BUF_CNT){
                                         err = mANativeWindow->cancel_buffer(mANativeWindow, (buffer_handle_t*)hnd);
 
-                                        //erro,return buffer
-                                        if(mFrameProvider)
-                                            mFrameProvider->returnFrame(frame->frame_index,frame_used_flag);
                                         //receive another msg
                                          continue;
                                     }
@@ -668,10 +666,10 @@ display_receive_cmd:
                                     LOGD("%s(%d): %s(err:%d) dequeueBuffer failed, so pause here", __FUNCTION__,__LINE__, strerror(-err), -err);
 
                                     mDisplayLock.lock();
-                                    //return this frame to frame provider
-                                    if(mFrameProvider)
-                                        mFrameProvider->returnFrame(frame->frame_index,frame_used_flag);
                                     if (displayThreadCommandQ.isEmpty() == false ) {
+                                        //return this frame to frame provider
+                                        if(mFrameProvider)
+                                            mFrameProvider->returnFrame(frame->frame_index,frame_used_flag);
                                         mDisplayLock.unlock(); 
                                         goto display_receive_cmd;
                                     }

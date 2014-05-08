@@ -60,7 +60,7 @@ extern "C" void arm_isp_yuyv_12bit_to_8bit (int src_w, int src_h,char *srcbuf,ui
     int  *srcint;
     int i = 0;
     unsigned int y_size = 0;
-    unsigned int *dst_buf,*debug_buf,*dst_y,*dst_uv;
+    int *dst_buf,*debug_buf,*dst_y,*dst_uv;
     unsigned int tmp = 0;
     //for test 
 
@@ -194,7 +194,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     static int writeoneframe = 0;
     uint32_t y_addr,uv_addr;
     void* y_addr_vir = NULL,*uv_addr_vir = NULL ;
-    int width,height;
+    int width = 0,height = 0;
     int fmt = 0;
 
 	Mutex::Autolock lock(mLock);
@@ -211,9 +211,9 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 height = pPicBufMetaData->Data.raw.PicHeightPixel;
                 HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
                 m_camDevice->getYCSequence();
-                arm_isp_yuyv_12bit_to_8bit(width,height,y_addr_vir,m_camDevice->getYCSequence(),mIs10bit0To0);
+                arm_isp_yuyv_12bit_to_8bit(width,height,(char*)y_addr_vir,m_camDevice->getYCSequence(),mIs10bit0To0);
                 y_addr += width*height*2;
-                y_addr_vir += width*height*2;
+                y_addr_vir= (void*)((int)y_addr_vir + width*height*2);
                 
     }else if(pPicBufMetaData->Type ==PIC_BUF_TYPE_YCbCr420){
 
@@ -247,9 +247,12 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->phy_addr = (int)(y_addr);
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
-      tmpFrame->vir_addr = y_addr_vir;
+      tmpFrame->vir_addr = (int)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
-      mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      {
+        Mutex::Autolock lock(mFrameArrayLock);
+        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      }
       mRefDisplayAdapter->notifyNewFrame(tmpFrame);
     }
 
@@ -267,9 +270,12 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->phy_addr = (int)(y_addr);
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
-      tmpFrame->vir_addr = y_addr_vir;
+      tmpFrame->vir_addr = (int)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
-      mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      {
+        Mutex::Autolock lock(mFrameArrayLock);
+        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      }
       mRefEventNotifier->notifyNewVideoFrame(tmpFrame);		
 	}
 	//picture ?
@@ -287,9 +293,12 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->phy_addr = (int)(y_addr);
 	  tmpFrame->frame_width = width;
 	  tmpFrame->frame_height= height;
-	  tmpFrame->vir_addr = y_addr_vir;
+	  tmpFrame->vir_addr = (int)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
-	  mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      {
+        Mutex::Autolock lock(mFrameArrayLock);
+        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      }
 	  mRefEventNotifier->notifyNewPicFrame(tmpFrame);	
 	}
 
@@ -307,9 +316,12 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->phy_addr = (int)(y_addr);
 	  tmpFrame->frame_width = width;
 	  tmpFrame->frame_height= height;
-	  tmpFrame->vir_addr =  y_addr_vir;
+	  tmpFrame->vir_addr =  (int)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
-	  mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      {
+        Mutex::Autolock lock(mFrameArrayLock);
+        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+      }
 	  mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);			
 	}
 	#endif

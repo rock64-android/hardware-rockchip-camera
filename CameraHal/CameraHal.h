@@ -120,12 +120,15 @@ namespace android {
 *v0.4.0x00: add flash;
 *v0.5.0x00: check whether focus and flash is available
 *v0.6.0x00: sync camerahal
-*v0.6.0x01: fix Jpeg exif:maker and model decode bugs in Camera2.apk 
+*v0.7.0x00: 
+		(1)add lock to protect mFrameInfoArray ,fix mFrameInfoArray corrupt
+		(2)remove compile warnings
+		(3)sync mid v0.6.01
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 6, 0x01)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 7, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -161,8 +164,14 @@ namespace android {
 #define CONFIG_CAMERA_BACK_PREVIEW_FPS_MIN     3000        
 #define CONFIG_CAMERA_BACK_PREVIEW_FPS_MAX     40000
 
-#define CAMERAHAL_VERSION_PROPERTY_KEY       "sys_graphic.cam_hal.ver"
-#define CAMERADRIVER_VERSION_PROPERTY_KEY    "sys_graphic.cam_driver.ver"
+#define CAMERAHAL_VERSION_PROPERTY_KEY                  "sys_graphic.cam_hal.ver"
+#define CAMERAHAL_CAMSYS_VERSION_PROPERTY_KEY           "sys_graphic.cam_drv_camsys.ver"
+#define CAMERAHAL_V4L2_VERSION_PROPERTY_KEY             "sys_graphic.cam_dri_v4l2.ver"
+#define CAMERAHAL_LIBISP_PROPERTY_KEY                   "sys_graphic.cam_libisp.ver"
+#define CAMERAHAL_ISI_PROPERTY_KEY                      "sys_graphic.cam_isi.ver"
+#define CAMERAHAL_CAMBOARDXML_PARSER_PROPERTY_KEY       "sys_graphic.cam_camboard.ver"
+#define CAMERAHAL_TRACE_LEVEL_PROPERTY_KEY              "sys_graphic.cam_trace"
+
 #define CAMERA_PMEM_NAME                     "/dev/pmem_cam"
 #define CAMERA_DRIVER_SUPPORT_FORMAT_MAX   32
 
@@ -241,7 +250,7 @@ public:
     int getBufPhyAddr(int bufindex);
     int getBufVirAddr(int bufindex);
     int flushBuffer(int bufindex);
-    BufferProvider(MemManagerBase* memManager):mCamBuffer(memManager),mBufInfo(NULL){}
+    BufferProvider(MemManagerBase* memManager):mBufInfo(NULL),mCamBuffer(memManager){}
     virtual ~BufferProvider(){mCamBuffer = NULL;mBufInfo = NULL;}
 protected:
     rk_buffer_info_t* mBufInfo;

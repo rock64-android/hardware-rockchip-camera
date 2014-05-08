@@ -99,6 +99,9 @@ typedef enum
 #define CAST_UINT32_TO_POINTER( pointerType, value ) ((pointerType)(value))
 #define CAST_INT32_TO_POINTER( value ) ((int32_t*)(value))
 #define N_ELEMENTS(s)      (sizeof(s) / sizeof ((s) [0]))
+#ifdef ABS
+#undef ABS
 #define ABS(a)         ((a) > 0 ? (a) : -(a))
+#endif
 
 #endif /*TYPES_H_*/

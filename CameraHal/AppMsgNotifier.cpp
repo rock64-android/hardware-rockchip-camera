@@ -299,7 +299,7 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
 
     if(msgtype & (CAMERA_MSG_POSTVIEW_FRAME | CAMERA_MSG_RAW_IMAGE|CAMERA_MSG_COMPRESSED_IMAGE)){
 //        if((mEncPictureNum <= 0) || (mReceivePictureFrame == false))
-    if((mEncPictureNum <= 0) || (mRunningState&STA_RECEIVE_PIC_FRAME == 0x0))			
+    if((mEncPictureNum <= 0) || ((mRunningState&STA_RECEIVE_PIC_FRAME) == 0x0))			
             mMsgTypeEnabled &= ~msgtype;
         else
             LOGD("%s%d:no need to disable picure msgtype.",__FUNCTION__,__LINE__);
@@ -307,10 +307,10 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
     }else if(msgtype & (CAMERA_MSG_PREVIEW_FRAME)){
             
             {
-                LOG1("%s%d: get mDataCbLock",__FUNCTION__,__LINE__);
+                LOGD("%s%d: get mDataCbLock",__FUNCTION__,__LINE__);
                 Mutex::Autolock lock(mDataCbLock);
                 mMsgTypeEnabled &= ~msgtype;
-                LOG1("%s%d: release mDataCbLock",__FUNCTION__,__LINE__);
+                LOGD("%s%d: release mDataCbLock",__FUNCTION__,__LINE__);
 
             }
             //send a msg to disable preview frame cb 
@@ -318,7 +318,7 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
 			msg.command = CameraAppMsgThread::CMD_EVENT_PAUSE;
 			msg.arg1 = NULL;
 			eventThreadCommandQ.put(&msg);
-			LOG1("%s%d: disable CAMERA_MSG_PREVIEW_FRAME success",__FUNCTION__,__LINE__);			
+			LOGD("%s%d: disable CAMERA_MSG_PREVIEW_FRAME success",__FUNCTION__,__LINE__);			
     }
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -829,7 +829,6 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 		JpegInInfo.doThumbNail = 0; 		 //insert thumbnail at APP0 extension	
 	}
 
-    memset(&exifInfo,0,sizeof(exifInfo));
 	Jpegfillexifinfo(&exifInfo,mPictureInfo);
 	JpegInInfo.exifInfo =&exifInfo;
 
@@ -851,7 +850,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	JpegOutInfo.outBuflen = jpegbuf_size;
 	JpegOutInfo.jpegFileLen = 0x00;
 	JpegOutInfo.cacheflush= jpegEncFlushBufferCb;
-	LOG1("JpegOutInfo.outBufPhyAddr:%x,JpegOutInfo.outBufVirAddr:%x,jpegbuf_size:%d",JpegOutInfo.outBufPhyAddr,JpegOutInfo.outBufVirAddr,jpegbuf_size);
+	LOG1("JpegOutInfo.outBufPhyAddr:%x,JpegOutInfo.outBufVirAddr:%p,jpegbuf_size:%d",JpegOutInfo.outBufPhyAddr,JpegOutInfo.outBufVirAddr,jpegbuf_size);
 
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
 	

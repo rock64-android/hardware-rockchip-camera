@@ -143,7 +143,7 @@ int MessageQueue::get(Message* msg)
         ((strstr(this->MsgQueName,"command"))&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
         LOG2("%s.get(%s,%p,%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     } else {
-        LOG1("%s.get(%s(0x%x),%s(%p),%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command),
+        LOG2("%s.get(%s(0x%x),%s(%p),%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command),
             msg->command, MessageArg1Convert(this->MsgQueName,msg),msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     }
 
@@ -187,7 +187,7 @@ int MessageQueue::get(Message* msg, int timeout)
         ((strstr(this->MsgQueName,"command"))&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
         LOG2("%s.get_timeout(%s,%p,%p,%p,%p)",this->MsgQueName,  MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     } else {
-        LOG1("%s.get_timeout(%s(0x%x),%s(%p),%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command),
+        LOG2("%s.get_timeout(%s(0x%x),%s(%p),%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command),
             msg->command, MessageArg1Convert(this->MsgQueName,msg),msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     }
 
@@ -203,7 +203,7 @@ int MessageQueue::put(Message* msg)
         ((strstr(this->MsgQueName,"command"))&&(strcmp(MessageCmdConvert(this->MsgQueName,msg->command),"CMD_PREVIEW_QBUF")==0))) {
         LOG2("%s.put(%s,%p,%p,%p,%p)",this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command), msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     } else {
-        LOG1("%s.put(%s(0x%x),%s(%p),%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command),
+        LOG2("%s.put(%s(0x%x),%s(%p),%p,%p,%p)", this->MsgQueName, MessageCmdConvert(this->MsgQueName,msg->command),
             msg->command, MessageArg1Convert(this->MsgQueName,msg),msg->arg1,msg->arg2,msg->arg3,msg->arg4);
     }
 

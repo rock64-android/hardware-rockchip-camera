@@ -6,9 +6,15 @@ extern "C"
 #endif
 #include <utils/Log.h>
 
+#ifdef LOG_TAG
+#undef LOG_TAG
 #define LOG_TAG                                  "CameraHal"          
+#endif
 
+#ifdef CAMERAHAL_TRACE_LEVEL_PROPERTY_KEY
+#undef CAMERAHAL_TRACE_LEVEL_PROPERTY_KEY
 #define CAMERAHAL_TRACE_LEVEL_PROPERTY_KEY       "sys_graphic.camhal.trace"
+#endif
 
 #ifdef ALOGV
 #define LOGV(msg,...)                 ALOGV("%s(%d): " msg ,__FUNCTION__,__LINE__,##__VA_ARGS__)

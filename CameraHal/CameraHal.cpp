@@ -865,7 +865,7 @@ get_command:
                         
                 }else{
                     //selet a proper preview size.
-                    LOGD("%s(%d):WARNING,take pic before start preview!");
+                    LOGD("%s(%d):WARNING,take pic before start preview!",__FUNCTION__,__LINE__);
                     err=mCameraAdapter->startPreview(picture_w,picture_h,drv_w, drv_h, 0, true);
 					if(err != 0)
 						goto CMD_CONTINUOS_PICTURE_OUT;

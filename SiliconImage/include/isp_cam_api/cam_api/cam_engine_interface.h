@@ -61,10 +61,24 @@
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 3, 0x00) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 4, 0x00) 
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);
+
+typedef struct CamEngVer_s {
+    unsigned int libisp_ver;
+    unsigned int isi_ver;
+} CamEngVer_t;
+
+class CamEngineVersionItf
+{
+public:
+    CamEngineVersionItf(){};
+    ~CamEngineVersionItf(){};
+    
+    bool getVersion(CamEngVer_t *ver);
+};
 
 /**
  * @brief CamEngineItf class declaration.
