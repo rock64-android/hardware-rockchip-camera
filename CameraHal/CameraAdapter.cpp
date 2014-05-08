@@ -622,7 +622,7 @@ int CameraAdapter::reprocessFrame(FramInfo_s* frame)
 }
 void CameraAdapter::previewThread(){
     bool loop = true;
-    FramInfo_s* tmpFrame;
+    FramInfo_s* tmpFrame = NULL;
     int buffer_log = 0;
     int ret = 0;
     while(loop){
@@ -631,6 +631,7 @@ void CameraAdapter::previewThread(){
         //fill frame info 
 
         //dispatch a frame
+            tmpFrame = NULL;
             mCamDriverStreamLock.lock();
             if (mCamDriverStream == false) {
                 mCamDriverStreamLock.unlock();
@@ -689,7 +690,9 @@ void CameraAdapter::previewThread(){
                 //notify app erro
                 break;
             }else if((ret==-1) && (!camera_device_error)){
-                    returnFrame(tmpFrame->frame_index,buffer_log);
+
+                    if(tmpFrame)
+                        returnFrame(tmpFrame->frame_index,buffer_log);
             }
     }
     LOG_FUNCTION_NAME_EXIT

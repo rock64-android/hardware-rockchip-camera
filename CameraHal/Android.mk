@@ -21,6 +21,7 @@ LOCAL_SRC_FILES:=\
 	CameraUSBAdapter.cpp\
 	CameraIspAdapter.cpp\
 	CameraIspSOCAdapter.cpp\
+	FakeCameraAdapter.cpp\
 	CameraHal.cpp\
 	CameraHal_board_xml_parse.cpp\
 	CameraHal_Tracer.c

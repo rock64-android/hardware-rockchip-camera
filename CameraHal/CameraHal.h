@@ -124,11 +124,13 @@ namespace android {
 		(1)add lock to protect mFrameInfoArray ,fix mFrameInfoArray corrupt
 		(2)remove compile warnings
 		(3)sync mid v0.6.01
+*v0.8.0x00:
+		support fake camera
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 7, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 8, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
