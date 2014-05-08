@@ -128,11 +128,13 @@ namespace android {
 		support fake camera
 *v0.9.0x00
 		do nothing if mFrameInfoArray has been cleared when return frame.
+*v0.0x0a.0x00:
+*       1) support no cam_board.xml;
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 9, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0a, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

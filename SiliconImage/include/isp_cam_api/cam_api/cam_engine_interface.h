@@ -57,7 +57,8 @@
 *
 *v0.2.0x00 : add checkAfShot and registerAfEvtQue api, log level;
 *v0.3.0x00 : add configFlash/startFlash/stopFlash
-*
+*v0.4.0x00 : invalidate DominateIlluProfileIdx init in AwbIlluEstProcessFrame, because AwbReConfigure maybe failed
+*            if awb fLikeHoodSum near zero;
 */
 
 

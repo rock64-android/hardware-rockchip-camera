@@ -719,14 +719,16 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
 camera_board_profiles* camera_board_profiles::createInstance()
 {
 	FILE *fp = NULL;
+
+    camera_board_profiles *profiles = new camera_board_profiles();
     
     fp = fopen(RK_BOARD_XML_PATH, "r");
     if(!fp){
-  	    ALOGD("open xml file(%s) failed\n", RK_BOARD_XML_PATH);
+  	    LOGD("This machine have not dvp/mipi camera!!\n");
+        return profiles;
     }
-    ALOGD("open xml file(%s) success\n", RK_BOARD_XML_PATH);
-
-    camera_board_profiles *profiles = new camera_board_profiles();
+    
+    LOGD("open xml file(%s) success\n", RK_BOARD_XML_PATH);
     
     XML_Parser parser = XML_ParserCreate(NULL);
     if(parser==NULL){
