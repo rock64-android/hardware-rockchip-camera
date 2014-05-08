@@ -464,13 +464,13 @@ int AppMsgNotifier::Jpegfillexifinfo(RkExifInfo *exifInfo,picture_info_s &params
 	strncpy((char *)ExifMaker, property,sizeof(ExifMaker) - 1);
 	ExifMaker[sizeof(ExifMaker) - 1] = '\0';
 	exifInfo->maker = ExifMaker;
-	exifInfo->makerchars = strlen(ExifMaker);
+	exifInfo->makerchars = strlen(ExifMaker)+1;
 	
 	property_get("ro.product.model", property, EXIF_DEF_MODEL);
 	strncpy((char *)ExifModel, property,sizeof(ExifModel) - 1);
 	ExifModel[sizeof(ExifModel) - 1] = '\0';
 	exifInfo->modelstr = ExifModel;
-	exifInfo->modelchars = strlen(ExifModel);  
+	exifInfo->modelchars = strlen(ExifModel)+1;  
 	
 	exifInfo->Orientation = 1;
 

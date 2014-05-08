@@ -120,11 +120,12 @@ namespace android {
 *v0.4.0x00: add flash;
 *v0.5.0x00: check whether focus and flash is available
 *v0.6.0x00: sync camerahal
+*v0.6.0x01: fix Jpeg exif:maker and model decode bugs in Camera2.apk 
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 6, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 6, 0x01)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
