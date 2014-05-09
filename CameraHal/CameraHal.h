@@ -130,11 +130,13 @@ namespace android {
 		do nothing if mFrameInfoArray has been cleared when return frame.
 *v0.0x0a.0x00:
 *       1) support no cam_board.xml;
+v0.0x0a.0x01:
+*       1) support DV_SVGA and VGA camera;
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0a, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0a, 0x01)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

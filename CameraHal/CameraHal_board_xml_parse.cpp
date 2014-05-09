@@ -618,6 +618,18 @@ void camera_board_profiles::ParserDVConfig(const char *name, const char **atts, 
             pDVResolution->mResolution = 0x000000000;
             pCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);
         }
+    } else if (strcmp(name, "DV_SVGA")==0) {
+        ALOGD("%s(%d):  DV_SVGA(%s) resolution(%sx%s) fps(%s) support(%s)\n", __FUNCTION__, __LINE__, atts[1],atts[3], atts[5],atts[7],atts[9]);
+	    pDVResolution = new rk_DV_info();
+        if(pDVResolution){
+            strncpy(pDVResolution->mName, atts[1], strlen(atts[1]));
+    	    pDVResolution->mWidth = atoi(atts[3]);
+    	    pDVResolution->mHeight = atoi(atts[5]);
+    	    pDVResolution->mFps = atoi(atts[7]);
+    	    pDVResolution->mIsSupport =  atoi(atts[9]);
+            pDVResolution->mResolution = 0x000000000;
+            pCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);
+        }
     } else if (strcmp(name,"DV_720P")==0){
         ALOGD("%s(%d):  DV_720P(%s) resolution(%sx%s) fps(%s) support(%s)\n", __FUNCTION__, __LINE__, atts[1],atts[3], atts[5],atts[7],atts[9]);
 	    pDVResolution = new rk_DV_info();

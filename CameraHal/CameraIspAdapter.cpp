@@ -35,8 +35,8 @@ void CameraIspAdapter::AfpsResChangeCb()
     LOG_FUNCTION_NAME_EXIT
 }
 
-int CameraIspAdapter::DEFAULTPREVIEWWIDTH = 800;
-int CameraIspAdapter::DEFAULTPREVIEWHEIGHT = 600;
+int CameraIspAdapter::DEFAULTPREVIEWWIDTH = 640;
+int CameraIspAdapter::DEFAULTPREVIEWHEIGHT = 480;
 int CameraIspAdapter::preview_frame_inval = 1;
 
 
@@ -358,6 +358,15 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 
 		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1600x1200,1024x768,640x480,352x288,320x240,176x144");
 		params.setPictureSize(1600,1200);
+	  }	else if(pCaps.Resolution & ISI_RES_VGA)	
+	  {		
+	  	parameterString.append("640x480");    	
+		params.setPreviewSize(640, 480);	
+
+		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "640x480,352x288,320x240,176x144");
+		params.setPictureSize(640,480);
+	  } else {
+        LOGE("error,you need add the solution");
 	  }	
 	params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());
 	#endif	
