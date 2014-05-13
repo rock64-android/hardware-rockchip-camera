@@ -59,10 +59,12 @@
 *v0.3.0x00 : add configFlash/startFlash/stopFlash
 *v0.4.0x00 : invalidate DominateIlluProfileIdx init in AwbIlluEstProcessFrame, because AwbReConfigure maybe failed
 *            if awb fLikeHoodSum near zero;
+*v0.5.0x00 : 1). if f_s < 0.25 and d65 weight < 0.75, illuminate d65 -> cwf; 
+*            2). f_RgProj min is 1.3, if illuminate is no A; 
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 4, 0x00) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 5, 0x00) 
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);
