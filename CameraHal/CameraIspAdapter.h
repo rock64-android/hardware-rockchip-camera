@@ -26,6 +26,7 @@ public:
     virtual int setParameters(const CameraParameters &params_set);
     virtual void initDefaultParameters(int camFd);
     virtual status_t autoFocus();
+    virtual status_t cancelAutoFocus();
     virtual int getCurPreviewState(int *drv_w,int *drv_h);
     void AfpsResChangeCb();
     virtual void bufferCb( MediaBuffer_t* pMediaBuffer );

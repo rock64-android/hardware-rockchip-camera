@@ -327,7 +327,11 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
                 	if ( err_af == false ){
                 		TRACE_E("Set startAfContinous failed");        		
                 	} 
-                }  
+                // Continues video focus is not implement, so fixd focus; /* ddl@rock-chips.com: v0.c.0 */
+                } else if (strcmp(params_set.get(CameraParameters::KEY_FOCUS_MODE),CameraParameters::FOCUS_MODE_CONTINUOUS_VIDEO)==0) {
+                    m_camDevice->stopAf();  /* ddl@rock-chips.com: v0.d.1 */
+					TRACE_D(1, "Continues-video focus is fixd focus now!");
+                }
 
                 if( err_af == true )
                     TRACE_D(1,"Set focus mode: %s success",params_set.get(CameraParameters::KEY_FOCUS_MODE));
@@ -449,7 +453,10 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 
                 parameterString.append(",");
                 parameterString.append(CameraParameters::FOCUS_MODE_CONTINUOUS_PICTURE);
-
+                /* ddl@rock-chips.com: v0.d.0 */
+                parameterString.append(",");
+                parameterString.append(CameraParameters::FOCUS_MODE_CONTINUOUS_VIDEO);
+                
                 if(0){
                     parameterString.append(",");
                     parameterString.append(CameraParameters::FOCUS_MODE_INFINITY);
@@ -683,6 +690,7 @@ status_t CameraIspAdapter::autoFocus()
 
     if (shot == true) {
         TRACE_D(1, "Single auto focus must be trigger");
+        m_camDevice->stopAf();  /* ddl@rock-chips.com: v0.d.0 */
         err_af = m_camDevice->startAfOneShot(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
     	if ( err_af == false ){
     		TRACE_E("Trigger a single auto focus failed!");        		
@@ -703,6 +711,12 @@ status_t CameraIspAdapter::autoFocus()
     return 0;
 }
 
+
+status_t CameraIspAdapter::cancelAutoFocus()
+{
+    
+    return 0;
+}
 void CameraIspAdapter::setScenarioMode(CamEngineModeType_t newScenarioMode)
 {
     CamEngineModeType_t oldScenarioMode = CAM_ENGINE_MODE_INVALID;

@@ -235,7 +235,10 @@ status_t CameraAdapter::autoFocus()
 {
     return 0;
 }
-
+status_t CameraAdapter::cancelAutoFocus()
+{
+    return 0;
+}
 int CameraAdapter::getCameraFd()
 {
     return mCamFd;

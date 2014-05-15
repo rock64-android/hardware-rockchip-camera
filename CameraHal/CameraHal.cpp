@@ -899,8 +899,8 @@ get_command:
             case CMD_AF_CANCEL:
             {
                 LOGD("%s(%d): receive CMD_AF_CANCEL", __FUNCTION__,__LINE__);
-				
-				setCamStatus(CMD_AF_CANCEL_DONE, 1);					
+                mCameraAdapter->cancelAutoFocus();
+                setCamStatus(CMD_AF_CANCEL_DONE, 1);					
                 if(msg.arg1)
                     ((Semaphore*)(msg.arg1))->Signal();
                 break;

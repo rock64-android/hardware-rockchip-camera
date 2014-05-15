@@ -63,6 +63,8 @@ CREATE_TRACER(OV8825_NOTICE1, "OV8825: ", TRACE_NOTICE1, 1);
  */
 #define MAX_LOG   64U
 #define MAX_REG 1023U
+#define MIN_REG 0U
+#define ONE_LOG_STEP 16U
 
 
 
@@ -74,7 +76,7 @@ CREATE_TRACER(OV8825_NOTICE1, "OV8825: ", TRACE_NOTICE1, 1);
  * 100us per step. A movement over the full range needs max. 102.3ms
  * (see table 9 AD5820 datasheet).
  */
-#define MDI_SLEW_RATE_CTRL 11U /* S3..0 */
+#define MDI_SLEW_RATE_CTRL 1U//11U /* S3..0 */
 
 
 
@@ -1424,7 +1426,7 @@ static RESULT OV8825_SetupOutputWindow
 
 //have to reset mipi freq here,zyc
 
-    TRACE( OV8825_ERROR, "%s  resolution(0x%x) freq(%f)(exit)\n", __FUNCTION__, pConfig->Resolution,rVtPixClkFreq);
+    TRACE( OV8825_INFO, "%s  resolution(0x%x) freq(%f)(exit)\n", __FUNCTION__, pConfig->Resolution,rVtPixClkFreq);
 
     return ( result );
 }
@@ -1952,6 +1954,9 @@ static RESULT OV8825_IsiSensorSetStreamingIss
     }
     else
     {
+
+        OV8825_IsiMdiFocusSet(handle,MAX_LOG);
+        osSleep(100);
         /* disable streaming */
         result = OV8825_IsiRegReadIss ( pOV8825Ctx, OV8825_MODE_SELECT, &RegValue);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
@@ -3848,7 +3853,13 @@ static RESULT OV8825_IsiMdiFocusSet
     }
 
     /* map 64 to 0 -> infinity */
-    nPosition = ( Position >= MAX_LOG ) ? 0 : ( MAX_REG - (Position * 16U) );
+
+	if( Position > MAX_LOG ){
+		TRACE( OV8825_ERROR, "%s: pOV8825Ctx Position (%d) max_position(%d)\n", __FUNCTION__,Position, MAX_LOG);
+		//Position = MAX_LOG;
+	}
+	
+    nPosition = ( Position >= MAX_LOG ) ? 0 : ( MAX_REG - (Position * ONE_LOG_STEP) );
 
     TRACE( OV8825_INFO, "%s: focus set position_reg_value(%d) position(%d) \n", __FUNCTION__, nPosition, Position);
     
@@ -3863,18 +3874,19 @@ static RESULT OV8825_IsiMdiFocusSet
                              0x3618,
                              pOV8825Ctx->IsiCtx.NrOfAfAddressBytes,
                              &data[0],
-                             2U );
+                             1U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    /*
+    
     result = HalWriteI2CMem( pOV8825Ctx->IsiCtx.HalHandle,
                              pOV8825Ctx->IsiCtx.I2cAfBusNum,
                              pOV8825Ctx->IsiCtx.SlaveAfAddress,
                              0x3619,
                              pOV8825Ctx->IsiCtx.NrOfAfAddressBytes,
-                             &data[0],
+                             &data[1],
                              1U );
+                             
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    */
+    
 
     TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
 
@@ -3937,19 +3949,19 @@ static RESULT OV8825_IsiMdiFocusGet
                              0x3618,
                              pOV8825Ctx->IsiCtx.NrOfAfAddressBytes,
                              &data[0],
-                             2U );
+                             1U );
 	RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-	#if 0
+	
 	RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 	result = HalReadI2CMem( pOV8825Ctx->IsiCtx.HalHandle,
                              pOV8825Ctx->IsiCtx.I2cAfBusNum,
                              pOV8825Ctx->IsiCtx.SlaveAfAddress,
                              0x3619,
                              pOV8825Ctx->IsiCtx.NrOfAfAddressBytes,
-                             &data[0],
+                             &data[1],
                              1U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-	#endif
+	
 
     TRACE( OV8825_INFO, "%s: value = 0x%02x 0x%02x\n", __FUNCTION__, data[1], data[0] );
 
@@ -3958,14 +3970,18 @@ static RESULT OV8825_IsiMdiFocusGet
     *pAbsStep = ( ((uint32_t)(data[1] & 0x3FU)) << 4U ) | ( ((uint32_t)data[0]) >> 4U );
 
     /* map 0 to 64 -> infinity */
-    if( *pAbsStep == 0 )
+    if( *pAbsStep <= MIN_REG )
     {
         *pAbsStep = MAX_LOG;
     }
-    else
+    else if( *pAbsStep>MIN_REG && *pAbsStep<=MAX_REG)
     {
-        *pAbsStep = ( MAX_REG - *pAbsStep ) / 16U;
+        *pAbsStep = ( MAX_REG - *pAbsStep ) / ONE_LOG_STEP;
     }
+	else
+	{
+		*pAbsStep = 0;
+	}
 
     TRACE( OV8825_INFO, "%s: get nposition(%d) (exit)\n", __FUNCTION__, *pAbsStep);
 

@@ -64,10 +64,14 @@
 *v0.6.0x00 :
              1) support mi output yuv420 when sensor output yuv422
              2) merge cameric_mi.c from isp vendor version delivery_sw_M14_v2_rel_1_2_20140424
+*v0.7.0:
+*            1). AfCntMax 120 -> 10 in  CamEngineCamerIcDrvMeasureCbRestart, because af validate delay too long after changeResoultion
+*            2). flash delay val 100000 -> 700000;
+
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 6, 0x00) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 7, 0x00) 
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);

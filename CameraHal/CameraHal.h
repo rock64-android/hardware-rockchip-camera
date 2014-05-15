@@ -138,11 +138,17 @@ v0.0x0a.0x01:
 *       3) sync mid v0.0x0a.01
 *v0.0x0c.0x00
         1) support mi output yuv420 when sensor output yuv422
+*v0.0x0d.0x00:
+*       1) add continues video focus, but is fixed focus for video recording;
+*       2) stop continus af before af oneShot, marvin isp af afOnshot and afProcessFrame may be conflict;
+*v0.0x0d.0x01:
+*       1) add continues video focus, but is fixed focus for video recording;
+
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0b, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x01)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -353,6 +359,7 @@ public:
     virtual int setParameters(const CameraParameters &params_set);
     virtual void initDefaultParameters(int camFd);
     virtual status_t autoFocus();
+    virtual status_t cancelAutoFocus();
 
     virtual void dump(int cameraId);
 protected:
