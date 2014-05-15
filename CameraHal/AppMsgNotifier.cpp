@@ -984,7 +984,7 @@ void AppMsgNotifier::encProcessThread()
 				{
 					FramInfo_s *frame = (FramInfo_s*)msg.arg2;
 					
-					LOGD("%s(%d): receive CMD_SNAPSHOT_SNAPSHOT with buffer %d,mEncPictureNum=%d",__FUNCTION__,__LINE__, frame->frame_index,mEncPictureNum);
+					LOGD("%s(%d): receive CMD_SNAPSHOT_SNAPSHOT with buffer %p,mEncPictureNum=%d",__FUNCTION__,__LINE__, (void*)frame->frame_index,mEncPictureNum);
 
                     //set picture encode info
                     mEncPictureNum--;

@@ -132,11 +132,15 @@ namespace android {
 *       1) support no cam_board.xml;
 v0.0x0a.0x01:
 *       1) support DV_SVGA and VGA camera;
+*v0.0x0b.0x00:
+*       1) 	support setVideoSize function;
+*       2) add cameraConfig function;
+*       3) sync mid v0.0x0a.01
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0a, 0x01)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0b, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -334,6 +338,8 @@ public:
     void setPreviewBufProvider(BufferProvider* bufprovider);
     CameraParameters & getParameters();
     virtual int getCurPreviewState(int *drv_w,int *drv_h);
+	virtual int getCurVideoSize(int *video_w, int *video_h);
+	virtual int changeVideoPreviewSize();
     int getCameraFd();
    int initialize();
     
@@ -396,6 +402,8 @@ protected:
     int mCamDrvHeight;
     int mCamPreviewH ;
     int mCamPreviewW ;
+    int mVideoWidth;
+    int mVideoHeight;
 
     unsigned int mCamDriverSupportFmt[CAMERA_DRIVER_SUPPORT_FORMAT_MAX];
     enum v4l2_memory mCamDriverV4l2MemType;

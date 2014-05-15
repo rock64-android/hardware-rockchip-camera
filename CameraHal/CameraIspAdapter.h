@@ -59,7 +59,7 @@ private:
     int stop();
 
     int afListenerThread(void);
-    
+    int cameraConfig(const CameraParameters &tmpparams,bool isInit);
 protected:
     CamDevice       *m_camDevice;
     KeyedVector<void *, void *> mFrameInfoArray;

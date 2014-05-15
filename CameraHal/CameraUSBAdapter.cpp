@@ -860,6 +860,8 @@ int CameraUSBAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 	}    
 
     mParameters = params;
+	
+	changeVideoPreviewSize();
 
 end:  
     return err;

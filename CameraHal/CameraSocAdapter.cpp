@@ -596,6 +596,17 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	 params.set(CameraParameters::KEY_VIDEO_STABILIZATION_SUPPORTED,"false");
 	 params.set(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED,"true");
 
+#if (CONFIG_CAMERA_SETVIDEOSIZE == 1)
+	 params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
+	 params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
+	 params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,240x160,352x288,640x480,720x480,800x600,1280x720");
+#else
+	 
+	 params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"");
+	 params.set(CameraParameters::KEY_VIDEO_SIZE,"");
+	 params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
+#endif
+
 	 LOGD ("Support Preview format: %s .. %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),
 		 params.get(CameraParameters::KEY_PREVIEW_FORMAT));
 	 LOGD ("Support Preview sizes: %s ",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES));
@@ -945,6 +956,8 @@ int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
     LOGD("config out ");
 
     mParameters = params;
+	changeVideoPreviewSize();
+	
 	return 0;
 }
 

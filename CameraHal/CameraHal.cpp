@@ -377,7 +377,8 @@ int CameraHal::startRecording()
     //get preview status
     //if(mPreviewCmdReceived)
     if(mCameraStatus&STA_PREVIEW_CMD_RECEIVED)
-        prevStatus = mCameraAdapter->getCurPreviewState(&recordW, &recordH);
+       // prevStatus = mCameraAdapter->getCurPreviewState(&recordW, &recordH);
+        prevStatus = mCameraAdapter->getCurVideoSize(&recordW, &recordH);
     if(prevStatus == -1){
         err = -1;
         return err;

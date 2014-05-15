@@ -14,6 +14,8 @@ CameraAdapter::CameraAdapter(int cameraId):mPreviewRunning(0),
     mPreviewBufProvider = NULL;
     mCamDrvWidth = 0;
     mCamDrvHeight = 0;
+    mVideoWidth = 0;
+    mVideoHeight = 0;
     mCamDriverStream = false;
     camera_device_error = false;
     mPreviewFrameIndex = 0;
@@ -80,6 +82,53 @@ int CameraAdapter::getCurPreviewState(int *drv_w,int *drv_h)
 	*drv_h = mCamDrvHeight;
     return mPreviewRunning;
 }
+int CameraAdapter::getCurVideoSize(int *video_w, int *video_h)
+{
+	*video_w = mVideoWidth;
+	*video_h = mVideoHeight;
+    return mPreviewRunning;
+
+}
+int CameraAdapter::changeVideoPreviewSize()
+{
+    int preferPreviewW=0,preferPreviewH=0;
+	int previewFrame2AppW=0,previewFrame2AppH=0;
+	int ret = 0;
+	
+    mParameters.getPreviewSize(&previewFrame2AppW, &previewFrame2AppH);
+
+	if(mPreviewRunning)
+    	mParameters.getVideoSize(&mVideoWidth,&mVideoHeight);
+	else{
+		mVideoWidth = -1;
+		mVideoHeight = -1;
+	}	
+
+	if(previewFrame2AppW >= mVideoWidth){
+		preferPreviewW = previewFrame2AppW;
+		preferPreviewH = previewFrame2AppH;
+	}else{
+		preferPreviewW = mVideoWidth;
+		preferPreviewH = mVideoHeight;	
+	}
+    //not support setvideosize
+    if(mVideoWidth == -1){
+        mVideoWidth = preferPreviewW;
+        mVideoHeight = preferPreviewH;
+    }
+	
+    LOG1("%s:mPreviewFrame2AppW (%dx%d)",__func__,previewFrame2AppW,previewFrame2AppH);
+    LOG1("%s:mCamPreviewW (%dx%d)",__func__,mCamPreviewW,mCamPreviewH);
+    LOG1("%s:video width (%dx%d)",__func__,mVideoWidth,mVideoHeight);
+
+	if(mPreviewRunning && ((preferPreviewW != mCamPreviewW) || (preferPreviewH != mCamPreviewH)))
+	{
+		ret = stopPreview();
+		ret = startPreview(preferPreviewW,preferPreviewH,preferPreviewW, preferPreviewH, 0,false);
+	}
+	return ret;
+}
+
 void CameraAdapter::dump(int cameraId)
 {
 	LOG2("%s CameraAdapter dump cameraId(%d)\n", __FUNCTION__,cameraId);

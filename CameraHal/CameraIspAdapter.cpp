@@ -273,6 +273,48 @@ status_t CameraIspAdapter::stopPreview()
 }
 int CameraIspAdapter::setParameters(const CameraParameters &params_set)
 {
+    int fps_min,fps_max;
+    int framerate=0;
+
+    if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES), params_set.get(CameraParameters::KEY_PREVIEW_SIZE)) == NULL) {
+        if (strcmp(params_set.get(CameraParameters::KEY_PREVIEW_SIZE),"240x160")==0) {
+            if (mCamDriverCapability.version  < 0x0207) {
+                LOGE("%s(%d): 240x160 is not support for v%d.%d.%d camera driver,"
+                    "Please update to v0.x.7 version driver!!",__FUNCTION__,__LINE__,
+                    (mCamDriverCapability.version>>16) & 0xff,(mCamDriverCapability.version>>8) & 0xff,
+                    mCamDriverCapability.version & 0xff);
+            }
+        } else {
+            LOGE("%s(%d): PreviewSize(%s) not supported",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_SIZE));
+        }
+        return BAD_VALUE;
+    } else if (strcmp(mParameters.get(CameraParameters::KEY_PREVIEW_SIZE), params_set.get(CameraParameters::KEY_PREVIEW_SIZE))) {
+        LOGD("%s(%d): Set preview size %s",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_SIZE));
+    }
+
+    if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES), params_set.get(CameraParameters::KEY_PICTURE_SIZE)) == NULL) {
+        LOGE("%s(%d): PictureSize(%s) not supported",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PICTURE_SIZE));
+        return BAD_VALUE;
+    } else if (strcmp(mParameters.get(CameraParameters::KEY_PICTURE_SIZE), params_set.get(CameraParameters::KEY_PICTURE_SIZE))) {
+        LOGD("%s(%d): Set picture size %s",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PICTURE_SIZE));
+    }
+
+    if (strcmp(params_set.getPictureFormat(), "jpeg") != 0) {
+        LOGE("%s(%d): Only jpeg still pictures are supported",__FUNCTION__,__LINE__);
+        return BAD_VALUE;
+    }
+
+    if (params_set.getInt(CameraParameters::KEY_ZOOM) > params_set.getInt(CameraParameters::KEY_MAX_ZOOM)) {
+        LOGE("%s(%d): Zomm(%d) is larger than MaxZoom(%d)",__FUNCTION__,__LINE__,params_set.getInt(CameraParameters::KEY_ZOOM),params_set.getInt(CameraParameters::KEY_MAX_ZOOM));
+        return BAD_VALUE;
+    }
+
+    params_set.getPreviewFpsRange(&fps_min,&fps_max);
+    if ((fps_min < 0) || (fps_max < 0) || (fps_max < fps_min)) {
+        LOGE("%s(%d): FpsRange(%s) is invalidate",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
+        return BAD_VALUE;
+    }
+
 
     {
         bool err_af = false;
@@ -328,7 +370,24 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
 
     }
     
-    mParameters = params_set;  
+	if (!cameraConfig(params_set,false)) {        
+        LOG1("PreviewSize(%s)", mParameters.get(CameraParameters::KEY_PREVIEW_SIZE));
+        LOG1("PreviewFormat(%s)  mCamDriverPreviewFmt(%c%c%c%c)",params_set.getPreviewFormat(), 
+            mCamDriverPreviewFmt & 0xFF, (mCamDriverPreviewFmt >> 8) & 0xFF,
+			(mCamDriverPreviewFmt >> 16) & 0xFF, (mCamDriverPreviewFmt >> 24) & 0xFF);  
+        LOG1("FPS Range(%s)",mParameters.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
+        LOG1("PictureSize(%s)",mParameters.get(CameraParameters::KEY_PICTURE_SIZE)); 
+        LOG1("PictureFormat(%s)  ", params_set.getPictureFormat());
+        LOG1("Framerate: %d  ", framerate);
+        LOG1("WhiteBalance: %s", params_set.get(CameraParameters::KEY_WHITE_BALANCE));
+        LOG1("Flash: %s", params_set.get(CameraParameters::KEY_FLASH_MODE));
+        LOG1("Focus: %s", params_set.get(CameraParameters::KEY_FOCUS_MODE));
+        LOG1("Scene: %s", params_set.get(CameraParameters::KEY_SCENE_MODE));
+    	LOG1("Effect: %s", params_set.get(CameraParameters::KEY_EFFECT));
+    	LOG1("ZoomIndex: %s", params_set.get(CameraParameters::KEY_ZOOM));	    
+	}else{
+	    return BAD_VALUE;
+	} 
     
     return 0;
 }
@@ -495,9 +554,18 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, "3000,30000");
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(3000,30000)");
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, "10,15,30");  
-	
-    mParameters = params;
 
+#if (CONFIG_CAMERA_SETVIDEOSIZE == 1)
+    params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
+	params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
+	params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,240x160,352x288,640x480,720x480,800x600,1280x720");
+#else
+
+    params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"");
+    params.set(CameraParameters::KEY_VIDEO_SIZE,"");
+    params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
+#endif
+	
     LOG1 ("Support Preview format: %s .. %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS), params.get(CameraParameters::KEY_PREVIEW_FORMAT)); 
 	LOG1 ("Support Preview sizes: %s     %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES), params.get(CameraParameters::KEY_PREVIEW_SIZE));
 	
@@ -510,7 +578,94 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 	if (params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES) && params.get(CameraParameters::KEY_FLASH_MODE))
     	LOG1 ("Support flash: %s  flash: %s",params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES),
         	params.get(CameraParameters::KEY_FLASH_MODE));
+	cameraConfig(params,true);
     LOG_FUNCTION_NAME_EXIT
+}
+
+int CameraIspAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit)
+{
+	int err = 0, i = 0;
+	CameraParameters params = tmpparams;
+	
+    /*white balance setting*/
+    const char *white_balance = params.get(CameraParameters::KEY_WHITE_BALANCE);
+	const char *mwhite_balance = mParameters.get(CameraParameters::KEY_WHITE_BALANCE);
+	if (params.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE)) {	
+		//TODO
+	}
+
+	/*zoom setting*/
+    const int zoom = params.getInt(CameraParameters::KEY_ZOOM);
+	const int mzoom = mParameters.getInt(CameraParameters::KEY_ZOOM);
+	if (params.get(CameraParameters::KEY_ZOOM_SUPPORTED)) {
+		//TODO
+	}
+	
+    /*color effect setting*/
+    const char *effect = params.get(CameraParameters::KEY_EFFECT);
+	const char *meffect = mParameters.get(CameraParameters::KEY_EFFECT);
+	if (params.get(CameraParameters::KEY_SUPPORTED_EFFECTS)) {
+		//TODO
+	}
+	
+    /*anti-banding setting*/
+    const char *anti_banding = params.get(CameraParameters::KEY_ANTIBANDING);
+	const char *manti_banding = mParameters.get(CameraParameters::KEY_ANTIBANDING);
+	if (anti_banding != NULL) {
+		if ( !manti_banding || (anti_banding && strcmp(anti_banding, manti_banding)) ) {
+			//TODO
+		}
+	}
+	
+	/*scene setting*/
+    const char *scene = params.get(CameraParameters::KEY_SCENE_MODE);
+	const char *mscene = mParameters.get(CameraParameters::KEY_SCENE_MODE);
+	if (params.get(CameraParameters::KEY_SUPPORTED_SCENE_MODES)) {
+		if ( !mscene || strcmp(scene, mscene) ) {
+			//TODO
+		}
+	}
+	
+    /*focus setting*/
+    const char *focusMode = params.get(CameraParameters::KEY_FOCUS_MODE);
+	const char *mfocusMode = mParameters.get(CameraParameters::KEY_FOCUS_MODE);
+	if (params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES)) {
+		if ( !mfocusMode || strcmp(focusMode, mfocusMode) ) {
+       		//if(!cameraAutoFocus(isInit)){
+        	//	params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
+        	//	err = -1;
+   			//}
+   			//TODO
+		}
+	} else{
+		params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
+	}
+	
+	/*flash mode setting*/
+    const char *flashMode = params.get(CameraParameters::KEY_FLASH_MODE);
+	const char *mflashMode = mParameters.get(CameraParameters::KEY_FLASH_MODE);
+	
+	if (params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES)) {
+		if ( !mflashMode || strcmp(flashMode, mflashMode) ) {
+			//TODO
+		}
+	}
+
+    /*exposure setting*/
+	const char *exposure = params.get(CameraParameters::KEY_EXPOSURE_COMPENSATION);
+    const char *mexposure = mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION);
+    
+	if (strcmp("0", params.get(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION))
+		|| strcmp("0", params.get(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION))) {
+	    if (!mexposure || (exposure && strcmp(exposure,mexposure))) {
+			//TODO
+	    }
+	}    
+
+	mParameters = params;
+	changeVideoPreviewSize();
+
+	return err;
 }
 
 status_t CameraIspAdapter::autoFocus()
