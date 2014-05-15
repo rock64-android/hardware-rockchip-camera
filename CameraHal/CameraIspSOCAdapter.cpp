@@ -27,31 +27,19 @@ void CameraIspSOCAdapter::setupPreview(int width_sensor,int height_sensor,int pr
     //
 	rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
 
-    if((pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Yuv420_8b)
-        && (m_camDevice->getBusWidth() == ISI_BUSWIDTH_8BIT_ZZ))
-    {
-        mIs8bit = true;
-    }else if((pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Raw_10b)
+    if((pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Raw_10b)
         && (m_camDevice->getBusWidth() == ISI_BUSWIDTH_12BIT)){
-        mIs8bit = false;
         if(pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.cifio == CamSys_SensorBit0_CifBit0)
             mIs10bit0To0 = true;
         else
             mIs10bit0To0 = false;
     }else{
         mIs10bit0To0 = false;
-        mIs8bit = false;
         LOGE("%s:erro:board xml format is %d,sensor driver bus width is %d",__FUNCTION__,pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.fmt,m_camDevice->getBusWidth());
     }
 
-
-    if(!mIs8bit){
-        m_camDevice->previewSetup_ex( dcWin, width_sensor*2, height_sensor,
-                                CAMERIC_MI_DATAMODE_RAW12,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)false);
-    }else{
-        m_camDevice->previewSetup_ex( dcWin, width_sensor*2, height_sensor,
-                                CAMERIC_MI_DATAMODE_YUV420,CAMERIC_MI_DATASTORAGE_SEMIPLANAR,(bool_t)false);
-    }
+    m_camDevice->previewSetup_ex( dcWin, width_sensor*2, height_sensor,
+                            CAMERIC_MI_DATAMODE_RAW12,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)false);
 }
 
 //for soc camera test
@@ -214,14 +202,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 arm_isp_yuyv_12bit_to_8bit(width,height,(char*)y_addr_vir,m_camDevice->getYCSequence(),mIs10bit0To0);
                 y_addr += width*height*2;
                 y_addr_vir= (void*)((int)y_addr_vir + width*height*2);
-                
-    }else if(pPicBufMetaData->Type ==PIC_BUF_TYPE_YCbCr420){
 
-                fmt = V4L2_PIX_FMT_NV12;
-                y_addr = (uint32_t)(pPicBufMetaData->Data.raw.pBuffer );
-                width = pPicBufMetaData->Data.raw.PicWidthPixel >> 1;
-                height = pPicBufMetaData->Data.raw.PicHeightPixel;
-                HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
     }else{
            LOGE("not support this type(%dx%d)  ,just support  yuv20 now",width,height);
            return;

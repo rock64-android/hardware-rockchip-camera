@@ -110,7 +110,6 @@ public:
     virtual void bufferCb( MediaBuffer_t* pMediaBuffer );
 
 private:
-    bool    mIs8bit; 
     bool    mIs10bit0To0;
 
 };

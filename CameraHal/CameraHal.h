@@ -136,6 +136,8 @@ v0.0x0a.0x01:
 *       1) 	support setVideoSize function;
 *       2) add cameraConfig function;
 *       3) sync mid v0.0x0a.01
+*v0.0x0c.0x00
+        1) support mi output yuv420 when sensor output yuv422
 */
 
 
@@ -160,6 +162,7 @@ v0.0x0a.0x01:
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL  0
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>"
+#define CONFIG_CAMERA_SETVIDEOSIZE	0
 
 #define CONFIG_CAMERA_PREVIEW_BUF_CNT 4
 #define CONFIG_CAMERA_DISPLAY_BUF_CNT		4
