@@ -5,7 +5,13 @@
 #include <common/return_codes.h>
 #include <hal/hal_api.h>
 
-
+/*             SILICONIMAGE LIBCIF VERSION NOTE
+ *
+ *
+ * v0.1.0x00 : 1.optimize performace for rk3288-r089
+ *
+ *
+ */
 
 #ifdef __cplusplus
 extern "C"
