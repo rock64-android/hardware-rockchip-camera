@@ -145,11 +145,15 @@ v0.0x0a.0x01:
 *       1) add continues video focus, but is fixed focus for video recording;
 *v0.d.2:
 *       1) invalidate <= 1080p picture size, because the flash feature is not yet perfect;
+*v0.d.0x03:
+*       1) stop focus and set max focus in disconnect camera for ov8825 vcm noise;
+*       2) set max focus in continues video focus;
+*
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x02)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x03)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

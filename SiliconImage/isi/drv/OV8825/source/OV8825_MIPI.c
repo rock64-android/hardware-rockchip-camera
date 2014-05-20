@@ -971,458 +971,462 @@ static RESULT OV8825_SetupOutputWindow
 
 	if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
 
-	pOV8825Ctx->IsiSensorMipiInfo.ulMipiFreq = 328;
-    /* resolution */
-    switch ( pConfig->Resolution )
-    {
-        case ISI_RES_TV1080P30:
+    	pOV8825Ctx->IsiSensorMipiInfo.ulMipiFreq = 328;
+        /* resolution */
+        switch ( pConfig->Resolution )
         {
-            TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_TV1080P30", __FUNCTION__,__LINE__ );
-            usModeSelect = 0x00;
-            usPllCtrl1 = 0xd8;
-            usPllCtrl3 = 0x00;
-            usScClkSel = 0x01;
-            usAECExpoM = 0x74;
-            usAECExpoL = 0x60;
-            usSenCtrl0 = 0x20;
-            usSenCtrl2 = 0x50;
-            usSenCtrl3 = 0xcc;
-            usSenCtrl4 = 0x19;
-            usSenCtrl5 = 0x32;
-            usSenCtrl6 = 0x4b;
-            usSenCtrl8 = 0x84;
-            usSenCtrl9 = 0x40;
-            usSenCtrlA = 0x31;
-            usSenCtrl11 = 0x0f;
-            usSenCtrl12 = 0x9c;
-            us3724 = 0x01;
-            us3725 = 0x92;
-            us3726 = 0x01;
-            us3727 = 0xc7;
-            usTimeVs = 0x0130;
-            usTimeVh = 0x0867;
-            usTimeIspHo = 0x0780;
-            usTimeIspVo = 0x0438;
-            usTimeHts = 0x0df0;
-            usTimeVts = 0x074c;
-            usTimeHoffsL = 0x10;
-            usTimeVoffsL = 0x06;
-            usTimeXinc = 0x11;
-            usTimeYinc = 0x11;
-            usTimeReg20 = 0x80;
-            usTimeReg21 = 0x16;
-            usPsramCtrl = 0x02;
-            usBLSctr5 = 0x18;
-            usVFIFOReadST= 0x0100;
-            usMIPIPclk = 0x1e;
-            usHscalCtrl = 0x53;
-            usVscalCtrl = 0x53;
-            usModeSelect = 0x01;
-            usSCClkRst2 = 0xf0;
-            usSCClkRst0 = 0x70;
+            case ISI_RES_TV1080P30:
+            {
+                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_TV1080P30", __FUNCTION__,__LINE__ );
+                usModeSelect = 0x00;
+                usPllCtrl1 = 0xd8;
+                usPllCtrl3 = 0x00;
+                usScClkSel = 0x01;
+                usAECExpoM = 0x74;
+                usAECExpoL = 0x60;
+                usSenCtrl0 = 0x20;
+                usSenCtrl2 = 0x50;
+                usSenCtrl3 = 0xcc;
+                usSenCtrl4 = 0x19;
+                usSenCtrl5 = 0x32;
+                usSenCtrl6 = 0x4b;
+                usSenCtrl8 = 0x84;
+                usSenCtrl9 = 0x40;
+                usSenCtrlA = 0x31;
+                usSenCtrl11 = 0x0f;
+                usSenCtrl12 = 0x9c;
+                us3724 = 0x01;
+                us3725 = 0x92;
+                us3726 = 0x01;
+                us3727 = 0xc7;
+                usTimeVs = 0x0130;
+                usTimeVh = 0x0867;
+                usTimeIspHo = 0x0780;
+                usTimeIspVo = 0x0438;
+                usTimeHts = 0x0df0;
+                usTimeVts = 0x074c;
+                usTimeHoffsL = 0x10;
+                usTimeVoffsL = 0x06;
+                usTimeXinc = 0x11;
+                usTimeYinc = 0x11;
+                usTimeReg20 = 0x80;
+                usTimeReg21 = 0x16;
+                usPsramCtrl = 0x02;
+                usBLSctr5 = 0x18;
+                usVFIFOReadST= 0x0100;
+                usMIPIPclk = 0x1e;
+                usHscalCtrl = 0x53;
+                usVscalCtrl = 0x53;
+                usModeSelect = 0x01;
+                usSCClkRst2 = 0xf0;
+                usSCClkRst0 = 0x70;
 
-            //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
-            usLineLengthPck = usTimeHts;
-            usFrameLengthLines = usTimeVts;
-            break;
+                //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
+                usLineLengthPck = usTimeHts;
+                usFrameLengthLines = usTimeVts;
+                break;
+                
+            }
             
+            case ISI_RES_3264_2448:
+            {
+                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
+                usModeSelect = 0x00;
+                usPllCtrl1 = 0xd8;
+                usPllCtrl3 = 0x10;
+                usScClkSel = 0x81;
+                usAECExpoM = 0x9a;
+                usAECExpoL = 0xa0;
+                usSenCtrl0 = 0x10;
+                usSenCtrl2 = 0x28;
+                usSenCtrl3 = 0x6c;
+                usSenCtrl4 = 0x40;
+                usSenCtrl5 = 0x19;
+                usSenCtrl6 = 0x27;
+                usSenCtrl8 = 0x48;
+                usSenCtrl9 = 0x20;
+                usSenCtrlA = 0x31;
+                usSenCtrl11 = 0x07;
+                usSenCtrl12 = 0x4e;
+                us3724 = 0x00;
+                us3725 = 0xd4;
+                us3726 = 0x00;
+                us3727 = 0xf0;
+                usTimeVs = 0x0000;
+                usTimeVh = 0x099b;
+                usTimeIspHo = 0x0cc0;
+                usTimeIspVo = 0x0990;
+                usTimeHts = 0x0e00;
+                usTimeVts = 0x09b0;
+                usTimeHoffsL = 0x10;
+                usTimeVoffsL = 0x06;
+                usTimeXinc = 0x11;
+                usTimeYinc = 0x11;
+                usTimeReg20 = 0x80;
+                usTimeReg21 = 0x16;
+                usPsramCtrl = 0x02;
+                usBLSctr5 = 0x1a;
+                usVFIFOReadST= 0x0020;
+                usMIPIPclk = 0x1e;
+                usHscalCtrl = 0x00;
+                usVscalCtrl = 0x00;
+                usModeSelect = 0x01;
+                usSCClkRst2 = 0xf0;
+                usSCClkRst0 = 0x70;
+
+                //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
+                usLineLengthPck = usTimeHts;
+                usFrameLengthLines = usTimeVts;
+                break;
+                
+            }
+
+            default:
+            {
+                TRACE( OV8825_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
+                return ( RET_NOTSUPP );
+            }
         }
+
+        //TRACE( OV8825_INFO, "%s: Resolution %dx%d\n", __FUNCTION__, usHSize, usVSize );
+
+        #if 0  /* ddl@rock-chips.com: v0.1.2 */
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, 0x00);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        #endif
         
-        case ISI_RES_3264_2448:
-        {
-            TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
-            usModeSelect = 0x00;
-            usPllCtrl1 = 0xd8;
-            usPllCtrl3 = 0x10;
-            usScClkSel = 0x81;
-            usAECExpoM = 0x9a;
-            usAECExpoL = 0xa0;
-            usSenCtrl0 = 0x10;
-            usSenCtrl2 = 0x28;
-            usSenCtrl3 = 0x6c;
-            usSenCtrl4 = 0x40;
-            usSenCtrl5 = 0x19;
-            usSenCtrl6 = 0x27;
-            usSenCtrl8 = 0x48;
-            usSenCtrl9 = 0x20;
-            usSenCtrlA = 0x31;
-            usSenCtrl11 = 0x07;
-            usSenCtrl12 = 0x4e;
-            us3724 = 0x00;
-            us3725 = 0xd4;
-            us3726 = 0x00;
-            us3727 = 0xf0;
-            usTimeVs = 0x0000;
-            usTimeVh = 0x099b;
-            usTimeIspHo = 0x0cc0;
-            usTimeIspVo = 0x0990;
-            usTimeHts = 0x0e00;
-            usTimeVts = 0x09b0;
-            usTimeHoffsL = 0x10;
-            usTimeVoffsL = 0x06;
-            usTimeXinc = 0x11;
-            usTimeYinc = 0x11;
-            usTimeReg20 = 0x80;
-            usTimeReg21 = 0x16;
-            usPsramCtrl = 0x02;
-            usBLSctr5 = 0x1a;
-            usVFIFOReadST= 0x0020;
-            usMIPIPclk = 0x1e;
-            usHscalCtrl = 0x00;
-            usVscalCtrl = 0x00;
-            usModeSelect = 0x01;
-            usSCClkRst2 = 0xf0;
-            usSCClkRst0 = 0x70;
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL1, usPllCtrl1);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL3, usPllCtrl3);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLK_SEL, usScClkSel);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_M, usAECExpoM);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_L, usAECExpoL);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL0, usSenCtrl0);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL2, usSenCtrl2);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL3, usSenCtrl3);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL4, usSenCtrl4);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL5, usSenCtrl5);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL6, usSenCtrl6);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL8, usSenCtrl8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL9, usSenCtrl9);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRLA, usSenCtrlA);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL11, usSenCtrl11);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL12, usSenCtrl12);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3724, us3724);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3725, us3725);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3726, us3726);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3727, us3727);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_H, (usTimeVs&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_L, (usTimeVs&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_H, (usTimeVh&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_L, (usTimeVh&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_H, (usTimeIspHo&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_L, (usTimeIspHo&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_H, (usTimeIspVo&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_L, (usTimeIspVo&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_H, (usTimeHts&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_L, (usTimeHts&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_H, (usTimeVts&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_L, (usTimeVts&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HOFFS_LOW, usTimeHoffsL);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VOFFS_LOW, usTimeVoffsL);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_X_INC, usTimeXinc);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_Y_INC, usTimeYinc);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG20, usTimeReg20);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG21, usTimeReg21);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PSRAM_CTRL0 , usPsramCtrl);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_HIGH, (usVFIFOReadST&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_LOW, (usVFIFOReadST&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MIPI_PCLK_PERIOD, usMIPIPclk);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_HSCALE_CTRL, usHscalCtrl);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VSCALE_CTRL, usVscalCtrl);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+       // result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, usModeSelect);
+       //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST2 , usSCClkRst2);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST0, usSCClkRst0);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-            //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
-            usLineLengthPck = usTimeHts;
-            usFrameLengthLines = usTimeVts;
-            break;
-            
-        }
-
-        default:
-        {
-            TRACE( OV8825_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
-            return ( RET_NOTSUPP );
-        }
-    }
-
-    //TRACE( OV8825_INFO, "%s: Resolution %dx%d\n", __FUNCTION__, usHSize, usVSize );
-
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, 0x00);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL1, usPllCtrl1);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL3, usPllCtrl3);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLK_SEL, usScClkSel);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_M, usAECExpoM);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_L, usAECExpoL);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL0, usSenCtrl0);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL2, usSenCtrl2);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL3, usSenCtrl3);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL4, usSenCtrl4);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL5, usSenCtrl5);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL6, usSenCtrl6);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL8, usSenCtrl8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL9, usSenCtrl9);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRLA, usSenCtrlA);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL11, usSenCtrl11);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL12, usSenCtrl12);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3724, us3724);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3725, us3725);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3726, us3726);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3727, us3727);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_H, (usTimeVs&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_L, (usTimeVs&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_H, (usTimeVh&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_L, (usTimeVh&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_H, (usTimeIspHo&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_L, (usTimeIspHo&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_H, (usTimeIspVo&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_L, (usTimeIspVo&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_H, (usTimeHts&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_L, (usTimeHts&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_H, (usTimeVts&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_L, (usTimeVts&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HOFFS_LOW, usTimeHoffsL);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VOFFS_LOW, usTimeVoffsL);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_X_INC, usTimeXinc);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_Y_INC, usTimeYinc);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG20, usTimeReg20);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG21, usTimeReg21);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PSRAM_CTRL0 , usPsramCtrl);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_HIGH, (usVFIFOReadST&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_LOW, (usVFIFOReadST&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MIPI_PCLK_PERIOD, usMIPIPclk);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_HSCALE_CTRL, usHscalCtrl);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VSCALE_CTRL, usVscalCtrl);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-   // result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, usModeSelect);
-   //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST2 , usSCClkRst2);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST0, usSCClkRst0);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-
-    rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
-    
-    // store frame timing for later use in AEC module
-    pOV8825Ctx->VtPixClkFreq     = rVtPixClkFreq;
-    pOV8825Ctx->LineLengthPck    = usLineLengthPck;
-    pOV8825Ctx->FrameLengthLines = usFrameLengthLines;
-	}else if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
-
-	pOV8825Ctx->IsiSensorMipiInfo.ulMipiFreq = 656;
-    /* resolution */
-    switch ( pConfig->Resolution )
-    {
-        case ISI_RES_TV1080P15:
-        {
-            TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_TV1080P15", __FUNCTION__,__LINE__ );
-            usModeSelect = 0x00;
-            usPllCtrl1 = 0xd2; //0xd8;//0xd2;
-            usReg0x3005 = 0x00;
-            usPllCtrl3 = 0x10;//0x20;//0x10;
-            usScClkSel = 0x01;
-            usAECExpoM = 0x74;
-            usAECExpoL = 0x60;
-            usSenCtrl0 = 0x20;
-            usSenCtrl2 = 0x50;
-            usSenCtrl3 = 0xcc;
-            usSenCtrl4 = 0x19;
-            usSenCtrl5 = 0x32;
-            usSenCtrl6 = 0x4b;
-            usSenCtrl8 = 0x84;
-            usSenCtrl9 = 0x40;
-            usSenCtrlA = 0x31;
-            usSenCtrl11 = 0x0f;
-            usSenCtrl12 = 0x9c;
-            us3724 = 0x01;
-            us3725 = 0x92;
-            us3726 = 0x01;
-            us3727 = 0xc7;
-            usTimeVs = 0x0130;
-            usTimeVh = 0x867;
-            usTimeIspHo = 0x780;
-            usTimeIspVo = 0x438;
-            usTimeHts = 0xdf0;
-            usTimeVts = 0x74c;
-            usTimeHoffsL = 0x10;
-            usTimeVoffsL = 0x06;
-            usTimeXinc = 0x11;
-            usTimeYinc = 0x11;
-            usTimeReg20 = 0x80;
-            usTimeReg21 = 0x16;
-            usPsramCtrl = 0x02;
-            usBLSctr5 = 0x18;
-            usVFIFOReadST= 0x0100;
-            usMIPIPclk = 0x15;//0x1e;//0x15;
-            usHscalCtrl = 0x53;
-            usVscalCtrl = 0x53;
-            usModeSelect = 0x01;
-            usSCClkRst2 = 0xf0;
-            usSCClkRst0 = 0x70;
-
-            //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
-            usLineLengthPck = usTimeHts;
-            usFrameLengthLines = usTimeVts;
-            break;
-            
-        }
+        rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
         
-        case ISI_RES_3264_2448:
-        {
-            TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
-            usModeSelect = 0x00;
-            usPllCtrl1 = 0xd8;   //0xce;
-            usReg0x3005 = 0x00;
-            usPllCtrl3 = 0x40;   //0x70;
-            usScClkSel = 0x81;
-            usAECExpoM = 0x9a;
-            usAECExpoL = 0xa0;
-            usSenCtrl0 = 0x10;
-            usSenCtrl2 = 0x28;
-            usSenCtrl3 = 0x6c;
-            usSenCtrl4 = 0x40;
-            usSenCtrl5 = 0x19;
-            usSenCtrl6 = 0x27;
-            usSenCtrl8 = 0x48;
-            usSenCtrl9 = 0x20;
-            usSenCtrlA = 0x31;
-            usSenCtrl11 = 0x07;
-            usSenCtrl12 = 0x4e;
-            us3724 = 0x00;
-            us3725 = 0xd4;
-            us3726 = 0x00;
-            us3727 = 0xf0;
-            usTimeVs = 0x0000;
-            usTimeVh = 0x099b;
-            usTimeIspHo = 0x0cc0;
-            usTimeIspVo = 0x0990;
-            usTimeHts = 0x0e00;
-            usTimeVts = 0x9b0;//0x0cb0;
-            usTimeHoffsL = 0x10;
-            usTimeVoffsL = 0x06;
-            usTimeXinc = 0x11;
-            usTimeYinc = 0x11;
-            usTimeReg20 = 0x80;
-            usTimeReg21 = 0x16;
-            usPsramCtrl = 0x02;
-            usBLSctr5 = 0x18;
-            usVFIFOReadST= 0x0020;
-            usMIPIPclk = 0x1e;
-            usHscalCtrl = 0x00;
-            usVscalCtrl = 0x00;
-            usModeSelect = 0x01;
-            usSCClkRst2 = 0xf0;
-            usSCClkRst0 = 0x70;
+        // store frame timing for later use in AEC module
+        pOV8825Ctx->VtPixClkFreq     = rVtPixClkFreq;
+        pOV8825Ctx->LineLengthPck    = usLineLengthPck;
+        pOV8825Ctx->FrameLengthLines = usFrameLengthLines;
+    }else if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
 
-            //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
-            usLineLengthPck = usTimeHts;
-            usFrameLengthLines = usTimeVts;
-            break;
+    	pOV8825Ctx->IsiSensorMipiInfo.ulMipiFreq = 656;
+        /* resolution */
+        switch ( pConfig->Resolution )
+        {
+            case ISI_RES_TV1080P15:
+            {
+                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_TV1080P15", __FUNCTION__,__LINE__ );
+                usModeSelect = 0x00;
+                usPllCtrl1 = 0xd2; //0xd8;//0xd2;
+                usReg0x3005 = 0x00;
+                usPllCtrl3 = 0x10;//0x20;//0x10;
+                usScClkSel = 0x01;
+                usAECExpoM = 0x74;
+                usAECExpoL = 0x60;
+                usSenCtrl0 = 0x20;
+                usSenCtrl2 = 0x50;
+                usSenCtrl3 = 0xcc;
+                usSenCtrl4 = 0x19;
+                usSenCtrl5 = 0x32;
+                usSenCtrl6 = 0x4b;
+                usSenCtrl8 = 0x84;
+                usSenCtrl9 = 0x40;
+                usSenCtrlA = 0x31;
+                usSenCtrl11 = 0x0f;
+                usSenCtrl12 = 0x9c;
+                us3724 = 0x01;
+                us3725 = 0x92;
+                us3726 = 0x01;
+                us3727 = 0xc7;
+                usTimeVs = 0x0130;
+                usTimeVh = 0x867;
+                usTimeIspHo = 0x780;
+                usTimeIspVo = 0x438;
+                usTimeHts = 0xdf0;
+                usTimeVts = 0x74c;
+                usTimeHoffsL = 0x10;
+                usTimeVoffsL = 0x06;
+                usTimeXinc = 0x11;
+                usTimeYinc = 0x11;
+                usTimeReg20 = 0x80;
+                usTimeReg21 = 0x16;
+                usPsramCtrl = 0x02;
+                usBLSctr5 = 0x18;
+                usVFIFOReadST= 0x0100;
+                usMIPIPclk = 0x15;//0x1e;//0x15;
+                usHscalCtrl = 0x53;
+                usVscalCtrl = 0x53;
+                usModeSelect = 0x01;
+                usSCClkRst2 = 0xf0;
+                usSCClkRst0 = 0x70;
+
+                //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
+                usLineLengthPck = usTimeHts;
+                usFrameLengthLines = usTimeVts;
+                break;
+                
+            }
             
+            case ISI_RES_3264_2448:
+            {
+                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
+                usModeSelect = 0x00;
+                usPllCtrl1 = 0xd8;   //0xce;
+                usReg0x3005 = 0x00;
+                usPllCtrl3 = 0x40;   //0x70;
+                usScClkSel = 0x81;
+                usAECExpoM = 0x9a;
+                usAECExpoL = 0xa0;
+                usSenCtrl0 = 0x10;
+                usSenCtrl2 = 0x28;
+                usSenCtrl3 = 0x6c;
+                usSenCtrl4 = 0x40;
+                usSenCtrl5 = 0x19;
+                usSenCtrl6 = 0x27;
+                usSenCtrl8 = 0x48;
+                usSenCtrl9 = 0x20;
+                usSenCtrlA = 0x31;
+                usSenCtrl11 = 0x07;
+                usSenCtrl12 = 0x4e;
+                us3724 = 0x00;
+                us3725 = 0xd4;
+                us3726 = 0x00;
+                us3727 = 0xf0;
+                usTimeVs = 0x0000;
+                usTimeVh = 0x099b;
+                usTimeIspHo = 0x0cc0;
+                usTimeIspVo = 0x0990;
+                usTimeHts = 0x0e00;
+                usTimeVts = 0x9b0;//0x0cb0;
+                usTimeHoffsL = 0x10;
+                usTimeVoffsL = 0x06;
+                usTimeXinc = 0x11;
+                usTimeYinc = 0x11;
+                usTimeReg20 = 0x80;
+                usTimeReg21 = 0x16;
+                usPsramCtrl = 0x02;
+                usBLSctr5 = 0x18;
+                usVFIFOReadST= 0x0020;
+                usMIPIPclk = 0x1e;
+                usHscalCtrl = 0x00;
+                usVscalCtrl = 0x00;
+                usModeSelect = 0x01;
+                usSCClkRst2 = 0xf0;
+                usSCClkRst0 = 0x70;
+
+                //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
+                usLineLengthPck = usTimeHts;
+                usFrameLengthLines = usTimeVts;
+                break;
+                
+            }
+
+            default:
+            {
+                TRACE( OV8825_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
+                return ( RET_NOTSUPP );
+            }
         }
 
-        default:
-        {
-            TRACE( OV8825_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
-            return ( RET_NOTSUPP );
-        }
+        //TRACE( OV8825_INFO, "%s: Resolution %dx%d\n", __FUNCTION__, usHSize, usVSize );
+        #if 0   /* ddl@rock-chips.com: v0.1.2 */
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, 0x00);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        #endif
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL1, usPllCtrl1);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL2, usReg0x3005);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL3, usPllCtrl3);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLK_SEL, usScClkSel);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_M, usAECExpoM);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_L, usAECExpoL);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL0, usSenCtrl0);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL2, usSenCtrl2);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL3, usSenCtrl3);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL4, usSenCtrl4);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL5, usSenCtrl5);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL6, usSenCtrl6);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL8, usSenCtrl8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL9, usSenCtrl9);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRLA, usSenCtrlA);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL11, usSenCtrl11);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL12, usSenCtrl12);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3724, us3724);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3725, us3725);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3726, us3726);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3727, us3727);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_H, (usTimeVs&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_L, (usTimeVs&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_H, (usTimeVh&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_L, (usTimeVh&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_H, (usTimeIspHo&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_L, (usTimeIspHo&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_H, (usTimeIspVo&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_L, (usTimeIspVo&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_H, (usTimeHts&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_L, (usTimeHts&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_H, (usTimeVts&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_L, (usTimeVts&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HOFFS_LOW, usTimeHoffsL);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VOFFS_LOW, usTimeVoffsL);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_X_INC, usTimeXinc);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_Y_INC, usTimeYinc);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG20, usTimeReg20);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG21, usTimeReg21);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PSRAM_CTRL0 , usPsramCtrl);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_HIGH, (usVFIFOReadST&0xff00)>>8);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_LOW, (usVFIFOReadST&0xff));
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MIPI_PCLK_PERIOD, usMIPIPclk);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_HSCALE_CTRL, usHscalCtrl);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VSCALE_CTRL, usVscalCtrl);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+       // result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, usModeSelect);
+       //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST2 , usSCClkRst2);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST0, usSCClkRst0);
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+
+        rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
+        
+        // store frame timing for later use in AEC module
+        pOV8825Ctx->VtPixClkFreq     = rVtPixClkFreq;
+        pOV8825Ctx->LineLengthPck    = usLineLengthPck;
+        pOV8825Ctx->FrameLengthLines = usFrameLengthLines;	
+
     }
-
-    //TRACE( OV8825_INFO, "%s: Resolution %dx%d\n", __FUNCTION__, usHSize, usVSize );
-
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, 0x00);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL1, usPllCtrl1);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL2, usReg0x3005);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL3, usPllCtrl3);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLK_SEL, usScClkSel);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_M, usAECExpoM);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_L, usAECExpoL);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL0, usSenCtrl0);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL2, usSenCtrl2);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL3, usSenCtrl3);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL4, usSenCtrl4);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL5, usSenCtrl5);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL6, usSenCtrl6);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL8, usSenCtrl8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL9, usSenCtrl9);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRLA, usSenCtrlA);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL11, usSenCtrl11);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL12, usSenCtrl12);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3724, us3724);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3725, us3725);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3726, us3726);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3727, us3727);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_H, (usTimeVs&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_L, (usTimeVs&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_H, (usTimeVh&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_L, (usTimeVh&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_H, (usTimeIspHo&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_L, (usTimeIspHo&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_H, (usTimeIspVo&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_L, (usTimeIspVo&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_H, (usTimeHts&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_L, (usTimeHts&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_H, (usTimeVts&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_L, (usTimeVts&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HOFFS_LOW, usTimeHoffsL);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VOFFS_LOW, usTimeVoffsL);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_X_INC, usTimeXinc);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_Y_INC, usTimeYinc);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG20, usTimeReg20);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG21, usTimeReg21);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PSRAM_CTRL0 , usPsramCtrl);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_HIGH, (usVFIFOReadST&0xff00)>>8);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_LOW, (usVFIFOReadST&0xff));
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MIPI_PCLK_PERIOD, usMIPIPclk);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_HSCALE_CTRL, usHscalCtrl);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VSCALE_CTRL, usVscalCtrl);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-   // result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, usModeSelect);
-   //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST2 , usSCClkRst2);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST0, usSCClkRst0);
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-
-    rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
-    
-    // store frame timing for later use in AEC module
-    pOV8825Ctx->VtPixClkFreq     = rVtPixClkFreq;
-    pOV8825Ctx->LineLengthPck    = usLineLengthPck;
-    pOV8825Ctx->FrameLengthLines = usFrameLengthLines;	
-
-	}
 
 //have to reset mipi freq here,zyc
 
@@ -1947,22 +1951,26 @@ static RESULT OV8825_IsiSensorSetStreamingIss
     if (on == BOOL_TRUE)
     {
         /* enable streaming */
+        OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_BLC_CTRL03, 0x82 );
+        OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_BLC_CTRL03, 0x02 );
+        OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_SC_CLKRST0, 0x70 );
+        /* ddl@rock-chips.com: v0.1.2 */
         result = OV8825_IsiRegReadIss ( pOV8825Ctx, OV8825_MODE_SELECT, &RegValue);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
         result = OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_MODE_SELECT, (RegValue | 0x01U) );
-        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result ); 
     }
     else
-    {
-
-        OV8825_IsiMdiFocusSet(handle,MAX_LOG);
-        osSleep(100);
+    {        
         /* disable streaming */
+        #if 0     /* ddl@rock-chips.com: v0.1.2 */
         result = OV8825_IsiRegReadIss ( pOV8825Ctx, OV8825_MODE_SELECT, &RegValue);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
         result = OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_MODE_SELECT, (RegValue & ~0x01U) );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-
+        #else
+        OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_SC_CLKRST0, 0x71 );
+        #endif
     }
 
     if (result == RET_SUCCESS)

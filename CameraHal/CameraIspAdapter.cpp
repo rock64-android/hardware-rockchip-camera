@@ -329,7 +329,15 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
                 	} 
                 // Continues video focus is not implement, so fixd focus; /* ddl@rock-chips.com: v0.c.0 */
                 } else if (strcmp(params_set.get(CameraParameters::KEY_FOCUS_MODE),CameraParameters::FOCUS_MODE_CONTINUOUS_VIDEO)==0) {
-                    m_camDevice->stopAf();  /* ddl@rock-chips.com: v0.d.1 */
+                    unsigned int maxFocus, minFocus;
+    
+                    m_camDevice->stopAf();  /* ddl@rock-chips.com: v0.d.3 */
+                    
+                    if (m_camDevice->getFocusLimits(minFocus, maxFocus) == true) {
+                        m_camDevice->setFocus(maxFocus);
+                    } else {
+                        LOGE("getFocusLimits failed!");
+                    }
 					TRACE_D(1, "Continues-video focus is fixd focus now!");
                 }
 
@@ -868,6 +876,17 @@ bool CameraIspAdapter::connectCamera(){
 
 void CameraIspAdapter::disconnectCamera()
 {
+    unsigned int maxFocus, minFocus;
+    
+    m_camDevice->stopAf();  /* ddl@rock-chips.com: v0.d.3 */
+    
+    if (m_camDevice->getFocusLimits(minFocus, maxFocus) == true) {
+        m_camDevice->setFocus(maxFocus);
+        usleep(100000);
+    } else {
+        LOGE("getFocusLimits failed!");
+    }
+    
     m_camDevice->disconnectCamera();
 }
 
