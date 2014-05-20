@@ -67,11 +67,12 @@
 *v0.7.0:
 *            1). AfCntMax 120 -> 10 in  CamEngineCamerIcDrvMeasureCbRestart, because af validate delay too long after changeResoultion
 *            2). flash delay val 100000 -> 700000;
-
+*v0.7.1:
+*            1). flash delay val 70000 -> 50000;
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 7, 0x00) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 7, 0x01) 
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);

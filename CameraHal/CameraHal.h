@@ -143,12 +143,13 @@ v0.0x0a.0x01:
 *       2) stop continus af before af oneShot, marvin isp af afOnshot and afProcessFrame may be conflict;
 *v0.0x0d.0x01:
 *       1) add continues video focus, but is fixed focus for video recording;
-
+*v0.d.2:
+*       1) invalidate <= 1080p picture size, because the flash feature is not yet perfect;
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x01)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x02)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

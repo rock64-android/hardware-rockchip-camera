@@ -76,7 +76,7 @@ CREATE_TRACER(OV8825_NOTICE1, "OV8825: ", TRACE_NOTICE1, 1);
  * 100us per step. A movement over the full range needs max. 102.3ms
  * (see table 9 AD5820 datasheet).
  */
-#define MDI_SLEW_RATE_CTRL 1U//11U /* S3..0 */
+#define MDI_SLEW_RATE_CTRL 3U//11U /* S3..0 */
 
 
 

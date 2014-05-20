@@ -50,11 +50,11 @@ extern "C"
 *
 *v0.1.0x00 : 1. set focus pos to MAX_LOG in streamoff for VCM noise when changeResolution and exit camera;
 *            2. MDI_SLEW_RATE_CTRL 11 -> 1;
-
+*v0.1.1:     1. MDI_SLEW_RATE_CTRL 1 -> 3;
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 1, 0x00) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 1, 0x01) 
 
 
 
