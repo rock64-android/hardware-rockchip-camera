@@ -899,7 +899,7 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
         if (tmpPreviewMemory) {
             //fill the tmpPreviewMemory
             arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
-                (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,false);
+                (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror);
             //if(cameraFormatConvert(frame->frame_fmt, V4L2_PIX_FMT_NV12, NULL,
             //		(char*)frame->vir_addr,(char*)tmpPreviewMemory->data,0,0,tempMemSize,
             //		frame->frame_width, frame->frame_height,frame->frame_width,mPreviewDataW, mPreviewDataH, mPreviewDataW,false)==0)
@@ -964,6 +964,11 @@ void AppMsgNotifier::stopReceiveFrame()
 void AppMsgNotifier::dump()
 {
 
+}
+
+void AppMsgNotifier::setDatacbFrontMirrorState(bool mirror)
+{
+	mDataCbFrontMirror = mirror;
 }
 
 void AppMsgNotifier::encProcessThread()

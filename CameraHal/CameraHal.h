@@ -148,12 +148,14 @@ v0.0x0a.0x01:
 *v0.d.0x03:
 *       1) stop focus and set max focus in disconnect camera for ov8825 vcm noise;
 *       2) set max focus in continues video focus;
-*
+*v0.d.0x04:
+*       1) support mirror frame which sended by mDataCb and from front camera,
+*            config by CONFIG_CAMERA_FRONT_MIRROR_MDATACB;
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x03)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x04)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -805,6 +807,7 @@ public:
     
     void stopReceiveFrame();
     void dump();
+	void setDatacbFrontMirrorState(bool mirror);
 private:
 
    void encProcessThread();
@@ -856,7 +859,7 @@ private:
     int mPreviewDataW;
     int mPreviewDataH;
 	int mRunningState;
-    
+    bool mDataCbFrontMirror;
 };
 
 

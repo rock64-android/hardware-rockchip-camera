@@ -130,6 +130,28 @@ CameraHal::CameraHal(int cameraId)
     //command thread
     mCommandThread = new CommandThread(this);
 	mCommandThread->run("CameraCmdThread", ANDROID_PRIORITY_URGENT_DISPLAY);
+
+	bool dataCbFrontMirror;
+#if CONFIG_CAMERA_FRONT_MIRROR_MDATACB
+    if (gCamInfos[cameraId].facing_info.facing == CAMERA_FACING_FRONT) {
+#if CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL
+        dataCbFrontMirror = true;
+#else
+		const char* cameraCallProcess = getCallingProcess();
+        if (strstr(CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK,cameraCallProcess)) {
+            dataCbFrontMirror = true; 
+        } else {
+            dataCbFrontMirror = false;
+        }
+#endif
+    } else {
+        dataCbFrontMirror = false;
+    }
+#else
+    dataCbFrontMirror = false;
+#endif 
+	mEventNotifier->setDatacbFrontMirrorState(dataCbFrontMirror);
+
     
 	LOG_FUNCTION_NAME_EXIT
 
