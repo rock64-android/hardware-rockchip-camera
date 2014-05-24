@@ -41,6 +41,13 @@ LOCAL_C_INCLUDES += \
   external/stlport/stlport\
   external/tinyxml2\
 
+LOCAL_C_INCLUDES += \
+    external/skia/include/core \
+    external/skia/include/effects \
+    external/skia/include/images \
+    external/skia/src/ports \
+    external/skia/include/utils
+
 LOCAL_SHARED_LIBRARIES:= \
     libui \
     libbinder \
@@ -55,7 +62,8 @@ LOCAL_SHARED_LIBRARIES:= \
     libdl\
 	libisp_silicomimageisp_api \
 	libstlport\
-	libexpat
+	libexpat \
+	libskia
 
 #LOCAL_STATIC_LIBRARIES :=  libisp_calibdb libtinyxml2 libisp_cam_calibdb libisp_ebase \
 #							libisp_oslayer libisp_common libisp_hal libisp_isi\

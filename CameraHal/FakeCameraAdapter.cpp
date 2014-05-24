@@ -1,6 +1,15 @@
 #include "FakeCameraAdapter.h"
 
+#include <cutils/properties.h>
+#include <SkBitmap.h>
+#include <SkCanvas.h>
+#include <SkDevice.h>
+#include <SkData.h>
+#include <SkStream.h>
+
 namespace android{
+static unsigned char* mDataSource;
+
 CameraFakeAdapter::CameraFakeAdapter(int cameraId)
                    :CameraAdapter(cameraId)
 {
@@ -10,8 +19,108 @@ CameraFakeAdapter::CameraFakeAdapter(int cameraId)
 
 CameraFakeAdapter::~CameraFakeAdapter()
 {
+    free(mDataSource);
 }
 
+int createSourceImage(unsigned char* output, int width, int height)  
+{
+    int srcW = 240;
+    int srcH = 240;
+
+    char value[PROPERTY_VALUE_MAX];
+    property_get(CAMERAHAL_FAKECAMERA_WIDTH_KEY, value, "240");
+    srcW = atoi(value);
+    property_get(CAMERAHAL_FAKECAMERA_HEIGHT_KEY, value, "240");
+    srcH = atoi(value);
+    property_get(CAMERAHAL_FAKECAMERA_DIR_KEY, value, CAMERAHAL_FAKECAMERA_DIR_VALUE);
+
+    FILE* ifp;
+    ifp = fopen(value, "rb");
+    if (ifp == NULL) {
+        ALOGD("FakeCamera, fail to open source file.");
+        return -1;
+    }
+
+    int size = width * height * 4;
+    unsigned char *RGBBuffer = new unsigned char[size];
+    
+    fread(RGBBuffer, sizeof(char), size, ifp);
+
+    SkBitmap bitmap;
+    bitmap.setConfig(SkBitmap::kARGB_8888_Config, srcW, srcH, 0);
+    bitmap.setPixels(RGBBuffer);
+
+    SkBitmap newbmp;
+    newbmp.setConfig(SkBitmap::kARGB_8888_Config, width, height, 0);
+    newbmp.allocPixels();
+    newbmp.eraseColor(SK_ColorWHITE);
+
+    SkCanvas* canvas = new SkCanvas(newbmp);
+    SkIRect srcR = { 0, 0, SkIntToScalar(srcW), SkIntToScalar(srcH) };
+    SkRect  dstR = { SkIntToScalar((width-srcW) / 2), SkIntToScalar((height - srcH) / 2),
+                                           SkIntToScalar((width + srcW) / 2), SkIntToScalar(height + srcH) / 2 };
+
+    canvas->drawBitmapRect(bitmap, /*&srcR*/ NULL, dstR, NULL);
+
+    //RGBA8888 -> RGB888
+    int r, g, b, a;
+    SkAutoLockPixels alp(newbmp);
+    void* pixels = newbmp.getPixels();
+
+    for (int i=0; i<height; i++)
+    {
+        for(int j=0; j<width; j++)
+        {
+             memcpy(output + i*width*3 + j*3, pixels+((width)*(i + 1) - j)*4, sizeof(char)*3);
+        }
+    }
+
+    bitmap.setPixels(NULL);
+    newbmp.setPixels(NULL);
+    fclose(ifp);
+
+    return 0;
+}  
+
+bool RGB2YUV420SPFast(void* RgbBuf, void* yuvBuf, int nWidth, int nHeight)
+{
+
+    int i, j; 
+	unsigned char*bufY, *bufUV, *bufRGB, *bufYuv; 
+	bufY = yuvBuf; 
+	bufUV = yuvBuf + nWidth * nHeight; 
+	unsigned char y, u, v, r, g, b; 
+	for (j = 0; j<nHeight; j++)
+	{
+		bufRGB = RgbBuf + nWidth * (nHeight - 1 - j) * 3 ; 
+		for (i = 0;i < nWidth; i++)
+		{
+			int pos = nWidth * i + j;
+			r = *(bufRGB++);
+			g = *(bufRGB++);
+			b = *(bufRGB++);
+
+			y = (unsigned char)( ( 66 * r + 129 * g +  25 * b + 128) >> 8) + 16  ;           
+			u = (unsigned char)( ( -38 * r -  74 * g + 112 * b + 128) >> 8) + 128 ;           
+			v = (unsigned char)( ( 112 * r -  94 * g -  18 * b + 128) >> 8) + 128 ;
+			*(bufY++) = (y<0) ? 0 : ((y>255) ? 255 : y);
+
+            if (j%2 == 1)
+            {
+                if (i%2 == 0)
+                {
+                    *(bufUV++) = (u<0) ? 0 : ((u>255) ? 255 : u);
+                } else {
+                    *(bufUV++) = (v<0) ? 0 : ((v>255) ? 255 : v);
+                }
+            }
+
+		}
+
+	}
+
+	return true;
+}
 
 int CameraFakeAdapter::setParameters(const CameraParameters &params_set)
 {
@@ -110,7 +219,7 @@ int CameraFakeAdapter::getFrame(FramInfo_s** tmpFrame)
     LOG1("GET ONE FRAME ");
     index = mPreviewBufProvider->getOneAvailableBuffer(&buf_phy,&buf_vir);
     if(index < 0){
-        LOGE("%s:no available buffer found",__FUNCTION__);
+        //LOGE("%s:no available buffer found",__FUNCTION__);
         return -1;
     }
  //   mPreviewBufProvider->setBufferStatus(index, 1, (PreviewBufferProvider::CMD_PREVIEWBUF_WRITING));
@@ -126,6 +235,9 @@ int CameraFakeAdapter::getFrame(FramInfo_s** tmpFrame)
     mPreviewFrameInfos[index].used_flag = 0;
     mPreviewFrameInfos[index].frame_size = 0;
 
+    //memset((void*)buf_vir, 'z', mCamPreviewW*mCamPreviewH/2);
+    //memset((void*)buf_vir+mCamPreviewW*mCamPreviewH/2, 'a', mCamPreviewW*mCamPreviewH/2);
+
     /*
     //FAKE CAMERA TODO:
     //copy image data to preview buffer
@@ -135,6 +247,9 @@ int CameraFakeAdapter::getFrame(FramInfo_s** tmpFrame)
     outpurt frame buffer: buf_vir
     
     */
+
+    memcpy((void*)buf_vir, mDataSource, mCamPreviewW*mCamPreviewH*3/2);
+    usleep(10000);
 
     *tmpFrame = &(mPreviewFrameInfos[index]);
     mPreviewFrameIndex++;
@@ -181,6 +296,12 @@ int CameraFakeAdapter::cameraStart()
     mPreviewFrameIndex = 0;
     cameraStream(true);
 
+    unsigned char *RGBBuf = (unsigned char*)malloc(mCamPreviewW*mCamPreviewH*3);
+    mDataSource = (unsigned char*)malloc(mCamPreviewW*mCamPreviewH*3 / 2);
+    createSourceImage(RGBBuf, mCamPreviewW, mCamPreviewH);
+    RGB2YUV420SPFast(RGBBuf, mDataSource, mCamPreviewW, mCamPreviewH);
+    free(RGBBuf);
+
     return 0;
 }
 
@@ -209,6 +330,5 @@ int CameraFakeAdapter::cameraDestroy()
 {
     return 0;
 }
-
 
 }

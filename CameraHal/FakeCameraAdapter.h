@@ -4,8 +4,12 @@
 //usb camera adapter
 #include "CameraHal.h"
 
-namespace android{
+#define CAMERAHAL_FAKECAMERA_WIDTH_KEY "sys_graphic.cam_hal.fakewidth"
+#define CAMERAHAL_FAKECAMERA_HEIGHT_KEY "sys_graphic.cam_hal.fakeheight"
+#define CAMERAHAL_FAKECAMERA_DIR_KEY "sys_graphic.cam_hal.fakedir"
+#define CAMERAHAL_FAKECAMERA_DIR_VALUE "/mnt/sdcard/Screencapture/camera"
 
+namespace android{
 
 class CameraFakeAdapter: public CameraAdapter
 {

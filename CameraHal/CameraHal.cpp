@@ -21,6 +21,7 @@
 #include <linux/fb.h>
 
 #include "CameraIspAdapter.h"
+#include "FakeCameraAdapter.h"
 
 #ifdef TARGET_RK29
 #include "../libyuvtorgb/yuvtorgb.h"
@@ -93,27 +94,33 @@ CameraHal::CameraHal(int cameraId)
     mRawBuf = new BufferProvider(mCamMemManager);
     mJpegBuf = new BufferProvider(mCamMemManager);
 
+    char value[PROPERTY_VALUE_MAX];
+    property_get(/*CAMERAHAL_TYPE_PROPERTY_KEY*/"sys.cam_hal.type", value, "none");
 
-    if((strcmp(gCamInfos[cameraId].driver,"uvcvideo") == 0)) {
-        LOGD("it is a uvc camera!");
-        mCameraAdapter = new CameraUSBAdapter(cameraId);
+    if (!strcmp(value, "fakecamera")) {
+        LOGD("it is a fake camera!");
+        mCameraAdapter = new CameraFakeAdapter(cameraId);
+    } else {
+	    if((strcmp(gCamInfos[cameraId].driver,"uvcvideo") == 0)) {
+	        LOGD("it is a uvc camera!");
+	        mCameraAdapter = new CameraUSBAdapter(cameraId);
+	    }
+	    else if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_Cif){
+	        LOGD("it is a isp soc camera");
+	        if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Raw_10b)
+	            mCameraAdapter = new CameraIspSOCAdapter(cameraId);
+	        else
+	            mCameraAdapter = new CameraIspAdapter(cameraId);
+	    }
+	    else if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_Mipi){
+	        LOGD("it is a isp  camera");
+	        mCameraAdapter = new CameraIspAdapter(cameraId);
+	    }
+	    else{
+	        LOGD("it is a soc camera!");
+	        mCameraAdapter = new CameraSOCAdapter(cameraId);
+	    }
     }
-    else if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_Cif){
-        LOGD("it is a isp soc camera");
-        if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Raw_10b)
-            mCameraAdapter = new CameraIspSOCAdapter(cameraId);
-        else
-            mCameraAdapter = new CameraIspAdapter(cameraId);
-    }
-    else if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_Mipi){
-        LOGD("it is a isp  camera");
-        mCameraAdapter = new CameraIspAdapter(cameraId);
-    }
-    else{
-        LOGD("it is a soc camera!");
-        mCameraAdapter = new CameraSOCAdapter(cameraId);
-    }
-
     //initialize
     mCameraAdapter->initialize();
     updateParameters(mParameters);
