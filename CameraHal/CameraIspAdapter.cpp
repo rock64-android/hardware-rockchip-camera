@@ -420,14 +420,14 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 		parameterString.append("1920x1080,1280x720,800x600,640x480");    	
 		params.setPreviewSize(1920, 1080);	
         /* ddl@rock-chips.com: v0.d.2 */
-		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "2048x1536,2592x1944,3264x2448");
+		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,2048x1536,2592x1944,3264x2448");
 		params.setPictureSize(2592,1944);
 	  }	else if((pCaps.Resolution & ISI_RES_1600_1200)|| (pCaps.Resolution & ISI_RES_SVGA30))	
 	  {		
 	  	parameterString.append("1280x720,800x600,720x480,640x480");    	
 		params.setPreviewSize(800, 600);	
 
-		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1600x1200,1024x768,640x480,352x288,320x240,176x144");
+		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1600x1200,1024x768,800x600,640x480,352x288,320x240,176x144");
 		params.setPictureSize(1600,1200);
 	  }	else if(pCaps.Resolution & ISI_RES_VGA)	
 	  {		
