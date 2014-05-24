@@ -151,11 +151,13 @@ v0.0x0a.0x01:
 *v0.d.0x04:
 *       1) support mirror frame which sended by mDataCb and from front camera,
 *            config by CONFIG_CAMERA_FRONT_MIRROR_MDATACB;
+*v0.d.0x05:
+*       1) add wechat in CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK 
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x04)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x05)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -174,7 +176,7 @@ v0.0x0a.0x01:
 #define CONFIG_CAMERA_FRAME_DV_PROC_STAT    0
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL  0
-#define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>"
+#define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>,<com.tencent.mm>"
 #define CONFIG_CAMERA_SETVIDEOSIZE	0
 
 #define CONFIG_CAMERA_PREVIEW_BUF_CNT 4

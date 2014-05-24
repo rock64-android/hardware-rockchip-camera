@@ -36,8 +36,8 @@ const IsiRegDescription_t GC2155_g_aRegDescription[] =
 //////////////////ISP reg//////////////////////
 ////////////////////////////////////////////////////
 	{0xfe , 0x00,"",eReadWrite,},
-	{0x03 , 0x04,"",eReadWrite,},
-	{0x04 , 0x24,"",eReadWrite,},//e2
+	{0x03 , 0x08,"",eReadWrite,},//04
+	{0x04 , 0x48,"",eReadWrite,},//24
 	{0x09 , 0x00,"",eReadWrite,},
 	{0x0a , 0x00,"",eReadWrite,},
 	{0x0b , 0x00,"",eReadWrite,},
@@ -108,7 +108,7 @@ const IsiRegDescription_t GC2155_g_aRegDescription[] =
 	{0x18 , 0x02,"",eReadWrite,},
 	{0x40 , 0x42,"",eReadWrite,},
 	{0x41 , 0x00,"",eReadWrite,},
-	{0x43 , 0x54,"",eReadWrite,},
+	{0x43 , 0x5c,"",eReadWrite,},//54
 	{0x5e , 0x00,"",eReadWrite,},
 	{0x5f , 0x00,"",eReadWrite,},
 	{0x60 , 0x00,"",eReadWrite,},
@@ -154,7 +154,7 @@ const IsiRegDescription_t GC2155_g_aRegDescription[] =
 	{0x1c , 0x11,"",eReadWrite,},
 	{0x1e , 0x61,"",eReadWrite,},
 	{0x1f , 0x30,"",eReadWrite,},
-	{0x20 , 0x3b,"",eReadWrite,},//40
+	{0x20 , 0x44,"",eReadWrite,},//40
 	{0x22 , 0x80,"",eReadWrite,},
 	{0x23 , 0x20,"",eReadWrite,},
 	
@@ -201,11 +201,11 @@ const IsiRegDescription_t GC2155_g_aRegDescription[] =
 	{0xfe , 0x01,"",eReadWrite,},
 	{0x21 , 0x14,"",eReadWrite,},
 	{0xfe , 0x02,"",eReadWrite,},
-	{0x3c , 0x06,"",eReadWrite,},
+	{0x3c , 0x04,"",eReadWrite,},//06
 	{0x3d , 0x40,"",eReadWrite,},
 	{0x48 , 0x30,"",eReadWrite,},
-	{0x49 , 0x02,"",eReadWrite,},//06
-	{0x4b , 0x04,"",eReadWrite,},//08
+	{0x49 , 0x08,"",eReadWrite,},//06
+	{0x4b , 0x0c,"",eReadWrite,},//08
 	{0x4c , 0x20,"",eReadWrite,},
 	{0xa3 , 0x40,"",eReadWrite,},//50
 	{0xa4 , 0x20,"",eReadWrite,},//30
@@ -300,7 +300,7 @@ const IsiRegDescription_t GC2155_g_aRegDescription[] =
 	{0xd1 , 0x2c,"",eReadWrite,},//28
 	{0xd2 , 0x2c,"",eReadWrite,},//28
 	{0xd3 , 0x44,"",eReadWrite,},//40
-	{0xd5 , 0xe0,"",eReadWrite,},	//00	
+	{0xd5 , 0xe8,"",eReadWrite,},	//00	
 	{0xdd , 0x14,"",eReadWrite,},
 	{0xde , 0x88,"",eReadWrite,},
 	{0xed , 0x80,"",eReadWrite,},
