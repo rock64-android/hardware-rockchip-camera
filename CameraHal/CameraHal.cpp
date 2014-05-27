@@ -681,7 +681,7 @@ int CameraHal::fillPicturInfo(picture_info_s& picinfo)
 		if (!strcmp(CameraParameters::FLASH_MODE_OFF, mParameters.get(CameraParameters::KEY_FLASH_MODE))) {
 			picinfo.flash = 0;
 		} else {
-			picinfo.flash = 0;
+			picinfo.flash = 1;
 		}	 
 	} else {
 		picinfo.flash = 0;

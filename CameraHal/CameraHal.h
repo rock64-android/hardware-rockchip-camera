@@ -155,11 +155,15 @@ v0.0x0a.0x01:
 *       1) add wechat in CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK 
 *v0.d.0x06:
 *       1) add support picture size to increase the speed of taking capture in DV 
+*v0.d.0x07:
+*       1) support fake camera 
+*v0.d.0x08:
+*       1) fill the flash info into exif 
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x06)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x08)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
