@@ -603,6 +603,14 @@ RESULT HalPhyCtrl
     uint32_t bit_rate
 );
 
+RESULT HalFlashTrigCtrl
+(
+    HalHandle_t HalHandle,
+    uint32_t dev_mask,
+    uint32_t on
+);
+
+
 
 /******************************************************************************
  * inline implementations of API

@@ -17,7 +17,7 @@ using namespace android;
 *
 *
 */
-#define ConfigBoardXmlVersion KERNEL_VERSION(0, 2, 0x00) 
+#define ConfigBoardXmlVersion KERNEL_VERSION(0, 3, 0x00) 
 
 #define UVC_CAM_NAME "UVC Camera"
 #define RK_CAM_FACING_FRONT (1)
@@ -282,6 +282,7 @@ struct rk_DV_info{
 struct rk_camera_softinfo_config{
     rk_camera_softinfo_config()
                     :mZSLConfig(0),
+                    mZoomConfig(0),
                     mContinue_snapshot_config(0),
                     mPreviewWidth(800),
                     mPreviewHeight(600),
@@ -297,6 +298,7 @@ struct rk_camera_softinfo_config{
     rk_flash_config mFlashConfig;
     
     int mZSLConfig;
+    int mZoomConfig;
     int mContinue_snapshot_config;
     int mPreviewWidth;
     int mPreviewHeight;

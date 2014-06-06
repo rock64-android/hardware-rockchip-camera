@@ -187,9 +187,16 @@ typedef enum CamEngineFlashMode_e
     CAM_ENGINE_FLASH_TORCH = 0x05
 } CamEngineFlashMode_t;
 
+typedef enum CamEngineFlashTriggerPol_e
+{
+    CAM_ENGINE_FLASH_LOW_ACTIVE = 0x0,
+    CAM_ENGINE_FLASH_HIGH_ACTIVE = 0x1
+}CamEngineFlashTriggerPol_t;
+
 typedef struct CamEngineFlashCfg_s 
 {
-    CamEngineFlashMode_t mode;   
+    CamEngineFlashMode_t mode;  
+    CamEngineFlashTriggerPol_t active_pol;
     
 } CamEngineFlashCfg_t;
 /*****************************************************************************/

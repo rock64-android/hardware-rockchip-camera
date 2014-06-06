@@ -42,6 +42,14 @@
 
 #define CAMERA_DISPLAY_FORMAT_NV12       "nv12"
 
+
+extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, 
+						 char *srcbuf, char *dstbuf,int srcphy,int dstphy,int src_size,
+						 int src_w, int src_h, int srcbuf_w,
+						 int dst_w, int dst_h, int dstbuf_w,
+						 bool mirror);
+
+
 static char cameraCallProcess[30];
 extern "C" int getCallingPid() {
     return android::IPCThreadState::self()->getCallingPid();
@@ -376,7 +384,7 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
 
 
 extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst, 
-									char *srcbuf, char *dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool mirror)
+									char *srcbuf, char *dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool mirror,int zoom_val)
 {
 	unsigned char *psY,*pdY,*psUV,*pdUV; 
 	unsigned char *src,*dst;
@@ -398,9 +406,21 @@ extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst,
 
     //just copy ?
     if((v4l2_fmt_src == v4l2_fmt_dst) && (mirror == false)
-        &&(src_w == dst_w) && (src_h == dst_h)){
+        &&(src_w == dst_w) && (src_h == dst_h) && (zoom_val == 100)){
         memcpy(dstbuf,srcbuf,src_w*src_h*3/2);
         return 0;
+    }else if((v4l2_fmt_dst == V4L2_PIX_FMT_NV21) 
+            && (src_w == dst_w) && (src_h == dst_h) 
+            && (mirror == false) && (zoom_val == 100)){
+    //just convert fmt
+
+        cameraFormatConvert(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, NULL, 
+    					    srcbuf, dstbuf,0,0,src_w*src_h*3/2,
+    					    src_w, src_h,src_w,
+    					    dst_w, dst_h,dst_w,
+    						mirror);
+        return 0;
+
     }
 
 	if ((v4l2_fmt_dst == V4L2_PIX_FMT_NV21)){
@@ -422,6 +442,14 @@ extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst,
 		top_offset=0;
 		left_offset=0;
 	}
+
+    //zoom ?
+    if(zoom_val > 100){
+        cropW = cropW*100/zoom_val;
+        cropH = cropH*100/zoom_val;
+		left_offset=((src_w-cropW)>>1) & (~0x01);
+		top_offset=((src_h-cropH)>>1) & (~0x01);
+    }
 
 	src = psY = (unsigned char*)(srcbuf)+top_offset*src_w+left_offset;
 	//psUV = psY +src_w*src_h+top_offset*src_w/2+left_offset;

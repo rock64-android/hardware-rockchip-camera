@@ -738,7 +738,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
         output_vir_addr = rawbuf_vir;
         arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
             (char*)rawbuf_vir,frame->frame_width, frame->frame_height,
-             jpeg_w, jpeg_h,false);
+             jpeg_w, jpeg_h,false,frame->zoom_value);
         input_phy_addr = output_phy_addr;
         input_vir_addr = output_vir_addr;
         mRawBufferProvider->flushBuffer(0);
@@ -899,7 +899,7 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
         if (tmpPreviewMemory) {
             //fill the tmpPreviewMemory
             arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
-                (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror);
+                (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
             //if(cameraFormatConvert(frame->frame_fmt, V4L2_PIX_FMT_NV12, NULL,
             //		(char*)frame->vir_addr,(char*)tmpPreviewMemory->data,0,0,tempMemSize,
             //		frame->frame_width, frame->frame_height,frame->frame_width,mPreviewDataW, mPreviewDataH, mPreviewDataW,false)==0)
@@ -933,7 +933,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
     if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
         arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
             (char*)buf_vir,frame->frame_width, frame->frame_height,
-            mRecordW, mRecordH,false);
+            mRecordW, mRecordH,false,frame->zoom_value);
 
         mVideoBufferProvider->flushBuffer(buf_index);
         mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_index], 0, mCallbackCookie);

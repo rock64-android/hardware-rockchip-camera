@@ -709,7 +709,7 @@ display_receive_cmd:
 							(char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr,
 							frame->frame_width, frame->frame_height,
 							mDisplayWidth, mDisplayHeight,
-							false);
+							false,frame->zoom_value);
 #endif
 //                    LOGD("%s(%d): receive buffer %d, queue buffer %d to display", __FUNCTION__,__LINE__,queue_buf_index,queue_display_index);
 

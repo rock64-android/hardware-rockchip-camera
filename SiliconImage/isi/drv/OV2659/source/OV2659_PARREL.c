@@ -1768,6 +1768,8 @@ RESULT OV2659_IsiExposureControlIss
     result = OV2659_IsiSetIntegrationTimeIss( handle, NewIntegrationTime, pSetIntegrationTime, pNumberOfFramesToSkip );
     result = OV2659_IsiSetGainIss( handle, NewGain, pSetGain );
 
+	*pNumberOfFramesToSkip = 2;
+
     TRACE( OV2659_DEBUG, "%s: set: g=%f, Ti=%f, skip=%d\n", __FUNCTION__, *pSetGain, *pSetIntegrationTime, *pNumberOfFramesToSkip );
     TRACE( OV2659_INFO, "%s: (exit)\n", __FUNCTION__);
 

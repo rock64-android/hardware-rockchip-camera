@@ -35,7 +35,12 @@
 #include <linux/version.h>
 
 
-#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 1, 0x00) 
+/*
+*    v0.2.0: 
+*             support ov8858 and ov13850 driver
+*/
+
+#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 2, 0x00) 
 
 
 #ifdef __cplusplus

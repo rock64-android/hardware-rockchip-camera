@@ -96,7 +96,7 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
                    unsigned char* dsty, int dst_stride, unsigned char* dstuv,
                    int width, int height,int rotate_angle);
 extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst, 
-									char *srcbuf, char *dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool mirror);
+									char *srcbuf, char *dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool mirror,int zoom_value);
 extern "C" char* getCallingProcess();
 
 extern "C" void arm_yuyv_to_nv12(int src_w, int src_h,char *srcbuf, char *dstbuf);
@@ -159,11 +159,13 @@ v0.0x0a.0x01:
 *       1) support fake camera 
 *v0.d.0x08:
 *       1) fill the flash info into exif 
+*v0.0x14.1:
+		1) merge develope version v0.0x14.0
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x0d, 0x08)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x14, 0x01)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -454,7 +456,10 @@ protected:
     void* mLibstageLibHandle;
 
     int mZoomVal;
-
+    int mZoomMin;
+    int mZoomMax;
+    int mZoomStep;
+    
     int mCamFd;
     int mCamId;
 };
@@ -496,9 +501,6 @@ private:
     struct v4l2_querymenu mAntibanding_menu[20];
     int mAntibanding_number;
     
-    int mZoomMin;
-    int mZoomMax;
-    int mZoomStep;
     
     struct v4l2_querymenu mFlashMode_menu[20];
     int mFlashMode_number;

@@ -715,6 +715,10 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
         support = atoi(atts[1]);
         pCamInfo->mSoftInfo.mZSLConfig= support;
         ALOGD("%s(%d): ZSL(%d)! \n", __FUNCTION__,__LINE__,support);
+    } else if (strstr(name,"DigitalZoom")){
+        support = atoi(atts[1]);
+        pCamInfo->mSoftInfo.mZoomConfig= support;
+        ALOGD("%s(%d): zoom(%d)! \n", __FUNCTION__,__LINE__,support);
     } else if (strstr(name,"PreviewSize")){
         pCamInfo->mSoftInfo.mPreviewWidth = atoi(atts[1]);
         pCamInfo->mSoftInfo.mPreviewHeight = atoi(atts[3]);

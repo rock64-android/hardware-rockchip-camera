@@ -536,6 +536,14 @@ RESULT CamEngineUnlock
     CamEngineLockType_t locks
 );
 
+uint32_t CamerEngineSetDataPathWhileStreaming
+(
+    CamEngineHandle_t  pCamEngineCtx,
+    CamerIcWindow_t* pWin,
+    uint32_t outWidth, 
+    uint32_t outHeight
+    
+);
 
 /******************************************************************************
  * CamEngineStartPixelIf

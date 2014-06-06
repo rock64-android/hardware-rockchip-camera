@@ -31,7 +31,7 @@ public:
     void AfpsResChangeCb();
     virtual void bufferCb( MediaBuffer_t* pMediaBuffer );
 
-    virtual void setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h);
+    virtual void setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h,int zoom_value);
 
 	virtual void dump(int cameraId);
     
@@ -107,7 +107,7 @@ public:
     };
    virtual status_t autoFocus();
 #endif
-    virtual void setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h);
+    virtual void setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h,int zoom_value);
     virtual void bufferCb( MediaBuffer_t* pMediaBuffer );
 
 private:

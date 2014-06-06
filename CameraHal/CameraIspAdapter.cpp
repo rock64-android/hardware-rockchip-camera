@@ -49,7 +49,9 @@ CameraIspAdapter::CameraIspAdapter(int cameraId)
                     mSensorItfCur(0)
 {
     LOG_FUNCTION_NAME
-
+    mZoomVal = 100;
+    mZoomMin = 100;
+    mZoomMax = 240;
 	LOG_FUNCTION_NAME_EXIT
 }
 CameraIspAdapter::~CameraIspAdapter()
@@ -133,7 +135,7 @@ int CameraIspAdapter::cameraDestroy()
     return 0;
 }
 
-void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h)
+void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h,int zoom_val)
 {
     CamEngineWindow_t dcWin;
     if(((width_sensor*10/height_sensor) != (preview_w*10/preview_h))){
@@ -153,6 +155,18 @@ void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int previ
         dcWin.height = height_sensor;
         dcWin.hOffset = 0;
         dcWin.vOffset = 0;
+    }
+
+    if((zoom_val > mZoomMin) && (zoom_val <= mZoomMax)){
+        if((preview_w <= 2592) && (preview_h <= 1944)){
+            dcWin.width = dcWin.width*100/zoom_val & ~0x1;
+            dcWin.height = dcWin.height*100/zoom_val & ~0x1;
+            dcWin.hOffset = (ABS(width_sensor-dcWin.width )) >> 1;
+            dcWin.vOffset = (ABS(height_sensor-dcWin.height))>>1;
+        }else{
+            LOGD("isp output res big than 5M!");
+        }
+
     }
 #if (ISP_OUT_FORMAT == ISP_OUT_YUV422_INTERLEAVED)
     m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
@@ -191,6 +205,7 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         CamEnginePathConfig_t mainPathConfig ,selfPathConfig;
 
         m_camDevice->getPreferedSensorRes(preview_w, preview_h, &width_sensor, &height_sensor,&resMask);
+        
 		LOGD("-------width_sensor=%d,height_sensor=%d---------",width_sensor,height_sensor);
         //stop streaming
         if(-1 == stop())
@@ -202,7 +217,7 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         }
         //reset dcWin,output width(data path)
             //get dcWin
-        setupPreview(width_sensor,height_sensor,preview_w,preview_h);
+        setupPreview(width_sensor,height_sensor,preview_w,preview_h,mZoomVal);
 		
         m_camDevice->getPathConfig(CHAIN_MASTER,CAM_ENGINE_PATH_MAIN,mainPathConfig);
         m_camDevice->getPathConfig(CHAIN_MASTER,CAM_ENGINE_PATH_SELF,selfPathConfig);
@@ -436,7 +451,19 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 
 		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "640x480,352x288,320x240,176x144");
 		params.setPictureSize(640,480);
-	  } else {
+	  } else if((pCaps.Resolution & ISI_RES_4224_3136)|| (pCaps.Resolution & ISI_RES_2112_1568)){
+		parameterString.append("2112x1568,1920x1080,1280x720,800x600,640x480");    	
+		params.setPreviewSize(2112, 1568);	
+
+		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448,4224x3136");
+		params.setPictureSize(4224,3136);
+	  }else if((pCaps.Resolution & ISI_RES_1632_1224)|| (pCaps.Resolution & ISI_RES_3264_2448 )){
+		parameterString.append("1632x1224,1920x1080,1280x720,800x600,640x480");    	
+		params.setPreviewSize(1632, 1224);	
+
+		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448");
+		params.setPictureSize(3264,2448);
+	  }else {
         LOGE("error,you need add the solution");
 	  }	
 	params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());
@@ -495,8 +522,39 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 
 
             flash_cfg.mode = CAM_ENGINE_FLASH_ON;
+            flash_cfg.active_pol = (pCamInfo->mHardInfo.mFlashInfo.mFlashTrigger.active>0) ? CAM_ENGINE_FLASH_HIGH_ACTIVE:CAM_ENGINE_FLASH_LOW_ACTIVE;
             m_camDevice->configureFlash(&flash_cfg);
         }
+    }
+
+    //digital zoom
+    {
+        if (pCamInfo->mSoftInfo.mZoomConfig == 1) {
+            char str_zoom_max[3],str_zoom_element[5];
+            char str[300];           
+            int max,i;
+            
+        	mZoomMax = 240;
+        	mZoomMin= 100;
+        	mZoomStep = 5;	
+            memset(str,0x00,sizeof(str));
+            strcpy(str, "");//default zoom
+            
+        	max = (mZoomMax - mZoomMin)/mZoomStep;
+        	sprintf(str_zoom_max,"%d",max);
+        	params.set(CameraParameters::KEY_ZOOM_SUPPORTED, "true");
+        	params.set(CameraParameters::KEY_MAX_ZOOM, str_zoom_max);
+        	params.set(CameraParameters::KEY_ZOOM, "0");
+        	for (i=mZoomMin; i<=mZoomMax; i+=mZoomStep) {
+        		sprintf(str_zoom_element,"%d,", i);
+        		strcat(str,str_zoom_element);
+        	}
+        	params.set(CameraParameters::KEY_ZOOM_RATIOS, str);
+            mZoomVal = 100;
+        }else{
+        	params.set(CameraParameters::KEY_ZOOM_SUPPORTED, "false");
+        }
+
     }
 	
     //params.setPreviewSize(1280, 720);	
@@ -614,6 +672,15 @@ int CameraIspAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 	const int mzoom = mParameters.getInt(CameraParameters::KEY_ZOOM);
 	if (params.get(CameraParameters::KEY_ZOOM_SUPPORTED)) {
 		//TODO
+        if((zoom != mzoom) && (!isInit)){
+            CamEnginePathConfig_t pathConfig;
+            mZoomVal = zoom*mZoomStep+mZoomMin;
+            setupPreview(mCamDrvWidth,mCamDrvHeight,mCamPreviewW, mCamPreviewH, mZoomVal);
+            m_camDevice->getPathConfig(CHAIN_MASTER,CAM_ENGINE_PATH_MAIN,pathConfig);
+            m_camDevice->reSetMainPathWhileStreaming(&pathConfig.dcWin,pathConfig.width,pathConfig.height);
+
+        }
+        
 	}
 	
     /*color effect setting*/
@@ -721,10 +788,10 @@ status_t CameraIspAdapter::autoFocus()
 
 
 status_t CameraIspAdapter::cancelAutoFocus()
-{
-    
+{    
     return 0;
 }
+
 void CameraIspAdapter::setScenarioMode(CamEngineModeType_t newScenarioMode)
 {
     CamEngineModeType_t oldScenarioMode = CAM_ENGINE_MODE_INVALID;
@@ -829,8 +896,10 @@ void CameraIspAdapter::loadSensor( const int cameraId)
 
             m_camDevice->getPreferedSensorRes(DEFAULTPREVIEWWIDTH, DEFAULTPREVIEWHEIGHT, 
                                         &mCamDrvWidth, &mCamDrvHeight,&resMask);
+            
+
             m_camDevice->setSensorResConfig(resMask);
-            setupPreview(mCamDrvWidth,mCamDrvHeight,DEFAULTPREVIEWWIDTH,DEFAULTPREVIEWHEIGHT);
+            setupPreview(mCamDrvWidth,mCamDrvHeight,DEFAULTPREVIEWWIDTH,DEFAULTPREVIEWHEIGHT,mZoomVal);
 
             LOGD("%s:sensor(%dx%d),user(%dx%d)",__func__,mCamDrvWidth,mCamDrvHeight,DEFAULTPREVIEWWIDTH,DEFAULTPREVIEWHEIGHT);
 
@@ -1134,6 +1203,12 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->frame_fmt = fmt;
 	  
       tmpFrame->used_flag = 0;
+      
+      if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
+         tmpFrame->zoom_value = mZoomVal;
+      }else
+         tmpFrame->zoom_value = 100;
+    
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
@@ -1158,6 +1233,11 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->vir_addr = (int)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
       tmpFrame->used_flag = 1;
+      if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
+         tmpFrame->zoom_value = mZoomVal;
+      }else
+         tmpFrame->zoom_value = 100;
+      
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
@@ -1166,26 +1246,42 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	}
 	//picture ?
 	if(mRefEventNotifier->isNeedSendToPicture()){
-		MediaBufLockBuffer( pMediaBuffer );
-		//new frames
-		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
-		if(!tmpFrame){
-			MediaBufUnlockBuffer( pMediaBuffer );
-			return;
-		}
-	  //add to vector
-	  tmpFrame->frame_index = (int)tmpFrame; 
-	  tmpFrame->phy_addr = (int)y_addr;
-	  tmpFrame->frame_width = width;
-	  tmpFrame->frame_height= height;
-	  tmpFrame->vir_addr = (int)y_addr_vir;
-	  tmpFrame->frame_fmt = fmt;
-      tmpFrame->used_flag = 2;
-      {
-        Mutex::Autolock lock(mFrameArrayLock);
-        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
-      }
-	  mRefEventNotifier->notifyNewPicFrame(tmpFrame);	
+        const char* flash_mode = mParameters.get(CameraParameters::KEY_FLASH_MODE);
+        bool send_to_pic = true;
+        if(flash_mode && ((strcmp(flash_mode,CameraParameters::FLASH_MODE_ON) == 0) | (strcmp(flash_mode,CameraParameters::FLASH_MODE_AUTO) == 0))
+            && ((int)(pPicBufMetaData->priv) != 1)){
+            pPicBufMetaData->priv = NULL;
+            send_to_pic = false;
+            TRACE_D(1,"%s:not the desired flash pic,skip it!",__FUNCTION__);
+        }
+        if(send_to_pic){    
+    		MediaBufLockBuffer( pMediaBuffer );
+    		//new frames
+    		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+    		if(!tmpFrame){
+    			MediaBufUnlockBuffer( pMediaBuffer );
+    			return;
+    		}
+    	  //add to vector
+    	  tmpFrame->frame_index = (int)tmpFrame; 
+    	  tmpFrame->phy_addr = (int)y_addr;
+    	  tmpFrame->frame_width = width;
+    	  tmpFrame->frame_height= height;
+    	  tmpFrame->vir_addr = (int)y_addr_vir;
+    	  tmpFrame->frame_fmt = fmt;
+          tmpFrame->used_flag = 2;
+
+          if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
+             tmpFrame->zoom_value = mZoomVal;
+          }else
+             tmpFrame->zoom_value = 100;
+          
+          {
+            Mutex::Autolock lock(mFrameArrayLock);
+            mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+          }
+    	  mRefEventNotifier->notifyNewPicFrame(tmpFrame);	
+        }
 	}
 
 	//preview data callback ?
@@ -1205,6 +1301,12 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->vir_addr = (int)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
       tmpFrame->used_flag = 3;
+
+      if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
+         tmpFrame->zoom_value = mZoomVal;
+      }else
+         tmpFrame->zoom_value = 100;
+      
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);

@@ -11,6 +11,7 @@
 
 namespace android{
 
+
 class CameraFakeAdapter: public CameraAdapter
 {
 public:

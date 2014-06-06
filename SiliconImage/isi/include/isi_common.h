@@ -169,8 +169,11 @@ extern "C"
 #define ISI_RES_3264_2448                   0x00000004      /**<  3 3264x2448    */
 #define ISI_RES_1296_972                    0x00000008      /**<  3 3264x2448    */
 #define ISI_RES_4416_3312                   0x00000010      /**<  5 4416x3312    */
-#define ISI_RES_1600_1200                  0x00000020      /**<  5 4416x3312    */
-#define ISI_RES_SVGA30                     0x00001000      /**< 16 1280x720@5   */
+#define ISI_RES_1600_1200                   0x00000020      /**<  5 4416x3312    */
+#define ISI_RES_2112_1568                   0x00000040      /**<  5 4416x3312    */
+#define ISI_RES_4224_3136                   0x00000080      /**<  5 4416x3312    */
+#define ISI_RES_1632_1224				    0x00000100 
+#define ISI_RES_SVGA30                      0x00001000      /**< 16 1280x720@5   */
 #define ISI_RES_TV720P5                     0x00010000      /**< 16 1280x720@5   */
 #define ISI_RES_TV720P15                    0x00020000      /**< 17 1280x720@15  */
 #define ISI_RES_TV720P30                    0x00040000      /**< 18 1280x720@30  */

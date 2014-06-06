@@ -52,10 +52,11 @@ extern "C"
 *            2. MDI_SLEW_RATE_CTRL 11 -> 1;
 *v0.1.1:     1. MDI_SLEW_RATE_CTRL 1 -> 3;
 *v0.1.2:     1. invalidate 0x0100 setting in OV8825_SetupOutputWindow and OV8825_IsiSensorSetStreamingIss for VCM noise;
+*v0.2.0:	 1. just updata version number to sync with develope version
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 1, 0x02) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 2, 0) 
 
 
 

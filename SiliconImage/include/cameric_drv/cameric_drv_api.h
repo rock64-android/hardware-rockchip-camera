@@ -772,6 +772,16 @@ void CamerIcDriverSetIsSwapByte
     bool_t  swapbyte
 );
 
+uint32_t CamerIcSetDataPathWhileStreaming
+(
+    CamerIcDrvHandle_t      handle,
+    CamerIcWindow_t* pWin,
+    uint32_t outWidth, 
+    uint32_t outHeight
+    
+);
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -908,6 +908,7 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
     frame->frame_fmt = V4L2_PIX_FMT_NV12;
     frame->phy_addr = mPreviewBufProvider->getBufPhyAddr(frame->frame_index);
     frame->vir_addr = mPreviewBufProvider->getBufVirAddr(frame->frame_index);
+    frame->zoom_value = mZoomVal;
     
 
     //do zoom here?

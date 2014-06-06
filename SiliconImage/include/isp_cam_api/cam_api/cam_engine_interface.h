@@ -67,12 +67,22 @@
 *v0.7.0:
 *            1). AfCntMax 120 -> 10 in  CamEngineCamerIcDrvMeasureCbRestart, because af validate delay too long after changeResoultion
 *            2). flash delay val 100000 -> 700000;
-*v0.7.1:
-*            1). flash delay val 70000 -> 50000;
+*v0.8.0:     1). can change mp config when streaming , could do digital zoom use this feature.
+*v0.9.0:     1). soc sensor buswidth depend on boad XML
+*v0.a.0:
+*            this version sync v0.7.1 version;
+*            1). flash delay val 70000 -> 50000; 
+*v0.b.0:     1). optimize flash unit
+*v0.c.0:   1) fix i2c read error
+*
+*v0.d.0:  support ov8858 and ov13850 sensor dirver
+*v0.e.0:   1) add flash trig pol control
+*v0.f.0:   1) iomux trigger pin as flash_trigger_out when do flash,or as gpio.
+*v0.g.0:   1) increase fl_time
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 7, 0x01) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x0f, 0x00)
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);
@@ -411,6 +421,13 @@ public:
     bool isSOCSensor(); // zyc add
     uint32_t getYCSequence(); //zyc add
     uint32_t getBusWidth(); //zyc add
+    uint32_t reSetMainPathWhileStreaming
+                (
+                    CamEngineWindow_t* pWin,
+                    uint32_t outWidth, 
+                    uint32_t outHeight
+                    
+                );
 
 private:
     void closeSensor();
@@ -437,6 +454,7 @@ private:
     SensorHolder        *m_pSensor;
 
     CamEngineHolder     *m_pCamEngine;
+    int    mSensorBusWidthBoardSet;
 };
 
 

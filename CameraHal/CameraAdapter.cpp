@@ -22,6 +22,7 @@ CameraAdapter::CameraAdapter(int cameraId):mPreviewRunning(0),
     mPreviewErrorFrameCount = 0;
     mCamFd = -1;
     mCamDriverPreviewFmt = 0;
+    mZoomVal = 100;
 
     CameraHal_SupportFmt[0] = V4L2_PIX_FMT_NV12;
     CameraHal_SupportFmt[1] = V4L2_PIX_FMT_NV16;

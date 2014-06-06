@@ -16,7 +16,7 @@ CameraIspSOCAdapter::~CameraIspSOCAdapter()
 }
 
 
-void CameraIspSOCAdapter::setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h)
+void CameraIspSOCAdapter::setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h,int zoom_value)
 {
     CamEngineWindow_t dcWin;
     dcWin.width = width_sensor*2;
@@ -230,6 +230,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->frame_height= height;
       tmpFrame->vir_addr = (int)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
+      tmpFrame->zoom_value = mZoomVal;
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
@@ -253,6 +254,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->frame_height= height;
       tmpFrame->vir_addr = (int)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
+      tmpFrame->zoom_value = mZoomVal;
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
@@ -276,6 +278,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->frame_height= height;
 	  tmpFrame->vir_addr = (int)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
+      tmpFrame->zoom_value = mZoomVal;
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
@@ -299,6 +302,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->frame_height= height;
 	  tmpFrame->vir_addr =  (int)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
+      tmpFrame->zoom_value = mZoomVal;
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
