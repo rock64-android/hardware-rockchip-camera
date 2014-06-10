@@ -80,11 +80,13 @@
 *v0.f.0:   1) iomux trigger pin as flash_trigger_out when do flash,or as gpio.
 *v0.g.0:   1) increase fl_time
 *v0.0x10.0:
-           1) isp_flash_prediv is wrong ,fix it
+*          1) isp_flash_prediv is wrong ,fix it
+*v0.0x11.0:
+*          1) marvin reset(ircl bit7) may be hold ahb when isp_clk:isp_hclk > 2:1, so used hard reset (cru reset);
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x10, 0x00)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x11, 0x00)
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);
