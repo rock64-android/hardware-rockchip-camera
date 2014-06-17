@@ -161,13 +161,13 @@ v0.0x0a.0x01:
 *       1) fill the flash info into exif 
 *v0.0x14.1:
 		1) merge develope version v0.0x14.0
-*v0.0x18.0:
+*v0.0x15.0:
         1) flash pol must be initialized in setparameter,fix it
 */
 
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x18, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x15, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
