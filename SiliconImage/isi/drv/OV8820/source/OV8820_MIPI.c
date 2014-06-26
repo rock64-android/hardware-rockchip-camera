@@ -1,4 +1,4 @@
-//ov8825 the same with ov14825
+//OV8820 the same with ov14825
 
 /******************************************************************************
  *
@@ -11,7 +11,7 @@
  *
  *****************************************************************************/
 /**
- * @file OV8825.c
+ * @file OV8820.c
  *
  * @brief
  *   ADD_DESCRIPTION_HERE
@@ -28,9 +28,9 @@
 #include "isi_iss.h"
 #include "isi_priv.h"
 
-#include "OV8825_MIPI_priv.h"
+#include "OV8820_MIPI_priv.h"
 
-#define  OV8825_NEWEST_TUNING_XML "30-April-2014_OUYANG_OV8825_FX288_v0.1.0"
+#define  OV8820_NEWEST_TUNING_XML "30-April-2014_OUYANG_OV8820_FX288_v0.1.0"
 
 #define CC_OFFSET_SCALING  2.0f
 #define I2C_COMPLIANT_STARTBIT 1U
@@ -38,19 +38,19 @@
 /******************************************************************************
  * local macro definitions
  *****************************************************************************/
-CREATE_TRACER( OV8825_INFO , "OV8825: ", INFO,    0U );
-CREATE_TRACER( OV8825_WARN , "OV8825: ", WARNING, 1U );
-CREATE_TRACER( OV8825_ERROR, "OV8825: ", ERROR,   1U );
-CREATE_TRACER( OV8825_DEBUG, "OV8825: ", INFO,     1U );
-CREATE_TRACER(OV8825_NOTICE0, "OV8825: ", TRACE_NOTICE0, 1);
-CREATE_TRACER(OV8825_NOTICE1, "OV8825: ", TRACE_NOTICE1, 1);
+CREATE_TRACER( OV8820_INFO , "OV8820: ", INFO,    0U );
+CREATE_TRACER( OV8820_WARN , "OV8820: ", WARNING, 1U );
+CREATE_TRACER( OV8820_ERROR, "OV8820: ", ERROR,   1U );
+CREATE_TRACER( OV8820_DEBUG, "OV8820: ", INFO,     1U );
+CREATE_TRACER(OV8820_NOTICE0, "OV8820: ", TRACE_NOTICE0, 1);
+CREATE_TRACER(OV8820_NOTICE1, "OV8820: ", TRACE_NOTICE1, 1);
 
 
-#define OV8825_SLAVE_ADDR       0x6cU                           /**< i2c slave address of the OV8825 camera sensor */
-#define OV8825_SLAVE_AF_ADDR    0x6cU                           /**< i2c slave address of the OV8825 integrated AD5820 */
+#define OV8820_SLAVE_ADDR       0x6cU                           /**< i2c slave address of the OV8820 camera sensor */
+#define OV8820_SLAVE_AF_ADDR    0x6cU                           /**< i2c slave address of the OV8820 integrated AD5820 */
 
-#define OV8825_MIN_GAIN_STEP   ( 1.0f / 16.0f); /**< min gain step size used by GUI ( 32/(32-7) - 32/(32-6); min. reg value is 6 as of datasheet; depending on actual gain ) */
-#define OV8825_MAX_GAIN_AEC    ( 6.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
+#define OV8820_MIN_GAIN_STEP   ( 1.0f / 16.0f); /**< min gain step size used by GUI ( 32/(32-7) - 32/(32-6); min. reg value is 6 as of datasheet; depending on actual gain ) */
+#define OV8820_MAX_GAIN_AEC    ( 6.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
 
 
 /*!<
@@ -64,6 +64,7 @@ CREATE_TRACER(OV8825_NOTICE1, "OV8825: ", TRACE_NOTICE1, 1);
 #define MAX_LOG   64U
 #define MAX_VCMDRV_CURRENT      100U
 #define MAX_VCMDRV_REG          1023U
+
 
 #if 0
 /*!<
@@ -81,39 +82,39 @@ CREATE_TRACER(OV8825_NOTICE1, "OV8825: ", TRACE_NOTICE1, 1);
 /******************************************************************************
  * local variable declarations
  *****************************************************************************/
-const char OV8825_g_acName[] = "OV8825_MIPI";
-extern const IsiRegDescription_t OV8825_g_aRegDescription_onelane[];
-extern const IsiRegDescription_t OV8825_g_aRegDescription_twolane[];
-const IsiSensorCaps_t OV8825_g_IsiSensorDefaultConfig;
+const char OV8820_g_acName[] = "OV8820_MIPI";
+extern const IsiRegDescription_t OV8820_g_aRegDescription_onelane[];
+extern const IsiRegDescription_t OV8820_g_aRegDescription_twolane[];
+const IsiSensorCaps_t OV8820_g_IsiSensorDefaultConfig;
 
-/* AWB specific value (from OV8825_tables.c) */
-extern const Isi1x1FloatMatrix_t    OV8825_KFactor;
-extern const Isi3x2FloatMatrix_t    OV8825_PCAMatrix;
-extern const Isi3x1FloatMatrix_t    OV8825_SVDMeanValue;
-extern const IsiLine_t              OV8825_CenterLine;
-extern const IsiAwbClipParm_t       OV8825_AwbClipParm;
-extern const IsiAwbGlobalFadeParm_t OV8825_AwbGlobalFadeParm;
-extern const IsiAwbFade2Parm_t      OV8825_AwbFade2Parm;
+/* AWB specific value (from OV8820_tables.c) */
+extern const Isi1x1FloatMatrix_t    OV8820_KFactor;
+extern const Isi3x2FloatMatrix_t    OV8820_PCAMatrix;
+extern const Isi3x1FloatMatrix_t    OV8820_SVDMeanValue;
+extern const IsiLine_t              OV8820_CenterLine;
+extern const IsiAwbClipParm_t       OV8820_AwbClipParm;
+extern const IsiAwbGlobalFadeParm_t OV8820_AwbGlobalFadeParm;
+extern const IsiAwbFade2Parm_t      OV8820_AwbFade2Parm;
 
 /* illumination profiles */
-#include "OV8825_a.h"       /* CIE A - default profile */
-#include "OV8825_f2.h"      /* CIE F2 (cool white flourescent CWF) */
-#include "OV8825_d50.h"     /* CIE D50 (D50 lightbox) */
-#include "OV8825_d65.h"     /* CIE D65 (D65) note: indoor because of our lightbox */
-#include "OV8825_d75.h"     /* CIE D75 (D75) overcast daylight, 7500K */
-#include "OV8825_f11.h"     /* CIE F11 (TL84) */
+#include "OV8820_a.h"       /* CIE A - default profile */
+#include "OV8820_f2.h"      /* CIE F2 (cool white flourescent CWF) */
+#include "OV8820_d50.h"     /* CIE D50 (D50 lightbox) */
+#include "OV8820_d65.h"     /* CIE D65 (D65) note: indoor because of our lightbox */
+#include "OV8820_d75.h"     /* CIE D75 (D75) overcast daylight, 7500K */
+#include "OV8820_f11.h"     /* CIE F11 (TL84) */
 
-#define OV8825_I2C_START_BIT        (I2C_COMPLIANT_STARTBIT)    // I2C bus start condition
-#define OV8825_I2C_NR_ADR_BYTES     (2U)                        // 1 byte base address and 2 bytes sub address
-#define OV8825_I2C_NR_DAT_BYTES     (1U)                        // 8 bit registers
+#define OV8820_I2C_START_BIT        (I2C_COMPLIANT_STARTBIT)    // I2C bus start condition
+#define OV8820_I2C_NR_ADR_BYTES     (2U)                        // 1 byte base address and 2 bytes sub address
+#define OV8820_I2C_NR_DAT_BYTES     (1U)                        // 8 bit registers
 
 
 static uint16_t g_suppoted_mipi_lanenum_type = SUPPORT_MIPI_ONE_LANE|SUPPORT_MIPI_TWO_LANE;
 #define DEFAULT_NUM_LANES SUPPORT_MIPI_ONE_LANE
 
 
-#define OV8825_ISIILLUPROFILES_DEFAULT  6U
-static IsiIlluProfile_t OV8825_IlluProfileDefault[OV8825_ISIILLUPROFILES_DEFAULT] =
+#define OV8820_ISIILLUPROFILES_DEFAULT  6U
+static IsiIlluProfile_t OV8820_IlluProfileDefault[OV8820_ISIILLUPROFILES_DEFAULT] =
 {
     {
         .p_next             = NULL,
@@ -126,20 +127,20 @@ static IsiIlluProfile_t OV8825_IlluProfileDefault[OV8825_ISIILLUPROFILES_DEFAULT
         .bOutdoorClip       = BOOL_FALSE,
 
         /* legacy stuff */
-        .pCrossTalkCoeff    = &OV8825_XTalkCoeff_CIE_A,
-        .pCrossTalkOffset   = &OV8825_XTalkOffset_CIE_A,
+        .pCrossTalkCoeff    = &OV8820_XTalkCoeff_CIE_A,
+        .pCrossTalkOffset   = &OV8820_XTalkOffset_CIE_A,
 
-        .pGaussMeanValue    = &OV8825_GaussMeanValue_CIE_A,
-        .pCovarianceMatrix  = &OV8825_CovarianceMatrix_CIE_A,
-        .pGaussFactor       = &OV8825_GaussFactor_CIE_A,
-        .pThreshold         = &OV8825_Threshold_CIE_A,
-        .pComponentGain     = &OV8825_CompGain_CIE_A,
+        .pGaussMeanValue    = &OV8820_GaussMeanValue_CIE_A,
+        .pCovarianceMatrix  = &OV8820_CovarianceMatrix_CIE_A,
+        .pGaussFactor       = &OV8820_GaussFactor_CIE_A,
+        .pThreshold         = &OV8820_Threshold_CIE_A,
+        .pComponentGain     = &OV8820_CompGain_CIE_A,
 
-        .pSaturationCurve   = &OV8825_SaturationCurve_CIE_A,
-        .pCcMatrixTable     = &OV8825_CcMatrixTable_CIE_A,
-        .pCcOffsetTable     = &OV8825_CcOffsetTable_CIE_A,
+        .pSaturationCurve   = &OV8820_SaturationCurve_CIE_A,
+        .pCcMatrixTable     = &OV8820_CcMatrixTable_CIE_A,
+        .pCcOffsetTable     = &OV8820_CcOffsetTable_CIE_A,
 
-        .pVignettingCurve   = &OV8825_VignettingCurve_CIE_A,
+        .pVignettingCurve   = &OV8820_VignettingCurve_CIE_A,
     },
     {
         .p_next             = NULL,
@@ -152,20 +153,20 @@ static IsiIlluProfile_t OV8825_IlluProfileDefault[OV8825_ISIILLUPROFILES_DEFAULT
         .bOutdoorClip       = BOOL_FALSE,
 
         /* legacy stuff */
-        .pCrossTalkCoeff    = &OV8825_XTalkCoeff_F2,
-        .pCrossTalkOffset   = &OV8825_XTalkOffset_F2,
+        .pCrossTalkCoeff    = &OV8820_XTalkCoeff_F2,
+        .pCrossTalkOffset   = &OV8820_XTalkOffset_F2,
 
-        .pGaussMeanValue    = &OV8825_GaussMeanValue_F2,
-        .pCovarianceMatrix  = &OV8825_CovarianceMatrix_F2,
-        .pGaussFactor       = &OV8825_GaussFactor_F2,
-        .pThreshold         = &OV8825_Threshold_F2,
-        .pComponentGain     = &OV8825_CompGain_F2,
+        .pGaussMeanValue    = &OV8820_GaussMeanValue_F2,
+        .pCovarianceMatrix  = &OV8820_CovarianceMatrix_F2,
+        .pGaussFactor       = &OV8820_GaussFactor_F2,
+        .pThreshold         = &OV8820_Threshold_F2,
+        .pComponentGain     = &OV8820_CompGain_F2,
 
-        .pSaturationCurve   = &OV8825_SaturationCurve_F2,
-        .pCcMatrixTable     = &OV8825_CcMatrixTable_F2,
-        .pCcOffsetTable     = &OV8825_CcOffsetTable_F2,
+        .pSaturationCurve   = &OV8820_SaturationCurve_F2,
+        .pCcMatrixTable     = &OV8820_CcMatrixTable_F2,
+        .pCcOffsetTable     = &OV8820_CcOffsetTable_F2,
 
-        .pVignettingCurve   = &OV8825_VignettingCurve_F2,
+        .pVignettingCurve   = &OV8820_VignettingCurve_F2,
     },
     {
         .p_next             = NULL,
@@ -178,20 +179,20 @@ static IsiIlluProfile_t OV8825_IlluProfileDefault[OV8825_ISIILLUPROFILES_DEFAULT
         .bOutdoorClip       = BOOL_TRUE,
 
         /* legacy stuff */
-        .pCrossTalkCoeff    = &OV8825_XTalkCoeff_D50,
-        .pCrossTalkOffset   = &OV8825_XTalkOffset_D50,
+        .pCrossTalkCoeff    = &OV8820_XTalkCoeff_D50,
+        .pCrossTalkOffset   = &OV8820_XTalkOffset_D50,
 
-        .pGaussMeanValue    = &OV8825_GaussMeanValue_D50,
-        .pCovarianceMatrix  = &OV8825_CovarianceMatrix_D50,
-        .pGaussFactor       = &OV8825_GaussFactor_D50,
-        .pThreshold         = &OV8825_Threshold_D50,
-        .pComponentGain     = &OV8825_CompGain_D50,
+        .pGaussMeanValue    = &OV8820_GaussMeanValue_D50,
+        .pCovarianceMatrix  = &OV8820_CovarianceMatrix_D50,
+        .pGaussFactor       = &OV8820_GaussFactor_D50,
+        .pThreshold         = &OV8820_Threshold_D50,
+        .pComponentGain     = &OV8820_CompGain_D50,
 
-        .pSaturationCurve   = &OV8825_SaturationCurve_D50,
-        .pCcMatrixTable     = &OV8825_CcMatrixTable_D50,
-        .pCcOffsetTable     = &OV8825_CcOffsetTable_D50,
+        .pSaturationCurve   = &OV8820_SaturationCurve_D50,
+        .pCcMatrixTable     = &OV8820_CcMatrixTable_D50,
+        .pCcOffsetTable     = &OV8820_CcOffsetTable_D50,
 
-        .pVignettingCurve   = &OV8825_VignettingCurve_D50,
+        .pVignettingCurve   = &OV8820_VignettingCurve_D50,
     },
     {
         .p_next             = NULL,
@@ -204,20 +205,20 @@ static IsiIlluProfile_t OV8825_IlluProfileDefault[OV8825_ISIILLUPROFILES_DEFAULT
         .bOutdoorClip       = BOOL_FALSE,
 
         /* legacy stuff */
-        .pCrossTalkCoeff    = &OV8825_XTalkCoeff_D65,
-        .pCrossTalkOffset   = &OV8825_XTalkOffset_D65,
+        .pCrossTalkCoeff    = &OV8820_XTalkCoeff_D65,
+        .pCrossTalkOffset   = &OV8820_XTalkOffset_D65,
 
-        .pGaussMeanValue    = &OV8825_GaussMeanValue_D65,
-        .pCovarianceMatrix  = &OV8825_CovarianceMatrix_D65,
-        .pGaussFactor       = &OV8825_GaussFactor_D65,
-        .pThreshold         = &OV8825_Threshold_D65,
-        .pComponentGain     = &OV8825_CompGain_D65,
+        .pGaussMeanValue    = &OV8820_GaussMeanValue_D65,
+        .pCovarianceMatrix  = &OV8820_CovarianceMatrix_D65,
+        .pGaussFactor       = &OV8820_GaussFactor_D65,
+        .pThreshold         = &OV8820_Threshold_D65,
+        .pComponentGain     = &OV8820_CompGain_D65,
 
-        .pSaturationCurve   = &OV8825_SaturationCurve_D65,
-        .pCcMatrixTable     = &OV8825_CcMatrixTable_D65,
-        .pCcOffsetTable     = &OV8825_CcOffsetTable_D65,
+        .pSaturationCurve   = &OV8820_SaturationCurve_D65,
+        .pCcMatrixTable     = &OV8820_CcMatrixTable_D65,
+        .pCcOffsetTable     = &OV8820_CcOffsetTable_D65,
 
-        .pVignettingCurve   = &OV8825_VignettingCurve_D65,
+        .pVignettingCurve   = &OV8820_VignettingCurve_D65,
     },
     {
         .p_next             = NULL,
@@ -230,20 +231,20 @@ static IsiIlluProfile_t OV8825_IlluProfileDefault[OV8825_ISIILLUPROFILES_DEFAULT
         .bOutdoorClip       = BOOL_FALSE,
 
         /* legacy stuff */
-        .pCrossTalkCoeff    = &OV8825_XTalkCoeff_D75,
-        .pCrossTalkOffset   = &OV8825_XTalkOffset_D75,
+        .pCrossTalkCoeff    = &OV8820_XTalkCoeff_D75,
+        .pCrossTalkOffset   = &OV8820_XTalkOffset_D75,
 
-        .pGaussMeanValue    = &OV8825_GaussMeanValue_D75,
-        .pCovarianceMatrix  = &OV8825_CovarianceMatrix_D75,
-        .pGaussFactor       = &OV8825_GaussFactor_D75,
-        .pThreshold         = &OV8825_Threshold_D75,
-        .pComponentGain     = &OV8825_CompGain_D75,
+        .pGaussMeanValue    = &OV8820_GaussMeanValue_D75,
+        .pCovarianceMatrix  = &OV8820_CovarianceMatrix_D75,
+        .pGaussFactor       = &OV8820_GaussFactor_D75,
+        .pThreshold         = &OV8820_Threshold_D75,
+        .pComponentGain     = &OV8820_CompGain_D75,
 
-        .pSaturationCurve   = &OV8825_SaturationCurve_D75,
-        .pCcMatrixTable     = &OV8825_CcMatrixTable_D75,
-        .pCcOffsetTable     = &OV8825_CcOffsetTable_D75,
+        .pSaturationCurve   = &OV8820_SaturationCurve_D75,
+        .pCcMatrixTable     = &OV8820_CcMatrixTable_D75,
+        .pCcOffsetTable     = &OV8820_CcOffsetTable_D75,
 
-        .pVignettingCurve   = &OV8825_VignettingCurve_D75,
+        .pVignettingCurve   = &OV8820_VignettingCurve_D75,
     },
     {
         .p_next             = NULL,
@@ -256,20 +257,20 @@ static IsiIlluProfile_t OV8825_IlluProfileDefault[OV8825_ISIILLUPROFILES_DEFAULT
         .bOutdoorClip       = BOOL_FALSE,
 
         /* legacy stuff */
-        .pCrossTalkCoeff    = &OV8825_XTalkCoeff_F11,
-        .pCrossTalkOffset   = &OV8825_XTalkOffset_F11,
+        .pCrossTalkCoeff    = &OV8820_XTalkCoeff_F11,
+        .pCrossTalkOffset   = &OV8820_XTalkOffset_F11,
 
-        .pGaussMeanValue    = &OV8825_GaussMeanValue_F11,
-        .pCovarianceMatrix  = &OV8825_CovarianceMatrix_F11,
-        .pGaussFactor       = &OV8825_GaussFactor_F11,
-        .pThreshold         = &OV8825_Threshold_F11,
-        .pComponentGain     = &OV8825_CompGain_F11,
+        .pGaussMeanValue    = &OV8820_GaussMeanValue_F11,
+        .pCovarianceMatrix  = &OV8820_CovarianceMatrix_F11,
+        .pGaussFactor       = &OV8820_GaussFactor_F11,
+        .pThreshold         = &OV8820_Threshold_F11,
+        .pComponentGain     = &OV8820_CompGain_F11,
 
-        .pSaturationCurve   = &OV8825_SaturationCurve_F11,
-        .pCcMatrixTable     = &OV8825_CcMatrixTable_F11,
-        .pCcOffsetTable     = &OV8825_CcOffsetTable_F11,
+        .pSaturationCurve   = &OV8820_SaturationCurve_F11,
+        .pCcMatrixTable     = &OV8820_CcMatrixTable_F11,
+        .pCcOffsetTable     = &OV8820_CcOffsetTable_F11,
 
-        .pVignettingCurve   = &OV8825_VignettingCurve_F11,
+        .pVignettingCurve   = &OV8820_VignettingCurve_F11,
     }
 };
 
@@ -279,50 +280,50 @@ static IsiIlluProfile_t OV8825_IlluProfileDefault[OV8825_ISIILLUPROFILES_DEFAULT
 /******************************************************************************
  * local function prototypes
  *****************************************************************************/
-static RESULT OV8825_IsiCreateSensorIss( IsiSensorInstanceConfig_t *pConfig );
-static RESULT OV8825_IsiReleaseSensorIss( IsiSensorHandle_t handle );
-static RESULT OV8825_IsiGetCapsIss( IsiSensorHandle_t handle, IsiSensorCaps_t *pIsiSensorCaps );
-static RESULT OV8825_IsiSetupSensorIss( IsiSensorHandle_t handle, const IsiSensorConfig_t *pConfig );
-static RESULT OV8825_IsiSensorSetStreamingIss( IsiSensorHandle_t handle, bool_t on );
-static RESULT OV8825_IsiSensorSetPowerIss( IsiSensorHandle_t handle, bool_t on );
-static RESULT OV8825_IsiCheckSensorConnectionIss( IsiSensorHandle_t handle );
-static RESULT OV8825_IsiGetSensorRevisionIss( IsiSensorHandle_t handle, uint32_t *p_value);
+static RESULT OV8820_IsiCreateSensorIss( IsiSensorInstanceConfig_t *pConfig );
+static RESULT OV8820_IsiReleaseSensorIss( IsiSensorHandle_t handle );
+static RESULT OV8820_IsiGetCapsIss( IsiSensorHandle_t handle, IsiSensorCaps_t *pIsiSensorCaps );
+static RESULT OV8820_IsiSetupSensorIss( IsiSensorHandle_t handle, const IsiSensorConfig_t *pConfig );
+static RESULT OV8820_IsiSensorSetStreamingIss( IsiSensorHandle_t handle, bool_t on );
+static RESULT OV8820_IsiSensorSetPowerIss( IsiSensorHandle_t handle, bool_t on );
+static RESULT OV8820_IsiCheckSensorConnectionIss( IsiSensorHandle_t handle );
+static RESULT OV8820_IsiGetSensorRevisionIss( IsiSensorHandle_t handle, uint32_t *p_value);
 
-static RESULT OV8825_IsiGetGainLimitsIss( IsiSensorHandle_t handle, float *pMinGain, float *pMaxGain);
-static RESULT OV8825_IsiGetIntegrationTimeLimitsIss( IsiSensorHandle_t handle, float *pMinIntegrationTime, float *pMaxIntegrationTime );
-static RESULT OV8825_IsiExposureControlIss( IsiSensorHandle_t handle, float NewGain, float NewIntegrationTime, uint8_t *pNumberOfFramesToSkip, float *pSetGain, float *pSetIntegrationTime );
-static RESULT OV8825_IsiGetCurrentExposureIss( IsiSensorHandle_t handle, float *pSetGain, float *pSetIntegrationTime );
-static RESULT OV8825_IsiGetAfpsInfoIss ( IsiSensorHandle_t handle, uint32_t Resolution, IsiAfpsInfo_t* pAfpsInfo);
-static RESULT OV8825_IsiGetGainIss( IsiSensorHandle_t handle, float *pSetGain );
-static RESULT OV8825_IsiGetGainIncrementIss( IsiSensorHandle_t handle, float *pIncr );
-static RESULT OV8825_IsiSetGainIss( IsiSensorHandle_t handle, float NewGain, float *pSetGain );
-static RESULT OV8825_IsiGetIntegrationTimeIss( IsiSensorHandle_t handle, float *pSetIntegrationTime );
-static RESULT OV8825_IsiGetIntegrationTimeIncrementIss( IsiSensorHandle_t handle, float *pIncr );
-static RESULT OV8825_IsiSetIntegrationTimeIss( IsiSensorHandle_t handle, float NewIntegrationTime, float *pSetIntegrationTime, uint8_t *pNumberOfFramesToSkip );
-static RESULT OV8825_IsiGetResolutionIss( IsiSensorHandle_t handle, uint32_t *pSetResolution );
+static RESULT OV8820_IsiGetGainLimitsIss( IsiSensorHandle_t handle, float *pMinGain, float *pMaxGain);
+static RESULT OV8820_IsiGetIntegrationTimeLimitsIss( IsiSensorHandle_t handle, float *pMinIntegrationTime, float *pMaxIntegrationTime );
+static RESULT OV8820_IsiExposureControlIss( IsiSensorHandle_t handle, float NewGain, float NewIntegrationTime, uint8_t *pNumberOfFramesToSkip, float *pSetGain, float *pSetIntegrationTime );
+static RESULT OV8820_IsiGetCurrentExposureIss( IsiSensorHandle_t handle, float *pSetGain, float *pSetIntegrationTime );
+static RESULT OV8820_IsiGetAfpsInfoIss ( IsiSensorHandle_t handle, uint32_t Resolution, IsiAfpsInfo_t* pAfpsInfo);
+static RESULT OV8820_IsiGetGainIss( IsiSensorHandle_t handle, float *pSetGain );
+static RESULT OV8820_IsiGetGainIncrementIss( IsiSensorHandle_t handle, float *pIncr );
+static RESULT OV8820_IsiSetGainIss( IsiSensorHandle_t handle, float NewGain, float *pSetGain );
+static RESULT OV8820_IsiGetIntegrationTimeIss( IsiSensorHandle_t handle, float *pSetIntegrationTime );
+static RESULT OV8820_IsiGetIntegrationTimeIncrementIss( IsiSensorHandle_t handle, float *pIncr );
+static RESULT OV8820_IsiSetIntegrationTimeIss( IsiSensorHandle_t handle, float NewIntegrationTime, float *pSetIntegrationTime, uint8_t *pNumberOfFramesToSkip );
+static RESULT OV8820_IsiGetResolutionIss( IsiSensorHandle_t handle, uint32_t *pSetResolution );
 
 
-static RESULT OV8825_IsiRegReadIss( IsiSensorHandle_t handle, const uint32_t address, uint32_t *p_value );
-static RESULT OV8825_IsiRegWriteIss( IsiSensorHandle_t handle, const uint32_t address, const uint32_t value );
+static RESULT OV8820_IsiRegReadIss( IsiSensorHandle_t handle, const uint32_t address, uint32_t *p_value );
+static RESULT OV8820_IsiRegWriteIss( IsiSensorHandle_t handle, const uint32_t address, const uint32_t value );
 
-static RESULT OV8825_IsiGetCalibKFactor( IsiSensorHandle_t handle, Isi1x1FloatMatrix_t **pIsiKFactor );
-static RESULT OV8825_IsiGetCalibPcaMatrix( IsiSensorHandle_t   handle, Isi3x2FloatMatrix_t **pIsiPcaMatrix );
-static RESULT OV8825_IsiGetCalibSvdMeanValue( IsiSensorHandle_t   handle, Isi3x1FloatMatrix_t **pIsiSvdMeanValue );
-static RESULT OV8825_IsiGetCalibCenterLine( IsiSensorHandle_t   handle, IsiLine_t  **ptIsiCenterLine);
-static RESULT OV8825_IsiGetCalibClipParam( IsiSensorHandle_t   handle, IsiAwbClipParm_t    **pIsiClipParam );
-static RESULT OV8825_IsiGetCalibGlobalFadeParam( IsiSensorHandle_t       handle, IsiAwbGlobalFadeParm_t  **ptIsiGlobalFadeParam);
-static RESULT OV8825_IsiGetCalibFadeParam( IsiSensorHandle_t   handle, IsiAwbFade2Parm_t   **ptIsiFadeParam);
-static RESULT OV8825_IsiGetIlluProfile( IsiSensorHandle_t   handle, const uint32_t CieProfile, IsiIlluProfile_t **ptIsiIlluProfile );
+static RESULT OV8820_IsiGetCalibKFactor( IsiSensorHandle_t handle, Isi1x1FloatMatrix_t **pIsiKFactor );
+static RESULT OV8820_IsiGetCalibPcaMatrix( IsiSensorHandle_t   handle, Isi3x2FloatMatrix_t **pIsiPcaMatrix );
+static RESULT OV8820_IsiGetCalibSvdMeanValue( IsiSensorHandle_t   handle, Isi3x1FloatMatrix_t **pIsiSvdMeanValue );
+static RESULT OV8820_IsiGetCalibCenterLine( IsiSensorHandle_t   handle, IsiLine_t  **ptIsiCenterLine);
+static RESULT OV8820_IsiGetCalibClipParam( IsiSensorHandle_t   handle, IsiAwbClipParm_t    **pIsiClipParam );
+static RESULT OV8820_IsiGetCalibGlobalFadeParam( IsiSensorHandle_t       handle, IsiAwbGlobalFadeParm_t  **ptIsiGlobalFadeParam);
+static RESULT OV8820_IsiGetCalibFadeParam( IsiSensorHandle_t   handle, IsiAwbFade2Parm_t   **ptIsiFadeParam);
+static RESULT OV8820_IsiGetIlluProfile( IsiSensorHandle_t   handle, const uint32_t CieProfile, IsiIlluProfile_t **ptIsiIlluProfile );
 
-static RESULT OV8825_IsiMdiInitMotoDriveMds( IsiSensorHandle_t handle );
-static RESULT OV8825_IsiMdiSetupMotoDrive( IsiSensorHandle_t handle, uint32_t *pMaxStep );
-static RESULT OV8825_IsiMdiFocusSet( IsiSensorHandle_t handle, const uint32_t Position );
-static RESULT OV8825_IsiMdiFocusGet( IsiSensorHandle_t handle, uint32_t *pAbsStep );
-static RESULT OV8825_IsiMdiFocusCalibrate( IsiSensorHandle_t handle );
+static RESULT OV8820_IsiMdiInitMotoDriveMds( IsiSensorHandle_t handle );
+static RESULT OV8820_IsiMdiSetupMotoDrive( IsiSensorHandle_t handle, uint32_t *pMaxStep );
+static RESULT OV8820_IsiMdiFocusSet( IsiSensorHandle_t handle, const uint32_t Position );
+static RESULT OV8820_IsiMdiFocusGet( IsiSensorHandle_t handle, uint32_t *pAbsStep );
+static RESULT OV8820_IsiMdiFocusCalibrate( IsiSensorHandle_t handle );
 
-static RESULT OV8825_IsiGetSensorMipiInfoIss( IsiSensorHandle_t handle, IsiSensorMipiInfo *ptIsiSensorMipiInfo);
-static RESULT OV8825_IsiGetSensorIsiVersion(  IsiSensorHandle_t   handle, unsigned int* pVersion);
-static RESULT OV8825_IsiGetSensorTuningXmlVersion(  IsiSensorHandle_t   handle, char** pTuningXmlVersion);
+static RESULT OV8820_IsiGetSensorMipiInfoIss( IsiSensorHandle_t handle, IsiSensorMipiInfo *ptIsiSensorMipiInfo);
+static RESULT OV8820_IsiGetSensorIsiVersion(  IsiSensorHandle_t   handle, unsigned int* pVersion);
+static RESULT OV8820_IsiGetSensorTuningXmlVersion(  IsiSensorHandle_t   handle, char** pTuningXmlVersion);
 
 
 static float dctfloor( const float f )
@@ -341,9 +342,9 @@ static float dctfloor( const float f )
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiCreateSensorIss
+ *          OV8820_IsiCreateSensorIss
  *
- * @brief   This function creates a new OV8825 sensor instance handle.
+ * @brief   This function creates a new OV8820 sensor instance handle.
  *
  * @param   pConfig     configuration structure to create the instance
  *
@@ -353,78 +354,78 @@ static float dctfloor( const float f )
  * @retval  RET_OUTOFMEM
  *
  *****************************************************************************/
-static RESULT OV8825_IsiCreateSensorIss
+static RESULT OV8820_IsiCreateSensorIss
 (
     IsiSensorInstanceConfig_t *pConfig
 )
 {
     RESULT result = RET_SUCCESS;
     int32_t current_distance;
-    OV8825_Context_t *pOV8825Ctx;
+    OV8820_Context_t *pOV8820Ctx;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
     if ( (pConfig == NULL) || (pConfig->pSensor ==NULL) )
     {
         return ( RET_NULL_POINTER );
     }
 
-    pOV8825Ctx = ( OV8825_Context_t * )malloc ( sizeof (OV8825_Context_t) );
-    if ( pOV8825Ctx == NULL )
+    pOV8820Ctx = ( OV8820_Context_t * )malloc ( sizeof (OV8820_Context_t) );
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR,  "%s: Can't allocate ov14825 context\n",  __FUNCTION__ );
+        TRACE( OV8820_ERROR,  "%s: Can't allocate ov14825 context\n",  __FUNCTION__ );
         return ( RET_OUTOFMEM );
     }
-    MEMSET( pOV8825Ctx, 0, sizeof( OV8825_Context_t ) );
+    MEMSET( pOV8820Ctx, 0, sizeof( OV8820_Context_t ) );
 
     result = HalAddRef( pConfig->HalHandle );
     if ( result != RET_SUCCESS )
     {
-        free ( pOV8825Ctx );
+        free ( pOV8820Ctx );
         return ( result );
     }
 
-    pOV8825Ctx->IsiCtx.HalHandle              = pConfig->HalHandle;
-    pOV8825Ctx->IsiCtx.HalDevID               = pConfig->HalDevID;
-    pOV8825Ctx->IsiCtx.I2cBusNum              = pConfig->I2cBusNum;
-    pOV8825Ctx->IsiCtx.SlaveAddress           = ( pConfig->SlaveAddr == 0 ) ? OV8825_SLAVE_ADDR : pConfig->SlaveAddr;
-    pOV8825Ctx->IsiCtx.NrOfAddressBytes       = 2U;
+    pOV8820Ctx->IsiCtx.HalHandle              = pConfig->HalHandle;
+    pOV8820Ctx->IsiCtx.HalDevID               = pConfig->HalDevID;
+    pOV8820Ctx->IsiCtx.I2cBusNum              = pConfig->I2cBusNum;
+    pOV8820Ctx->IsiCtx.SlaveAddress           = ( pConfig->SlaveAddr == 0 ) ? OV8820_SLAVE_ADDR : pConfig->SlaveAddr;
+    pOV8820Ctx->IsiCtx.NrOfAddressBytes       = 2U;
 
-    pOV8825Ctx->IsiCtx.I2cAfBusNum            = pConfig->I2cAfBusNum;
-    pOV8825Ctx->IsiCtx.SlaveAfAddress         = ( pConfig->SlaveAfAddr == 0 ) ? OV8825_SLAVE_AF_ADDR : pConfig->SlaveAfAddr;
-    pOV8825Ctx->IsiCtx.NrOfAfAddressBytes     = 2U;
+    pOV8820Ctx->IsiCtx.I2cAfBusNum            = pConfig->I2cAfBusNum;
+    pOV8820Ctx->IsiCtx.SlaveAfAddress         = ( pConfig->SlaveAfAddr == 0 ) ? OV8820_SLAVE_AF_ADDR : pConfig->SlaveAfAddr;
+    pOV8820Ctx->IsiCtx.NrOfAfAddressBytes     = 2U;
 
-    pOV8825Ctx->IsiCtx.pSensor                = pConfig->pSensor;
+    pOV8820Ctx->IsiCtx.pSensor                = pConfig->pSensor;
 
-    pOV8825Ctx->Configured             = BOOL_FALSE;
-    pOV8825Ctx->Streaming              = BOOL_FALSE;
-    pOV8825Ctx->TestPattern            = BOOL_FALSE;
-    pOV8825Ctx->isAfpsRun              = BOOL_FALSE;
+    pOV8820Ctx->Configured             = BOOL_FALSE;
+    pOV8820Ctx->Streaming              = BOOL_FALSE;
+    pOV8820Ctx->TestPattern            = BOOL_FALSE;
+    pOV8820Ctx->isAfpsRun              = BOOL_FALSE;
     /* ddl@rock-chips.com: v0.3.0 */
     current_distance = pConfig->VcmRatedCurrent - pConfig->VcmStartCurrent;
     current_distance = current_distance*MAX_VCMDRV_REG/MAX_VCMDRV_CURRENT;    
-    pOV8825Ctx->VcmInfo.Step = (current_distance+(MAX_LOG-1))/MAX_LOG;
-    pOV8825Ctx->VcmInfo.StartCurrent   = pConfig->VcmStartCurrent*MAX_VCMDRV_REG/MAX_VCMDRV_CURRENT;    
-    pOV8825Ctx->VcmInfo.RatedCurrent   = pOV8825Ctx->VcmInfo.StartCurrent + MAX_LOG*pOV8825Ctx->VcmInfo.Step;
-    pOV8825Ctx->VcmInfo.StepMode       = pConfig->VcmStepMode;    
+    pOV8820Ctx->VcmInfo.Step = (current_distance+(MAX_LOG-1))/MAX_LOG;
+    pOV8820Ctx->VcmInfo.StartCurrent   = pConfig->VcmStartCurrent*MAX_VCMDRV_REG/MAX_VCMDRV_CURRENT;    
+    pOV8820Ctx->VcmInfo.RatedCurrent   = pOV8820Ctx->VcmInfo.StartCurrent + MAX_LOG*pOV8820Ctx->VcmInfo.Step;
+    pOV8820Ctx->VcmInfo.StepMode       = pConfig->VcmStepMode;    
 
-    pOV8825Ctx->IsiSensorMipiInfo.sensorHalDevID = pOV8825Ctx->IsiCtx.HalDevID;
+    pOV8820Ctx->IsiSensorMipiInfo.sensorHalDevID = pOV8820Ctx->IsiCtx.HalDevID;
     if(pConfig->mipiLaneNum & g_suppoted_mipi_lanenum_type)
-        pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes = pConfig->mipiLaneNum;
+        pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes = pConfig->mipiLaneNum;
     else{
-        TRACE( OV8825_ERROR, "%s don't support lane numbers :%d,set to default %d\n", __FUNCTION__,pConfig->mipiLaneNum,DEFAULT_NUM_LANES);
-        pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes = DEFAULT_NUM_LANES;
+        TRACE( OV8820_ERROR, "%s don't support lane numbers :%d,set to default %d\n", __FUNCTION__,pConfig->mipiLaneNum,DEFAULT_NUM_LANES);
+        pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes = DEFAULT_NUM_LANES;
     }
 
-    pConfig->hSensor = ( IsiSensorHandle_t )pOV8825Ctx;
+    pConfig->hSensor = ( IsiSensorHandle_t )pOV8820Ctx;
 
-    result = HalSetCamConfig( pOV8825Ctx->IsiCtx.HalHandle, pOV8825Ctx->IsiCtx.HalDevID, false, true, false );
+    result = HalSetCamConfig( pOV8820Ctx->IsiCtx.HalHandle, pOV8820Ctx->IsiCtx.HalDevID, false, true, false );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-    result = HalSetClock( pOV8825Ctx->IsiCtx.HalHandle, pOV8825Ctx->IsiCtx.HalDevID, 24000000U);
+    result = HalSetClock( pOV8820Ctx->IsiCtx.HalHandle, pOV8820Ctx->IsiCtx.HalDevID, 24000000U);
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-    TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -433,42 +434,42 @@ static RESULT OV8825_IsiCreateSensorIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiReleaseSensorIss
+ *          OV8820_IsiReleaseSensorIss
  *
- * @brief   This function destroys/releases an OV8825 sensor instance.
+ * @brief   This function destroys/releases an OV8820 sensor instance.
  *
- * @param   handle      OV8825 sensor instance handle
+ * @param   handle      OV8820 sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
  * @retval  RET_WRONG_HANDLE
  *
  *****************************************************************************/
-static RESULT OV8825_IsiReleaseSensorIss
+static RESULT OV8820_IsiReleaseSensorIss
 (
     IsiSensorHandle_t handle
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    (void)OV8825_IsiSensorSetStreamingIss( pOV8825Ctx, BOOL_FALSE );
-    (void)OV8825_IsiSensorSetPowerIss( pOV8825Ctx, BOOL_FALSE );
+    (void)OV8820_IsiSensorSetStreamingIss( pOV8820Ctx, BOOL_FALSE );
+    (void)OV8820_IsiSensorSetPowerIss( pOV8820Ctx, BOOL_FALSE );
 
-    (void)HalDelRef( pOV8825Ctx->IsiCtx.HalHandle );
+    (void)HalDelRef( pOV8820Ctx->IsiCtx.HalHandle );
 
-    MEMSET( pOV8825Ctx, 0, sizeof( OV8825_Context_t ) );
-    free ( pOV8825Ctx );
+    MEMSET( pOV8820Ctx, 0, sizeof( OV8820_Context_t ) );
+    free ( pOV8820Ctx );
 
-    TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -477,7 +478,7 @@ static RESULT OV8825_IsiReleaseSensorIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetCapsIss
+ *          OV8820_IsiGetCapsIss
  *
  * @brief   fills in the correct pointers for the sensor description struct
  *
@@ -488,19 +489,19 @@ static RESULT OV8825_IsiReleaseSensorIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetCapsIss
+static RESULT OV8820_IsiGetCapsIss
 (
     IsiSensorHandle_t handle,
     IsiSensorCaps_t   *pIsiSensorCaps
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -524,10 +525,10 @@ static RESULT OV8825_IsiGetCapsIss
         pIsiSensorCaps->Gamma           = ISI_GAMMA_OFF;
         pIsiSensorCaps->CConv           = ISI_CCONV_OFF;
 
-        if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
+        if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
 
             pIsiSensorCaps->Resolution      = ( ISI_RES_TV1080P15 | ISI_RES_3264_2448 );
-        }else if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
+        }else if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
             pIsiSensorCaps->Resolution      = ( ISI_RES_TV1080P30 | ISI_RES_3264_2448 );
         }
 
@@ -550,7 +551,7 @@ static RESULT OV8825_IsiGetCapsIss
 		pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_RAW;
     }
 
-    TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -559,13 +560,13 @@ static RESULT OV8825_IsiGetCapsIss
 
 /*****************************************************************************/
 /**
- *          OV8825_g_IsiSensorDefaultConfig
+ *          OV8820_g_IsiSensorDefaultConfig
  *
  * @brief   recommended default configuration for application use via call
  *          to IsiGetSensorIss()
  *
  *****************************************************************************/
-const IsiSensorCaps_t OV8825_g_IsiSensorDefaultConfig =
+const IsiSensorCaps_t OV8820_g_IsiSensorDefaultConfig =
 {
     ISI_BUSWIDTH_10BIT,         // BusWidth
     ISI_MODE_MIPI,              // MIPI
@@ -597,11 +598,11 @@ const IsiSensorCaps_t OV8825_g_IsiSensorDefaultConfig =
 
 /*****************************************************************************/
 /**
- *          OV8825_SetupOutputFormat
+ *          OV8820_SetupOutputFormat
  *
  * @brief   Setup of the image sensor considering the given configuration.
  *
- * @param   handle      OV8825 sensor instance handle
+ * @param   handle      OV8820 sensor instance handle
  * @param   pConfig     pointer to sensor configuration structure
  *
  * @return  Return the result of the function call.
@@ -609,15 +610,15 @@ const IsiSensorCaps_t OV8825_g_IsiSensorDefaultConfig =
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV8825_SetupOutputFormat
+RESULT OV8820_SetupOutputFormat
 (
-    OV8825_Context_t       *pOV8825Ctx,
+    OV8820_Context_t       *pOV8820Ctx,
     const IsiSensorConfig_t *pConfig
 )
 {
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s%s (enter)\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+    TRACE( OV8820_INFO, "%s%s (enter)\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
 
     /* bus-width */
     switch ( pConfig->BusWidth )        /* only ISI_BUSWIDTH_12BIT supported, no configuration needed here */
@@ -629,7 +630,7 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s: bus width not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s: bus width not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -644,7 +645,7 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s: mode not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s: mode not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -659,12 +660,12 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s: field selection not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s: field selection not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
 
-    /* only Bayer mode is supported by OV8825 sensor, so the YCSequence parameter is not checked */
+    /* only Bayer mode is supported by OV8820 sensor, so the YCSequence parameter is not checked */
     switch ( pConfig->YCSequence )
     {
         default:
@@ -683,7 +684,7 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s: 422 conversion not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s: 422 conversion not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -698,7 +699,7 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s: bayer pattern not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s: bayer pattern not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -713,7 +714,7 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s: HPol not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s: HPol not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -728,7 +729,7 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s: VPol not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s: VPol not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -749,7 +750,7 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s:  edge mode not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s:  edge mode not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -764,7 +765,7 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s:  gamma not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s:  gamma not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -779,7 +780,7 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s: color conversion not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s: color conversion not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -793,7 +794,7 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s: SMIA mode not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s: SMIA mode not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -807,7 +808,7 @@ RESULT OV8825_SetupOutputFormat
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s%s: MIPI mode not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( OV8820_ERROR, "%s%s: MIPI mode not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -821,17 +822,17 @@ RESULT OV8825_SetupOutputFormat
         default:
         {
             // don't care about what comes in here
-            //TRACE( OV8825_ERROR, "%s%s: AFPS not supported\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"" );
+            //TRACE( OV8820_ERROR, "%s%s: AFPS not supported\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"" );
             //return ( RET_NOTSUPP );
         }
     }
 
-    TRACE( OV8825_INFO, "%s%s (exit)\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"");
+    TRACE( OV8820_INFO, "%s%s (exit)\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"");
 
     return ( result );
 }
 
-int OV8825_get_PCLK( OV8825_Context_t *pOV8825Ctx, int XVCLK)
+int OV8820_get_PCLK( OV8820_Context_t *pOV8820Ctx, int XVCLK)
 {
     // calculate PCLK
     uint32_t PCLK, temp1, temp2;
@@ -844,7 +845,7 @@ int OV8825_get_PCLK( OV8825_Context_t *pOV8825Ctx, int XVCLK)
 
     
     //temp1 = ReadSCCB(0x6c, 0x3007);
-    OV8825_IsiRegReadIss(  pOV8825Ctx, 0x3007, &temp1 );
+    OV8820_IsiRegReadIss(  pOV8820Ctx, 0x3007, &temp1 );
     Div_cnt5b = temp1>>3;
     temp2 = temp1 & 0x03;
     Pre_Div_sp2x = Pre_Div_sp2x_map[temp2];
@@ -855,31 +856,31 @@ int OV8825_get_PCLK( OV8825_Context_t *pOV8825Ctx, int XVCLK)
         R_div_sp = 1;
     }
 
-    OV8825_IsiRegReadIss(  pOV8825Ctx, 0x3012, &temp1 );
+    OV8820_IsiRegReadIss(  pOV8820Ctx, 0x3012, &temp1 );
     Div124_sp = temp1 >> 6;
     div12_sp = (temp1>>4) & 0x03;
     Sdiv_sp = temp1 & 0x0f;
     pll2 = XVCLK * 2 / Pre_Div_sp2x * R_div_sp * (32 - Div_cnt5b ) / (Sdiv_sp + 1);
     
     //temp1 = ReadSCCB(0x6c, 0x3003);
-    OV8825_IsiRegReadIss(  pOV8825Ctx, 0x3003, &temp1 );
+    OV8820_IsiRegReadIss(  pOV8820Ctx, 0x3003, &temp1 );
     temp2 = temp1 & 0x07;
     Pre_div02x = Pre_div02x_map[temp2];
     temp2 = temp1>>6;
     Div124 = Div124_map[temp2];
     
     //temp1 = ReadSCCB(0x6c, 0x3005);
-    OV8825_IsiRegReadIss(  pOV8825Ctx, 0x3005, &temp1 );
+    OV8820_IsiRegReadIss(  pOV8820Ctx, 0x3005, &temp1 );
     Sdiv0 = temp1 & 0x0f;
     
     //temp1 = ReadSCCB(0x6c, 0x3006);
-    OV8825_IsiRegReadIss(  pOV8825Ctx, 0x3006, &temp1 );
+    OV8820_IsiRegReadIss(  pOV8820Ctx, 0x3006, &temp1 );
     Sdiv1 = temp1 & 0x0f;
     temp2 = (temp1>>4) & 0x07;
     R_seld52x = R_seld52x_map[temp2];
     
     //temp1 = ReadSCCB(0x6c, 0x3004);
-    OV8825_IsiRegReadIss(  pOV8825Ctx, 0x3004, &temp1 );
+    OV8820_IsiRegReadIss(  pOV8820Ctx, 0x3004, &temp1 );
     Div_cnt7b = temp1 & 0x7f;
     VCO = XVCLK * 2 / Pre_div02x * Div124 * (129 - Div_cnt7b);
     if(temp1 & 0x80) {
@@ -890,7 +891,7 @@ int OV8825_get_PCLK( OV8825_Context_t *pOV8825Ctx, int XVCLK)
     }
     
     //temp1 = ReadSCCB(0x6c, 0x3104);
-    OV8825_IsiRegReadIss(  pOV8825Ctx, 0x3104, &temp1 );
+    OV8820_IsiRegReadIss(  pOV8820Ctx, 0x3104, &temp1 );
     if(temp1 & 0x20) {
         PCLK = pllsysclk;
     }
@@ -903,11 +904,11 @@ int OV8825_get_PCLK( OV8825_Context_t *pOV8825Ctx, int XVCLK)
 
 /*****************************************************************************/
 /**
- *          OV8825_SetupOutputWindow
+ *          OV8820_SetupOutputWindow
  *
  * @brief   Setup of the image sensor considering the given configuration.
  *
- * @param   handle      OV8825 sensor instance handle
+ * @param   handle      OV8820 sensor instance handle
  * @param   pConfig     pointer to sensor configuration structure
  *
  * @return  Return the result of the function call.
@@ -915,9 +916,9 @@ int OV8825_get_PCLK( OV8825_Context_t *pOV8825Ctx, int XVCLK)
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_SetupOutputWindow
+static RESULT OV8820_SetupOutputWindow
 (
-    OV8825_Context_t        *pOV8825Ctx,
+    OV8820_Context_t        *pOV8820Ctx,
     const IsiSensorConfig_t *pConfig
 )
 {
@@ -971,18 +972,18 @@ static RESULT OV8825_SetupOutputWindow
     uint8_t usSCClkRst2 = 0;
     uint8_t usSCClkRst0 = 0;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
 
-	if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
+	if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
 
-    	pOV8825Ctx->IsiSensorMipiInfo.ulMipiFreq = 328;
+    	pOV8820Ctx->IsiSensorMipiInfo.ulMipiFreq = 328;
         /* resolution */
         switch ( pConfig->Resolution )
         {
             case ISI_RES_TV1080P30:
             {
-                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_TV1080P30", __FUNCTION__,__LINE__ );
+                TRACE( OV8820_NOTICE0, "%s(%d): ISI_RES_TV1080P30", __FUNCTION__,__LINE__ );
                 usModeSelect = 0x00;
                 usPllCtrl1 = 0xd8;
                 usPllCtrl3 = 0x00;
@@ -1026,7 +1027,7 @@ static RESULT OV8825_SetupOutputWindow
                 usSCClkRst2 = 0xf0;
                 usSCClkRst0 = 0x70;
 
-                //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
+                //rVtPixClkFreq = OV8820_get_PCLK(pOV8820Ctx, xclk);
                 usLineLengthPck = usTimeHts;
                 usFrameLengthLines = usTimeVts;
                 break;
@@ -1035,7 +1036,7 @@ static RESULT OV8825_SetupOutputWindow
             
             case ISI_RES_3264_2448:
             {
-                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
+                TRACE( OV8820_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
                 usModeSelect = 0x00;
                 usPllCtrl1 = 0xd8;
                 usPllCtrl3 = 0x10;
@@ -1079,7 +1080,7 @@ static RESULT OV8825_SetupOutputWindow
                 usSCClkRst2 = 0xf0;
                 usSCClkRst0 = 0x70;
 
-                //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
+                //rVtPixClkFreq = OV8820_get_PCLK(pOV8820Ctx, xclk);
                 usLineLengthPck = usTimeHts;
                 usFrameLengthLines = usTimeVts;
                 break;
@@ -1088,128 +1089,128 @@ static RESULT OV8825_SetupOutputWindow
 
             default:
             {
-                TRACE( OV8825_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
+                TRACE( OV8820_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
                 return ( RET_NOTSUPP );
             }
         }
 
-        //TRACE( OV8825_INFO, "%s: Resolution %dx%d\n", __FUNCTION__, usHSize, usVSize );
+        //TRACE( OV8820_INFO, "%s: Resolution %dx%d\n", __FUNCTION__, usHSize, usVSize );
 
         #if 0  /* ddl@rock-chips.com: v0.1.2 */
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, 0x00);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_MODE_SELECT, 0x00);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
         #endif
         
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL1, usPllCtrl1);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_PLL_CTRL1, usPllCtrl1);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL3, usPllCtrl3);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_PLL_CTRL3, usPllCtrl3);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLK_SEL, usScClkSel);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SC_CLK_SEL, usScClkSel);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_M, usAECExpoM);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_EXPO_M, usAECExpoM);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_L, usAECExpoL);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_EXPO_L, usAECExpoL);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL0, usSenCtrl0);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL0, usSenCtrl0);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL2, usSenCtrl2);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL2, usSenCtrl2);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL3, usSenCtrl3);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL3, usSenCtrl3);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL4, usSenCtrl4);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL4, usSenCtrl4);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL5, usSenCtrl5);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL5, usSenCtrl5);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL6, usSenCtrl6);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL6, usSenCtrl6);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL8, usSenCtrl8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL8, usSenCtrl8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL9, usSenCtrl9);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL9, usSenCtrl9);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRLA, usSenCtrlA);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRLA, usSenCtrlA);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL11, usSenCtrl11);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL11, usSenCtrl11);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL12, usSenCtrl12);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL12, usSenCtrl12);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3724, us3724);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_3724, us3724);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3725, us3725);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_3725, us3725);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3726, us3726);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_3726, us3726);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3727, us3727);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_3727, us3727);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_H, (usTimeVs&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VS_H, (usTimeVs&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_L, (usTimeVs&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VS_L, (usTimeVs&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_H, (usTimeVh&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VH_H, (usTimeVh&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_L, (usTimeVh&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VH_L, (usTimeVh&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_H, (usTimeIspHo&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_ISPHO_H, (usTimeIspHo&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_L, (usTimeIspHo&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_ISPHO_L, (usTimeIspHo&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_H, (usTimeIspVo&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_ISPVO_H, (usTimeIspVo&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_L, (usTimeIspVo&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_ISPVO_L, (usTimeIspVo&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_H, (usTimeHts&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_HTS_H, (usTimeHts&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_L, (usTimeHts&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_HTS_L, (usTimeHts&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_H, (usTimeVts&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VTS_H, (usTimeVts&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_L, (usTimeVts&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VTS_L, (usTimeVts&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HOFFS_LOW, usTimeHoffsL);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_HOFFS_LOW, usTimeHoffsL);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VOFFS_LOW, usTimeVoffsL);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VOFFS_LOW, usTimeVoffsL);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_X_INC, usTimeXinc);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_X_INC, usTimeXinc);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_Y_INC, usTimeYinc);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_Y_INC, usTimeYinc);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG20, usTimeReg20);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_REG20, usTimeReg20);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG21, usTimeReg21);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_REG21, usTimeReg21);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PSRAM_CTRL0 , usPsramCtrl);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_PSRAM_CTRL0 , usPsramCtrl);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_HIGH, (usVFIFOReadST&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_VFIFO_READ_ST_HIGH, (usVFIFOReadST&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_LOW, (usVFIFOReadST&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_VFIFO_READ_ST_LOW, (usVFIFOReadST&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MIPI_PCLK_PERIOD, usMIPIPclk);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_MIPI_PCLK_PERIOD, usMIPIPclk);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_HSCALE_CTRL, usHscalCtrl);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_HSCALE_CTRL, usHscalCtrl);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VSCALE_CTRL, usVscalCtrl);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_VSCALE_CTRL, usVscalCtrl);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-       // result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, usModeSelect);
+       // result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_MODE_SELECT, usModeSelect);
        //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST2 , usSCClkRst2);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SC_CLKRST2 , usSCClkRst2);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST0, usSCClkRst0);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SC_CLKRST0, usSCClkRst0);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-        rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
+        rVtPixClkFreq = OV8820_get_PCLK(pOV8820Ctx, xclk);
         
         // store frame timing for later use in AEC module
-        pOV8825Ctx->VtPixClkFreq     = rVtPixClkFreq;
-        pOV8825Ctx->LineLengthPck    = usLineLengthPck;
-        pOV8825Ctx->FrameLengthLines = usFrameLengthLines;
-    }else if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
+        pOV8820Ctx->VtPixClkFreq     = rVtPixClkFreq;
+        pOV8820Ctx->LineLengthPck    = usLineLengthPck;
+        pOV8820Ctx->FrameLengthLines = usFrameLengthLines;
+    }else if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
 
-    	pOV8825Ctx->IsiSensorMipiInfo.ulMipiFreq = 656;
+    	pOV8820Ctx->IsiSensorMipiInfo.ulMipiFreq = 656;
         /* resolution */
         switch ( pConfig->Resolution )
         {
             case ISI_RES_TV1080P15:
             {
-                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_TV1080P15", __FUNCTION__,__LINE__ );
+                TRACE( OV8820_NOTICE0, "%s(%d): ISI_RES_TV1080P15", __FUNCTION__,__LINE__ );
                 usModeSelect = 0x00;
                 usPllCtrl1 = 0xd2; //0xd8;//0xd2;
                 usReg0x3005 = 0x00;
@@ -1254,7 +1255,7 @@ static RESULT OV8825_SetupOutputWindow
                 usSCClkRst2 = 0xf0;
                 usSCClkRst0 = 0x70;
 
-                //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
+                //rVtPixClkFreq = OV8820_get_PCLK(pOV8820Ctx, xclk);
                 usLineLengthPck = usTimeHts;
                 usFrameLengthLines = usTimeVts;
                 break;
@@ -1263,7 +1264,7 @@ static RESULT OV8825_SetupOutputWindow
             
             case ISI_RES_3264_2448:
             {
-                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
+                TRACE( OV8820_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
                 usModeSelect = 0x00;
                 usPllCtrl1 = 0xd8;   //0xce;
                 usReg0x3005 = 0x00;
@@ -1308,7 +1309,7 @@ static RESULT OV8825_SetupOutputWindow
                 usSCClkRst2 = 0xf0;
                 usSCClkRst0 = 0x70;
 
-                //rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
+                //rVtPixClkFreq = OV8820_get_PCLK(pOV8820Ctx, xclk);
                 usLineLengthPck = usTimeHts;
                 usFrameLengthLines = usTimeVts;
                 break;
@@ -1317,125 +1318,125 @@ static RESULT OV8825_SetupOutputWindow
 
             default:
             {
-                TRACE( OV8825_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
+                TRACE( OV8820_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
                 return ( RET_NOTSUPP );
             }
         }
 
-        //TRACE( OV8825_INFO, "%s: Resolution %dx%d\n", __FUNCTION__, usHSize, usVSize );
+        //TRACE( OV8820_INFO, "%s: Resolution %dx%d\n", __FUNCTION__, usHSize, usVSize );
         #if 0   /* ddl@rock-chips.com: v0.1.2 */
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, 0x00);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_MODE_SELECT, 0x00);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
         #endif
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL1, usPllCtrl1);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_PLL_CTRL1, usPllCtrl1);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL2, usReg0x3005);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_PLL_CTRL2, usReg0x3005);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PLL_CTRL3, usPllCtrl3);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_PLL_CTRL3, usPllCtrl3);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLK_SEL, usScClkSel);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SC_CLK_SEL, usScClkSel);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_M, usAECExpoM);
+        //result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_EXPO_M, usAECExpoM);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_L, usAECExpoL);
+        //result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_EXPO_L, usAECExpoL);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL0, usSenCtrl0);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL0, usSenCtrl0);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL2, usSenCtrl2);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL2, usSenCtrl2);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL3, usSenCtrl3);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL3, usSenCtrl3);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL4, usSenCtrl4);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL4, usSenCtrl4);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL5, usSenCtrl5);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL5, usSenCtrl5);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL6, usSenCtrl6);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL6, usSenCtrl6);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL8, usSenCtrl8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL8, usSenCtrl8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL9, usSenCtrl9);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL9, usSenCtrl9);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRLA, usSenCtrlA);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRLA, usSenCtrlA);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL11, usSenCtrl11);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL11, usSenCtrl11);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SENCTRL12, usSenCtrl12);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SENCTRL12, usSenCtrl12);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3724, us3724);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_3724, us3724);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3725, us3725);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_3725, us3725);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3726, us3726);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_3726, us3726);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_3727, us3727);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_3727, us3727);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_H, (usTimeVs&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VS_H, (usTimeVs&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VS_L, (usTimeVs&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VS_L, (usTimeVs&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_H, (usTimeVh&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VH_H, (usTimeVh&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VH_L, (usTimeVh&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VH_L, (usTimeVh&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_H, (usTimeIspHo&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_ISPHO_H, (usTimeIspHo&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPHO_L, (usTimeIspHo&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_ISPHO_L, (usTimeIspHo&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_H, (usTimeIspVo&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_ISPVO_H, (usTimeIspVo&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_ISPVO_L, (usTimeIspVo&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_ISPVO_L, (usTimeIspVo&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_H, (usTimeHts&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_HTS_H, (usTimeHts&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HTS_L, (usTimeHts&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_HTS_L, (usTimeHts&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_H, (usTimeVts&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VTS_H, (usTimeVts&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VTS_L, (usTimeVts&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VTS_L, (usTimeVts&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_HOFFS_LOW, usTimeHoffsL);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_HOFFS_LOW, usTimeHoffsL);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_VOFFS_LOW, usTimeVoffsL);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_VOFFS_LOW, usTimeVoffsL);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_X_INC, usTimeXinc);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_X_INC, usTimeXinc);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_Y_INC, usTimeYinc);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_Y_INC, usTimeYinc);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG20, usTimeReg20);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_REG20, usTimeReg20);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_TIMING_REG21, usTimeReg21);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_TIMING_REG21, usTimeReg21);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PSRAM_CTRL0 , usPsramCtrl);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_PSRAM_CTRL0 , usPsramCtrl);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_HIGH, (usVFIFOReadST&0xff00)>>8);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_VFIFO_READ_ST_HIGH, (usVFIFOReadST&0xff00)>>8);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VFIFO_READ_ST_LOW, (usVFIFOReadST&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_VFIFO_READ_ST_LOW, (usVFIFOReadST&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MIPI_PCLK_PERIOD, usMIPIPclk);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_MIPI_PCLK_PERIOD, usMIPIPclk);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_HSCALE_CTRL, usHscalCtrl);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_HSCALE_CTRL, usHscalCtrl);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_VSCALE_CTRL, usVscalCtrl);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_VSCALE_CTRL, usVscalCtrl);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-       // result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, usModeSelect);
+       // result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_MODE_SELECT, usModeSelect);
        //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST2 , usSCClkRst2);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SC_CLKRST2 , usSCClkRst2);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_SC_CLKRST0, usSCClkRst0);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_SC_CLKRST0, usSCClkRst0);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-        rVtPixClkFreq = OV8825_get_PCLK(pOV8825Ctx, xclk);
+        rVtPixClkFreq = OV8820_get_PCLK(pOV8820Ctx, xclk);
         
         // store frame timing for later use in AEC module
-        pOV8825Ctx->VtPixClkFreq     = rVtPixClkFreq;
-        pOV8825Ctx->LineLengthPck    = usLineLengthPck;
-        pOV8825Ctx->FrameLengthLines = usFrameLengthLines;	
+        pOV8820Ctx->VtPixClkFreq     = rVtPixClkFreq;
+        pOV8820Ctx->LineLengthPck    = usLineLengthPck;
+        pOV8820Ctx->FrameLengthLines = usFrameLengthLines;	
 
     }
 
 //have to reset mipi freq here,zyc
 
-    TRACE( OV8825_INFO, "%s  resolution(0x%x) freq(%f)(exit)\n", __FUNCTION__, pConfig->Resolution,rVtPixClkFreq);
+    TRACE( OV8820_INFO, "%s  resolution(0x%x) freq(%f)(exit)\n", __FUNCTION__, pConfig->Resolution,rVtPixClkFreq);
 
     return ( result );
 }
@@ -1445,11 +1446,11 @@ static RESULT OV8825_SetupOutputWindow
 
 /*****************************************************************************/
 /**
- *          OV8825_SetupImageControl
+ *          OV8820_SetupImageControl
  *
  * @brief   Sets the image control functions (BLC, AGC, AWB, AEC, DPCC ...)
  *
- * @param   handle      OV8825 sensor instance handle
+ * @param   handle      OV8820 sensor instance handle
  * @param   pConfig     pointer to sensor configuration structure
  *
  * @return  Return the result of the function call.
@@ -1457,9 +1458,9 @@ static RESULT OV8825_SetupOutputWindow
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV8825_SetupImageControl
+RESULT OV8820_SetupImageControl
 (
-    OV8825_Context_t        *pOV8825Ctx,
+    OV8820_Context_t        *pOV8820Ctx,
     const IsiSensorConfig_t *pConfig
 )
 {
@@ -1467,7 +1468,7 @@ RESULT OV8825_SetupImageControl
 
     uint32_t RegValue = 0U;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
     switch ( pConfig->Bls )      /* only ISI_BLS_OFF supported, no configuration needed */
     {
@@ -1478,7 +1479,7 @@ RESULT OV8825_SetupImageControl
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s: Black level not supported\n", __FUNCTION__ );
+            TRACE( OV8820_ERROR, "%s: Black level not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }
@@ -1489,8 +1490,8 @@ RESULT OV8825_SetupImageControl
         case ISI_BLC_OFF:
         {
             /* turn off black level correction (clear bit 0) */
-            //result = OV8825_IsiRegReadIss(  pOV8825Ctx, OV8825_BLC_CTRL00, &RegValue );
-            //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_BLC_CTRL00, RegValue & 0x7F);
+            //result = OV8820_IsiRegReadIss(  pOV8820Ctx, OV8820_BLC_CTRL00, &RegValue );
+            //result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_BLC_CTRL00, RegValue & 0x7F);
             break;
         }
 
@@ -1498,14 +1499,14 @@ RESULT OV8825_SetupImageControl
         {
             /* turn on black level correction (set bit 0)
              * (0x331E[7] is assumed to be already setup to 'auto' by static configration) */
-            //result = OV8825_IsiRegReadIss(  pOV8825Ctx, OV8825_BLC_CTRL00, &RegValue );
-            //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_BLC_CTRL00, RegValue | 0x80 );
+            //result = OV8820_IsiRegReadIss(  pOV8820Ctx, OV8820_BLC_CTRL00, &RegValue );
+            //result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_BLC_CTRL00, RegValue | 0x80 );
             break;
         }
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s: BLC not supported\n", __FUNCTION__ );
+            TRACE( OV8820_ERROR, "%s: BLC not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }
@@ -1516,14 +1517,14 @@ RESULT OV8825_SetupImageControl
         case ISI_AGC_OFF:
         {
             // manual gain (appropriate for AEC with Marvin)
-            //result = OV8825_IsiRegReadIss(  pOV8825Ctx, OV8825_AEC_MANUAL, &RegValue );
-            //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_MANUAL, RegValue | 0x02 );
+            //result = OV8820_IsiRegReadIss(  pOV8820Ctx, OV8820_AEC_MANUAL, &RegValue );
+            //result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_MANUAL, RegValue | 0x02 );
             break;
         }
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s: AGC not supported\n", __FUNCTION__ );
+            TRACE( OV8820_ERROR, "%s: AGC not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }
@@ -1533,14 +1534,14 @@ RESULT OV8825_SetupImageControl
     {
         case ISI_AWB_OFF:
         {
-            //result = OV8825_IsiRegReadIss(  pOV8825Ctx, OV8825_ISP_CTRL01, &RegValue );
-            //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_ISP_CTRL01, RegValue | 0x01 );
+            //result = OV8820_IsiRegReadIss(  pOV8820Ctx, OV8820_ISP_CTRL01, &RegValue );
+            //result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_ISP_CTRL01, RegValue | 0x01 );
             break;
         }
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s: AWB not supported\n", __FUNCTION__ );
+            TRACE( OV8820_ERROR, "%s: AWB not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }
@@ -1549,14 +1550,14 @@ RESULT OV8825_SetupImageControl
     {
         case ISI_AEC_OFF:
         {
-            //result = OV8825_IsiRegReadIss(  pOV8825Ctx, OV8825_AEC_MANUAL, &RegValue );
-            //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_MANUAL, RegValue | 0x01 );
+            //result = OV8820_IsiRegReadIss(  pOV8820Ctx, OV8820_AEC_MANUAL, &RegValue );
+            //result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_MANUAL, RegValue | 0x01 );
             break;
         }
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s: AEC not supported\n", __FUNCTION__ );
+            TRACE( OV8820_ERROR, "%s: AEC not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }
@@ -1567,9 +1568,9 @@ RESULT OV8825_SetupImageControl
         case ISI_DPCC_OFF:
         {
             // disable white and black pixel cancellation (clear bit 6 and 7)
-            //result = OV8825_IsiRegReadIss( pOV8825Ctx, OV8825_ISP_CTRL00, &RegValue );
+            //result = OV8820_IsiRegReadIss( pOV8820Ctx, OV8820_ISP_CTRL00, &RegValue );
             //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-            //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_ISP_CTRL00, (RegValue &0x7c) );
+            //result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_ISP_CTRL00, (RegValue &0x7c) );
             //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
             break;
         }
@@ -1577,16 +1578,16 @@ RESULT OV8825_SetupImageControl
         case ISI_DPCC_AUTO:
         {
             // enable white and black pixel cancellation (set bit 6 and 7)
-            //result = OV8825_IsiRegReadIss( pOV8825Ctx, OV8825_ISP_CTRL00, &RegValue );
+            //result = OV8820_IsiRegReadIss( pOV8820Ctx, OV8820_ISP_CTRL00, &RegValue );
             //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-            //result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_ISP_CTRL00, (RegValue | 0x83) );
+            //result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_ISP_CTRL00, (RegValue | 0x83) );
             //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
             break;
         }
 
         default:
         {
-            TRACE( OV8825_ERROR, "%s: DPCC not supported\n", __FUNCTION__ );
+            TRACE( OV8820_ERROR, "%s: DPCC not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }// I have not update this commented part yet, as I did not find DPCC setting in the current 8810 driver of Trillian board. - SRJ
@@ -1597,15 +1598,15 @@ RESULT OV8825_SetupImageControl
 
 /*****************************************************************************/
 /**
- *          OV8825_AecSetModeParameters
+ *          OV8820_AecSetModeParameters
  *
- * @brief   This function fills in the correct parameters in OV8825-Instances
+ * @brief   This function fills in the correct parameters in OV8820-Instances
  *          according to AEC mode selection in IsiSensorConfig_t.
  *
  * @note    It is assumed that IsiSetupOutputWindow has been called before
  *          to fill in correct values in instance structure.
  *
- * @param   handle      OV8825 context
+ * @param   handle      OV8820 context
  * @param   pConfig     pointer to sensor configuration structure
  *
  * @return  Return the result of the function call.
@@ -1613,19 +1614,19 @@ RESULT OV8825_SetupImageControl
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_AecSetModeParameters
+static RESULT OV8820_AecSetModeParameters
 (
-    OV8825_Context_t       *pOV8825Ctx,
+    OV8820_Context_t       *pOV8820Ctx,
     const IsiSensorConfig_t *pConfig
 )
 {
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s%s (enter)\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"");
+    TRACE( OV8820_INFO, "%s%s (enter)\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"");
 
-    if ( (pOV8825Ctx->VtPixClkFreq == 0.0f) )
+    if ( (pOV8820Ctx->VtPixClkFreq == 0.0f) )
     {
-        TRACE( OV8825_ERROR, "%s%s: Division by zero!\n", __FUNCTION__  );
+        TRACE( OV8820_ERROR, "%s%s: Division by zero!\n", __FUNCTION__  );
         return ( RET_OUTOFRANGE );
     }
 
@@ -1633,26 +1634,26 @@ static RESULT OV8825_AecSetModeParameters
     //exposed way too dark from time to time)
     // (formula is usually MaxIntTime = (CoarseMax * LineLength + FineMax) / Clk
     //                     MinIntTime = (CoarseMin * LineLength + FineMin) / Clk )
-    pOV8825Ctx->AecMaxIntegrationTime = ( ((float)(pOV8825Ctx->FrameLengthLines - 4)) * ((float)pOV8825Ctx->LineLengthPck) ) / pOV8825Ctx->VtPixClkFreq;
-    pOV8825Ctx->AecMinIntegrationTime = 0.0f;
+    pOV8820Ctx->AecMaxIntegrationTime = ( ((float)(pOV8820Ctx->FrameLengthLines - 4)) * ((float)pOV8820Ctx->LineLengthPck) ) / pOV8820Ctx->VtPixClkFreq;
+    pOV8820Ctx->AecMinIntegrationTime = 0.0f;
 
-    TRACE( OV8825_DEBUG, "%s%s: AecMaxIntegrationTime = %f \n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"", pOV8825Ctx->AecMaxIntegrationTime  );
+    TRACE( OV8820_DEBUG, "%s%s: AecMaxIntegrationTime = %f \n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"", pOV8820Ctx->AecMaxIntegrationTime  );
 
-    pOV8825Ctx->AecMaxGain = OV8825_MAX_GAIN_AEC;
-    pOV8825Ctx->AecMinGain = 1.0f; //as of sensor datasheet 32/(32-6)
+    pOV8820Ctx->AecMaxGain = OV8820_MAX_GAIN_AEC;
+    pOV8820Ctx->AecMinGain = 1.0f; //as of sensor datasheet 32/(32-6)
 
     //_smallest_ increment the sensor/driver can handle (e.g. used for sliders in the application)
-    pOV8825Ctx->AecIntegrationTimeIncrement = ((float)pOV8825Ctx->LineLengthPck) / pOV8825Ctx->VtPixClkFreq;
-    pOV8825Ctx->AecGainIncrement = OV8825_MIN_GAIN_STEP;
+    pOV8820Ctx->AecIntegrationTimeIncrement = ((float)pOV8820Ctx->LineLengthPck) / pOV8820Ctx->VtPixClkFreq;
+    pOV8820Ctx->AecGainIncrement = OV8820_MIN_GAIN_STEP;
 
     //reflects the state of the sensor registers, must equal default settings
-    pOV8825Ctx->AecCurGain               = pOV8825Ctx->AecMinGain;
-    pOV8825Ctx->AecCurIntegrationTime    = 0.0f;
-    pOV8825Ctx->OldCoarseIntegrationTime = 0;
-    pOV8825Ctx->OldFineIntegrationTime   = 0;
-    //pOV8825Ctx->GroupHold                = true; //must be true (for unknown reason) to correctly set gain the first time
+    pOV8820Ctx->AecCurGain               = pOV8820Ctx->AecMinGain;
+    pOV8820Ctx->AecCurIntegrationTime    = 0.0f;
+    pOV8820Ctx->OldCoarseIntegrationTime = 0;
+    pOV8820Ctx->OldFineIntegrationTime   = 0;
+    //pOV8820Ctx->GroupHold                = true; //must be true (for unknown reason) to correctly set gain the first time
 
-    TRACE( OV8825_INFO, "%s%s (exit)\n", __FUNCTION__, pOV8825Ctx->isAfpsRun?"(AFPS)":"");
+    TRACE( OV8820_INFO, "%s%s (exit)\n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"");
 
     return ( result );
 }
@@ -1660,11 +1661,11 @@ static RESULT OV8825_AecSetModeParameters
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiSetupSensorIss
+ *          OV8820_IsiSetupSensorIss
  *
  * @brief   Setup of the image sensor considering the given configuration.
  *
- * @param   handle      OV8825 sensor instance handle
+ * @param   handle      OV8820 sensor instance handle
  * @param   pConfig     pointer to sensor configuration structure
  *
  * @return  Return the result of the function call.
@@ -1672,63 +1673,63 @@ static RESULT OV8825_AecSetModeParameters
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiSetupSensorIss
+static RESULT OV8820_IsiSetupSensorIss
 (
     IsiSensorHandle_t       handle,
     const IsiSensorConfig_t *pConfig
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t RegValue = 0;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
     if ( pConfig == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid configuration (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid configuration (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_NULL_POINTER );
     }
 
-    if ( pOV8825Ctx->Streaming != BOOL_FALSE )
+    if ( pOV8820Ctx->Streaming != BOOL_FALSE )
     {
         return RET_WRONG_STATE;
     }
 
-    MEMCPY( &pOV8825Ctx->Config, pConfig, sizeof( IsiSensorConfig_t ) );
+    MEMCPY( &pOV8820Ctx->Config, pConfig, sizeof( IsiSensorConfig_t ) );
 
     /* 1.) SW reset of image sensor (via I2C register interface)  be careful, bits 6..0 are reserved, reset bit is not sticky */
-    result = OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_SOFTWARE_RST, 0x01U );
+    result = OV8820_IsiRegWriteIss ( pOV8820Ctx, OV8820_SOFTWARE_RST, 0x01U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
     osSleep( 10 );
 
-    TRACE( OV8825_DEBUG, "%s: OV8825 System-Reset executed\n", __FUNCTION__);
+    TRACE( OV8820_DEBUG, "%s: OV8820 System-Reset executed\n", __FUNCTION__);
     // disable streaming during sensor setup
     // (this seems not to be necessary, however Omnivision is doing it in their
     // reference settings, simply overwrite upper bits since setup takes care
     // of 'em later on anyway)
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_MODE_SELECT, 0x00 );
+    result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_MODE_SELECT, 0x00 );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV8825_ERROR, "%s: Can't write OV8825 Image System Register (disable streaming failed)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Can't write OV8820 Image System Register (disable streaming failed)\n", __FUNCTION__ );
         return ( result );
     }
     
     /* 2.) write default values derived from datasheet and evaluation kit (static setup altered by dynamic setup further below) */
-    if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
-        result = IsiRegDefaultsApply( pOV8825Ctx, OV8825_g_aRegDescription_onelane);
+    if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
+        result = IsiRegDefaultsApply( pOV8820Ctx, OV8820_g_aRegDescription_onelane);
         }
-	else if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE)
-        result = IsiRegDefaultsApply( pOV8825Ctx, OV8825_g_aRegDescription_twolane);
+	else if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE)
+        result = IsiRegDefaultsApply( pOV8820Ctx, OV8820_g_aRegDescription_twolane);
     
     if ( result != RET_SUCCESS )
     {
@@ -1741,7 +1742,7 @@ static RESULT OV8825_IsiSetupSensorIss
 
     /* 3.) verify default values to make sure everything has been written correctly as expected */
 	#if 0
-	result = IsiRegDefaultsVerify( pOV8825Ctx, OV8825_g_aRegDescription );
+	result = IsiRegDefaultsVerify( pOV8820Ctx, OV8820_g_aRegDescription );
     if ( result != RET_SUCCESS )
     {
         return ( result );
@@ -1750,45 +1751,45 @@ static RESULT OV8825_IsiSetupSensorIss
 	
     #if 0
     // output of pclk for measurement (only debugging)
-    result = OV8825_IsiRegWriteIss( pOV8825Ctx, 0x3009U, 0x10U );
+    result = OV8820_IsiRegWriteIss( pOV8820Ctx, 0x3009U, 0x10U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
     #endif
 
     /* 4.) setup output format (RAW10|RAW12) */
-    result = OV8825_SetupOutputFormat( pOV8825Ctx, pConfig );
+    result = OV8820_SetupOutputFormat( pOV8820Ctx, pConfig );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV8825_ERROR, "%s: SetupOutputFormat failed.\n", __FUNCTION__);
+        TRACE( OV8820_ERROR, "%s: SetupOutputFormat failed.\n", __FUNCTION__);
         return ( result );
     }
 
     /* 5.) setup output window */
-    result = OV8825_SetupOutputWindow( pOV8825Ctx, pConfig );
+    result = OV8820_SetupOutputWindow( pOV8820Ctx, pConfig );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV8825_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
+        TRACE( OV8820_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
         return ( result );
     }
 
-    result = OV8825_SetupImageControl( pOV8825Ctx, pConfig );
+    result = OV8820_SetupImageControl( pOV8820Ctx, pConfig );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV8825_ERROR, "%s: SetupImageControl failed.\n", __FUNCTION__);
+        TRACE( OV8820_ERROR, "%s: SetupImageControl failed.\n", __FUNCTION__);
         return ( result );
     }
 
-    result = OV8825_AecSetModeParameters( pOV8825Ctx, pConfig );
+    result = OV8820_AecSetModeParameters( pOV8820Ctx, pConfig );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV8825_ERROR, "%s: AecSetModeParameters failed.\n", __FUNCTION__);
+        TRACE( OV8820_ERROR, "%s: AecSetModeParameters failed.\n", __FUNCTION__);
         return ( result );
     }
     if (result == RET_SUCCESS)
     {
-        pOV8825Ctx->Configured = BOOL_TRUE;
+        pOV8820Ctx->Configured = BOOL_TRUE;
     }
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -1797,7 +1798,7 @@ static RESULT OV8825_IsiSetupSensorIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiChangeSensorResolutionIss
+ *          OV8820_IsiChangeSensorResolutionIss
  *
  * @brief   Change image sensor resolution while keeping all other static settings.
  *          Dynamic settings like current gain & integration time are kept as
@@ -1817,20 +1818,20 @@ static RESULT OV8825_IsiSetupSensorIss
  * @retval  RET_OUTOFRANGE
  *
  *****************************************************************************/
-static RESULT OV8825_IsiChangeSensorResolutionIss
+static RESULT OV8820_IsiChangeSensorResolutionIss
 (
     IsiSensorHandle_t   handle,
     uint32_t            Resolution,
     uint8_t             *pNumberOfFramesToSkip
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -1840,13 +1841,13 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
         return ( RET_NULL_POINTER );
     }
 
-    if ( (pOV8825Ctx->Configured != BOOL_TRUE) || (pOV8825Ctx->Streaming != BOOL_FALSE) )
+    if ( (pOV8820Ctx->Configured != BOOL_TRUE) || (pOV8820Ctx->Streaming != BOOL_FALSE) )
     {
         return RET_WRONG_STATE;
     }
 
     IsiSensorCaps_t Caps;
-    result = OV8825_IsiGetCapsIss( handle, &Caps);
+    result = OV8820_IsiGetCapsIss( handle, &Caps);
     if (RET_SUCCESS != result)
     {
         return result;
@@ -1857,7 +1858,7 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
         return RET_OUTOFRANGE;
     }
 
-    if ( Resolution == pOV8825Ctx->Config.Resolution )
+    if ( Resolution == pOV8820Ctx->Config.Resolution )
     {
         // well, no need to worry
         *pNumberOfFramesToSkip = 0;
@@ -1867,28 +1868,28 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
         // change resolution
         char *szResName = NULL;
         result = IsiGetResolutionName( Resolution, &szResName );
-        TRACE( OV8825_DEBUG, "%s: NewRes=0x%08x (%s)\n", __FUNCTION__, Resolution, szResName);
+        TRACE( OV8820_DEBUG, "%s: NewRes=0x%08x (%s)\n", __FUNCTION__, Resolution, szResName);
 
         // update resolution in copy of config in context
-        pOV8825Ctx->Config.Resolution = Resolution;
+        pOV8820Ctx->Config.Resolution = Resolution;
 
         // tell sensor about that
-        result = OV8825_SetupOutputWindow( pOV8825Ctx, &pOV8825Ctx->Config );
+        result = OV8820_SetupOutputWindow( pOV8820Ctx, &pOV8820Ctx->Config );
         if ( result != RET_SUCCESS )
         {
-            TRACE( OV8825_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
+            TRACE( OV8820_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
             return ( result );
         }
 
         // remember old exposure values
-        float OldGain = pOV8825Ctx->AecCurGain;
-        float OldIntegrationTime = pOV8825Ctx->AecCurIntegrationTime;
+        float OldGain = pOV8820Ctx->AecCurGain;
+        float OldIntegrationTime = pOV8820Ctx->AecCurIntegrationTime;
 
         // update limits & stuff (reset current & old settings)
-        result = OV8825_AecSetModeParameters( pOV8825Ctx, &pOV8825Ctx->Config );
+        result = OV8820_AecSetModeParameters( pOV8820Ctx, &pOV8820Ctx->Config );
         if ( result != RET_SUCCESS )
         {
-            TRACE( OV8825_ERROR, "%s: AecSetModeParameters failed.\n", __FUNCTION__);
+            TRACE( OV8820_ERROR, "%s: AecSetModeParameters failed.\n", __FUNCTION__);
             return ( result );
         }
 
@@ -1896,10 +1897,10 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
         uint8_t NumberOfFramesToSkip;
         float   DummySetGain;
         float   DummySetIntegrationTime;
-        result = OV8825_IsiExposureControlIss( handle, OldGain, OldIntegrationTime, &NumberOfFramesToSkip, &DummySetGain, &DummySetIntegrationTime );
+        result = OV8820_IsiExposureControlIss( handle, OldGain, OldIntegrationTime, &NumberOfFramesToSkip, &DummySetGain, &DummySetIntegrationTime );
         if ( result != RET_SUCCESS )
         {
-            TRACE( OV8825_ERROR, "%s: OV8825_IsiExposureControlIss failed.\n", __FUNCTION__);
+            TRACE( OV8820_ERROR, "%s: OV8820_IsiExposureControlIss failed.\n", __FUNCTION__);
             return ( result );
         }
 
@@ -1907,7 +1908,7 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
         *pNumberOfFramesToSkip = NumberOfFramesToSkip + 1;
     }
 
-    TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -1916,7 +1917,7 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiSensorSetStreamingIss
+ *          OV8820_IsiSensorSetStreamingIss
  *
  * @brief   Enables/disables streaming of sensor data, if possible.
  *
@@ -1929,7 +1930,7 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
  * @retval  RET_WRONG_STATE
  *
  *****************************************************************************/
-static RESULT OV8825_IsiSensorSetStreamingIss
+static RESULT OV8820_IsiSensorSetStreamingIss
 (
     IsiSensorHandle_t   handle,
     bool_t              on
@@ -1937,18 +1938,18 @@ static RESULT OV8825_IsiSensorSetStreamingIss
 {
     uint32_t RegValue = 0;
 
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    if ( (pOV8825Ctx->Configured != BOOL_TRUE) || (pOV8825Ctx->Streaming == on) )
+    if ( (pOV8820Ctx->Configured != BOOL_TRUE) || (pOV8820Ctx->Streaming == on) )
     {
         return RET_WRONG_STATE;
     }
@@ -1956,34 +1957,34 @@ static RESULT OV8825_IsiSensorSetStreamingIss
     if (on == BOOL_TRUE)
     {
         /* enable streaming */
-        OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_BLC_CTRL03, 0x82 );
-        OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_BLC_CTRL03, 0x02 );
-        OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_SC_CLKRST0, 0x70 );
+        OV8820_IsiRegWriteIss ( pOV8820Ctx, OV8820_BLC_CTRL03, 0x82 );
+        OV8820_IsiRegWriteIss ( pOV8820Ctx, OV8820_BLC_CTRL03, 0x02 );
+        OV8820_IsiRegWriteIss ( pOV8820Ctx, OV8820_SC_CLKRST0, 0x70 );
         /* ddl@rock-chips.com: v0.1.2 */
-        result = OV8825_IsiRegReadIss ( pOV8825Ctx, OV8825_MODE_SELECT, &RegValue);
+        result = OV8820_IsiRegReadIss ( pOV8820Ctx, OV8820_MODE_SELECT, &RegValue);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_MODE_SELECT, (RegValue | 0x01U) );
+        result = OV8820_IsiRegWriteIss ( pOV8820Ctx, OV8820_MODE_SELECT, (RegValue | 0x01U) );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result ); 
     }
     else
     {        
         /* disable streaming */
         #if 0     /* ddl@rock-chips.com: v0.1.2 */
-        result = OV8825_IsiRegReadIss ( pOV8825Ctx, OV8825_MODE_SELECT, &RegValue);
+        result = OV8820_IsiRegReadIss ( pOV8820Ctx, OV8820_MODE_SELECT, &RegValue);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_MODE_SELECT, (RegValue & ~0x01U) );
+        result = OV8820_IsiRegWriteIss ( pOV8820Ctx, OV8820_MODE_SELECT, (RegValue & ~0x01U) );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
         #else
-        OV8825_IsiRegWriteIss ( pOV8825Ctx, OV8825_SC_CLKRST0, 0x71 );
+        OV8820_IsiRegWriteIss ( pOV8820Ctx, OV8820_SC_CLKRST0, 0x71 );
         #endif
     }
 
     if (result == RET_SUCCESS)
     {
-        pOV8825Ctx->Streaming = on;
+        pOV8820Ctx->Streaming = on;
     }
 
-    TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -1992,11 +1993,11 @@ static RESULT OV8825_IsiSensorSetStreamingIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiSensorSetPowerIss
+ *          OV8820_IsiSensorSetPowerIss
  *
  * @brief   Performs the power-up/power-down sequence of the camera, if possible.
  *
- * @param   handle      OV8825 sensor instance handle
+ * @param   handle      OV8820 sensor instance handle
  * @param   on          new power state (BOOL_TRUE=on, BOOL_FALSE=off)
  *
  * @return  Return the result of the function call.
@@ -2004,54 +2005,54 @@ static RESULT OV8825_IsiSensorSetStreamingIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiSensorSetPowerIss
+static RESULT OV8820_IsiSensorSetPowerIss
 (
     IsiSensorHandle_t   handle,
     bool_t              on
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    pOV8825Ctx->Configured = BOOL_FALSE;
-    pOV8825Ctx->Streaming  = BOOL_FALSE;
+    pOV8820Ctx->Configured = BOOL_FALSE;
+    pOV8820Ctx->Streaming  = BOOL_FALSE;
 
-    result = HalSetPower( pOV8825Ctx->IsiCtx.HalHandle, pOV8825Ctx->IsiCtx.HalDevID, false );
+    result = HalSetPower( pOV8820Ctx->IsiCtx.HalHandle, pOV8820Ctx->IsiCtx.HalDevID, false );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-    result = HalSetReset( pOV8825Ctx->IsiCtx.HalHandle, pOV8825Ctx->IsiCtx.HalDevID, true );
+    result = HalSetReset( pOV8820Ctx->IsiCtx.HalHandle, pOV8820Ctx->IsiCtx.HalDevID, true );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
     if (on == BOOL_TRUE)
     {
-        result = HalSetPower( pOV8825Ctx->IsiCtx.HalHandle, pOV8825Ctx->IsiCtx.HalDevID, true );
+        result = HalSetPower( pOV8820Ctx->IsiCtx.HalHandle, pOV8820Ctx->IsiCtx.HalDevID, true );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
         osSleep( 10 );
 
-        result = HalSetReset( pOV8825Ctx->IsiCtx.HalHandle, pOV8825Ctx->IsiCtx.HalDevID, false );
+        result = HalSetReset( pOV8820Ctx->IsiCtx.HalHandle, pOV8820Ctx->IsiCtx.HalDevID, false );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
         osSleep( 10 );
 
-        result = HalSetReset( pOV8825Ctx->IsiCtx.HalHandle, pOV8825Ctx->IsiCtx.HalDevID, true );
+        result = HalSetReset( pOV8820Ctx->IsiCtx.HalHandle, pOV8820Ctx->IsiCtx.HalDevID, true );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
         osSleep( 10 );
-        result = HalSetReset( pOV8825Ctx->IsiCtx.HalHandle, pOV8825Ctx->IsiCtx.HalDevID, false );
+        result = HalSetReset( pOV8820Ctx->IsiCtx.HalHandle, pOV8820Ctx->IsiCtx.HalDevID, false );
 
         osSleep( 50 );
     }
 
-    TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2060,18 +2061,18 @@ static RESULT OV8825_IsiSensorSetPowerIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiCheckSensorConnectionIss
+ *          OV8820_IsiCheckSensorConnectionIss
  *
  * @brief   Checks the I2C-Connection to sensor by reading sensor revision id.
  *
- * @param   handle      OV8825 sensor instance handle
+ * @param   handle      OV8820 sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiCheckSensorConnectionIss
+static RESULT OV8820_IsiCheckSensorConnectionIss
 (
     IsiSensorHandle_t   handle
 )
@@ -2081,26 +2082,27 @@ static RESULT OV8825_IsiCheckSensorConnectionIss
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
     if ( handle == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    RevId = OV8825_CHIP_ID_HIGH_BYTE_DEFAULT;
-    RevId = (RevId << 16U) | (OV8825_CHIP_ID_MIDDLE_BYTE_DEFAULT<<8U);
-    RevId = RevId | OV8825_CHIP_ID_LOW_BYTE_DEFAULT;
+    RevId = OV8820_CHIP_ID_HIGH_BYTE_DEFAULT;
+    RevId = (RevId << 16U) | (OV8820_CHIP_ID_MIDDLE_BYTE_DEFAULT<<8U);
+    RevId = RevId | OV8820_CHIP_ID_LOW_BYTE_DEFAULT;
 
-    result = OV8825_IsiGetSensorRevisionIss( handle, &value );
+    result = OV8820_IsiGetSensorRevisionIss( handle, &value );
+
     if ( (result != RET_SUCCESS) || (RevId != value) )
     {
-        TRACE( OV8825_ERROR, "%s RevId = 0x%08x, value = 0x%08x \n", __FUNCTION__, RevId, value );
+        TRACE( OV8820_ERROR, "%s RevId = 0x%08x, value = 0x%08x \n", __FUNCTION__, RevId, value );
         return ( RET_FAILURE );
     }
 
 
-    TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2109,7 +2111,7 @@ static RESULT OV8825_IsiCheckSensorConnectionIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetSensorRevisionIss
+ *          OV8820_IsiGetSensorRevisionIss
  *
  * @brief   reads the sensor revision register and returns this value
  *
@@ -2122,7 +2124,7 @@ static RESULT OV8825_IsiCheckSensorConnectionIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetSensorRevisionIss
+static RESULT OV8820_IsiGetSensorRevisionIss
 (
     IsiSensorHandle_t   handle,
     uint32_t            *p_value
@@ -2132,7 +2134,7 @@ static RESULT OV8825_IsiGetSensorRevisionIss
 
     uint32_t data;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
     if ( handle == NULL )
     {
@@ -2145,14 +2147,14 @@ static RESULT OV8825_IsiGetSensorRevisionIss
     }
 
     *p_value = 0U;
-    result = OV8825_IsiRegReadIss ( handle, OV8825_CHIP_ID_HIGH_BYTE, &data );
+    result = OV8820_IsiRegReadIss ( handle, OV8820_CHIP_ID_HIGH_BYTE, &data );
     *p_value = ( (data & 0xFF) << 16U );
-    result = OV8825_IsiRegReadIss ( handle, OV8825_CHIP_ID_MIDDLE_BYTE, &data );
+    result = OV8820_IsiRegReadIss ( handle, OV8820_CHIP_ID_MIDDLE_BYTE, &data );
     *p_value |= ( (data & 0xFF) << 8U );
-    result = OV8825_IsiRegReadIss ( handle, OV8825_CHIP_ID_LOW_BYTE, &data );
+    result = OV8820_IsiRegReadIss ( handle, OV8820_CHIP_ID_LOW_BYTE, &data );
     *p_value |= ( (data & 0xFF));
 
-    TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2161,7 +2163,7 @@ static RESULT OV8825_IsiGetSensorRevisionIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiRegReadIss
+ *          OV8820_IsiRegReadIss
  *
  * @brief   grants user read access to the camera register
  *
@@ -2175,7 +2177,7 @@ static RESULT OV8825_IsiGetSensorRevisionIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiRegReadIss
+static RESULT OV8820_IsiRegReadIss
 (
     IsiSensorHandle_t   handle,
     const uint32_t      address,
@@ -2184,7 +2186,7 @@ static RESULT OV8825_IsiRegReadIss
 {
     RESULT result = RET_SUCCESS;
 
-  //  TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+  //  TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
     if ( handle == NULL )
     {
@@ -2197,18 +2199,18 @@ static RESULT OV8825_IsiRegReadIss
     }
     else
     {
-        uint8_t NrOfBytes = IsiGetNrDatBytesIss( address, OV8825_g_aRegDescription_onelane);
+        uint8_t NrOfBytes = IsiGetNrDatBytesIss( address, OV8820_g_aRegDescription_onelane);
         if ( !NrOfBytes )
         {
             NrOfBytes = 1;
         }
- //       TRACE( OV8825_REG_DEBUG, "%s (IsiGetNrDatBytesIss %d 0x%08x)\n", __FUNCTION__, NrOfBytes, address);
+ //       TRACE( OV8820_REG_DEBUG, "%s (IsiGetNrDatBytesIss %d 0x%08x)\n", __FUNCTION__, NrOfBytes, address);
 
         *p_value = 0;
         result = IsiI2cReadSensorRegister( handle, address, (uint8_t *)p_value, NrOfBytes, BOOL_TRUE );
     }
 
-  //  TRACE( OV8825_INFO, "%s (exit: 0x%08x 0x%08x)\n", __FUNCTION__, address, *p_value);
+  //  TRACE( OV8820_INFO, "%s (exit: 0x%08x 0x%08x)\n", __FUNCTION__, address, *p_value);
 
     return ( result );
 }
@@ -2217,7 +2219,7 @@ static RESULT OV8825_IsiRegReadIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiRegWriteIss
+ *          OV8820_IsiRegWriteIss
  *
  * @brief   grants user write access to the camera register
  *
@@ -2230,7 +2232,7 @@ static RESULT OV8825_IsiRegReadIss
  * @retval  RET_WRONG_HANDLE
  *
  *****************************************************************************/
-static RESULT OV8825_IsiRegWriteIss
+static RESULT OV8820_IsiRegWriteIss
 (
     IsiSensorHandle_t   handle,
     const uint32_t      address,
@@ -2241,23 +2243,23 @@ static RESULT OV8825_IsiRegWriteIss
 
     uint8_t NrOfBytes;
 
-  //  TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+  //  TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
     if ( handle == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    NrOfBytes = IsiGetNrDatBytesIss( address, OV8825_g_aRegDescription_onelane);
+    NrOfBytes = IsiGetNrDatBytesIss( address, OV8820_g_aRegDescription_onelane);
     if ( !NrOfBytes )
     {
         NrOfBytes = 1;
     }
-//    TRACE( OV8825_REG_DEBUG, "%s (IsiGetNrDatBytesIss %d 0x%08x 0x%08x)\n", __FUNCTION__, NrOfBytes, address, value);
+//    TRACE( OV8820_REG_DEBUG, "%s (IsiGetNrDatBytesIss %d 0x%08x 0x%08x)\n", __FUNCTION__, NrOfBytes, address, value);
 
     result = IsiI2cWriteSensorRegister( handle, address, (uint8_t *)(&value), NrOfBytes, BOOL_TRUE );
 
-//    TRACE( OV8825_INFO, "%s (exit: 0x%08x 0x%08x)\n", __FUNCTION__, address, value);
+//    TRACE( OV8820_INFO, "%s (exit: 0x%08x 0x%08x)\n", __FUNCTION__, address, value);
 
     return ( result );
 }
@@ -2266,12 +2268,12 @@ static RESULT OV8825_IsiRegWriteIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetGainLimitsIss
+ *          OV8820_IsiGetGainLimitsIss
  *
  * @brief   Returns the exposure minimal and maximal values of an
- *          OV8825 instance
+ *          OV8820 instance
  *
- * @param   handle       OV8825 sensor instance handle
+ * @param   handle       OV8820 sensor instance handle
  * @param   pMinExposure Pointer to a variable receiving minimal exposure value
  * @param   pMaxExposure Pointer to a variable receiving maximal exposure value
  *
@@ -2280,37 +2282,37 @@ static RESULT OV8825_IsiRegWriteIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetGainLimitsIss
+static RESULT OV8820_IsiGetGainLimitsIss
 (
     IsiSensorHandle_t   handle,
     float               *pMinGain,
     float               *pMaxGain
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t RegValue = 0;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
     if ( (pMinGain == NULL) || (pMaxGain == NULL) )
     {
-        TRACE( OV8825_ERROR, "%s: NULL pointer received!!\n" );
+        TRACE( OV8820_ERROR, "%s: NULL pointer received!!\n" );
         return ( RET_NULL_POINTER );
     }
 
-    *pMinGain = pOV8825Ctx->AecMinGain;
-    *pMaxGain = pOV8825Ctx->AecMaxGain;
+    *pMinGain = pOV8820Ctx->AecMinGain;
+    *pMaxGain = pOV8820Ctx->AecMaxGain;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2319,12 +2321,12 @@ static RESULT OV8825_IsiGetGainLimitsIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetIntegrationTimeLimitsIss
+ *          OV8820_IsiGetIntegrationTimeLimitsIss
  *
  * @brief   Returns the minimal and maximal integration time values of an
- *          OV8825 instance
+ *          OV8820 instance
  *
- * @param   handle       OV8825 sensor instance handle
+ * @param   handle       OV8820 sensor instance handle
  * @param   pMinExposure Pointer to a variable receiving minimal exposure value
  * @param   pMaxExposure Pointer to a variable receiving maximal exposure value
  *
@@ -2333,37 +2335,37 @@ static RESULT OV8825_IsiGetGainLimitsIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetIntegrationTimeLimitsIss
+static RESULT OV8820_IsiGetIntegrationTimeLimitsIss
 (
     IsiSensorHandle_t   handle,
     float               *pMinIntegrationTime,
     float               *pMaxIntegrationTime
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t RegValue = 0;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
     if ( (pMinIntegrationTime == NULL) || (pMaxIntegrationTime == NULL) )
     {
-        TRACE( OV8825_ERROR, "%s: NULL pointer received!!\n" );
+        TRACE( OV8820_ERROR, "%s: NULL pointer received!!\n" );
         return ( RET_NULL_POINTER );
     }
 
-    *pMinIntegrationTime = pOV8825Ctx->AecMinIntegrationTime;
-    *pMaxIntegrationTime = pOV8825Ctx->AecMaxIntegrationTime;
+    *pMinIntegrationTime = pOV8820Ctx->AecMinIntegrationTime;
+    *pMaxIntegrationTime = pOV8820Ctx->AecMaxIntegrationTime;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2371,11 +2373,11 @@ static RESULT OV8825_IsiGetIntegrationTimeLimitsIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetGainIss
+ *          OV8820_IsiGetGainIss
  *
  * @brief   Reads gain values from the image sensor module.
  *
- * @param   handle                  OV8825 sensor instance handle
+ * @param   handle                  OV8820 sensor instance handle
  * @param   pSetGain                set gain
  *
  * @return  Return the result of the function call.
@@ -2383,21 +2385,21 @@ static RESULT OV8825_IsiGetIntegrationTimeLimitsIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV8825_IsiGetGainIss
+RESULT OV8820_IsiGetGainIss
 (
     IsiSensorHandle_t   handle,
     float               *pSetGain
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2406,9 +2408,9 @@ RESULT OV8825_IsiGetGainIss
         return ( RET_NULL_POINTER );
     }
 
-    *pSetGain = pOV8825Ctx->AecCurGain;
+    *pSetGain = pOV8820Ctx->AecCurGain;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2417,11 +2419,11 @@ RESULT OV8825_IsiGetGainIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetGainIncrementIss
+ *          OV8820_IsiGetGainIncrementIss
  *
  * @brief   Get smallest possible gain increment.
  *
- * @param   handle                  OV8825 sensor instance handle
+ * @param   handle                  OV8820 sensor instance handle
  * @param   pIncr                   increment
  *
  * @return  Return the result of the function call.
@@ -2429,21 +2431,21 @@ RESULT OV8825_IsiGetGainIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV8825_IsiGetGainIncrementIss
+RESULT OV8820_IsiGetGainIncrementIss
 (
     IsiSensorHandle_t   handle,
     float               *pIncr
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2453,9 +2455,9 @@ RESULT OV8825_IsiGetGainIncrementIss
     }
 
     //_smallest_ increment the sensor/driver can handle (e.g. used for sliders in the application)
-    *pIncr = pOV8825Ctx->AecGainIncrement;
+    *pIncr = pOV8820Ctx->AecGainIncrement;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2464,12 +2466,12 @@ RESULT OV8825_IsiGetGainIncrementIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiSetGainIss
+ *          OV8820_IsiSetGainIss
  *
  * @brief   Writes gain values to the image sensor module.
  *          Updates current gain and exposure in sensor struct/state.
  *
- * @param   handle                  OV8825 sensor instance handle
+ * @param   handle                  OV8820 sensor instance handle
  * @param   NewGain                 gain to be set
  * @param   pSetGain                set gain
  *
@@ -2481,70 +2483,70 @@ RESULT OV8825_IsiGetGainIncrementIss
  * @retval  RET_FAILURE
  *
  *****************************************************************************/
-RESULT OV8825_IsiSetGainIss
+RESULT OV8820_IsiSetGainIss
 (
     IsiSensorHandle_t   handle,
     float               NewGain,
     float               *pSetGain
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint16_t usGain = 0;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
     if ( pSetGain == NULL)
     {
-        TRACE( OV8825_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_NULL_POINTER );
     }
 
   
-    if( NewGain < pOV8825Ctx->AecMinGain ) NewGain = pOV8825Ctx->AecMinGain;
-    if( NewGain > pOV8825Ctx->AecMaxGain ) NewGain = pOV8825Ctx->AecMaxGain;
+    if( NewGain < pOV8820Ctx->AecMinGain ) NewGain = pOV8820Ctx->AecMinGain;
+    if( NewGain > pOV8820Ctx->AecMaxGain ) NewGain = pOV8820Ctx->AecMaxGain;
 
     usGain = (uint16_t)(NewGain * 16.0f+0.5);
 
     // write new gain into sensor registers, do not write if nothing has changed
-    if( (usGain != pOV8825Ctx->OldGain) )
+    if( (usGain != pOV8820Ctx->OldGain) )
     {
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_AGC_ADJ_H, (usGain>>8)&0x03);
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_AGC_ADJ_H, (usGain>>8)&0x03);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_AGC_ADJ_L, (usGain&0xff));
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_AGC_ADJ_L, (usGain&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-        pOV8825Ctx->OldGain = usGain;
+        pOV8820Ctx->OldGain = usGain;
     }
 
     //calculate gain actually set
-    pOV8825Ctx->AecCurGain = ( (float)usGain ) / 16.0f;
+    pOV8820Ctx->AecCurGain = ( (float)usGain ) / 16.0f;
 
     //return current state
-    *pSetGain = pOV8825Ctx->AecCurGain;
+    *pSetGain = pOV8820Ctx->AecCurGain;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
 
 #if 0
-RESULT OV8825_IsiSetGainIss
+RESULT OV8820_IsiSetGainIss
 (
     IsiSensorHandle_t   handle,
     float               NewGain,
     float               *pSetGain
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
@@ -2558,17 +2560,17 @@ RESULT OV8825_IsiSetGainIss
     float fBase  = 0.0f;
     float fDelta = 0.0f;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
     if ( pSetGain == NULL)
     {
-        TRACE( OV8825_INFO, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_INFO, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_NULL_POINTER );
     }
 
@@ -2580,8 +2582,8 @@ RESULT OV8825_IsiSetGainIss
     //maximum and minimum gain is limited by the sensor, if this limit is not
     //considered, the exposure control loop needs lots of time to return to a new state
     //so limit to allowed range
-    if( NewGain < pOV8825Ctx->AecMinGain ) NewGain = pOV8825Ctx->AecMinGain;
-    if( NewGain > pOV8825Ctx->AecMaxGain ) NewGain = pOV8825Ctx->AecMaxGain;
+    if( NewGain < pOV8820Ctx->AecMinGain ) NewGain = pOV8820Ctx->AecMinGain;
+    if( NewGain > pOV8820Ctx->AecMaxGain ) NewGain = pOV8820Ctx->AecMaxGain;
 
     usGain = (int)(NewGain*16.0f);
     gain_reg = 0;
@@ -2599,25 +2601,25 @@ RESULT OV8825_IsiSetGainIss
     //gain_reg = gain_reg | (usGain - 16);
 
     // write new gain into sensor registers, do not write if nothing has changed
-    if( (usMultiplier != pOV8825Ctx->OldMultiplier) || (ucBase != pOV8825Ctx->OldBase  ) )
+    if( (usMultiplier != pOV8820Ctx->OldMultiplier) || (ucBase != pOV8820Ctx->OldBase  ) )
     {
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_AGC_ADJ_H, (usMultiplier & 0x0300U) >> 8U  );
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_AGC_ADJ_H, (usMultiplier & 0x0300U) >> 8U  );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_AGC_ADJ_L, (usMultiplier & 0x00F0U) | ucBase );
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_AGC_ADJ_L, (usMultiplier & 0x00F0U) | ucBase );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-        pOV8825Ctx->OldMultiplier = usMultiplier;
-        pOV8825Ctx->OldBase       = ucBase;
+        pOV8820Ctx->OldMultiplier = usMultiplier;
+        pOV8820Ctx->OldBase       = ucBase;
     }
 
     //calculate gain actually set
-    pOV8825Ctx->AecCurGain = ((float)ucMultiplier + 1)*(((float)ucBase)/16.0f + 1.0f);
+    pOV8820Ctx->AecCurGain = ((float)ucMultiplier + 1)*(((float)ucBase)/16.0f + 1.0f);
 
     //return current state
-    *pSetGain = pOV8825Ctx->AecCurGain;
-    TRACE( OV8825_INFO, "%s: g=%f\n", __FUNCTION__, *pSetGain );
+    *pSetGain = pOV8820Ctx->AecCurGain;
+    TRACE( OV8820_INFO, "%s: g=%f\n", __FUNCTION__, *pSetGain );
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2625,11 +2627,11 @@ RESULT OV8825_IsiSetGainIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetIntegrationTimeIss
+ *          OV8820_IsiGetIntegrationTimeIss
  *
  * @brief   Reads integration time values from the image sensor module.
  *
- * @param   handle                  OV8825 sensor instance handle
+ * @param   handle                  OV8820 sensor instance handle
  * @param   pSetIntegrationTime     set integration time
  *
  * @return  Return the result of the function call.
@@ -2637,21 +2639,21 @@ RESULT OV8825_IsiSetGainIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV8825_IsiGetIntegrationTimeIss
+RESULT OV8820_IsiGetIntegrationTimeIss
 (
     IsiSensorHandle_t   handle,
     float               *pSetIntegrationTime
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2660,9 +2662,9 @@ RESULT OV8825_IsiGetIntegrationTimeIss
         return ( RET_NULL_POINTER );
     }
 
-    *pSetIntegrationTime = pOV8825Ctx->AecCurIntegrationTime;
+    *pSetIntegrationTime = pOV8820Ctx->AecCurIntegrationTime;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2671,11 +2673,11 @@ RESULT OV8825_IsiGetIntegrationTimeIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetIntegrationTimeIncrementIss
+ *          OV8820_IsiGetIntegrationTimeIncrementIss
  *
  * @brief   Get smallest possible integration time increment.
  *
- * @param   handle                  OV8825 sensor instance handle
+ * @param   handle                  OV8820 sensor instance handle
  * @param   pIncr                   increment
  *
  * @return  Return the result of the function call.
@@ -2683,21 +2685,21 @@ RESULT OV8825_IsiGetIntegrationTimeIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV8825_IsiGetIntegrationTimeIncrementIss
+RESULT OV8820_IsiGetIntegrationTimeIncrementIss
 (
     IsiSensorHandle_t   handle,
     float               *pIncr
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2707,9 +2709,9 @@ RESULT OV8825_IsiGetIntegrationTimeIncrementIss
     }
 
     //_smallest_ increment the sensor/driver can handle (e.g. used for sliders in the application)
-    *pIncr = pOV8825Ctx->AecIntegrationTimeIncrement;
+    *pIncr = pOV8820Ctx->AecIntegrationTimeIncrement;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2718,13 +2720,13 @@ RESULT OV8825_IsiGetIntegrationTimeIncrementIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiSetIntegrationTimeIss
+ *          OV8820_IsiSetIntegrationTimeIss
  *
  * @brief   Writes gain and integration time values to the image sensor module.
  *          Updates current integration time and exposure in sensor
  *          struct/state.
  *
- * @param   handle                  OV8825 sensor instance handle
+ * @param   handle                  OV8820 sensor instance handle
  * @param   NewIntegrationTime      integration time to be set
  * @param   pSetIntegrationTime     set integration time
  * @param   pNumberOfFramesToSkip   number of frames to skip until AE is
@@ -2739,7 +2741,7 @@ RESULT OV8825_IsiGetIntegrationTimeIncrementIss
  * @retval  RET_DIVISION_BY_ZERO
  *
  *****************************************************************************/
-RESULT OV8825_IsiSetIntegrationTimeIss
+RESULT OV8820_IsiSetIntegrationTimeIss
 (
     IsiSensorHandle_t   handle,
     float               NewIntegrationTime,
@@ -2747,34 +2749,34 @@ RESULT OV8825_IsiSetIntegrationTimeIss
     uint8_t             *pNumberOfFramesToSkip
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t CoarseIntegrationTime = 0;
-    //uint32_t FineIntegrationTime   = 0; //not supported by OV8825
+    //uint32_t FineIntegrationTime   = 0; //not supported by OV8820
 
     float ShutterWidthPck = 0.0f; //shutter width in pixel clock periods
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
     if ( (pSetIntegrationTime == NULL) || (pNumberOfFramesToSkip == NULL) )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_NULL_POINTER );
     }
 
     //maximum and minimum integration time is limited by the sensor, if this limit is not
     //considered, the exposure control loop needs lots of time to return to a new state
     //so limit to allowed range
-    if ( NewIntegrationTime > pOV8825Ctx->AecMaxIntegrationTime ) NewIntegrationTime = pOV8825Ctx->AecMaxIntegrationTime;
-    if ( NewIntegrationTime < pOV8825Ctx->AecMinIntegrationTime ) NewIntegrationTime = pOV8825Ctx->AecMinIntegrationTime;
+    if ( NewIntegrationTime > pOV8820Ctx->AecMaxIntegrationTime ) NewIntegrationTime = pOV8820Ctx->AecMaxIntegrationTime;
+    if ( NewIntegrationTime < pOV8820Ctx->AecMinIntegrationTime ) NewIntegrationTime = pOV8820Ctx->AecMinIntegrationTime;
 
     //the actual integration time is given by
     //integration_time = ( coarse_integration_time * line_length_pck + fine_integration_time ) / vt_pix_clk_freq
@@ -2782,38 +2784,38 @@ RESULT OV8825_IsiSetIntegrationTimeIss
     //coarse_integration_time = (int)( integration_time * vt_pix_clk_freq  / line_length_pck )
     //fine_integration_time   = integration_time * vt_pix_clk_freq - coarse_integration_time * line_length_pck
     //
-    //fine integration is not supported by OV8825
+    //fine integration is not supported by OV8820
     //=>
     //coarse_integration_time = (int)( integration_time * vt_pix_clk_freq  / line_length_pck + 0.5 )
 
-    ShutterWidthPck = NewIntegrationTime * ( (float)pOV8825Ctx->VtPixClkFreq );
+    ShutterWidthPck = NewIntegrationTime * ( (float)pOV8820Ctx->VtPixClkFreq );
 
     // avoid division by zero
-    if ( pOV8825Ctx->LineLengthPck == 0 )
+    if ( pOV8820Ctx->LineLengthPck == 0 )
     {
-        TRACE( OV8825_ERROR, "%s: Division by zero!\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Division by zero!\n", __FUNCTION__ );
         return ( RET_DIVISION_BY_ZERO );
     }
 
     //calculate the integer part of the integration time in units of line length
     //calculate the fractional part of the integration time in units of pixel clocks
-    //CoarseIntegrationTime = (uint32_t)( ShutterWidthPck / ((float)pOV8825Ctx->LineLengthPck) );
-    //FineIntegrationTime   = ( (uint32_t)ShutterWidthPck ) - ( CoarseIntegrationTime * pOV8825Ctx->LineLengthPck );
-    CoarseIntegrationTime = (uint32_t)( ShutterWidthPck / ((float)pOV8825Ctx->LineLengthPck) + 0.5f );
+    //CoarseIntegrationTime = (uint32_t)( ShutterWidthPck / ((float)pOV8820Ctx->LineLengthPck) );
+    //FineIntegrationTime   = ( (uint32_t)ShutterWidthPck ) - ( CoarseIntegrationTime * pOV8820Ctx->LineLengthPck );
+    CoarseIntegrationTime = (uint32_t)( ShutterWidthPck / ((float)pOV8820Ctx->LineLengthPck) + 0.5f );
 
     // write new integration time into sensor registers
     // do not write if nothing has changed
-    if( CoarseIntegrationTime != pOV8825Ctx->OldCoarseIntegrationTime )
+    if( CoarseIntegrationTime != pOV8820Ctx->OldCoarseIntegrationTime )
     {
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_H, (CoarseIntegrationTime & 0x0000F000U) >> 12U );
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_EXPO_H, (CoarseIntegrationTime & 0x0000F000U) >> 12U );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_M, (CoarseIntegrationTime & 0x00000FF0U) >> 4U );
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_EXPO_M, (CoarseIntegrationTime & 0x00000FF0U) >> 4U );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_AEC_EXPO_L, (CoarseIntegrationTime & 0x0000000FU) << 4U );
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_AEC_EXPO_L, (CoarseIntegrationTime & 0x0000000FU) << 4U );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
 
-        pOV8825Ctx->OldCoarseIntegrationTime = CoarseIntegrationTime;   // remember current integration time
+        pOV8820Ctx->OldCoarseIntegrationTime = CoarseIntegrationTime;   // remember current integration time
         *pNumberOfFramesToSkip = 1U; //skip 1 frame
     }
     else
@@ -2821,23 +2823,23 @@ RESULT OV8825_IsiSetIntegrationTimeIss
         *pNumberOfFramesToSkip = 0U; //no frame skip
     }
 
-    //if( FineIntegrationTime != pOV8825Ctx->OldFineIntegrationTime )
+    //if( FineIntegrationTime != pOV8820Ctx->OldFineIntegrationTime )
     //{
-    //    result = OV8825_IsiRegWriteIss( pOV8825Ctx, ... , FineIntegrationTime );
+    //    result = OV8820_IsiRegWriteIss( pOV8820Ctx, ... , FineIntegrationTime );
     //    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    //    pOV8825Ctx->OldFineIntegrationTime = FineIntegrationTime; //remember current integration time
+    //    pOV8820Ctx->OldFineIntegrationTime = FineIntegrationTime; //remember current integration time
     //    *pNumberOfFramesToSkip = 1U; //skip 1 frame
     //}
 
     //calculate integration time actually set
-    //pOV8825Ctx->AecCurIntegrationTime = ( ((float)CoarseIntegrationTime) * ((float)pOV8825Ctx->LineLengthPck) + ((float)FineIntegrationTime) ) / pOV8825Ctx->VtPixClkFreq;
-    pOV8825Ctx->AecCurIntegrationTime = ((float)CoarseIntegrationTime) * ((float)pOV8825Ctx->LineLengthPck) / pOV8825Ctx->VtPixClkFreq;
+    //pOV8820Ctx->AecCurIntegrationTime = ( ((float)CoarseIntegrationTime) * ((float)pOV8820Ctx->LineLengthPck) + ((float)FineIntegrationTime) ) / pOV8820Ctx->VtPixClkFreq;
+    pOV8820Ctx->AecCurIntegrationTime = ((float)CoarseIntegrationTime) * ((float)pOV8820Ctx->LineLengthPck) / pOV8820Ctx->VtPixClkFreq;
 
     //return current state
-    *pSetIntegrationTime = pOV8825Ctx->AecCurIntegrationTime;
+    *pSetIntegrationTime = pOV8820Ctx->AecCurIntegrationTime;
 
-   // TRACE( OV8825_ERROR, "%s: SetTi=%f NewTi=%f\n", __FUNCTION__, *pSetIntegrationTime,NewIntegrationTime);
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+   // TRACE( OV8820_ERROR, "%s: SetTi=%f NewTi=%f\n", __FUNCTION__, *pSetIntegrationTime,NewIntegrationTime);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2847,13 +2849,13 @@ RESULT OV8825_IsiSetIntegrationTimeIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiExposureControlIss
+ *          OV8820_IsiExposureControlIss
  *
  * @brief   Camera hardware dependent part of the exposure control loop.
  *          Calculates appropriate register settings from the new exposure
  *          values and writes them to the image sensor module.
  *
- * @param   handle                  OV8825 sensor instance handle
+ * @param   handle                  OV8820 sensor instance handle
  * @param   NewGain                 newly calculated gain to be set
  * @param   NewIntegrationTime      newly calculated integration time to be set
  * @param   pNumberOfFramesToSkip   number of frames to skip until AE is
@@ -2868,7 +2870,7 @@ RESULT OV8825_IsiSetIntegrationTimeIss
  * @retval  RET_DIVISION_BY_ZERO
  *
  *****************************************************************************/
-RESULT OV8825_IsiExposureControlIss
+RESULT OV8820_IsiExposureControlIss
 (
     IsiSensorHandle_t   handle,
     float               NewGain,
@@ -2878,15 +2880,15 @@ RESULT OV8825_IsiExposureControlIss
     float               *pSetIntegrationTime
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2894,18 +2896,18 @@ RESULT OV8825_IsiExposureControlIss
             || (pSetGain == NULL)
             || (pSetIntegrationTime == NULL) )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_NULL_POINTER );
     }
 
-    TRACE( OV8825_DEBUG, "%s: g=%f, Ti=%f\n", __FUNCTION__, NewGain, NewIntegrationTime );
+    TRACE( OV8820_DEBUG, "%s: g=%f, Ti=%f\n", __FUNCTION__, NewGain, NewIntegrationTime );
 
 
-    result = OV8825_IsiSetIntegrationTimeIss( handle, NewIntegrationTime, pSetIntegrationTime, pNumberOfFramesToSkip );
-    result = OV8825_IsiSetGainIss( handle, NewGain, pSetGain );
+    result = OV8820_IsiSetIntegrationTimeIss( handle, NewIntegrationTime, pSetIntegrationTime, pNumberOfFramesToSkip );
+    result = OV8820_IsiSetGainIss( handle, NewGain, pSetGain );
 
-    TRACE( OV8825_DEBUG, "%s: set: g=%f, Ti=%f, skip=%d\n", __FUNCTION__, *pSetGain, *pSetIntegrationTime, *pNumberOfFramesToSkip );
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_DEBUG, "%s: set: g=%f, Ti=%f, skip=%d\n", __FUNCTION__, *pSetGain, *pSetIntegrationTime, *pNumberOfFramesToSkip );
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2914,35 +2916,35 @@ RESULT OV8825_IsiExposureControlIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetCurrentExposureIss
+ *          OV8820_IsiGetCurrentExposureIss
  *
  * @brief   Returns the currently adjusted AE values
  *
- * @param   handle                  OV8825 sensor instance handle
+ * @param   handle                  OV8820 sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV8825_IsiGetCurrentExposureIss
+RESULT OV8820_IsiGetCurrentExposureIss
 (
     IsiSensorHandle_t   handle,
     float               *pSetGain,
     float               *pSetIntegrationTime
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t RegValue = 0;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2951,10 +2953,10 @@ RESULT OV8825_IsiGetCurrentExposureIss
         return ( RET_NULL_POINTER );
     }
 
-    *pSetGain            = pOV8825Ctx->AecCurGain;
-    *pSetIntegrationTime = pOV8825Ctx->AecCurIntegrationTime;
+    *pSetGain            = pOV8820Ctx->AecCurGain;
+    *pSetIntegrationTime = pOV8820Ctx->AecCurIntegrationTime;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2963,7 +2965,7 @@ RESULT OV8825_IsiGetCurrentExposureIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetResolutionIss
+ *          OV8820_IsiGetResolutionIss
  *
  * @brief   Reads integration time values from the image sensor module.
  *
@@ -2976,21 +2978,21 @@ RESULT OV8825_IsiGetCurrentExposureIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV8825_IsiGetResolutionIss
+RESULT OV8820_IsiGetResolutionIss
 (
     IsiSensorHandle_t   handle,
     uint32_t            *pSetResolution
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2999,9 +3001,9 @@ RESULT OV8825_IsiGetResolutionIss
         return ( RET_NULL_POINTER );
     }
 
-    *pSetResolution = pOV8825Ctx->Config.Resolution;
+    *pSetResolution = pOV8820Ctx->Config.Resolution;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3010,11 +3012,11 @@ RESULT OV8825_IsiGetResolutionIss
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetAfpsInfoHelperIss
+ *          OV8820_IsiGetAfpsInfoHelperIss
  *
  * @brief   Calc AFPS sub resolution settings for the given resolution
  *
- * @param   pOV8825Ctx             OV8825 sensor instance (dummy!) context
+ * @param   pOV8820Ctx             OV8820 sensor instance (dummy!) context
  * @param   Resolution              Any supported resolution to query AFPS params for
  * @param   pAfpsInfo               Reference of AFPS info structure to write the results to
  * @param   AfpsStageIdx            Index of current AFPS stage to use
@@ -3023,8 +3025,8 @@ RESULT OV8825_IsiGetResolutionIss
  * @retval  RET_SUCCESS
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetAfpsInfoHelperIss(
-    OV8825_Context_t   *pOV8825Ctx,
+static RESULT OV8820_IsiGetAfpsInfoHelperIss(
+    OV8820_Context_t   *pOV8820Ctx,
     uint32_t            Resolution,
     IsiAfpsInfo_t*      pAfpsInfo,
     uint32_t            AfpsStageIdx
@@ -3032,52 +3034,52 @@ static RESULT OV8825_IsiGetAfpsInfoHelperIss(
 {
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    DCT_ASSERT(pOV8825Ctx != NULL);
+    DCT_ASSERT(pOV8820Ctx != NULL);
     DCT_ASSERT(pAfpsInfo != NULL);
     DCT_ASSERT(AfpsStageIdx <= ISI_NUM_AFPS_STAGES);
 
     // update resolution in copy of config in context
-    pOV8825Ctx->Config.Resolution = Resolution;
+    pOV8820Ctx->Config.Resolution = Resolution;
 
     // tell sensor about that
-    result = OV8825_SetupOutputWindow( pOV8825Ctx, &pOV8825Ctx->Config );
+    result = OV8820_SetupOutputWindow( pOV8820Ctx, &pOV8820Ctx->Config );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV8825_ERROR, "%s: SetupOutputWindow failed for resolution ID %08x.\n", __FUNCTION__, Resolution);
+        TRACE( OV8820_ERROR, "%s: SetupOutputWindow failed for resolution ID %08x.\n", __FUNCTION__, Resolution);
         return ( result );
     }
 
     // update limits & stuff (reset current & old settings)
-    result = OV8825_AecSetModeParameters( pOV8825Ctx, &pOV8825Ctx->Config );
+    result = OV8820_AecSetModeParameters( pOV8820Ctx, &pOV8820Ctx->Config );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV8825_ERROR, "%s: AecSetModeParameters failed for resolution ID %08x.\n", __FUNCTION__, Resolution);
+        TRACE( OV8820_ERROR, "%s: AecSetModeParameters failed for resolution ID %08x.\n", __FUNCTION__, Resolution);
         return ( result );
     }
 
     // take over params
     pAfpsInfo->Stage[AfpsStageIdx].Resolution = Resolution;
-    pAfpsInfo->Stage[AfpsStageIdx].MaxIntTime = pOV8825Ctx->AecMaxIntegrationTime;
-    pAfpsInfo->AecMinGain           = pOV8825Ctx->AecMinGain;
-    pAfpsInfo->AecMaxGain           = pOV8825Ctx->AecMaxGain;
-    pAfpsInfo->AecMinIntTime        = pOV8825Ctx->AecMinIntegrationTime;
-    pAfpsInfo->AecMaxIntTime        = pOV8825Ctx->AecMaxIntegrationTime;
+    pAfpsInfo->Stage[AfpsStageIdx].MaxIntTime = pOV8820Ctx->AecMaxIntegrationTime;
+    pAfpsInfo->AecMinGain           = pOV8820Ctx->AecMinGain;
+    pAfpsInfo->AecMaxGain           = pOV8820Ctx->AecMaxGain;
+    pAfpsInfo->AecMinIntTime        = pOV8820Ctx->AecMinIntegrationTime;
+    pAfpsInfo->AecMaxIntTime        = pOV8820Ctx->AecMaxIntegrationTime;
     pAfpsInfo->AecSlowestResolution = Resolution;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetAfpsInfoIss
+ *          OV8820_IsiGetAfpsInfoIss
  *
  * @brief   Returns the possible AFPS sub resolution settings for the given resolution series
  *
- * @param   handle                  OV8825 sensor instance handle
+ * @param   handle                  OV8820 sensor instance handle
  * @param   Resolution              Any resolution within the AFPS group to query;
  *                                  0 (zero) to use the currently configured resolution
  * @param   pAfpsInfo               Reference of AFPS info structure to store the results
@@ -3089,23 +3091,23 @@ static RESULT OV8825_IsiGetAfpsInfoHelperIss(
  * @retval  RET_NOTSUPP
  *
  *****************************************************************************/
-RESULT OV8825_IsiGetAfpsInfoIss(
+RESULT OV8820_IsiGetAfpsInfoIss(
     IsiSensorHandle_t   handle,
     uint32_t            Resolution,
     IsiAfpsInfo_t*      pAfpsInfo
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t RegValue = 0;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-        TRACE( OV8825_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( OV8820_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -3117,33 +3119,33 @@ RESULT OV8825_IsiGetAfpsInfoIss(
     // use currently configured resolution?
     if (Resolution == 0)
     {
-        Resolution = pOV8825Ctx->Config.Resolution;
+        Resolution = pOV8820Ctx->Config.Resolution;
     }
 
     // prepare index
     uint32_t idx = 0;
 
     // set current resolution data in info struct
-    pAfpsInfo->CurrResolution = pOV8825Ctx->Config.Resolution;
-    pAfpsInfo->CurrMinIntTime = pOV8825Ctx->AecMinIntegrationTime;
-    pAfpsInfo->CurrMaxIntTime = pOV8825Ctx->AecMaxIntegrationTime;
+    pAfpsInfo->CurrResolution = pOV8820Ctx->Config.Resolution;
+    pAfpsInfo->CurrMinIntTime = pOV8820Ctx->AecMinIntegrationTime;
+    pAfpsInfo->CurrMaxIntTime = pOV8820Ctx->AecMaxIntegrationTime;
 
     // allocate dummy context used for Afps parameter calculation as a copy of current context
-    OV8825_Context_t *pDummyCtx = (OV8825_Context_t*) malloc( sizeof(OV8825_Context_t) );
+    OV8820_Context_t *pDummyCtx = (OV8820_Context_t*) malloc( sizeof(OV8820_Context_t) );
     if ( pDummyCtx == NULL )
     {
-        TRACE( OV8825_ERROR,  "%s: Can't allocate dummy ov14825 context\n",  __FUNCTION__ );
+        TRACE( OV8820_ERROR,  "%s: Can't allocate dummy ov14825 context\n",  __FUNCTION__ );
         return ( RET_OUTOFMEM );
     }
-    *pDummyCtx = *pOV8825Ctx;
+    *pDummyCtx = *pOV8820Ctx;
 
     // set AFPS mode in dummy context
     pDummyCtx->isAfpsRun = BOOL_TRUE;
 
 #define AFPSCHECKANDADD(_res_) \
-    if ( (pOV8825Ctx->Config.AfpsResolutions & (_res_)) != 0 ) \
+    if ( (pOV8820Ctx->Config.AfpsResolutions & (_res_)) != 0 ) \
     { \
-        RESULT lres = OV8825_IsiGetAfpsInfoHelperIss( pDummyCtx, _res_, pAfpsInfo, idx ); \
+        RESULT lres = OV8820_IsiGetAfpsInfoHelperIss( pDummyCtx, _res_, pAfpsInfo, idx ); \
         if ( lres == RET_SUCCESS ) \
         { \
             ++idx; \
@@ -3158,7 +3160,7 @@ RESULT OV8825_IsiGetAfpsInfoIss(
     switch(Resolution)
     {
         default:
-            TRACE( OV8825_DEBUG,  "%s: Resolution %08x not supported by AFPS\n",  __FUNCTION__, Resolution );
+            TRACE( OV8820_DEBUG,  "%s: Resolution %08x not supported by AFPS\n",  __FUNCTION__, Resolution );
             result = RET_NOTSUPP;
             break;
 
@@ -3179,7 +3181,7 @@ RESULT OV8825_IsiGetAfpsInfoIss(
     // release dummy context again
     free(pDummyCtx);
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3188,11 +3190,11 @@ RESULT OV8825_IsiGetAfpsInfoIss(
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetCalibKFactor
+ *          OV8820_IsiGetCalibKFactor
  *
- * @brief   Returns the OV8825 specific K-Factor
+ * @brief   Returns the OV8820 specific K-Factor
  *
- * @param   handle       OV8825 sensor instance handle
+ * @param   handle       OV8820 sensor instance handle
  * @param   pIsiKFactor  Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -3201,19 +3203,19 @@ RESULT OV8825_IsiGetAfpsInfoIss(
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetCalibKFactor
+static RESULT OV8820_IsiGetCalibKFactor
 (
     IsiSensorHandle_t   handle,
     Isi1x1FloatMatrix_t **pIsiKFactor
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -3223,9 +3225,9 @@ static RESULT OV8825_IsiGetCalibKFactor
         return ( RET_NULL_POINTER );
     }
 
-    *pIsiKFactor = (Isi1x1FloatMatrix_t *)&OV8825_KFactor;
+    *pIsiKFactor = (Isi1x1FloatMatrix_t *)&OV8820_KFactor;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3233,11 +3235,11 @@ static RESULT OV8825_IsiGetCalibKFactor
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetCalibPcaMatrix
+ *          OV8820_IsiGetCalibPcaMatrix
  *
- * @brief   Returns the OV8825 specific PCA-Matrix
+ * @brief   Returns the OV8820 specific PCA-Matrix
  *
- * @param   handle          OV8825 sensor instance handle
+ * @param   handle          OV8820 sensor instance handle
  * @param   pIsiPcaMatrix   Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -3246,19 +3248,19 @@ static RESULT OV8825_IsiGetCalibKFactor
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetCalibPcaMatrix
+static RESULT OV8820_IsiGetCalibPcaMatrix
 (
     IsiSensorHandle_t   handle,
     Isi3x2FloatMatrix_t **pIsiPcaMatrix
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -3268,9 +3270,9 @@ static RESULT OV8825_IsiGetCalibPcaMatrix
         return ( RET_NULL_POINTER );
     }
 
-    *pIsiPcaMatrix = (Isi3x2FloatMatrix_t *)&OV8825_PCAMatrix;
+    *pIsiPcaMatrix = (Isi3x2FloatMatrix_t *)&OV8820_PCAMatrix;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3279,11 +3281,11 @@ static RESULT OV8825_IsiGetCalibPcaMatrix
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetCalibSvdMeanValue
+ *          OV8820_IsiGetCalibSvdMeanValue
  *
  * @brief   Returns the sensor specific SvdMean-Vector
  *
- * @param   handle              OV8825 sensor instance handle
+ * @param   handle              OV8820 sensor instance handle
  * @param   pIsiSvdMeanValue    Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -3292,7 +3294,7 @@ static RESULT OV8825_IsiGetCalibPcaMatrix
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetCalibSvdMeanValue
+static RESULT OV8820_IsiGetCalibSvdMeanValue
 (
     IsiSensorHandle_t   handle,
     Isi3x1FloatMatrix_t **pIsiSvdMeanValue
@@ -3302,7 +3304,7 @@ static RESULT OV8825_IsiGetCalibSvdMeanValue
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pSensorCtx == NULL )
     {
@@ -3314,9 +3316,9 @@ static RESULT OV8825_IsiGetCalibSvdMeanValue
         return ( RET_NULL_POINTER );
     }
 
-    *pIsiSvdMeanValue = (Isi3x1FloatMatrix_t *)&OV8825_SVDMeanValue;
+    *pIsiSvdMeanValue = (Isi3x1FloatMatrix_t *)&OV8820_SVDMeanValue;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3325,12 +3327,12 @@ static RESULT OV8825_IsiGetCalibSvdMeanValue
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetCalibSvdMeanValue
+ *          OV8820_IsiGetCalibSvdMeanValue
  *
  * @brief   Returns a pointer to the sensor specific centerline, a straight
  *          line in Hesse normal form in Rg/Bg colorspace
  *
- * @param   handle              OV8825 sensor instance handle
+ * @param   handle              OV8820 sensor instance handle
  * @param   pIsiSvdMeanValue    Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -3339,7 +3341,7 @@ static RESULT OV8825_IsiGetCalibSvdMeanValue
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetCalibCenterLine
+static RESULT OV8820_IsiGetCalibCenterLine
 (
     IsiSensorHandle_t   handle,
     IsiLine_t           **ptIsiCenterLine
@@ -3349,7 +3351,7 @@ static RESULT OV8825_IsiGetCalibCenterLine
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pSensorCtx == NULL )
     {
@@ -3361,9 +3363,9 @@ static RESULT OV8825_IsiGetCalibCenterLine
         return ( RET_NULL_POINTER );
     }
 
-    *ptIsiCenterLine = (IsiLine_t*)&OV8825_CenterLine;
+    *ptIsiCenterLine = (IsiLine_t*)&OV8820_CenterLine;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3372,12 +3374,12 @@ static RESULT OV8825_IsiGetCalibCenterLine
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetCalibClipParam
+ *          OV8820_IsiGetCalibClipParam
  *
  * @brief   Returns a pointer to the sensor specific arrays for Rg/Bg color
  *          space clipping
  *
- * @param   handle              OV8825 sensor instance handle
+ * @param   handle              OV8820 sensor instance handle
  * @param   pIsiSvdMeanValue    Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -3386,7 +3388,7 @@ static RESULT OV8825_IsiGetCalibCenterLine
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetCalibClipParam
+static RESULT OV8820_IsiGetCalibClipParam
 (
     IsiSensorHandle_t   handle,
     IsiAwbClipParm_t    **pIsiClipParam
@@ -3396,7 +3398,7 @@ static RESULT OV8825_IsiGetCalibClipParam
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pSensorCtx == NULL )
     {
@@ -3408,9 +3410,9 @@ static RESULT OV8825_IsiGetCalibClipParam
         return ( RET_NULL_POINTER );
     }
 
-    *pIsiClipParam = (IsiAwbClipParm_t *)&OV8825_AwbClipParm;
+    *pIsiClipParam = (IsiAwbClipParm_t *)&OV8820_AwbClipParm;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3419,12 +3421,12 @@ static RESULT OV8825_IsiGetCalibClipParam
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetCalibGlobalFadeParam
+ *          OV8820_IsiGetCalibGlobalFadeParam
  *
  * @brief   Returns a pointer to the sensor specific arrays for AWB out of
  *          range handling
  *
- * @param   handle              OV8825 sensor instance handle
+ * @param   handle              OV8820 sensor instance handle
  * @param   pIsiSvdMeanValue    Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -3433,7 +3435,7 @@ static RESULT OV8825_IsiGetCalibClipParam
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetCalibGlobalFadeParam
+static RESULT OV8820_IsiGetCalibGlobalFadeParam
 (
     IsiSensorHandle_t       handle,
     IsiAwbGlobalFadeParm_t  **ptIsiGlobalFadeParam
@@ -3443,7 +3445,7 @@ static RESULT OV8825_IsiGetCalibGlobalFadeParam
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pSensorCtx == NULL )
     {
@@ -3455,9 +3457,9 @@ static RESULT OV8825_IsiGetCalibGlobalFadeParam
         return ( RET_NULL_POINTER );
     }
 
-    *ptIsiGlobalFadeParam = (IsiAwbGlobalFadeParm_t *)&OV8825_AwbGlobalFadeParm;
+    *ptIsiGlobalFadeParam = (IsiAwbGlobalFadeParm_t *)&OV8820_AwbGlobalFadeParm;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3466,12 +3468,12 @@ static RESULT OV8825_IsiGetCalibGlobalFadeParam
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetCalibFadeParam
+ *          OV8820_IsiGetCalibFadeParam
  *
  * @brief   Returns a pointer to the sensor specific arrays for near white
  *          pixel parameter calculations
  *
- * @param   handle              OV8825 sensor instance handle
+ * @param   handle              OV8820 sensor instance handle
  * @param   pIsiSvdMeanValue    Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -3480,7 +3482,7 @@ static RESULT OV8825_IsiGetCalibGlobalFadeParam
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetCalibFadeParam
+static RESULT OV8820_IsiGetCalibFadeParam
 (
     IsiSensorHandle_t   handle,
     IsiAwbFade2Parm_t   **ptIsiFadeParam
@@ -3490,7 +3492,7 @@ static RESULT OV8825_IsiGetCalibFadeParam
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pSensorCtx == NULL )
     {
@@ -3502,16 +3504,16 @@ static RESULT OV8825_IsiGetCalibFadeParam
         return ( RET_NULL_POINTER );
     }
 
-    *ptIsiFadeParam = (IsiAwbFade2Parm_t *)&OV8825_AwbFade2Parm;
+    *ptIsiFadeParam = (IsiAwbFade2Parm_t *)&OV8820_AwbFade2Parm;
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetIlluProfile
+ *          OV8820_IsiGetIlluProfile
  *
  * @brief   Returns a pointer to illumination profile idetified by CieProfile
  *          bitmask
@@ -3526,20 +3528,20 @@ static RESULT OV8825_IsiGetCalibFadeParam
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetIlluProfile
+static RESULT OV8820_IsiGetIlluProfile
 (
     IsiSensorHandle_t   handle,
     const uint32_t      CieProfile,
     IsiIlluProfile_t    **ptIsiIlluProfile
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -3555,11 +3557,11 @@ static RESULT OV8825_IsiGetIlluProfile
         *ptIsiIlluProfile = NULL;
 
         /* check if we've a default profile */
-        for ( i=0U; i<OV8825_ISIILLUPROFILES_DEFAULT; i++ )
+        for ( i=0U; i<OV8820_ISIILLUPROFILES_DEFAULT; i++ )
         {
-            if ( OV8825_IlluProfileDefault[i].id == CieProfile )
+            if ( OV8820_IlluProfileDefault[i].id == CieProfile )
             {
-                *ptIsiIlluProfile = &OV8825_IlluProfileDefault[i];
+                *ptIsiIlluProfile = &OV8820_IlluProfileDefault[i];
                 break;
             }
         }
@@ -3567,7 +3569,7 @@ static RESULT OV8825_IsiGetIlluProfile
         result = ( *ptIsiIlluProfile != NULL ) ?  RET_SUCCESS : RET_NOTAVAILABLE;
     }
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3576,7 +3578,7 @@ static RESULT OV8825_IsiGetIlluProfile
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetLscMatrixTable
+ *          OV8820_IsiGetLscMatrixTable
  *
  * @brief   Returns a pointer to illumination profile idetified by CieProfile
  *          bitmask
@@ -3591,20 +3593,20 @@ static RESULT OV8825_IsiGetIlluProfile
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetLscMatrixTable
+static RESULT OV8820_IsiGetLscMatrixTable
 (
     IsiSensorHandle_t   handle,
     const uint32_t      CieProfile,
     IsiLscMatrixTable_t **pLscMatrixTable
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -3622,19 +3624,19 @@ static RESULT OV8825_IsiGetLscMatrixTable
         {
             case ISI_CIEPROF_A:
             {
-                if ( ( pOV8825Ctx->Config.Resolution == ISI_RES_TV1080P30 ))
+                if ( ( pOV8820Ctx->Config.Resolution == ISI_RES_TV1080P30 ))
                 {
-                    *pLscMatrixTable = &OV8825_LscMatrixTable_CIE_A_1920x1080;
+                    *pLscMatrixTable = &OV8820_LscMatrixTable_CIE_A_1920x1080;
                 }
                 #if 0
-                else if ( pOV8825Ctx->Config.Resolution == ISI_RES_4416_3312 )
+                else if ( pOV8820Ctx->Config.Resolution == ISI_RES_4416_3312 )
                 {
-                    *pLscMatrixTable = &OV8825_LscMatrixTable_CIE_A_4416x3312;
+                    *pLscMatrixTable = &OV8820_LscMatrixTable_CIE_A_4416x3312;
                 }
                 #endif
                 else
                 {
-                    TRACE( OV8825_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
+                    TRACE( OV8820_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
                     *pLscMatrixTable = NULL;
                 }
 
@@ -3643,19 +3645,19 @@ static RESULT OV8825_IsiGetLscMatrixTable
 
             case ISI_CIEPROF_F2:
             {
-                if ( ( pOV8825Ctx->Config.Resolution == ISI_RES_TV1080P30 ) )
+                if ( ( pOV8820Ctx->Config.Resolution == ISI_RES_TV1080P30 ) )
                 {
-                    *pLscMatrixTable = &OV8825_LscMatrixTable_CIE_F2_1920x1080;
+                    *pLscMatrixTable = &OV8820_LscMatrixTable_CIE_F2_1920x1080;
                 }
                 #if 0
-                else if ( pOV8825Ctx->Config.Resolution == ISI_RES_4416_3312 )
+                else if ( pOV8820Ctx->Config.Resolution == ISI_RES_4416_3312 )
                 {
-                    *pLscMatrixTable = &OV8825_LscMatrixTable_CIE_F2_4416x3312;
+                    *pLscMatrixTable = &OV8820_LscMatrixTable_CIE_F2_4416x3312;
                 }
                 #endif
                 else
                 {
-                    TRACE( OV8825_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
+                    TRACE( OV8820_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
                     *pLscMatrixTable = NULL;
                 }
 
@@ -3664,19 +3666,19 @@ static RESULT OV8825_IsiGetLscMatrixTable
 
             case ISI_CIEPROF_D50:
             {
-                if ( ( pOV8825Ctx->Config.Resolution == ISI_RES_TV1080P30 ))
+                if ( ( pOV8820Ctx->Config.Resolution == ISI_RES_TV1080P30 ))
                 {
-                    *pLscMatrixTable = &OV8825_LscMatrixTable_CIE_D50_1920x1080;
+                    *pLscMatrixTable = &OV8820_LscMatrixTable_CIE_D50_1920x1080;
                 }
                 #if 0
-                else if ( pOV8825Ctx->Config.Resolution == ISI_RES_4416_3312 )
+                else if ( pOV8820Ctx->Config.Resolution == ISI_RES_4416_3312 )
                 {
-                    *pLscMatrixTable = &OV8825_LscMatrixTable_CIE_D50_4416x3312;
+                    *pLscMatrixTable = &OV8820_LscMatrixTable_CIE_D50_4416x3312;
                 }
                 #endif
                 else
                 {
-                    TRACE( OV8825_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
+                    TRACE( OV8820_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
                     *pLscMatrixTable = NULL;
                 }
 
@@ -3686,19 +3688,19 @@ static RESULT OV8825_IsiGetLscMatrixTable
             case ISI_CIEPROF_D65:
             case ISI_CIEPROF_D75:
             {
-                if ( ( pOV8825Ctx->Config.Resolution == ISI_RES_TV1080P30 ) )
+                if ( ( pOV8820Ctx->Config.Resolution == ISI_RES_TV1080P30 ) )
                 {
-                    *pLscMatrixTable = &OV8825_LscMatrixTable_CIE_D65_1920x1080;
+                    *pLscMatrixTable = &OV8820_LscMatrixTable_CIE_D65_1920x1080;
                 }
                 #if 0
-                else if ( pOV8825Ctx->Config.Resolution == ISI_RES_4416_3312 )
+                else if ( pOV8820Ctx->Config.Resolution == ISI_RES_4416_3312 )
                 {
-                    *pLscMatrixTable = &OV8825_LscMatrixTable_CIE_D65_4416x3312;
+                    *pLscMatrixTable = &OV8820_LscMatrixTable_CIE_D65_4416x3312;
                 }
                 #endif
                 else
                 {
-                    TRACE( OV8825_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
+                    TRACE( OV8820_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
                     *pLscMatrixTable = NULL;
                 }
 
@@ -3707,19 +3709,19 @@ static RESULT OV8825_IsiGetLscMatrixTable
 
             case ISI_CIEPROF_F11:
             {
-                if ( ( pOV8825Ctx->Config.Resolution == ISI_RES_TV1080P30 ))
+                if ( ( pOV8820Ctx->Config.Resolution == ISI_RES_TV1080P30 ))
                 {
-                    *pLscMatrixTable = &OV8825_LscMatrixTable_CIE_F11_1920x1080;
+                    *pLscMatrixTable = &OV8820_LscMatrixTable_CIE_F11_1920x1080;
                 }
                 #if 0
-                else if ( pOV8825Ctx->Config.Resolution == ISI_RES_4416_3312 )
+                else if ( pOV8820Ctx->Config.Resolution == ISI_RES_4416_3312 )
                 {
-                    *pLscMatrixTable = &OV8825_LscMatrixTable_CIE_F11_4416x3312;
+                    *pLscMatrixTable = &OV8820_LscMatrixTable_CIE_F11_4416x3312;
                 }
                 #endif
                 else
                 {
-                    TRACE( OV8825_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
+                    TRACE( OV8820_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
                     *pLscMatrixTable = NULL;
                 }
 
@@ -3728,7 +3730,7 @@ static RESULT OV8825_IsiGetLscMatrixTable
 
             default:
             {
-                TRACE( OV8825_ERROR, "%s: Illumination not supported\n", __FUNCTION__ );
+                TRACE( OV8820_ERROR, "%s: Illumination not supported\n", __FUNCTION__ );
                 *pLscMatrixTable = NULL;
                 break;
             }
@@ -3737,7 +3739,7 @@ static RESULT OV8825_IsiGetLscMatrixTable
         result = ( *pLscMatrixTable != NULL ) ?  RET_SUCCESS : RET_NOTAVAILABLE;
     }
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3745,11 +3747,11 @@ static RESULT OV8825_IsiGetLscMatrixTable
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiMdiInitMotoDriveMds
+ *          OV8820_IsiMdiInitMotoDriveMds
  *
  * @brief   General initialisation tasks like I/O initialisation.
  *
- * @param   handle              OV8825 sensor instance handle
+ * @param   handle              OV8820 sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
@@ -3757,23 +3759,23 @@ static RESULT OV8825_IsiGetLscMatrixTable
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiMdiInitMotoDriveMds
+static RESULT OV8820_IsiMdiInitMotoDriveMds
 (
     IsiSensorHandle_t   handle
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3782,11 +3784,11 @@ static RESULT OV8825_IsiMdiInitMotoDriveMds
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiMdiSetupMotoDrive
+ *          OV8820_IsiMdiSetupMotoDrive
  *
  * @brief   Setup of the MotoDrive and return possible max step.
  *
- * @param   handle          OV8825 sensor instance handle
+ * @param   handle          OV8820 sensor instance handle
  *          pMaxStep        pointer to variable to receive the maximum
  *                          possible focus step
  *
@@ -3796,19 +3798,19 @@ static RESULT OV8825_IsiMdiInitMotoDriveMds
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiMdiSetupMotoDrive
+static RESULT OV8820_IsiMdiSetupMotoDrive
 (
     IsiSensorHandle_t   handle,
     uint32_t            *pMaxStep
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
     uint32_t vcm_movefull_t;
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -3818,20 +3820,20 @@ static RESULT OV8825_IsiMdiSetupMotoDrive
         return ( RET_NULL_POINTER );
     }
     /* ddl@rock-chips.com: v0.3.0 */
-    if (pOV8825Ctx->VcmInfo.StepMode <= 7) {
-        vcm_movefull_t = 52*(1<<(pOV8825Ctx->VcmInfo.StepMode-1));
-    } else if ((pOV8825Ctx->VcmInfo.StepMode>=9) && (pOV8825Ctx->VcmInfo.StepMode<=15)) {
-        vcm_movefull_t = 2*(1<<(pOV8825Ctx->VcmInfo.StepMode-9));
+    if (pOV8820Ctx->VcmInfo.StepMode <= 7) {
+        vcm_movefull_t = 52*(1<<(pOV8820Ctx->VcmInfo.StepMode-1));
+    } else if ((pOV8820Ctx->VcmInfo.StepMode>=9) && (pOV8820Ctx->VcmInfo.StepMode<=15)) {
+        vcm_movefull_t = 2*(1<<(pOV8820Ctx->VcmInfo.StepMode-9));
     } else {
-        TRACE( OV8825_ERROR, "%s: pOV8825Ctx->VcmInfo.StepMode: %d is invalidate!\n",__FUNCTION__, pOV8825Ctx->VcmInfo.StepMode);
+        TRACE( OV8820_ERROR, "%s: pOV8820Ctx->VcmInfo.StepMode: %d is invalidate!\n",__FUNCTION__, pOV8820Ctx->VcmInfo.StepMode);
         DCT_ASSERT(0);
     }
 
     *pMaxStep = (MAX_LOG|(vcm_movefull_t<<16));
 
-    result = OV8825_IsiMdiFocusSet( handle, MAX_LOG );
+    result = OV8820_IsiMdiFocusSet( handle, MAX_LOG );
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3840,11 +3842,11 @@ static RESULT OV8825_IsiMdiSetupMotoDrive
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiMdiFocusSet
+ *          OV8820_IsiMdiFocusSet
  *
  * @brief   Drives the lens system to a certain focus point.
  *
- * @param   handle          OV8825 sensor instance handle
+ * @param   handle          OV8820 sensor instance handle
  *          AbsStep         absolute focus point to apply
  *
  * @return  Return the result of the function call.
@@ -3853,70 +3855,70 @@ static RESULT OV8825_IsiMdiSetupMotoDrive
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiMdiFocusSet
+static RESULT OV8820_IsiMdiFocusSet
 (
     IsiSensorHandle_t   handle,
     const uint32_t      Position
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t nPosition;
     uint8_t  data[2] = { 0, 0 };
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-    	TRACE( OV8825_ERROR, "%s: pOV8825Ctx IS NULL\n", __FUNCTION__);
+    	TRACE( OV8820_ERROR, "%s: pOV8820Ctx IS NULL\n", __FUNCTION__);
         return ( RET_WRONG_HANDLE );
     }
 
     /* map 64 to 0 -> infinity */
 
 	if( Position > MAX_LOG ){
-		TRACE( OV8825_ERROR, "%s: pOV8825Ctx Position (%d) max_position(%d)\n", __FUNCTION__,Position, MAX_LOG);
+		TRACE( OV8820_ERROR, "%s: pOV8820Ctx Position (%d) max_position(%d)\n", __FUNCTION__,Position, MAX_LOG);
 		//Position = MAX_LOG;
-	}	
+	}
     /* ddl@rock-chips.com: v0.3.0 */
     if ( Position >= MAX_LOG )
-        nPosition = pOV8825Ctx->VcmInfo.StartCurrent;
+        nPosition = pOV8820Ctx->VcmInfo.StartCurrent;
     else 
-        nPosition = pOV8825Ctx->VcmInfo.StartCurrent + (pOV8825Ctx->VcmInfo.Step*(MAX_LOG-Position));
-    /* ddl@rock-chips.com: v0.6.0 */
+        nPosition = pOV8820Ctx->VcmInfo.StartCurrent + (pOV8820Ctx->VcmInfo.Step*(MAX_LOG-Position));
+
     if (nPosition > MAX_VCMDRV_REG)  
         nPosition = MAX_VCMDRV_REG;
 
-    TRACE( OV8825_INFO, "%s: focus set position_reg_value(%d) position(%d) \n", __FUNCTION__, nPosition, Position);
+    TRACE( OV8820_INFO, "%s: focus set position_reg_value(%d) position(%d) \n", __FUNCTION__, nPosition, Position);
     
     data[1] = (uint8_t)(0x00U | (( nPosition & 0x3F0U ) >> 4U));                 // PD,  1, D9..D4, see AD5820 datasheet
-    data[0] = (uint8_t)( ((nPosition & 0x0FU) << 4U) | pOV8825Ctx->VcmInfo.StepMode );    // D3..D0, S3..S0
+    data[0] = (uint8_t)( ((nPosition & 0x0FU) << 4U) | pOV8820Ctx->VcmInfo.StepMode );    // D3..D0, S3..S0
 
-    TRACE( OV8825_INFO, "%s: value = %d, 0x%02x 0x%02x\n", __FUNCTION__, nPosition, data[0], data[1] );
+    TRACE( OV8820_INFO, "%s: value = %d, 0x%02x 0x%02x\n", __FUNCTION__, nPosition, data[0], data[1] );
 
-    result = HalWriteI2CMem( pOV8825Ctx->IsiCtx.HalHandle,
-                             pOV8825Ctx->IsiCtx.I2cAfBusNum,
-                             pOV8825Ctx->IsiCtx.SlaveAfAddress,
+    result = HalWriteI2CMem( pOV8820Ctx->IsiCtx.HalHandle,
+                             pOV8820Ctx->IsiCtx.I2cAfBusNum,
+                             pOV8820Ctx->IsiCtx.SlaveAfAddress,
                              0x3618,
-                             pOV8825Ctx->IsiCtx.NrOfAfAddressBytes,
+                             pOV8820Ctx->IsiCtx.NrOfAfAddressBytes,
                              &data[0],
                              1U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
     
-    result = HalWriteI2CMem( pOV8825Ctx->IsiCtx.HalHandle,
-                             pOV8825Ctx->IsiCtx.I2cAfBusNum,
-                             pOV8825Ctx->IsiCtx.SlaveAfAddress,
+    result = HalWriteI2CMem( pOV8820Ctx->IsiCtx.HalHandle,
+                             pOV8820Ctx->IsiCtx.I2cAfBusNum,
+                             pOV8820Ctx->IsiCtx.SlaveAfAddress,
                              0x3619,
-                             pOV8825Ctx->IsiCtx.NrOfAfAddressBytes,
+                             pOV8820Ctx->IsiCtx.NrOfAfAddressBytes,
                              &data[1],
                              1U );
                              
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
     
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3925,11 +3927,11 @@ static RESULT OV8825_IsiMdiFocusSet
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiMdiFocusGet
+ *          OV8820_IsiMdiFocusGet
  *
  * @brief   Retrieves the currently applied focus point.
  *
- * @param   handle          OV8825 sensor instance handle
+ * @param   handle          OV8820 sensor instance handle
  *          pAbsStep        pointer to a variable to receive the current
  *                          focus point
  *
@@ -3939,20 +3941,20 @@ static RESULT OV8825_IsiMdiFocusSet
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiMdiFocusGet
+static RESULT OV8820_IsiMdiFocusGet
 (
     IsiSensorHandle_t   handle,
     uint32_t            *pAbsStep
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
     uint8_t  data[2] = { 0, 0 };
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -3963,35 +3965,35 @@ static RESULT OV8825_IsiMdiFocusGet
     }
 
     /*
-    result = HalReadI2CMem( pOV8825Ctx->IsiCtx.HalHandle,
-                            pOV8825Ctx->IsiCtx.I2cAfBusNum,
-                            pOV8825Ctx->IsiCtx.SlaveAfAddress,
+    result = HalReadI2CMem( pOV8820Ctx->IsiCtx.HalHandle,
+                            pOV8820Ctx->IsiCtx.I2cAfBusNum,
+                            pOV8820Ctx->IsiCtx.SlaveAfAddress,
                             0,
-                            pOV8825Ctx->IsiCtx.NrOfAfAddressBytes,
+                            pOV8820Ctx->IsiCtx.NrOfAfAddressBytes,
                             data,
                             2U );
 */
-	result = HalReadI2CMem( pOV8825Ctx->IsiCtx.HalHandle,
-                             pOV8825Ctx->IsiCtx.I2cAfBusNum,
-                             pOV8825Ctx->IsiCtx.SlaveAfAddress,
+	result = HalReadI2CMem( pOV8820Ctx->IsiCtx.HalHandle,
+                             pOV8820Ctx->IsiCtx.I2cAfBusNum,
+                             pOV8820Ctx->IsiCtx.SlaveAfAddress,
                              0x3618,
-                             pOV8825Ctx->IsiCtx.NrOfAfAddressBytes,
+                             pOV8820Ctx->IsiCtx.NrOfAfAddressBytes,
                              &data[0],
                              1U );
 	RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 	
 	RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-	result = HalReadI2CMem( pOV8825Ctx->IsiCtx.HalHandle,
-                             pOV8825Ctx->IsiCtx.I2cAfBusNum,
-                             pOV8825Ctx->IsiCtx.SlaveAfAddress,
+	result = HalReadI2CMem( pOV8820Ctx->IsiCtx.HalHandle,
+                             pOV8820Ctx->IsiCtx.I2cAfBusNum,
+                             pOV8820Ctx->IsiCtx.SlaveAfAddress,
                              0x3619,
-                             pOV8825Ctx->IsiCtx.NrOfAfAddressBytes,
+                             pOV8820Ctx->IsiCtx.NrOfAfAddressBytes,
                              &data[1],
                              1U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 	
 
-    TRACE( OV8825_INFO, "%s: value = 0x%02x 0x%02x\n", __FUNCTION__, data[1], data[0] );
+    TRACE( OV8820_INFO, "%s: value = 0x%02x 0x%02x\n", __FUNCTION__, data[1], data[0] );
 
     /* Data[0] = PD,  1, D9..D4, see AD5820 datasheet */
     /* Data[1] = D3..D0, S3..S0 */
@@ -3999,21 +4001,20 @@ static RESULT OV8825_IsiMdiFocusGet
     tmp = *pAbsStep = ( ((uint32_t)(data[1] & 0x3FU)) << 4U ) | ( ((uint32_t)data[0]) >> 4U );
 
     /* map 0 to 64 -> infinity */   /* ddl@rock-chips.com: v0.3.0 */
-    if( *pAbsStep <= pOV8825Ctx->VcmInfo.StartCurrent)
+    if( *pAbsStep <= pOV8820Ctx->VcmInfo.StartCurrent)
     {
         *pAbsStep = MAX_LOG;
     }
-    else if((*pAbsStep>pOV8825Ctx->VcmInfo.StartCurrent) && (*pAbsStep<=pOV8825Ctx->VcmInfo.RatedCurrent))
+    else if((*pAbsStep>pOV8820Ctx->VcmInfo.StartCurrent) && (*pAbsStep<=pOV8820Ctx->VcmInfo.RatedCurrent))
     {
-        *pAbsStep = (pOV8825Ctx->VcmInfo.RatedCurrent - *pAbsStep ) / pOV8825Ctx->VcmInfo.Step;
+        *pAbsStep = (pOV8820Ctx->VcmInfo.RatedCurrent - *pAbsStep ) / pOV8820Ctx->VcmInfo.Step;
     }
 	else
 	{
 		*pAbsStep = 0;
 	}
 
-
-    TRACE( OV8825_INFO, "%s: get nposition(%d) (exit)\n", __FUNCTION__, *pAbsStep);
+    TRACE( OV8820_INFO, "%s: get nposition(%d) (exit)\n", __FUNCTION__, *pAbsStep);
 
     return ( result );
 }
@@ -4022,11 +4023,11 @@ static RESULT OV8825_IsiMdiFocusGet
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiMdiFocusCalibrate
+ *          OV8820_IsiMdiFocusCalibrate
  *
  * @brief   Triggers a forced calibration of the focus hardware.
  *
- * @param   handle          OV8825 sensor instance handle
+ * @param   handle          OV8820 sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
@@ -4034,23 +4035,23 @@ static RESULT OV8825_IsiMdiFocusGet
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiMdiFocusCalibrate
+static RESULT OV8820_IsiMdiFocusCalibrate
 (
     IsiSensorHandle_t   handle
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -4059,11 +4060,11 @@ static RESULT OV8825_IsiMdiFocusCalibrate
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiActivateTestPattern
+ *          OV8820_IsiActivateTestPattern
  *
  * @brief   Triggers a forced calibration of the focus hardware.
  *
- * @param   handle          OV8825 sensor instance handle
+ * @param   handle          OV8820 sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
@@ -4071,21 +4072,21 @@ static RESULT OV8825_IsiMdiFocusCalibrate
  * @retval  RET_NULL_POINTER
  *
  ******************************************************************************/
-static RESULT OV8825_IsiActivateTestPattern
+static RESULT OV8820_IsiActivateTestPattern
 (
     IsiSensorHandle_t   handle,
     const bool_t        enable
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t ulRegValue = 0UL;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -4093,28 +4094,28 @@ static RESULT OV8825_IsiActivateTestPattern
     if ( BOOL_TRUE == enable )
     {
         /* enable test-pattern */
-        result = OV8825_IsiRegReadIss( pOV8825Ctx, OV8825_PRE_ISP_CTRL00, &ulRegValue );
+        result = OV8820_IsiRegReadIss( pOV8820Ctx, OV8820_PRE_ISP_CTRL00, &ulRegValue );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
         ulRegValue |= ( 0x80U );
 
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PRE_ISP_CTRL00, ulRegValue );
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_PRE_ISP_CTRL00, ulRegValue );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
     }
     else
     {
         /* disable test-pattern */
-        result = OV8825_IsiRegReadIss( pOV8825Ctx, OV8825_PRE_ISP_CTRL00, &ulRegValue );
+        result = OV8820_IsiRegReadIss( pOV8820Ctx, OV8820_PRE_ISP_CTRL00, &ulRegValue );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
         ulRegValue &= ~( 0x80 );
 
-        result = OV8825_IsiRegWriteIss( pOV8825Ctx, OV8825_PRE_ISP_CTRL00, ulRegValue );
+        result = OV8820_IsiRegWriteIss( pOV8820Ctx, OV8820_PRE_ISP_CTRL00, ulRegValue );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
     }
 
-     pOV8825Ctx->TestPattern = enable;
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+     pOV8820Ctx->TestPattern = enable;
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -4123,11 +4124,11 @@ static RESULT OV8825_IsiActivateTestPattern
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetSensorMipiInfoIss
+ *          OV8820_IsiGetSensorMipiInfoIss
  *
  * @brief   Triggers a forced calibration of the focus hardware.
  *
- * @param   handle          OV8825 sensor instance handle
+ * @param   handle          OV8820 sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
@@ -4135,19 +4136,19 @@ static RESULT OV8825_IsiActivateTestPattern
  * @retval  RET_NULL_POINTER
  *
  ******************************************************************************/
-static RESULT OV8825_IsiGetSensorMipiInfoIss
+static RESULT OV8820_IsiGetSensorMipiInfoIss
 (
     IsiSensorHandle_t   handle,
     IsiSensorMipiInfo   *ptIsiSensorMipiInfo
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -4158,38 +4159,38 @@ static RESULT OV8825_IsiGetSensorMipiInfoIss
         return ( result );
     }
 
-    ptIsiSensorMipiInfo->ucMipiLanes = pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes;
-    ptIsiSensorMipiInfo->ulMipiFreq= pOV8825Ctx->IsiSensorMipiInfo.ulMipiFreq;
-    ptIsiSensorMipiInfo->sensorHalDevID = pOV8825Ctx->IsiSensorMipiInfo.sensorHalDevID;
+    ptIsiSensorMipiInfo->ucMipiLanes = pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes;
+    ptIsiSensorMipiInfo->ulMipiFreq= pOV8820Ctx->IsiSensorMipiInfo.ulMipiFreq;
+    ptIsiSensorMipiInfo->sensorHalDevID = pOV8820Ctx->IsiSensorMipiInfo.sensorHalDevID;
     
 
 
-    TRACE( OV8825_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
 
-static RESULT OV8825_IsiGetSensorIsiVersion
+static RESULT OV8820_IsiGetSensorIsiVersion
 (  IsiSensorHandle_t   handle,
    unsigned int*     pVersion
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-    	TRACE( OV8825_ERROR, "%s: pOV8825Ctx IS NULL\n", __FUNCTION__);
+    	TRACE( OV8820_ERROR, "%s: pOV8820Ctx IS NULL\n", __FUNCTION__);
         return ( RET_WRONG_HANDLE );
     }
 
 	if(pVersion == NULL)
 	{
-		TRACE( OV8825_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+		TRACE( OV8820_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
         return ( RET_WRONG_HANDLE );
 	}
 
@@ -4197,38 +4198,38 @@ static RESULT OV8825_IsiGetSensorIsiVersion
 	return result;
 }
 
-static RESULT OV8825_IsiGetSensorTuningXmlVersion
+static RESULT OV8820_IsiGetSensorTuningXmlVersion
 (  IsiSensorHandle_t   handle,
    char**     pTuningXmlVersion
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
 
-    TRACE( OV8825_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV8825Ctx == NULL )
+    if ( pOV8820Ctx == NULL )
     {
-    	TRACE( OV8825_ERROR, "%s: pOV8825Ctx IS NULL\n", __FUNCTION__);
+    	TRACE( OV8820_ERROR, "%s: pOV8820Ctx IS NULL\n", __FUNCTION__);
         return ( RET_WRONG_HANDLE );
     }
 
 	if(pTuningXmlVersion == NULL)
 	{
-		TRACE( OV8825_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+		TRACE( OV8820_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
         return ( RET_WRONG_HANDLE );
 	}
 
-	*pTuningXmlVersion = OV8825_NEWEST_TUNING_XML;
+	*pTuningXmlVersion = OV8820_NEWEST_TUNING_XML;
 	return result;
 }
 
 
 /*****************************************************************************/
 /**
- *          OV8825_IsiGetSensorIss
+ *          OV8820_IsiGetSensorIss
  *
  * @brief   fills in the correct pointers for the sensor description struct
  *
@@ -4239,83 +4240,83 @@ static RESULT OV8825_IsiGetSensorTuningXmlVersion
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV8825_IsiGetSensorIss
+RESULT OV8820_IsiGetSensorIss
 (
     IsiSensor_t *pIsiSensor
 )
 {
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
 
     if ( pIsiSensor != NULL )
     {
-        pIsiSensor->pszName                             = OV8825_g_acName;
-        pIsiSensor->pRegisterTable                      = OV8825_g_aRegDescription_onelane;
-        pIsiSensor->pIsiSensorCaps                      = &OV8825_g_IsiSensorDefaultConfig;
-		pIsiSensor->pIsiGetSensorIsiVer					= OV8825_IsiGetSensorIsiVersion;//oyyf
-		pIsiSensor->pIsiGetSensorTuningXmlVersion		= OV8825_IsiGetSensorTuningXmlVersion;//oyyf
-        pIsiSensor->pIsiCreateSensorIss                 = OV8825_IsiCreateSensorIss;
-        pIsiSensor->pIsiReleaseSensorIss                = OV8825_IsiReleaseSensorIss;
-        pIsiSensor->pIsiGetCapsIss                      = OV8825_IsiGetCapsIss;
-        pIsiSensor->pIsiSetupSensorIss                  = OV8825_IsiSetupSensorIss;
-        pIsiSensor->pIsiChangeSensorResolutionIss       = OV8825_IsiChangeSensorResolutionIss;
-        pIsiSensor->pIsiSensorSetStreamingIss           = OV8825_IsiSensorSetStreamingIss;
-        pIsiSensor->pIsiSensorSetPowerIss               = OV8825_IsiSensorSetPowerIss;
-        pIsiSensor->pIsiCheckSensorConnectionIss        = OV8825_IsiCheckSensorConnectionIss;
-        pIsiSensor->pIsiGetSensorRevisionIss            = OV8825_IsiGetSensorRevisionIss;
-        pIsiSensor->pIsiRegisterReadIss                 = OV8825_IsiRegReadIss;
-        pIsiSensor->pIsiRegisterWriteIss                = OV8825_IsiRegWriteIss;
+        pIsiSensor->pszName                             = OV8820_g_acName;
+        pIsiSensor->pRegisterTable                      = OV8820_g_aRegDescription_onelane;
+        pIsiSensor->pIsiSensorCaps                      = &OV8820_g_IsiSensorDefaultConfig;
+		pIsiSensor->pIsiGetSensorIsiVer					= OV8820_IsiGetSensorIsiVersion;//oyyf
+		pIsiSensor->pIsiGetSensorTuningXmlVersion		= OV8820_IsiGetSensorTuningXmlVersion;//oyyf
+        pIsiSensor->pIsiCreateSensorIss                 = OV8820_IsiCreateSensorIss;
+        pIsiSensor->pIsiReleaseSensorIss                = OV8820_IsiReleaseSensorIss;
+        pIsiSensor->pIsiGetCapsIss                      = OV8820_IsiGetCapsIss;
+        pIsiSensor->pIsiSetupSensorIss                  = OV8820_IsiSetupSensorIss;
+        pIsiSensor->pIsiChangeSensorResolutionIss       = OV8820_IsiChangeSensorResolutionIss;
+        pIsiSensor->pIsiSensorSetStreamingIss           = OV8820_IsiSensorSetStreamingIss;
+        pIsiSensor->pIsiSensorSetPowerIss               = OV8820_IsiSensorSetPowerIss;
+        pIsiSensor->pIsiCheckSensorConnectionIss        = OV8820_IsiCheckSensorConnectionIss;
+        pIsiSensor->pIsiGetSensorRevisionIss            = OV8820_IsiGetSensorRevisionIss;
+        pIsiSensor->pIsiRegisterReadIss                 = OV8820_IsiRegReadIss;
+        pIsiSensor->pIsiRegisterWriteIss                = OV8820_IsiRegWriteIss;
 
         /* AEC functions */
-        pIsiSensor->pIsiExposureControlIss              = OV8825_IsiExposureControlIss;
-        pIsiSensor->pIsiGetGainLimitsIss                = OV8825_IsiGetGainLimitsIss;
-        pIsiSensor->pIsiGetIntegrationTimeLimitsIss     = OV8825_IsiGetIntegrationTimeLimitsIss;
-        pIsiSensor->pIsiGetCurrentExposureIss           = OV8825_IsiGetCurrentExposureIss;
-        pIsiSensor->pIsiGetGainIss                      = OV8825_IsiGetGainIss;
-        pIsiSensor->pIsiGetGainIncrementIss             = OV8825_IsiGetGainIncrementIss;
-        pIsiSensor->pIsiSetGainIss                      = OV8825_IsiSetGainIss;
-        pIsiSensor->pIsiGetIntegrationTimeIss           = OV8825_IsiGetIntegrationTimeIss;
-        pIsiSensor->pIsiGetIntegrationTimeIncrementIss  = OV8825_IsiGetIntegrationTimeIncrementIss;
-        pIsiSensor->pIsiSetIntegrationTimeIss           = OV8825_IsiSetIntegrationTimeIss;
-        pIsiSensor->pIsiGetResolutionIss                = OV8825_IsiGetResolutionIss;
-        pIsiSensor->pIsiGetAfpsInfoIss                  = OV8825_IsiGetAfpsInfoIss;
+        pIsiSensor->pIsiExposureControlIss              = OV8820_IsiExposureControlIss;
+        pIsiSensor->pIsiGetGainLimitsIss                = OV8820_IsiGetGainLimitsIss;
+        pIsiSensor->pIsiGetIntegrationTimeLimitsIss     = OV8820_IsiGetIntegrationTimeLimitsIss;
+        pIsiSensor->pIsiGetCurrentExposureIss           = OV8820_IsiGetCurrentExposureIss;
+        pIsiSensor->pIsiGetGainIss                      = OV8820_IsiGetGainIss;
+        pIsiSensor->pIsiGetGainIncrementIss             = OV8820_IsiGetGainIncrementIss;
+        pIsiSensor->pIsiSetGainIss                      = OV8820_IsiSetGainIss;
+        pIsiSensor->pIsiGetIntegrationTimeIss           = OV8820_IsiGetIntegrationTimeIss;
+        pIsiSensor->pIsiGetIntegrationTimeIncrementIss  = OV8820_IsiGetIntegrationTimeIncrementIss;
+        pIsiSensor->pIsiSetIntegrationTimeIss           = OV8820_IsiSetIntegrationTimeIss;
+        pIsiSensor->pIsiGetResolutionIss                = OV8820_IsiGetResolutionIss;
+        pIsiSensor->pIsiGetAfpsInfoIss                  = OV8820_IsiGetAfpsInfoIss;
 
         /* AWB specific functions */
-        pIsiSensor->pIsiGetCalibKFactor                 = OV8825_IsiGetCalibKFactor;
-        pIsiSensor->pIsiGetCalibPcaMatrix               = OV8825_IsiGetCalibPcaMatrix;
-        pIsiSensor->pIsiGetCalibSvdMeanValue            = OV8825_IsiGetCalibSvdMeanValue;
-        pIsiSensor->pIsiGetCalibCenterLine              = OV8825_IsiGetCalibCenterLine;
-        pIsiSensor->pIsiGetCalibClipParam               = OV8825_IsiGetCalibClipParam;
-        pIsiSensor->pIsiGetCalibGlobalFadeParam         = OV8825_IsiGetCalibGlobalFadeParam;
-        pIsiSensor->pIsiGetCalibFadeParam               = OV8825_IsiGetCalibFadeParam;
-        pIsiSensor->pIsiGetIlluProfile                  = OV8825_IsiGetIlluProfile;
-        pIsiSensor->pIsiGetLscMatrixTable               = OV8825_IsiGetLscMatrixTable;
+        pIsiSensor->pIsiGetCalibKFactor                 = OV8820_IsiGetCalibKFactor;
+        pIsiSensor->pIsiGetCalibPcaMatrix               = OV8820_IsiGetCalibPcaMatrix;
+        pIsiSensor->pIsiGetCalibSvdMeanValue            = OV8820_IsiGetCalibSvdMeanValue;
+        pIsiSensor->pIsiGetCalibCenterLine              = OV8820_IsiGetCalibCenterLine;
+        pIsiSensor->pIsiGetCalibClipParam               = OV8820_IsiGetCalibClipParam;
+        pIsiSensor->pIsiGetCalibGlobalFadeParam         = OV8820_IsiGetCalibGlobalFadeParam;
+        pIsiSensor->pIsiGetCalibFadeParam               = OV8820_IsiGetCalibFadeParam;
+        pIsiSensor->pIsiGetIlluProfile                  = OV8820_IsiGetIlluProfile;
+        pIsiSensor->pIsiGetLscMatrixTable               = OV8820_IsiGetLscMatrixTable;
 
         /* AF functions */
-        pIsiSensor->pIsiMdiInitMotoDriveMds             = OV8825_IsiMdiInitMotoDriveMds;
-        pIsiSensor->pIsiMdiSetupMotoDrive               = OV8825_IsiMdiSetupMotoDrive;
-        pIsiSensor->pIsiMdiFocusSet                     = OV8825_IsiMdiFocusSet;
-        pIsiSensor->pIsiMdiFocusGet                     = OV8825_IsiMdiFocusGet;
-        pIsiSensor->pIsiMdiFocusCalibrate               = OV8825_IsiMdiFocusCalibrate;
+        pIsiSensor->pIsiMdiInitMotoDriveMds             = OV8820_IsiMdiInitMotoDriveMds;
+        pIsiSensor->pIsiMdiSetupMotoDrive               = OV8820_IsiMdiSetupMotoDrive;
+        pIsiSensor->pIsiMdiFocusSet                     = OV8820_IsiMdiFocusSet;
+        pIsiSensor->pIsiMdiFocusGet                     = OV8820_IsiMdiFocusGet;
+        pIsiSensor->pIsiMdiFocusCalibrate               = OV8820_IsiMdiFocusCalibrate;
 
         /* MIPI */
-        pIsiSensor->pIsiGetSensorMipiInfoIss            = OV8825_IsiGetSensorMipiInfoIss;
+        pIsiSensor->pIsiGetSensorMipiInfoIss            = OV8820_IsiGetSensorMipiInfoIss;
 
         /* Testpattern */
-        pIsiSensor->pIsiActivateTestPattern             = OV8825_IsiActivateTestPattern;
+        pIsiSensor->pIsiActivateTestPattern             = OV8820_IsiActivateTestPattern;
     }
     else
     {
         result = RET_NULL_POINTER;
     }
 
-    TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( OV8820_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
 
-static RESULT OV8825_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
+static RESULT OV8820_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
 {
     sensor_i2c_info_t* pSensorI2cInfo;
 
@@ -4323,14 +4324,14 @@ static RESULT OV8825_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
 
     if ( pSensorI2cInfo == NULL )
     {
-        TRACE( OV8825_ERROR,  "%s: Can't allocate ov14825 context\n",  __FUNCTION__ );
+        TRACE( OV8820_ERROR,  "%s: Can't allocate ov14825 context\n",  __FUNCTION__ );
         return ( RET_OUTOFMEM );
     }
     MEMSET( pSensorI2cInfo, 0, sizeof( sensor_i2c_info_t ) );
 
     
-    pSensorI2cInfo->i2c_addr = OV8825_SLAVE_ADDR;
-    pSensorI2cInfo->soft_reg_addr = OV8825_SOFTWARE_RST;
+    pSensorI2cInfo->i2c_addr = OV8820_SLAVE_ADDR;
+    pSensorI2cInfo->soft_reg_addr = OV8820_SOFTWARE_RST;
     pSensorI2cInfo->soft_reg_value = 0x01;
     pSensorI2cInfo->reg_size = 2;
     pSensorI2cInfo->value_size = 1;
@@ -4345,8 +4346,8 @@ static RESULT OV8825_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
         return RET_OUTOFMEM;
     }
     MEMSET( pChipIDInfo_H, 0, sizeof(*pChipIDInfo_H) );    
-    pChipIDInfo_H->chipid_reg_addr = OV8825_CHIP_ID_HIGH_BYTE;  
-    pChipIDInfo_H->chipid_reg_value = OV8825_CHIP_ID_HIGH_BYTE_DEFAULT;
+    pChipIDInfo_H->chipid_reg_addr = OV8820_CHIP_ID_HIGH_BYTE;  
+    pChipIDInfo_H->chipid_reg_value = OV8820_CHIP_ID_HIGH_BYTE_DEFAULT;
     ListPrepareItem( pChipIDInfo_H );
     ListAddTail( &pSensorI2cInfo->chipid_info, pChipIDInfo_H );
 
@@ -4356,8 +4357,8 @@ static RESULT OV8825_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
         return RET_OUTOFMEM;
     }
     MEMSET( pChipIDInfo_M, 0, sizeof(*pChipIDInfo_M) ); 
-    pChipIDInfo_M->chipid_reg_addr = OV8825_CHIP_ID_MIDDLE_BYTE;
-    pChipIDInfo_M->chipid_reg_value = OV8825_CHIP_ID_MIDDLE_BYTE_DEFAULT;
+    pChipIDInfo_M->chipid_reg_addr = OV8820_CHIP_ID_MIDDLE_BYTE;
+    pChipIDInfo_M->chipid_reg_value = OV8820_CHIP_ID_MIDDLE_BYTE_DEFAULT;
     ListPrepareItem( pChipIDInfo_M );
     ListAddTail( &pSensorI2cInfo->chipid_info, pChipIDInfo_M );
     
@@ -4367,8 +4368,8 @@ static RESULT OV8825_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
         return RET_OUTOFMEM;
     }
     MEMSET( pChipIDInfo_L, 0, sizeof(*pChipIDInfo_L) ); 
-    pChipIDInfo_L->chipid_reg_addr = OV8825_CHIP_ID_LOW_BYTE;
-    pChipIDInfo_L->chipid_reg_value = OV8825_CHIP_ID_LOW_BYTE_DEFAULT;
+    pChipIDInfo_L->chipid_reg_addr = OV8820_CHIP_ID_LOW_BYTE;
+    pChipIDInfo_L->chipid_reg_value = OV8820_CHIP_ID_LOW_BYTE_DEFAULT;
     ListPrepareItem( pChipIDInfo_L );
     ListAddTail( &pSensorI2cInfo->chipid_info, pChipIDInfo_L );
 
@@ -4388,7 +4389,7 @@ static RESULT OV8825_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
 IsiCamDrvConfig_t IsiCamDrvConfig =
 {
     0,
-    OV8825_IsiGetSensorIss,
+    OV8820_IsiGetSensorIss,
     {
         0,                      /**< IsiSensor_t.pszName */
         0,                      /**< IsiSensor_t.pRegisterTable */
@@ -4440,7 +4441,7 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
 
         0,                      /**< IsiSensor_t.pIsiActivateTestPattern */
     },
-    OV8825_IsiGetSensorI2cInfo,
+    OV8820_IsiGetSensorI2cInfo,
 };
 
 

@@ -850,7 +850,31 @@ RESULT CamEngineAvsGetStatus
     CamEngineVector_t   *pCurrOffsetVec
 );
 
+RESULT CamEngineAwbGetinfo
+(
+	CamEngineHandle_t hCamEngine,
+	float *f_RgProj, 
+	float *f_s, 
+	float *f_s_Max1, 
+	float *f_s_Max2, 
+	float *f_Bg1, 
+	float *f_Rg1, 
+	float *f_Bg2, 
+	float *f_Rg2
+);
 
+RESULT CamEngineAwbGetIlluEstInfo
+(
+	CamEngineHandle_t hCamEngine,
+	float *ExpPriorIn,
+	float *ExpPriorOut,
+	char (*name)[20],
+	float likehood[],
+	float wight[],
+	int *curIdx,
+	int *region,
+	int *count
+);
 
 #ifdef __cplusplus
 }

@@ -106,7 +106,8 @@ extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 							int src_w, int src_h, int srcbuf_w,
 							int dst_w, int dst_h, int dstbuf_w,
 							bool mirror);
-
+							
+extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror);
 
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
@@ -141,33 +142,67 @@ v0.0x0a.0x01:
 *v0.0x0d.0x00:
 *       1) add continues video focus, but is fixed focus for video recording;
 *       2) stop continus af before af oneShot, marvin isp af afOnshot and afProcessFrame may be conflict;
-*v0.0x0d.0x01:
+*v0.0x0e.0x00:
+*       1) support digital zoom
+*v0.f.0:
+*       this version sync below version:
+*    v0.d.1:
 *       1) add continues video focus, but is fixed focus for video recording;
-*v0.d.2:
+*    v0.d.2:
 *       1) invalidate <= 1080p picture size, because the flash feature is not yet perfect;
-*v0.d.0x03:
+*    v0.d.3:
 *       1) stop focus and set max focus in disconnect camera for ov8825 vcm noise;
 *       2) set max focus in continues video focus;
-*v0.d.0x04:
-*       1) support mirror frame which sended by mDataCb and from front camera,
-*            config by CONFIG_CAMERA_FRONT_MIRROR_MDATACB;
-*v0.d.0x05:
-*       1) add wechat in CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK 
-*v0.d.0x06:
-*       1) add support picture size to increase the speed of taking capture in DV 
-*v0.d.0x07:
-*       1) support fake camera 
-*v0.d.0x08:
-*       1) fill the flash info into exif 
-*v0.0x14.1:
-		1) merge develope version v0.0x14.0
+*v0.10.0:
+        1) optimize flash unit
+        2) fix zoom erro in cameraConfig function
+  v0.0x11.0
+  	 support ov8858 ov13850 sensor dirver for preview
+*v0.0x12.0
+	    1) add flash trig pol control
+*v0.0x13.0:
+        merge source code frome mid,include following version:
+        v0.d.0x04:
+               1) support mirror frame which sended by mDataCb and from front camera,
+                    config by CONFIG_CAMERA_FRONT_MIRROR_MDATACB;
+        v0.d.0x05:
+               1) add wechat in CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK 
+        v0.d.0x06:
+               1) add support picture size to increase the speed of taking capture in DV 
+        v0.d.0x07:
+               1) support fake camera 
+        v0.d.0x08:
+               1) fill the flash info into exif 
+*v0.0x14.0:
+        1) zoom feature can config in board xml
 *v0.0x15.0:
-        1) flash pol must be initialized in setparameter,fix it
+        1) support flash auto mode
+        2) uvc support iommu 
+        3) judge whether need to enable flash in preview status.
+        4) flash pol must be initialized in setparameter,fix it
+*v0.0x16.0:
+	  1)add interface of getting awb param from isp.
+	  2)use makernote tag as customer infomation.
+*v0.0x17.0:
+	  1) modify the timing of getting awb param from isp, move it to CameraIspAdapter::bufferCb.
+*v0.0x18.0:
+*     1) match for Libisp v0.0x15.0(af speed up and add vcm current setting);
+*v0.0x19.0:
+      1) substitute rga for arm to do nv12 scale and crop to improve performance
+      2) support continuos shot feature
+      3) digital zoom by rga,prevent from decresing framerate,so front cam can support digital zoom well now.
+*v0.0x20.0:
+      1) add version info of getting from sensor XML file to makernote.
+*v0.0x21.0:
+      1) strcmp func fatal erro in funtion CameraIspAdapter::isNeedToEnableFlash if no KEY_SUPPORTED_FLASH_MODES supported,fix it
+*v0.0x22.0:
+*     1) autofocus and afListenThread and afProcessFrame(in Libisp) may be deadlock;
+*     2) startAfContinous and stopAf may be frequently, af cmd queue is full. Main thread hold;
+*     3) fix digital zoom by isp, must by rga;
+*     4) encProcessThread / bufferCb / setParameters(changeVideoSize->StopPreview)maybe deadlock;
+*     5) digital zoom by rga, needn't reconfig size;
 */
-
-
-
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x15, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x22, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -239,6 +274,11 @@ v0.0x0a.0x01:
 #define V4L2_BUFFER_MMAP_MAX        16
 #define PAGE_ALIGN(x)   (((x) + 0xFFF) & (~0xFFF)) // Set as multiple of 4K
 
+#define KEY_CONTINUOUS_PIC_NUM  "rk-continous-pic-num"
+#define KEY_CONTINUOUS_PIC_INTERVAL_TIME "rk-continous-pic-interval-time"
+#define KEY_CONTINUOUS_SUPPORTED    "rk-continous-supported"
+
+
 #define CAMHAL_GRALLOC_USAGE GRALLOC_USAGE_HW_TEXTURE | \
                              GRALLOC_USAGE_HW_RENDER | \
                              GRALLOC_USAGE_SW_WRITE_OFTEN | \
@@ -262,6 +302,7 @@ v0.0x0a.0x01:
 
 #define RK_VIDEOBUF_CODE_CHK(rk_code)		((rk_code&(('R'<<24)|('K'<<16)))==(('R'<<24)|('K'<<16)))
 
+#define USE_ION_VMALLOC_BUF (0)
 
 class FrameProvider
 {
@@ -327,6 +368,7 @@ public:
 
 class DisplayAdapter;
 class AppMsgNotifier;
+typedef struct cameraparam_info cameraparam_info_s;
 //diplay buffer 由display adapter类自行管理。
 
 /* mjpeg decoder interface in libvpu.*/
@@ -381,6 +423,7 @@ public:
     virtual status_t cancelAutoFocus();
 
     virtual void dump(int cameraId);
+	virtual void getCameraParamInfo(cameraparam_info_s &paraminfo);
 protected:
     //talk to driver
     virtual int cameraCreate(int cameraId);
@@ -663,6 +706,30 @@ private:
     sp<DisplayThread> mDisplayThread;
 };
 
+typedef struct cameraparam_info{
+	float ExposureTime;
+	float ISOSpeedRatings;
+	float f_RgProj;
+	float f_s;
+	float f_s_Max1;
+	float f_s_Max2;
+	float f_Bg1;
+	float f_Rg1;
+	float f_Bg2;
+	float f_Rg2;
+	float expPriorOut;
+	float expPriorIn;
+	int   illuIdx;
+	int   region;
+	
+	float likehood[32];
+	float wight[32];	
+	char  illuName[32][20];
+	int   count;
+
+	char XMLVersion[50];
+}cameraparam_info_s;
+
 //takepicture used
  typedef struct picture_info{
     int num;
@@ -687,6 +754,7 @@ private:
 	int  flash;
 	int  whiteBalance;
 
+	cameraparam_info_s cameraparam; 
  }picture_info_s;
 
 
@@ -820,6 +888,7 @@ public:
     void stopReceiveFrame();
     void dump();
 	void setDatacbFrontMirrorState(bool mirror);
+	picture_info_s&  getPictureInfoRef();
 private:
 
    void encProcessThread();

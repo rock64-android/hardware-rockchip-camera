@@ -833,6 +833,11 @@ RESULT CamCalibDbGetDpccProfileByResolution
     CamDpccProfile_t            **pDpccProfile
 );
 
+RESULT CamCalibDbGetSensorXmlVersion
+(
+	CamCalibDbHandle_t          hCamCalibDb,
+	char (*pVersion)[50]
+);
 
 #ifdef __cplusplus
 }

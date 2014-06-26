@@ -12,7 +12,14 @@
 
 namespace android{
 
-
+typedef struct awbStatus{
+    bool enabled;
+    CamEngineAwbMode_t mode;
+    uint32_t idx;
+    CamEngineAwbRgProj_t RgProj;
+    bool  damping;
+    bool  manual_mode;
+}awbStatus_s;
 class CameraIspAdapter: public CameraAdapter,public BufferCb
 {
 public:
@@ -34,7 +41,7 @@ public:
     virtual void setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h,int zoom_value);
 
 	virtual void dump(int cameraId);
-    
+    virtual void getCameraParamInfo(cameraparam_info_s &paraminfo);
 private:
     //talk to driver
     virtual int cameraCreate(int cameraId);
@@ -61,6 +68,9 @@ private:
 
     int afListenerThread(void);
     int cameraConfig(const CameraParameters &tmpparams,bool isInit);
+    bool isLowIllumin();
+    void flashControl(bool on);
+    bool isNeedToEnableFlash();
 protected:
     CamDevice       *m_camDevice;
     KeyedVector<void *, void *> mFrameInfoArray;
@@ -70,8 +80,9 @@ protected:
 
     std::string mSensorDriverFile[3];
     int mSensorItfCur;
+    bool mFlashStatus;
 
-
+    bool mAfChk;
     class CameraAfThread :public Thread
     {
         //deque 到帧后根据需要分发给DisplayAdapter类及EventNotifier类。
@@ -89,6 +100,10 @@ protected:
     
     CamEngineAfEvtQue_t  mAfListenerQue; 
     sp<CameraAfThread>   mAfListenerThread;
+
+private:
+    
+    awbStatus curAwbStatus;
     
 };
 

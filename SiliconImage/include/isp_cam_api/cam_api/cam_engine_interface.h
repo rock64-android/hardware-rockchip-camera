@@ -83,10 +83,27 @@
 *          1) isp_flash_prediv is wrong ,fix it
 *v0.0x11.0:
 *          1) marvin reset(ircl bit7) may be hold ahb when isp_clk:isp_hclk > 2:1, so used hard reset (cru reset);
+*v0.0x12.0:
+*          1) support flash auto mode
+*v0.0x13.0:
+*          1) maybe block by stop some times,add timeout for this.
+*v0.0x14.0:
+*          1) add interface getAwbGainInfo/getIlluEstInfo.  
+*v0.0x15.0:
+*          1) modify af(speed up), but continues af also may be failed;
+           1) maybe block by stop some times,add timeout for this.
+*v0.0x16.0:
+*          1) when data loss or pic size erro occure,frame is corrupted,so discard this frame(not work well for 2 lanes now).
+*v0.0x17.0:
+*          1) add interface getSensorXmlVersion.
+*v0.0x18.0:
+*          1) fix afStop may deadlock for queue is full;
+*          2) fix afOneShot cmd may be lost if vcm move time > 1 frames;
+*          3) fix IsiMdiSetupMotoDrive maxfocus error in opensensor for isi v0.3.0
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x11, 0x00)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x18, 0x00)
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);
@@ -160,6 +177,10 @@ public:
     uint32_t    camerIcMasterId() const;
     uint32_t    camerIcSlaveId() const;
     bool        isBitstream3D() const;
+	//zyl add
+	void getAwbGainInfo(float *f_RgProj, float *f_s, float *f_s_Max1, float *f_s_Max2, float *f_Bg1, float *f_Rg1, float *f_Bg2, float *f_Rg2);
+	void getIlluEstInfo(float *ExpPriorIn, float *ExpPriorOut, char (*name)[20], float likehood[], float wight[], int *curIdx, int *region, int *count);
+	bool getSensorXmlVersion(char (*pVersion)[50]);
 	//oyyf add
 	void getIspVersion(unsigned int* version);
 	//oyyf add
@@ -432,6 +453,7 @@ public:
                     uint32_t outHeight
                     
                 );
+    float getAecMeanLuminance() const;
 
 private:
     void closeSensor();

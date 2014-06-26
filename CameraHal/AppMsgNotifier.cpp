@@ -9,7 +9,7 @@ namespace android {
 
 static char ExifMaker[32];
 static char ExifModel[32];
-
+static char ExifSelfDefine[512];
 
 AppMsgNotifier::AppMsgNotifier()
                :encProcessThreadCommandQ("pictureEncThreadQ"),
@@ -105,10 +105,13 @@ AppMsgNotifier::~AppMsgNotifier()
 void AppMsgNotifier::setPictureRawBufProvider(BufferProvider* bufprovider)
 {
     mRawBufferProvider = bufprovider;
+    mRawBufferProvider->createBuffer(1, 0xd00000, RAWBUFFER);
+
  }
 void AppMsgNotifier::setPictureJpegBufProvider(BufferProvider* bufprovider)
 {
     mJpegBufferProvider = bufprovider;
+    mJpegBufferProvider->createBuffer(1, 0x700000,JPEGBUFFER);
 }
 void AppMsgNotifier::setFrameProvider(FrameProvider * framepro)
 {
@@ -299,10 +302,11 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
 
     if(msgtype & (CAMERA_MSG_POSTVIEW_FRAME | CAMERA_MSG_RAW_IMAGE|CAMERA_MSG_COMPRESSED_IMAGE)){
 //        if((mEncPictureNum <= 0) || (mReceivePictureFrame == false))
-    if((mEncPictureNum <= 0) || ((mRunningState&STA_RECEIVE_PIC_FRAME) == 0x0))			
-            mMsgTypeEnabled &= ~msgtype;
-        else
-            LOGD("%s%d:no need to disable picure msgtype.",__FUNCTION__,__LINE__);
+        if((mEncPictureNum <= 0) || ((mRunningState&STA_RECEIVE_PIC_FRAME) == 0x0)){			
+                mMsgTypeEnabled &= ~msgtype;
+                LOG1("%s%d:disable picure msgtype suc!!",__FUNCTION__,__LINE__);
+        }else
+            LOGD("%s%d:needn't to disable picure msgtype.",__FUNCTION__,__LINE__);
 
     }else if(msgtype & (CAMERA_MSG_PREVIEW_FRAME)){
             
@@ -471,8 +475,28 @@ int AppMsgNotifier::Jpegfillexifinfo(RkExifInfo *exifInfo,picture_info_s &params
 	ExifModel[sizeof(ExifModel) - 1] = '\0';
 	exifInfo->modelstr = ExifModel;
 	exifInfo->modelchars = strlen(ExifModel)+1;  
-	
-	exifInfo->Orientation = 1;
+
+    //degree 0:1
+    //degree 90(clockwise):6
+    //degree 180:3
+    //degree 270:8
+    switch(params.rotation){
+        case 0:
+        	exifInfo->Orientation = 1;
+            break;
+        case 90:
+        	exifInfo->Orientation = 6;
+            break;
+        case 180:
+        	exifInfo->Orientation = 3;
+            break;
+        case 270:
+        	exifInfo->Orientation = 8;
+            break;
+        default:
+        	exifInfo->Orientation = 1;
+            break;
+    }
 
 	// Date time
 	time_t rawtime;
@@ -481,11 +505,11 @@ int AppMsgNotifier::Jpegfillexifinfo(RkExifInfo *exifInfo,picture_info_s &params
 	timeinfo = localtime(&rawtime);
 	strftime((char *)exifInfo->DateTime, 20, "%Y:%m:%d %H:%M:%S", timeinfo);
 	
-	exifInfo->ExposureTime.num = 1;
+	exifInfo->ExposureTime.num = (int)(params.cameraparam.ExposureTime*100);
 	exifInfo->ExposureTime.denom = 100;
 	exifInfo->ApertureFNumber.num = 0x118;
 	exifInfo->ApertureFNumber.denom = 0x64;
-	exifInfo->ISOSpeedRatings = 0x59;
+	exifInfo->ISOSpeedRatings = ((int)(params.cameraparam.ISOSpeedRatings))*100;
 	exifInfo->CompressedBitsPerPixel.num = 0x4;
 	exifInfo->CompressedBitsPerPixel.denom = 0x1;
 	exifInfo->ShutterSpeedValue.num = 0x452;
@@ -515,6 +539,27 @@ int AppMsgNotifier::Jpegfillexifinfo(RkExifInfo *exifInfo,picture_info_s &params
 	exifInfo->DigitalZoomRatio.num = params.w;
 	exifInfo->DigitalZoomRatio.denom = params.w;
 	exifInfo->SceneCaptureType = 0x01;	 
+	
+	sprintf(ExifSelfDefine,"XMLVersion=%s   Rg_Proj=%0.5f   s=%0.5f   s_max1=%0.5f  s_max2=%0.5f   Bg1=%0.5f   Rg1=%0.5f   Bg2=%0.5f   Rg2=%0.5f   "
+    "colortemperature=%s   ExpPriorIn=%0.2f   ExpPriorOut=%0.2f    region=%d   ",params.cameraparam.XMLVersion,params.cameraparam.f_RgProj,\
+    params.cameraparam.f_s,params.cameraparam.f_s_Max1,params.cameraparam.f_s_Max2,params.cameraparam.f_Bg1,params.cameraparam.f_Rg1,params.cameraparam.f_Bg2,\
+    params.cameraparam.f_Rg2,params.cameraparam.illuName[params.cameraparam.illuIdx],params.cameraparam.expPriorIn,params.cameraparam.expPriorOut,\
+    params.cameraparam.region);
+	
+	int i;
+	char str[64];
+	for(i=0; i<params.cameraparam.count; i++)
+	{
+		sprintf(str, "illuName[%d]=%s   ",i,params.cameraparam.illuName[i]);
+		strcat(ExifSelfDefine, str);
+		sprintf(str, "likehood[%d]=%0.2f   ",i,params.cameraparam.likehood[i]);
+		strcat(ExifSelfDefine, str);	
+		sprintf(str, "wight[%d]=%0.2f   ",i,params.cameraparam.wight[i]);
+		strcat(ExifSelfDefine, str);	
+	}
+	exifInfo->makernote = ExifSelfDefine;
+	exifInfo->makernotechars = strlen(ExifSelfDefine)+1;
+	
 	return 0;
 }
 
@@ -693,6 +738,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	}
 
     jpegbuf_size = 0x700000; //pictureSize;
+    #if 0
     //create raw & jpeg buffer
     ret = mRawBufferProvider->createBuffer(1, pictureSize, RAWBUFFER);
     if(ret < 0){
@@ -704,13 +750,14 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
         LOGE("mJpegBufferProvider->createBuffer FAILED");
         goto 	captureEncProcessPicture_exit;
     }
+    #endif
 
     bufindex=mRawBufferProvider->getOneAvailableBuffer(&rawbuf_phy, &rawbuf_vir);
     if(bufindex < 0){
         LOGE("mRawBufferProvider->getOneAvailableBuffer FAILED");
         goto 	captureEncProcessPicture_exit;
     }
-	mRawBufferProvider->setBufferStatus(bufindex, 1);		
+	//mRawBufferProvider->setBufferStatus(bufindex, 1);		
     bufindex=mJpegBufferProvider->getOneAvailableBuffer(&jpegbuf_phy, &jpegbuf_vir);
     if(bufindex < 0){
         LOGE("mJpegBufferProvider->getOneAvailableBuffer FAILED");
@@ -725,24 +772,31 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     input_vir_addr = frame->vir_addr;
     output_phy_addr = jpegbuf_phy;
     output_vir_addr = jpegbuf_vir;
-	LOGD("rawbuf_phy:%x,rawbuf_vir:%x;jpegbuf_phy = %x,jpegbuf_vir = %x",rawbuf_phy,rawbuf_vir,jpegbuf_phy,jpegbuf_vir);
-	
+	LOG1("rawbuf_phy:%x,rawbuf_vir:%x;jpegbuf_phy = %x,jpegbuf_vir = %x",rawbuf_phy,rawbuf_vir,jpegbuf_phy,jpegbuf_vir);
+
 	if (mMsgTypeEnabled & CAMERA_MSG_SHUTTER)
 		mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
+
 	LOGD("captureEncProcessPicture,rotation = %d,jpeg_w = %d,jpeg_h = %d",rotation,jpeg_w,jpeg_h);
+
     //2. copy to output buffer for mirro and flip
 	/*ddl@rock-chips.com: v0.4.7*/
     // bool rotat_180 = false; //used by ipp
-    if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
+    if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && ((frame->frame_width != jpeg_w) || (frame->frame_height != jpeg_h) || (frame->zoom_value != 100))){
         output_phy_addr = rawbuf_phy;
         output_vir_addr = rawbuf_vir;
+        #if 0
         arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
             (char*)rawbuf_vir,frame->frame_width, frame->frame_height,
              jpeg_w, jpeg_h,false,frame->zoom_value);
+        #else
+        rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+                            (char*)(frame->vir_addr), (short int *)rawbuf_vir, 
+                            jpeg_w,jpeg_w,jpeg_h,frame->zoom_value,false);
+        #endif
         input_phy_addr = output_phy_addr;
         input_vir_addr = output_vir_addr;
         mRawBufferProvider->flushBuffer(0);
-        LOG1("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
     }
 	/*if ((frame->frame_fmt != picfmt) || (frame->frame_width!= jpeg_w) || (frame->frame_height != jpeg_h) 
     	|| (frame->zoom_value != 100)) {
@@ -769,6 +823,8 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     output_phy_addr = jpegbuf_phy;
     output_vir_addr = jpegbuf_vir;
 
+#if 0
+
     //3. src data will be changed by mirror and flip algorithm
     //use jpeg buffer as line buffer
 
@@ -794,7 +850,10 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	{
 		JpegInInfo.rotateDegree = DEGREE_270; 		
 	}
-
+#else
+    //set rotation in exif file
+	JpegInInfo.rotateDegree = DEGREE_0; 
+#endif
 	JpegInInfo.frameHeader = 1;
 	JpegInInfo.yuvaddrfor180 = (int)NULL;
 	JpegInInfo.type = encodetype;
@@ -827,6 +886,12 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 		JpegInInfo.uv_vir_addr = (unsigned char*)input_vir_addr+jpeg_w*jpeg_h;
 	}else{	  
 		JpegInInfo.doThumbNail = 0; 		 //insert thumbnail at APP0 extension	
+		JpegInInfo.thumbData = NULL;		 //if thumbData is NULL, do scale, the type above can not be 420_P or 422_UYVY
+		JpegInInfo.thumbDataLen = -1;
+		JpegInInfo.thumbW = 0;
+		JpegInInfo.thumbH = 0;
+		JpegInInfo.y_vir_addr = 0;
+		JpegInInfo.uv_vir_addr = 0;		
 	}
 
 	Jpegfillexifinfo(&exifInfo,mPictureInfo);
@@ -839,7 +904,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 		memcpy(gpsprocessmethod+8,getMethod,strlen(getMethod)+1);		   
 		gpsInfo.GpsProcessingMethodchars = strlen(getMethod)+1+8;
 		gpsInfo.GPSProcessingMethod  = gpsprocessmethod;
-		LOGD("\nGpsProcessingMethodchars =%d",gpsInfo.GpsProcessingMethodchars);
+		LOG1("\nGpsProcessingMethodchars =%d",gpsInfo.GpsProcessingMethodchars);
 		JpegInInfo.gpsInfo = &gpsInfo;
 	} else {
 		JpegInInfo.gpsInfo = NULL;
@@ -849,7 +914,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	JpegOutInfo.outBufVirAddr = (unsigned char*)output_vir_addr;
 	JpegOutInfo.outBuflen = jpegbuf_size;
 	JpegOutInfo.jpegFileLen = 0x00;
-	JpegOutInfo.cacheflush= jpegEncFlushBufferCb;
+	JpegOutInfo.cacheflush= /*jpegEncFlushBufferCb*/NULL;
 	LOG1("JpegOutInfo.outBufPhyAddr:%x,JpegOutInfo.outBufVirAddr:%p,jpegbuf_size:%d",JpegOutInfo.outBufPhyAddr,JpegOutInfo.outBufVirAddr,jpegbuf_size);
 
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
@@ -858,13 +923,13 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 		LOGE("%s(%d): hw_jpeg_encode Failed, err: %d  JpegOutInfo.jpegFileLen:0x%x\n",__FUNCTION__,__LINE__,
 			err, JpegOutInfo.jpegFileLen);
 		goto captureEncProcessPicture_exit;
-	} else { 
+	} else {
 		copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);
 	}
 captureEncProcessPicture_exit: 
  //destroy raw and jpeg buffer
-    mRawBufferProvider->freeBuffer();
-    mJpegBufferProvider->freeBuffer();
+//    mRawBufferProvider->freeBuffer();
+//    mJpegBufferProvider->freeBuffer();
 	if(err < 0) {
 		LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
 		if (mNotifyCb && (mMsgTypeEnabled & CAMERA_MSG_ERROR)) {						
@@ -898,8 +963,14 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 	    tmpPreviewMemory = mRequestMemory(-1, tempMemSize, 1, NULL);
         if (tmpPreviewMemory) {
             //fill the tmpPreviewMemory
+            #if 0
             arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
                 (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
+            #else
+            rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+                                (char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
+                                mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror);
+            #endif
             //if(cameraFormatConvert(frame->frame_fmt, V4L2_PIX_FMT_NV12, NULL,
             //		(char*)frame->vir_addr,(char*)tmpPreviewMemory->data,0,0,tempMemSize,
             //		frame->frame_width, frame->frame_height,frame->frame_width,mPreviewDataW, mPreviewDataH, mPreviewDataW,false)==0)
@@ -931,9 +1002,15 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 
     mVideoBufferProvider->setBufferStatus(buf_index, 1);
     if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
+        #if 0
         arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
             (char*)buf_vir,frame->frame_width, frame->frame_height,
             mRecordW, mRecordH,false,frame->zoom_value);
+        #else
+        rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+                            (char*)(frame->vir_addr), (short int *)buf_vir, 
+                            mRecordW,mRecordW,mRecordH,frame->zoom_value,false);
+        #endif
 
         mVideoBufferProvider->flushBuffer(buf_index);
         mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_index], 0, mCallbackCookie);
@@ -971,6 +1048,11 @@ void AppMsgNotifier::setDatacbFrontMirrorState(bool mirror)
 	mDataCbFrontMirror = mirror;
 }
 
+picture_info_s&  AppMsgNotifier::getPictureInfoRef()
+{
+	return mPictureInfo;
+}
+
 void AppMsgNotifier::encProcessThread()
 {
 		bool loop = true;
@@ -992,13 +1074,21 @@ void AppMsgNotifier::encProcessThread()
 					LOGD("%s(%d): receive CMD_SNAPSHOT_SNAPSHOT with buffer %p,mEncPictureNum=%d",__FUNCTION__,__LINE__, (void*)frame->frame_index,mEncPictureNum);
 
                     //set picture encode info
-                    mEncPictureNum--;
-					captureEncProcessPicture(frame);
-					if(!mEncPictureNum){
+					{
 						Mutex::Autolock lock(mPictureLock); 
-						//mReceivePictureFrame = false;
-						mRunningState &= ~STA_RECEIVE_PIC_FRAME;
-					}
+
+                        if((mEncPictureNum > 0) && (mRunningState & STA_RECEIVE_PIC_FRAME)){
+                            mEncPictureNum--;
+                            if(!mEncPictureNum)
+    						//mReceivePictureFrame = false;
+    						mRunningState &= ~STA_RECEIVE_PIC_FRAME;
+                        }else{
+                            LOGD("%s(%d): needn't enc this frame!",__FUNCTION__,__LINE__);
+                        }
+                    }
+                    /* zyc@rock-chips.com: v0.0x22.0 */ 
+					captureEncProcessPicture(frame);
+
                     //return frame
                     frame_used_flag = (int)msg.arg3;
                     mFrameProvider->returnFrame(frame->frame_index,frame_used_flag);
@@ -1008,6 +1098,10 @@ void AppMsgNotifier::encProcessThread()
 				case EncProcessThread::CMD_ENCPROCESS_PAUSE:
 
 				{
+            		Message filter_msg;
+                    while(!encProcessThreadCommandQ.isEmpty()){
+                        encProcessThreadCommandQ.get(&filter_msg);
+                    }
                     if(msg.arg1)
                         ((Semaphore*)(msg.arg1))->Signal();
                    //wake up waiter

@@ -136,6 +136,11 @@ void CameraAdapter::dump(int cameraId)
 	
 }
 
+void CameraAdapter::getCameraParamInfo(cameraparam_info_s &paraminfo)
+{
+
+}
+
 status_t CameraAdapter::startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture)
 {
     

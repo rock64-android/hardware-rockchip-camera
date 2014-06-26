@@ -704,12 +704,20 @@ display_receive_cmd:
                        arm_nv12torgb565(frame->frame_width, frame->frame_height,
                 						(char*)(frame->vir_addr), (short int*)mDisplayBufInfo[queue_display_index].vir_addr,
                                          mDisplayWidth);
-                    }else if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0))
+                    }else if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0)){
+                    #if 0
                         arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, 
 							(char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr,
 							frame->frame_width, frame->frame_height,
 							mDisplayWidth, mDisplayHeight,
 							false,frame->zoom_value);
+                    #else
+                        rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+                                            (char*)(frame->vir_addr), (short int *)(mDisplayBufInfo[queue_display_index].vir_addr), 
+                                            mDisplayWidth,mDisplayWidth,mDisplayHeight,frame->zoom_value,false);
+
+                    #endif
+                    }
 #endif
 //                    LOGD("%s(%d): receive buffer %d, queue buffer %d to display", __FUNCTION__,__LINE__,queue_buf_index,queue_display_index);
 

@@ -6,6 +6,15 @@
 #include <hal/hal_api.h>
 
 
+/*
+*              OV2659 DRIVER VERSION NOTE
+*v0.1.0x00 : init ov2659 drv version.
+*
+*/
+
+
+#define CONFIG_OV2659_DRV_VERSION KERNEL_VERSION(0, 1, 0) 
+
 
 #ifdef __cplusplus
 extern "C"

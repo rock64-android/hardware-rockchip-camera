@@ -383,6 +383,104 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
 }
 
 
+extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror)
+{
+    int rgafd = -1,ret = -1;
+
+    if((rgafd = open("/dev/rga",O_RDWR)) < 0) {
+    	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
+        ret = -1;
+    	return ret;
+	}
+
+    struct rga_req  Rga_Request;
+    int err = 0;
+    
+    memset(&Rga_Request,0x0,sizeof(Rga_Request));
+
+	unsigned char *psY, *psUV;
+	int srcW,srcH,cropW,cropH;
+	int ratio = 0;
+	int top_offset=0,left_offset=0;
+//need crop ?
+	if((src_width*100/src_height) != (dst_width*100/dst_height)){
+		ratio = ((src_width*100/dst_width) >= (src_height*100/dst_height))?(src_height*100/dst_height):(src_width*100/dst_width);
+		cropW = ratio*dst_width/100;
+		cropH = ratio*dst_height/100;
+		
+		left_offset=((src_width-cropW)>>1) & (~0x01);
+		top_offset=((src_height-cropH)>>1) & (~0x01);
+	}else{
+		cropW = src_width;
+		cropH = src_height;
+		top_offset=0;
+		left_offset=0;
+	}
+
+    //zoom ?
+    if(zoom_val > 100){
+        cropW = cropW*100/zoom_val;
+        cropH = cropH*100/zoom_val;
+		left_offset=((src_width-cropW)>>1) & (~0x01);
+		top_offset=((src_height-cropH)>>1) & (~0x01);
+    }
+    
+
+	psY = (unsigned char*)(src)/*+top_offset*src_width+left_offset*/;
+	//psUV = (unsigned char*)(src) +src_width*src_height+top_offset*src_width/2+left_offset;
+	
+	Rga_Request.src.yrgb_addr =  0;
+    Rga_Request.src.uv_addr  = (int)psY;
+    Rga_Request.src.v_addr   =  0;
+    Rga_Request.src.vir_w =  src_width;
+    Rga_Request.src.vir_h = src_height;
+    Rga_Request.src.format = RK_FORMAT_YCbCr_420_SP;
+    Rga_Request.src.act_w = cropW;
+    Rga_Request.src.act_h = cropH;
+    Rga_Request.src.x_offset = left_offset;
+    Rga_Request.src.y_offset = top_offset;
+
+    Rga_Request.dst.yrgb_addr = 0;
+    Rga_Request.dst.uv_addr  = (int)dst;
+    Rga_Request.dst.v_addr   = 0;
+    Rga_Request.dst.vir_w = dstbuf_width;
+    Rga_Request.dst.vir_h = dst_height;
+    Rga_Request.dst.format = RK_FORMAT_YCbCr_420_SP;
+    Rga_Request.clip.xmin = 0;
+    Rga_Request.clip.xmax = dst_width - 1;
+    Rga_Request.clip.ymin = 0;
+    Rga_Request.clip.ymax = dst_height - 1;
+    Rga_Request.dst.act_w = dst_width;
+    Rga_Request.dst.act_h = dst_height;
+    Rga_Request.dst.x_offset = 0;
+    Rga_Request.dst.y_offset = 0;
+    Rga_Request.mmu_info.mmu_en    = 1;
+    Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1;
+    Rga_Request.alpha_rop_flag |= (1 << 5);             /* ddl@rock-chips.com: v0.4.3 */
+
+	if((cropW != dst_width) || ( cropH != dst_height)){
+		Rga_Request.sina = 0;
+		Rga_Request.cosa = 0x10000;
+		Rga_Request.scale_mode = 1;
+    	Rga_Request.rotate_mode = mirror ? 2:1;
+	}else{
+		Rga_Request.sina = 0;
+		Rga_Request.cosa =  0;
+		Rga_Request.scale_mode = 0;
+    	Rga_Request.rotate_mode = mirror ? 2:0;
+	}
+    
+
+    if(ioctl(rgafd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
+        LOGE("%s(%d):  RGA_BLIT_ASYNC Failed", __FUNCTION__, __LINE__);
+        err = -1;
+    }
+
+    close(rgafd);
+    return err;
+}
+
+
 extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst, 
 									char *srcbuf, char *dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool mirror,int zoom_val)
 {

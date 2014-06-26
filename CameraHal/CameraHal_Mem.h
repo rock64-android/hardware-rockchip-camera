@@ -67,6 +67,7 @@ public :
 	virtual int destroyJpegBuffer() = 0;
 	virtual int destroyVideoEncBuffer() = 0;
 	virtual int flushCacheMem(buffer_type_enum buftype,unsigned int offset, unsigned int len) = 0;
+	#if 0
 	struct bufferinfo_s& getPreviewBufInfo(){
 		return mPreviewBufferInfo;}
 	struct bufferinfo_s& getRawBufInfo(){
@@ -75,13 +76,14 @@ public :
 		return mJpegBufferInfo;}
 	struct bufferinfo_s& getVideoEncBufInfo(){
 		return mVideoEncBufferInfo;}
+	#endif
     unsigned int getBufferAddr(enum buffer_type_enum buf_type, unsigned int buf_idx, buffer_addr_t addr_type);
     int dump();
 protected:
-	struct bufferinfo_s mPreviewBufferInfo;
-	struct bufferinfo_s mRawBufferInfo;
-	struct bufferinfo_s mJpegBufferInfo;
-	struct bufferinfo_s mVideoEncBufferInfo;
+	struct bufferinfo_s* mPreviewBufferInfo;
+	struct bufferinfo_s* mRawBufferInfo;
+	struct bufferinfo_s* mJpegBufferInfo;
+	struct bufferinfo_s* mVideoEncBufferInfo;
 	mutable Mutex mLock;
 };
 #if (CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)

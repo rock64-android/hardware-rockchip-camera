@@ -236,7 +236,10 @@ void camera_board_profiles::ParserVCMInfo(const char *name, const char **atts, v
 	rk_cam_total_info *pCamInfo = pCamInfoProfiles->mCurDevice;
 	rk_vcm_info *pVcmInfo = &(pCamInfo->mHardInfo.mVcmInfo);
 
-    if (strcmp(name, "VCMName")==0) {
+    if (strcmp(name, "VCMDrvName")==0) {
+        ALOGD("%s(%d): VCMDrvName(%s)\n", __FUNCTION__, __LINE__, atts[1]);
+        strncpy(pVcmInfo->mVcmDrvName, atts[1], strlen(atts[1]));
+    } else if (strcmp(name, "VCMName")==0) {
         ALOGD("%s(%d): VCMName(%s)\n", __FUNCTION__, __LINE__, atts[1]);
         strncpy(pVcmInfo->mVcmName, atts[1], strlen(atts[1]));
     } else if (strcmp(name, "VCMI2cBusNum")==0) {
@@ -261,7 +264,20 @@ void camera_board_profiles::ParserVCMInfo(const char *name, const char **atts, v
         strncpy((char*)pVcmInfo->mVcmVdd.name, (atts[1]), strlen(atts[1]));       
         pVcmInfo->mVcmVdd.min_uv= atoi(atts[3]);
         pVcmInfo->mVcmVdd.max_uv= atoi(atts[5]);
-    } 
+    } else if (strcmp(name,"VCMCurrent") == 0) {        
+        pVcmInfo->mStartCurrent = atoi(atts[1]);
+        pVcmInfo->mRatedCurrent = atoi(atts[3]);
+        pVcmInfo->mVcmMaxCurrent = atoi(atts[5]);
+        pVcmInfo->mStepMode = atoi(atts[7]);
+        pVcmInfo->mVcmDrvMaxCurrent = atoi(atts[9]);
+        ALOGD("%s(%d): start current(%d) rated current(%d) vcm max(%d)  step mode(%d)  drv max(%d) \n", 
+            __FUNCTION__, __LINE__, 
+            pVcmInfo->mStartCurrent,
+            pVcmInfo->mRatedCurrent,
+            pVcmInfo->mVcmMaxCurrent,
+            pVcmInfo->mStepMode,
+            pVcmInfo->mVcmDrvMaxCurrent);
+    }
 	
 }
 
@@ -677,7 +693,8 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
             (ConfigBoardXmlVersion&0xff00)>>8,
             ConfigBoardXmlVersion&0xff);
 		if(pCamInfoProfiles->mBoardXmlVersion != ConfigBoardXmlVersion){
-			ALOGE("this two version isn't match!!!\n");			
+			ALOGE("this two version isn't match!!!\n");	
+            DCT_ASSERT(0);
 		}
 
         ALOGD("\n\n");

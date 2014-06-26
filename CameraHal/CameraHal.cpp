@@ -49,6 +49,7 @@ namespace android {
 1.2 和 1.2 为同步关系，对于cameraservice来说是异步。
 
 *********************/
+
 CameraHal::CameraHal(int cameraId)
           :commandThreadCommandQ("commandCmdQ")
 {
@@ -506,7 +507,7 @@ int CameraHal::setParameters(const char* parameters)
 {
     CameraParameters params;
     String8 str_params(parameters);
-    
+
     params.unflatten(str_params);
     return setParameters(params);
 }
@@ -696,8 +697,8 @@ int CameraHal::fillPicturInfo(picture_info_s& picinfo)
 	} else {
 		picinfo.whiteBalance = 0;
 	}
-    picinfo.num = 1;
 	picinfo.fmt = V4L2_PIX_FMT_NV12;
+
     return 0;
 }
 void CameraHal::commandThread()
@@ -709,7 +710,6 @@ void CameraHal::commandThread()
    struct v4l2_control control;
    struct v4l2_queryctrl hdr;
     picture_info_s picinfo;
-    int pic_num = 1;
     int prevStatus = -1,drv_w,drv_h,picture_w,picture_h;
     int app_previw_w = 0,app_preview_h = 0;
     LOG_FUNCTION_NAME
@@ -844,7 +844,10 @@ get_command:
             {
                 LOGD("%s(%d): receive CMD_PREVIEW_CAPTURE_CANCEL", __FUNCTION__,__LINE__);
                 mEventNotifier->flushPicture();
-				setCamStatus(CMD_PREVIEW_CAPTURE_CANCEL_DONE, 1);			
+				setCamStatus(CMD_PREVIEW_CAPTURE_CANCEL_DONE, 1);	
+                //reset pic num to 1
+                mParameters.set(KEY_CONTINUOUS_PIC_NUM,"1");
+                mCameraAdapter->setParameters(mParameters);
                 if(msg.arg1)
                     ((Semaphore*)(msg.arg1))->Signal();
                 LOGD("%s(%d): CMD_PREVIEW_CAPTURE_CANCEL out",__FUNCTION__,__LINE__);
@@ -853,6 +856,7 @@ get_command:
     	    case CMD_CONTINUOS_PICTURE:
              {
     			LOGD("%s(%d): receive CMD_CONTINUOS_PICTURE", __FUNCTION__,__LINE__);
+                int pic_num = strtod(mParameters.get(KEY_CONTINUOUS_PIC_NUM),NULL);
 				mParameters.getPictureSize(&picture_w, &picture_h);
                 //need to pause display(is recording? is continuous picture ?) 
                 //if(!mRecordRunning && (pic_num == 1)){
@@ -888,7 +892,8 @@ get_command:
 							goto CMD_CONTINUOS_PICTURE_OUT;
                         if(pic_num > 1)
                         {
-                        	err=mDisplayAdapter->startDisplay(picture_w,picture_h);
+                            mParameters.getPreviewSize(&app_previw_w,&app_preview_h);
+                        	err=mDisplayAdapter->startDisplay(app_previw_w,app_preview_h);
 							if(err != -1)
 								setCamStatus(STA_DISPLAY_RUNNING, 1);
 							else
@@ -904,6 +909,7 @@ get_command:
 						goto CMD_CONTINUOS_PICTURE_OUT;
                 }
                 //take picture
+                picinfo.num = pic_num;
                 fillPicturInfo(picinfo);
                 mEventNotifier->takePicture(picinfo);
 

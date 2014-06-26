@@ -36,11 +36,13 @@
 
 
 /*
-*    v0.2.0: 
-*             support ov8858 and ov13850 driver
+*v0.2.0: 
+*    1). support ov8858 and ov13850 driver
+*v0.3.0:
+*    1). add support vcm current information;       
 */
 
-#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 2, 0x00) 
+#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 3, 0x00) 
 
 
 #ifdef __cplusplus
@@ -138,6 +140,13 @@ typedef struct IsiSensorInstanceConfig_s
     IsiSensor_t         *pSensor;           /**< Sensor driver interface */
 
     IsiSensorHandle_t   hSensor;            /**< Sensor handle returned by IsiCreateSensorIss */
+
+    uint32_t             VcmStartCurrent;   /* ddl@rock-chips.com: v0.3.0 */
+    uint32_t             VcmRatedCurrent;
+    uint32_t             VcmMaxCurrent;
+    uint32_t             VcmDrvMaxCurrent;
+    uint32_t             VcmStepMode;
+    
 } IsiSensorInstanceConfig_t;
 
 

@@ -17,7 +17,7 @@ using namespace android;
 *
 *
 */
-#define ConfigBoardXmlVersion KERNEL_VERSION(0, 3, 0x00) 
+#define ConfigBoardXmlVersion KERNEL_VERSION(0, 4, 0x00) 
 
 #define UVC_CAM_NAME "UVC Camera"
 #define RK_CAM_FACING_FRONT (1)
@@ -173,12 +173,19 @@ struct rk_sensor_info{
 struct rk_vcm_info{
     rk_vcm_info():mVcmI2cAddr(0){};
     ~rk_vcm_info(){};
-    
+
+    char mVcmDrvName[CAMSYS_NAME_LEN];
     char mVcmName[CAMSYS_NAME_LEN];
     unsigned int mVcmI2cAddr;
     unsigned int mVcmI2cBusNum;
     unsigned int mVcmI2cRate;
     int mI2cAddrBytes;
+
+    unsigned int mStartCurrent;        
+    unsigned int mRatedCurrent;
+    unsigned int mVcmMaxCurrent;
+    unsigned int mVcmDrvMaxCurrent;
+    unsigned int mStepMode;
 
     camsys_regulator_info_t mVcmVdd;  //"NC" describe no regulator
     

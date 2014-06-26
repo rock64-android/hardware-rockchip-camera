@@ -50,13 +50,24 @@ extern "C"
 *
 *v0.1.0x00 : 1. set focus pos to MAX_LOG in streamoff for VCM noise when changeResolution and exit camera;
 *            2. MDI_SLEW_RATE_CTRL 11 -> 1;
-*v0.1.1:     1. MDI_SLEW_RATE_CTRL 1 -> 3;
-*v0.1.2:     1. invalidate 0x0100 setting in OV8825_SetupOutputWindow and OV8825_IsiSensorSetStreamingIss for VCM noise;
-*v0.2.0:	 1. just updata version number to sync with develope version
+*v0.2.0:
+*            this version sync below version:
+*   v0.1.1:     1. MDI_SLEW_RATE_CTRL 1 -> 3;
+*   v0.1.2:     1. invalidate 0x0100 setting in OV8825_SetupOutputWindow and OV8825_IsiSensorSetStreamingIss for VCM noise;
+*
+*v0.3.0:
+*   1). add support vcm current and stepmode setting, isi version must v0.3.0
+*v0.4.0 : 
+*   1). decrease OV8825_MAX_GAIN_AEC to reduce noise for dark enviroment. 
+*v0.5.0 : 
+*   1). Resolution in pIsiSensorCaps for 2 lane had been configed wrong last commit, fix it.    
+*v0.6.0:
+*   1). stepmode setting haven't been send to sensor,fix it;
+*   2). check value which send to sensor is larger than MAX_VCMDRV_REG or not;
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 2, 0) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 6, 0) 
 
 
 
@@ -1232,6 +1243,14 @@ extern "C"
 /*****************************************************************************
  * ov14825 context structure
  *****************************************************************************/
+typedef struct OV8825_VcmInfo_s                 /* ddl@rock-chips.com: v0.3.0 */
+{
+    uint32_t StartCurrent;
+    uint32_t RatedCurrent;
+    uint32_t Step;
+    uint32_t StepMode;
+} OV8825_VcmInfo_t;
+ 
 typedef struct OV8825_Context_s
 {
     IsiSensorContext_t  IsiCtx;                 /**< common context of ISI and ISI driver layer; @note: MUST BE FIRST IN DRIVER CONTEXT */
@@ -1267,6 +1286,8 @@ typedef struct OV8825_Context_s
     uint32_t            OldFineIntegrationTime;
 
     IsiSensorMipiInfo   IsiSensorMipiInfo;
+
+    OV8825_VcmInfo_t    VcmInfo;              /* ddl@rock-chips.com: v0.3.0 */
 } OV8825_Context_t;
 
 #ifdef __cplusplus

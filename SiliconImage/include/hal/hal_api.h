@@ -134,7 +134,10 @@ INLINE uint32_t HalSetMaskedValue( uint32_t reg_value, uint32_t reg_mask, uint32
  * @brief   handle to hal instance
  *****************************************************************************/
 typedef struct HalContext_s *HalHandle_t;
-
+typedef struct HalPara_s
+{
+    uint32_t   mipi_lanes;
+} HalPara_t;
 
 /*****************************************************************************/
 /**
@@ -144,7 +147,7 @@ typedef struct HalContext_s *HalHandle_t;
  * @note    Sets internal ref count to 1.
  *****************************************************************************/
 //HalHandle_t HalOpen( void );
-HalHandle_t HalOpen( char* dev_filename );
+HalHandle_t HalOpen( char* dev_filename , HalPara_t *para);
 
 
 
