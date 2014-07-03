@@ -963,7 +963,7 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 	    tmpPreviewMemory = mRequestMemory(-1, tempMemSize, 1, NULL);
         if (tmpPreviewMemory) {
             //fill the tmpPreviewMemory
-            #if 0
+            #if 1 
             arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
                 (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
             #else

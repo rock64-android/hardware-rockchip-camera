@@ -201,8 +201,10 @@ v0.0x0a.0x01:
 *     3) fix digital zoom by isp, must by rga;
 *     4) encProcessThread / bufferCb / setParameters(changeVideoSize->StopPreview)maybe deadlock;
 *     5) digital zoom by rga, needn't reconfig size;
+*v0.0x22.1:
+*     1) fix memory leak  
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x22, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x22, 0x01)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
