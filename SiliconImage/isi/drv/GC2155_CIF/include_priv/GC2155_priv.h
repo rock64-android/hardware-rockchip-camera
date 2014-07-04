@@ -10,6 +10,7 @@
  *
  * v0.1.0x00 : 1.optimize performace for rk3288-r089
  * v0.1.0x01 : 1.optimize performace for rk3288-r089 again
+ * v0.2.0x00 : 1.optimize performace for rk3288-r089 again
  *
  */
 
