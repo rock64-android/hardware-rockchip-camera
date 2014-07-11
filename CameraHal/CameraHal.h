@@ -202,9 +202,11 @@ v0.0x0a.0x01:
 *     4) encProcessThread / bufferCb / setParameters(changeVideoSize->StopPreview)maybe deadlock;
 *     5) digital zoom by rga, needn't reconfig size;
 *v0.0x22.1:
-*     1) fix memory leak  
+*     1) fix memory leak
+*v0.0x22.2:
+*     1)add func getFlashStatus, fix wrong flash status in jpeg exif info.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x22, 0x01)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x22, 0x02)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -426,6 +428,7 @@ public:
 
     virtual void dump(int cameraId);
 	virtual void getCameraParamInfo(cameraparam_info_s &paraminfo);
+	virtual bool getFlashStatus();
 protected:
     //talk to driver
     virtual int cameraCreate(int cameraId);

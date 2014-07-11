@@ -42,6 +42,7 @@ public:
 
 	virtual void dump(int cameraId);
     virtual void getCameraParamInfo(cameraparam_info_s &paraminfo);
+	virtual bool getFlashStatus();
 private:
     //talk to driver
     virtual int cameraCreate(int cameraId);

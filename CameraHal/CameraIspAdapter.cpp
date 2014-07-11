@@ -1586,5 +1586,10 @@ void CameraIspAdapter::getCameraParamInfo(cameraparam_info_s &paraminfo)
 	m_camDevice->getSensorXmlVersion(&paraminfo.XMLVersion);
 }
 
+bool CameraIspAdapter::getFlashStatus()
+{
+	return mFlashStatus;
+}
+
 }
 
