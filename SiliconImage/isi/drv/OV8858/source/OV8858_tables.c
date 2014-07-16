@@ -375,9 +375,47 @@ const IsiRegDescription_t OV8858_g_1632x1224_twolane[] =
 
 const IsiRegDescription_t OV8858_g_3264x2448_twolane[] =
 {
-
+	{0x0100, 0x00,"0x0100",eReadWrite}, 									 
+	{0x030e, 0x00,"0x0100",eReadWrite}, // pll2_rdiv						 
+	{0x030f, 0x09,"0x0100",eReadWrite}, // pll2_divsp						 
+	{0x0312, 0x01,"0x0100",eReadWrite}, // pll2_pre_div0, pll2_r_divdac 	 
+	{0x3015, 0x01,"0x0100",eReadWrite}, //									 
+	{0x3501, 0x4d,"0x0100",eReadWrite}, // exposure M						 
+	{0x3502, 0x40,"0x0100",eReadWrite}, // exposure L						 
+	{0x3508, 0x04,"0x0100",eReadWrite}, // gain H							 
+	{0x3706, 0x35,"0x0100",eReadWrite}, //									 
+	{0x370a, 0x00,"0x0100",eReadWrite}, //									 
+	{0x370b, 0xb5,"0x0100",eReadWrite}, //									 
+	{0x3778, 0x1b,"0x0100",eReadWrite}, //									 
+	{0x3808, 0x06,"0x0100",eReadWrite}, // x output size H					 
+	{0x3809, 0x60,"0x0100",eReadWrite}, // x output size L					 
+	{0x380a, 0x04,"0x0100",eReadWrite}, // y output size H					 
+	{0x380b, 0xc8,"0x0100",eReadWrite}, // y output size L					 
+	{0x380c, 0x07,"0x0100",eReadWrite}, // HTS H							 
+	{0x380d, 0x88,"0x0100",eReadWrite}, // HTS L							 
+	{0x380e, 0x04,"0x0100",eReadWrite}, // VTS H							 
+	{0x380f, 0xdc,"0x0100",eReadWrite}, // VTS L							 
+	{0x3814, 0x03,"0x0100",eReadWrite}, // x odd inc						 
+	{0x3821, 0x67,"0x0100",eReadWrite}, // mirror on, bin on				 
+	{0x382a, 0x03,"0x0100",eReadWrite}, // y odd inc						 
+	{0x3830, 0x08,"0x0100",eReadWrite}, //									 
+	{0x3836, 0x02,"0x0100",eReadWrite}, //									 
+	{0x3f0a, 0x80,"0x0100",eReadWrite}, //									 
+	{0x4001, 0x10,"0x0100",eReadWrite}, // total 128 black column			 
+	{0x4022, 0x04,"0x0100",eReadWrite}, // Anchor left end H				 
+	{0x4023, 0xb9,"0x0100",eReadWrite}, // Anchor left end L				 
+	{0x4024, 0x05,"0x0100",eReadWrite}, // Anchor right start H 			 
+	{0x4025, 0x2a,"0x0100",eReadWrite}, // Anchor right start L 			 
+	{0x4026, 0x05,"0x0100",eReadWrite}, // Anchor right end H				 
+	{0x4027, 0x2b,"0x0100",eReadWrite}, // Anchor right end L				 
+	{0x402b, 0x04,"0x0100",eReadWrite}, // top black line number			 
+	{0x402e, 0x08,"0x0100",eReadWrite}, // bottom black line start			 
+	{0x4500, 0x38,"0x0100",eReadWrite}, 									 
+	{0x4600, 0x00,"0x0100",eReadWrite}, 									 
+	{0x4601, 0xcb,"0x0100",eReadWrite}, 									 
+	{0x382d, 0x7f,"0x0100",eReadWrite}, 
 	
-	{0x0100, 0x00,"0x0100",eReadWrite}, 								
+	//{0x0100, 0x00,"0x0100",eReadWrite}, 								
 	{0x030e, 0x02,"0x0100",eReadWrite}, // pll2_rdiv					
 	{0x030f, 0x04,"0x0100",eReadWrite}, // pll2_divsp					
 	{0x0312, 0x03,"0x0100",eReadWrite}, // pll2_pre_div0, pll2_r_divdac 

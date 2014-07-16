@@ -47,8 +47,8 @@ extern "C"
 /*
 *              SILICONIMAGE LIBISP VERSION NOTE
 *
-*v0.1.0x00 : first version:preview && focus;   1: 2lane 3264x2448 is ok    2: 4lane can't preview now//hkw
-
+*v0.1.0x00 : first version:preview && focus;   1: 2lane 3264x2448 is ok    2: 4lane can't preview now //hkw
+*v0.2.0x00 : fix 2lane 3264x2448;
 */
 
 

@@ -53,7 +53,7 @@ CREATE_TRACER( OV8858_REG_DEBUG, "OV8858: ", INFO, 1U );
 
 #define OV8858_MAXN_GAIN 		(128.0f)
 #define OV8858_MIN_GAIN_STEP   ( 1.0f / OV8858_MAXN_GAIN); /**< min gain step size used by GUI ( 32/(32-7) - 32/(32-6); min. reg value is 6 as of datasheet; depending on actual gain ) */
-#define OV8858_MAX_GAIN_AEC    ( 16.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
+#define OV8858_MAX_GAIN_AEC    ( 8.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
 
 
 /*!<
@@ -1947,7 +1947,7 @@ RESULT OV8858_IsiSetGainIss
 
     //return current state
     *pSetGain = pOV8858Ctx->AecCurGain;
-    TRACE( OV8858_ERROR, "%s: psetgain=%f, NewGain=%f\n", __FUNCTION__, *pSetGain, NewGain);
+    TRACE( OV8858_INFO, "%s: psetgain=%f, NewGain=%f\n", __FUNCTION__, *pSetGain, NewGain);
 
     TRACE( OV8858_INFO, "%s: (exit)\n", __FUNCTION__);
 
@@ -2168,7 +2168,7 @@ RESULT OV8858_IsiSetIntegrationTimeIss
     //return current state
     *pSetIntegrationTime = pOV8858Ctx->AecCurIntegrationTime;
 
-    TRACE( OV8858_ERROR, "%s: SetTi=%f NewTi=%f\n", __FUNCTION__, *pSetIntegrationTime,NewIntegrationTime);
+    TRACE( OV8858_INFO, "%s: SetTi=%f NewTi=%f\n", __FUNCTION__, *pSetIntegrationTime,NewIntegrationTime);
     TRACE( OV8858_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
@@ -2230,13 +2230,13 @@ RESULT OV8858_IsiExposureControlIss
         return ( RET_NULL_POINTER );
     }
 
-    TRACE( OV8858_DEBUG, "%s: g=%f, Ti=%f\n", __FUNCTION__, NewGain, NewIntegrationTime );
+    TRACE( OV8858_INFO, "%s: g=%f, Ti=%f\n", __FUNCTION__, NewGain, NewIntegrationTime );
 
 
     result = OV8858_IsiSetIntegrationTimeIss( handle, NewIntegrationTime, pSetIntegrationTime, pNumberOfFramesToSkip );
     result = OV8858_IsiSetGainIss( handle, NewGain, pSetGain );
 
-    TRACE( OV8858_DEBUG, "%s: set: g=%f, Ti=%f, skip=%d\n", __FUNCTION__, *pSetGain, *pSetIntegrationTime, *pNumberOfFramesToSkip );
+    TRACE( OV8858_INFO, "%s: set: g=%f, Ti=%f, skip=%d\n", __FUNCTION__, *pSetGain, *pSetIntegrationTime, *pNumberOfFramesToSkip );
     TRACE( OV8858_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
@@ -3145,7 +3145,7 @@ static RESULT OV8858_IsiMdiSetupMotoDrive
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8858_ERROR, "%s: (enter)\n", __FUNCTION__);
+    //TRACE( OV8858_ERROR, "%s: (enter)\n", __FUNCTION__);
 
     if ( pOV8858Ctx == NULL )
     {
@@ -3161,7 +3161,7 @@ static RESULT OV8858_IsiMdiSetupMotoDrive
 
     result = OV8858_IsiMdiFocusSet( handle, MAX_LOG );
 
-    TRACE( OV8858_ERROR, "%s: (exit)\n", __FUNCTION__);
+    //TRACE( OV8858_ERROR, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3196,7 +3196,7 @@ static RESULT OV8858_IsiMdiFocusSet
     uint32_t nPosition;
     uint8_t  data[2] = { 0, 0 };
 
-    TRACE( OV8858_ERROR, "%s: (enter)\n", __FUNCTION__);
+    //TRACE( OV8858_ERROR, "%s: (enter)\n", __FUNCTION__);
 
     if ( pOV8858Ctx == NULL )
     {
@@ -3209,7 +3209,7 @@ static RESULT OV8858_IsiMdiFocusSet
     data[0] = (uint8_t)(0x00U | (( nPosition & 0x3F0U ) >> 4U));                 // PD,  1, D9..D4, see AD5820 datasheet
     data[1] = (uint8_t)( ((nPosition & 0x0FU) << 4U) | MDI_SLEW_RATE_CTRL );    // D3..D0, S3..S0
 
-    TRACE( OV8858_ERROR, "%s: value = %d, 0x%02x 0x%02x\n", __FUNCTION__, nPosition, data[0], data[1] );
+    //TRACE( OV8858_ERROR, "%s: value = %d, 0x%02x 0x%02x\n", __FUNCTION__, nPosition, data[0], data[1] );
 
     result = HalWriteI2CMem( pOV8858Ctx->IsiCtx.HalHandle,
                              pOV8858Ctx->IsiCtx.I2cAfBusNum,
@@ -3220,7 +3220,7 @@ static RESULT OV8858_IsiMdiFocusSet
                              2U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-    TRACE( OV8858_ERROR, "%s: (exit)\n", __FUNCTION__);
+    //TRACE( OV8858_ERROR, "%s: (exit)\n", __FUNCTION__);
     return ( result );
 }
 
@@ -3253,7 +3253,7 @@ static RESULT OV8858_IsiMdiFocusGet
     RESULT result = RET_SUCCESS;
     uint8_t  data[2] = { 0, 0 };
 
-    TRACE( OV8858_ERROR, "%s: (enter)\n", __FUNCTION__);
+    //TRACE( OV8858_ERROR, "%s: (enter)\n", __FUNCTION__);
 
     if ( pOV8858Ctx == NULL )
     {
@@ -3274,7 +3274,7 @@ static RESULT OV8858_IsiMdiFocusGet
                             2U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-    TRACE( OV8858_ERROR, "%s: value = 0x%02x 0x%02x\n", __FUNCTION__, data[0], data[1] );
+    //TRACE( OV8858_ERROR, "%s: value = 0x%02x 0x%02x\n", __FUNCTION__, data[0], data[1] );
 
     /* Data[0] = PD,  1, D9..D4, see VM149C datasheet */
     /* Data[1] = D3..D0, S3..S0 */
@@ -3290,7 +3290,7 @@ static RESULT OV8858_IsiMdiFocusGet
         *pAbsStep = ( MAX_REG - *pAbsStep ) / 16U;
     }
 
-    TRACE( OV8858_ERROR, "%s: (exit)\n", __FUNCTION__);
+   // TRACE( OV8858_ERROR, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
