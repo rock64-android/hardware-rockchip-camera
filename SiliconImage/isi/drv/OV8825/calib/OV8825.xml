@@ -14,7 +14,7 @@
          FX288
       </sample_name>
       <generator_version index="1" type="char" size="[1 4]">
-         v0.1.0
+         v0.2.0
       </generator_version>
       <resolution index="1" type="cell" size="[1 2]">
          <cell index="1" type="struct" size="[1 1]">
@@ -3919,7 +3919,7 @@
             [ 80]
          </SetPoint>
          <ClmTolerance index="1" type="double" size="[1 1]">
-            [ 20]
+            [ 10]
          </ClmTolerance>
          <DampOver index="1" type="double" size="[1 1]">
             [ 0.2]

@@ -309,7 +309,15 @@ void camera_board_profiles::ParserFlashInfo(const char *name, const char **atts,
         ALOGD("%s(%d): FlashEn(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
         strncpy((char*)pFlashInfo->mFlashEn.name, (atts[1]), strlen(atts[1]));
         pFlashInfo->mFlashEn.active = atoi(atts[3]);     
-    } else if (strcmp(name, "Flash_Mode_Off")==0) {
+    }else if(strcmp(name,"FlashModeType")==0){
+    	pFlashInfo->mFlashMode = atoi(atts[1]);
+    }else if(strcmp(name,"FlashLuminance")==0){
+    	pFlashInfo->mLuminance = atof(atts[1]);
+		ALOGD("%s(%d): FlashLuminance(%s)\n", __FUNCTION__, __LINE__, atts[1]);
+	}else if(strcmp(name,"FlashColorTemp")==0){
+    	pFlashInfo->mColorTemperature = atof(atts[1]);
+		ALOGD("%s(%d): FlashColorTemp(%s)\n", __FUNCTION__, __LINE__, atts[1]);
+	}else if (strcmp(name, "Flash_Mode_Off")==0) {
         support = atoi(atts[1]);
 	    if(support==1)
             pFlashConfig->mFlashSupport |= (0x01<<FLASH_MODE_OFF_BITPOS); 
@@ -1017,6 +1025,14 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     
     if (strcmp("Internal",pFlashInfo->mFlashName) == 0) {
         extdev.dev_cfg |= CAMSYS_DEVCFG_FLASHLIGHT;
+		extdev.fl.fl.active = pFlashInfo->mFlashTrigger.active;
+		if(pFlashInfo->mFlashMode == 2)
+		{
+			LOG_ALWAYS_FATAL_IF((pFlashInfo->mFlashTrigger.active != pFlashInfo->mFlashEn.active),
+			"%s:\n"
+			"WARNING: flashen active value is not equal to flashtrigger active value!\n\n\n",  __PRETTY_FUNCTION__);
+			extdev.dev_cfg |= CAMSYS_DEVCFG_PREFLASHLIGHT;
+		}
     }
 
     if(pSensorInfo->mPhy.type == CamSys_Phy_Cif){

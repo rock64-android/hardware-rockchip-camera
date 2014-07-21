@@ -201,12 +201,28 @@ v0.0x0a.0x01:
 *     3) fix digital zoom by isp, must by rga;
 *     4) encProcessThread / bufferCb / setParameters(changeVideoSize->StopPreview)maybe deadlock;
 *     5) digital zoom by rga, needn't reconfig size;
-*v0.0x22.1:
-*     1) fix memory leak
-*v0.0x22.2:
-*     1)add func getFlashStatus, fix wrong flash status in jpeg exif info.
+*v0.0x23.0:
+      1) needn't disable CAMERA_MSG_SHUTTER during continuos pic taken.
+*v0.0x24.0:
+      1) fix compile warnning due to  last commit
+*v0.0x25.0:
+      1) support isp tunning 
+*v0.0x26.0:
+      1) mIsSendToTunningTh dosen't initialize in last commit,fix it
+*v0.0x27.0
+      1) merge source code frome mid,include following version:
+         v0.0x22.2:
+              1) add support 500w ;
+      2) autofocus and take picture failed , because fix startAfOneShot failed;
+*v0.0x28.0
+*     1) flash mode can config in board xml.
+*     2) support MWB/ME.
+*     3) add func getFlashStatus, fix wrong flash status in jpeg exif info.
+*v0.0x29.0
+*     1) modify isp tunning func
+*     2) zoom is not available when pic taken if pic size less than 5M,fix it       
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x22, 0x02)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x29, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

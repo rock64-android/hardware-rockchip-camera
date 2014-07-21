@@ -300,7 +300,7 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
 {
     LOG_FUNCTION_NAME
 
-    if(msgtype & (CAMERA_MSG_POSTVIEW_FRAME | CAMERA_MSG_RAW_IMAGE|CAMERA_MSG_COMPRESSED_IMAGE)){
+    if(msgtype & (CAMERA_MSG_POSTVIEW_FRAME | CAMERA_MSG_RAW_IMAGE|CAMERA_MSG_COMPRESSED_IMAGE | CAMERA_MSG_SHUTTER)){
 //        if((mEncPictureNum <= 0) || (mReceivePictureFrame == false))
         if((mEncPictureNum <= 0) || ((mRunningState&STA_RECEIVE_PIC_FRAME) == 0x0)){			
                 mMsgTypeEnabled &= ~msgtype;

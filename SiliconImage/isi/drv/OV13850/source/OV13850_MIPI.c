@@ -1049,7 +1049,7 @@ static RESULT OV13850_AecSetModeParameters
     // (formula is usually MaxIntTime = (CoarseMax * LineLength + FineMax) / Clk
     //                     MinIntTime = (CoarseMin * LineLength + FineMin) / Clk )
     pOV13850Ctx->AecMaxIntegrationTime = ( ((float)(pOV13850Ctx->FrameLengthLines - 4)) * ((float)pOV13850Ctx->LineLengthPck) ) / pOV13850Ctx->VtPixClkFreq;
-    pOV13850Ctx->AecMinIntegrationTime = 0.0f;
+    pOV13850Ctx->AecMinIntegrationTime = 0.0001f;
 
     TRACE( OV13850_ERROR, "%s%s: AecMaxIntegrationTime = %f \n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"", pOV13850Ctx->AecMaxIntegrationTime  );
 

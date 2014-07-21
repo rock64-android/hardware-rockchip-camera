@@ -408,7 +408,43 @@ RESULT AecGetCurrentLuminance
     CamerIcMeanLuma_t   *pLuma
 );
 
+/*****************************************************************************/
+/**
+ * @brief   This function returns the current ClmTolerance.
+ *
+ * @param   handle              AEC instance handle
+ * qparam   clmtolerance          pointer to the clmtolerance
+ *
+ * @return  Return the result of the function call.
+ * @retval  RET_SUCCESS
+ * @retval  RET_WRONG_HANDLE
+ * @retval  RET_INVALID_PARM
+ *
+ *****************************************************************************/
+RESULT AecGetClmTolerance
+(
+    AecHandle_t         handle,
+    float   *clmtolerance
+);
 
+/*****************************************************************************/
+/**
+ * @brief   This function set the current ClmTolerance.
+ *
+ * @param   handle              AEC instance handle
+ * qparam   clmtolerance          new clmtolerance
+ *
+ * @return  Return the result of the function call.
+ * @retval  RET_SUCCESS
+ * @retval  RET_WRONG_HANDLE
+ * @retval  RET_INVALID_PARM
+ *
+ *****************************************************************************/
+RESULT AecSetClmTolerance
+(
+	AecHandle_t 		handle,
+	float	clmtolerance
+);
 
 /*****************************************************************************/
 /**

@@ -39,7 +39,7 @@
 *v0.2.0: 
 *    1). support ov8858 and ov13850 driver
 *v0.3.0:
-*    1). add support vcm current information;       
+*    1). add support vcm current information;  
 */
 
 #define CONFIG_ISI_VERSION KERNEL_VERSION(0, 3, 0x00) 

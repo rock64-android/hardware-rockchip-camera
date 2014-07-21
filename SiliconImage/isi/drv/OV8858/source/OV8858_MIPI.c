@@ -30,7 +30,7 @@
 
 #include "OV8858_MIPI_priv.h"
 
-#define  OV8858_NEWEST_TUNING_XML "23-May-2014_OUYANG_OV8858_FX288_v0.1.0"
+#define  OV8858_NEWEST_TUNING_XML "18-7-2014_oyyf-hkw_OV8858_CMK-CB0407-FV1_v0.1.1"
 
 //hkw no use;
 #define CC_OFFSET_SCALING  2.0f
@@ -1049,7 +1049,7 @@ static RESULT OV8858_AecSetModeParameters
     // (formula is usually MaxIntTime = (CoarseMax * LineLength + FineMax) / Clk
     //                     MinIntTime = (CoarseMin * LineLength + FineMin) / Clk )
     pOV8858Ctx->AecMaxIntegrationTime = ( ((float)(pOV8858Ctx->FrameLengthLines - 4)) * ((float)pOV8858Ctx->LineLengthPck) ) / pOV8858Ctx->VtPixClkFreq;
-    pOV8858Ctx->AecMinIntegrationTime = 0.0f;
+    pOV8858Ctx->AecMinIntegrationTime = 0.0001f;
 
     TRACE( OV8858_DEBUG, "%s%s: AecMaxIntegrationTime = %f \n", __FUNCTION__, pOV8858Ctx->isAfpsRun?"(AFPS)":"", pOV8858Ctx->AecMaxIntegrationTime  );
 

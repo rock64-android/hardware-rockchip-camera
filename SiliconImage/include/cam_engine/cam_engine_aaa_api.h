@@ -850,6 +850,18 @@ RESULT CamEngineAvsGetStatus
     CamEngineVector_t   *pCurrOffsetVec
 );
 
+RESULT CamEngineAecGetClmTolerance
+(
+    CamEngineHandle_t        hCamEngine,
+    float   *clmTolerance
+);
+
+RESULT CamEngineSetAecClmTolerance
+(
+	CamEngineHandle_t		 hCamEngine,
+	float	clmTolerance
+);
+
 RESULT CamEngineAwbGetinfo
 (
 	CamEngineHandle_t hCamEngine,
@@ -875,6 +887,7 @@ RESULT CamEngineAwbGetIlluEstInfo
 	int *region,
 	int *count
 );
+
 
 #ifdef __cplusplus
 }

@@ -50,7 +50,7 @@ CREATE_TRACER(OV8820_NOTICE1, "OV8820: ", TRACE_NOTICE1, 1);
 #define OV8820_SLAVE_AF_ADDR    0x6cU                           /**< i2c slave address of the OV8820 integrated AD5820 */
 
 #define OV8820_MIN_GAIN_STEP   ( 1.0f / 16.0f); /**< min gain step size used by GUI ( 32/(32-7) - 32/(32-6); min. reg value is 6 as of datasheet; depending on actual gain ) */
-#define OV8820_MAX_GAIN_AEC    ( 6.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
+#define OV8820_MAX_GAIN_AEC    ( 8.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
 
 
 /*!<
@@ -1635,7 +1635,7 @@ static RESULT OV8820_AecSetModeParameters
     // (formula is usually MaxIntTime = (CoarseMax * LineLength + FineMax) / Clk
     //                     MinIntTime = (CoarseMin * LineLength + FineMin) / Clk )
     pOV8820Ctx->AecMaxIntegrationTime = ( ((float)(pOV8820Ctx->FrameLengthLines - 4)) * ((float)pOV8820Ctx->LineLengthPck) ) / pOV8820Ctx->VtPixClkFreq;
-    pOV8820Ctx->AecMinIntegrationTime = 0.0f;
+    pOV8820Ctx->AecMinIntegrationTime = 0.0001f;
 
     TRACE( OV8820_DEBUG, "%s%s: AecMaxIntegrationTime = %f \n", __FUNCTION__, pOV8820Ctx->isAfpsRun?"(AFPS)":"", pOV8820Ctx->AecMaxIntegrationTime  );
 

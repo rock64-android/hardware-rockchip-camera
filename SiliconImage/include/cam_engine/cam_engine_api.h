@@ -583,6 +583,12 @@ RESULT CamEngineStopFlash
     bool_t operate_now
 );
 
+RESULT CamEngineSetAecPoint
+(
+    CamEngineHandle_t  hCamEngine,
+    float point
+);
+
 #ifdef __cplusplus
 }
 #endif

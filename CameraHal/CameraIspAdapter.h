@@ -20,6 +20,18 @@ typedef struct awbStatus{
     bool  damping;
     bool  manual_mode;
 }awbStatus_s;
+typedef struct manExpConfig{
+	float minus_level_3;
+	float minus_level_2;
+	float minus_level_1;
+	float level_0;
+	float plus_level_1;
+	float plus_level_2;
+	float plus_level_3;
+	float clmtolerance;
+}manExpConfig_s;
+
+class CameraIspTunning;
 class CameraIspAdapter: public CameraAdapter,public BufferCb
 {
 public:
@@ -102,9 +114,38 @@ protected:
     CamEngineAfEvtQue_t  mAfListenerQue; 
     sp<CameraAfThread>   mAfListenerThread;
 
+    enum ISP_TUNNING_THREAD_CMD_e{
+       ISP_TUNNING_CMD_START,
+       ISP_TUNNING_CMD_EXIT,
+       ISP_TUNNING_CMD_PROCESS_FRAME
+    };
+
+    class CamISPTunningThread :public Thread
+    {
+        //deque 到帧后根据需要分发给DisplayAdapter类及EventNotifier类。
+        CameraIspAdapter* mCameraAdapter;
+    public:
+        CamISPTunningThread(CameraIspAdapter* adapter)
+            : Thread(false), mCameraAdapter(adapter) { }
+
+        virtual bool threadLoop() {
+            mCameraAdapter->ispTunningThread();
+
+            return false;
+        }
+    };
+
+    int ispTunningThread(void);
+    MessageQueue* mISPTunningQ;
+    sp<CamISPTunningThread>   mISPTunningThread;
+    int mISPOutputFmt;
+    bool mISPTunningRun;
+    bool mIsSendToTunningTh;
 private:
     
     awbStatus curAwbStatus;
+    CameraIspTunning* mIspTunningTask;
+    manExpConfig_s manExpConfig;
     
 };
 

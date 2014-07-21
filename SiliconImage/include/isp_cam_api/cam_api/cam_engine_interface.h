@@ -100,10 +100,25 @@
 *          1) fix afStop may deadlock for queue is full;
 *          2) fix afOneShot cmd may be lost if vcm move time > 1 frames;
 *          3) fix IsiMdiSetupMotoDrive maxfocus error in opensensor for isi v0.3.0
+*v0.0x19.0:
+*          1) set mi burst to 16,reduce the probability of data loss caused by ddr bandwidth
+*          2) optimize timeout procedure for CAM_ENGINE_CMD_HW_STREAMING_FINISHED
+*v0.0x20.0:
+*          1) af add support fine seach;
+*          2) af add support soc sensor af;
+*v0.0x21.0:
+*          1) add support mipi soc, add ov2685;
+*          2) add ov5640;
+*v0.0x22.0:
+*          1) add flash enable pol control.
+*          2) set FLASH_SKIP_FRAMES 3 for P4 case.
+*v0.0x23.0:
+*          1) verify if buffer has been fullfilled by isp (may be wrong mi frame_end irq ?)or not , if not ,drop it.
+
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x18, 0x00)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x23, 0x00)
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);
@@ -181,6 +196,10 @@ public:
 	void getAwbGainInfo(float *f_RgProj, float *f_s, float *f_s_Max1, float *f_s_Max2, float *f_Bg1, float *f_Rg1, float *f_Bg2, float *f_Rg2);
 	void getIlluEstInfo(float *ExpPriorIn, float *ExpPriorOut, char (*name)[20], float likehood[], float wight[], int *curIdx, int *region, int *count);
 	bool getSensorXmlVersion(char (*pVersion)[50]);
+	bool getInitAePoint(float *point);
+	bool setAePoint(float point);
+	float getAecClmTolerance() const;
+	bool setAeClmTolerance(float clmtolerance);
 	//oyyf add
 	void getIspVersion(unsigned int* version);
 	//oyyf add

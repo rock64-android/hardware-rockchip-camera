@@ -64,10 +64,12 @@ extern "C"
 *v0.6.0:
 *   1). stepmode setting haven't been send to sensor,fix it;
 *   2). check value which send to sensor is larger than MAX_VCMDRV_REG or not;
+*v0.7.0:
+*   1). limit AecMinIntegrationTime 0.0001 for aec.
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 6, 0) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 7, 0) 
 
 
 

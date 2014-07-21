@@ -690,11 +690,12 @@ display_receive_cmd:
             //        if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) /*&& (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0)*/)
                     if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420P)==0))
                     {
-
+                        if((frame->frame_width == mDisplayWidth) && (frame->frame_height== mDisplayHeight))
 						arm_yuyv_to_yv12(frame->frame_width, frame->frame_height,
                          (char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr);
 					}else if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0))
                     {
+                        if((frame->frame_width == mDisplayWidth) && (frame->frame_height== mDisplayHeight))
 						arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,
                          (char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr);
                         //LOGD("display got a frame");

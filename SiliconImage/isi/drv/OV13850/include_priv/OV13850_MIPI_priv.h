@@ -50,10 +50,11 @@ extern "C"
 *v0.1.0 : ov13850 driver ok, can preview, no tuning yet //oyyf
 *
 *v0.2.0 : ov13850 add 1lane setting, 4224x3136 1lane can't preview yet  //oyyf
-*
+*v0.3.0:
+*   1). limit AecMinIntegrationTime 0.0001 for aec.
 */
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 2, 0x00) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 3, 0x00) 
 
 
 #define OV13850_CHIP_ID_HIGH_BYTE            (0x300a) // r - 

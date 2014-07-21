@@ -839,6 +839,12 @@ RESULT CamCalibDbGetSensorXmlVersion
 	char (*pVersion)[50]
 );
 
+RESULT CamCalibDbGetAecPoint
+(
+	CamCalibDbHandle_t          hCamCalibDb,
+	float *point
+);
+
 #ifdef __cplusplus
 }
 #endif

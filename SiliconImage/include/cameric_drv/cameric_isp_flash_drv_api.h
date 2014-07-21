@@ -46,7 +46,7 @@ typedef struct CamerIcIspFlashCfg_s
 {
     CamerIcIspFlashMode_t mode;  
     CamerIcIspFlashTriggerPol_t active_pol;
-    
+    int32_t flashtype;
 } CamerIcIspFlashCfg_t;
 
 

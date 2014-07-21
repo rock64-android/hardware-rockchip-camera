@@ -197,7 +197,7 @@ typedef struct CamEngineFlashCfg_s
 {
     CamEngineFlashMode_t mode;  
     CamEngineFlashTriggerPol_t active_pol;
-    
+    int32_t flashtype;
 } CamEngineFlashCfg_t;
 /*****************************************************************************/
 /**

@@ -24,7 +24,8 @@ LOCAL_SRC_FILES:=\
 	FakeCameraAdapter.cpp\
 	CameraHal.cpp\
 	CameraHal_board_xml_parse.cpp\
-	CameraHal_Tracer.c
+	CameraHal_Tracer.c\
+	CameraIspTunning.cpp
 	
   
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)	 

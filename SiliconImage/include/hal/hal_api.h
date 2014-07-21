@@ -494,6 +494,24 @@ RESULT HalWriteI2CMem( HalHandle_t HalHandle, uint8_t bus_num, uint16_t slave_ad
 
 /*****************************************************************************/
 /**
+ * @brief   writes a number of data from a buffer to the memory starting a the given address
+ * @param   HalHandle       Handle to HAL session as returned by @ref HalOpen.
+ * @param   bus_num         Number of bus which is to be used.
+ * @param   slave_addr      Address of slave to be accessed (supports auto detection of 10bit adresses).
+ * @param   reg_address     Address of register to write.
+ * @param   reg_addr_size   Size of @ref reg_address in bytes, valid range: 0..4 bytes.
+ * @param   p_write_buffer  Pointer to local memory holding the data to be written.
+ * @param   byte_size       Amount of data to write.
+ * @param   rate            Rate of I2C.
+ * @return  Result of operation.
+ * 
+ * @note
+ *****************************************************************************/
+RESULT HalWriteI2CMem_Rate( HalHandle_t HalHandle, uint8_t bus_num, uint16_t slave_addr, uint32_t reg_address, uint8_t reg_addr_size, uint8_t *p_write_buffer, uint32_t byte_size,uint32_t rate);
+
+
+/*****************************************************************************/
+/**
  * @brief   reads a number of data from the memory to a buffer starting a the given address
  * @param   HalHandle       Handle to HAL session as returned by @ref HalOpen.
  * @param   bus_num         Number of bus which is to be used.

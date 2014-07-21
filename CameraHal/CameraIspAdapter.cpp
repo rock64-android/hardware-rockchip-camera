@@ -1,10 +1,13 @@
 #include "CameraIspAdapter.h"
 #include "cam_api/halholder.h"
+#include "CameraIspTunning.h"
 
 namespace android{
 
 #define ISP_OUT_YUV420SP   0
 #define ISP_OUT_YUV422_INTERLEAVED  1
+#define ISP_OUT_YUV422_SEMI  2
+#define ISP_OUT_RAW12   3
 #define ISP_OUT_FORMAT  ISP_OUT_YUV420SP //ISP_OUT_YUV422_INTERLEAVED
 
 #define USE_RGA_TODO_ZOOM   (1)
@@ -55,10 +58,14 @@ CameraIspAdapter::CameraIspAdapter(int cameraId)
     mZoomMin = 100;
     mZoomMax = 240;
     mFlashStatus = false;
+    mISPOutputFmt = ISP_OUT_YUV420SP;
+    mISPTunningRun = false;
+    mIsSendToTunningTh = false;
 	LOG_FUNCTION_NAME_EXIT
 }
 CameraIspAdapter::~CameraIspAdapter()
 {
+
     cameraDestroy();
 	
 }
@@ -125,7 +132,6 @@ int CameraIspAdapter::cameraDestroy()
         
     }
 
-    
     preview_frame_inval = 0;
     if(m_camDevice){
         disconnectCamera();
@@ -177,18 +183,25 @@ void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int previ
     }
 #endif
 
-#if (ISP_OUT_FORMAT == ISP_OUT_YUV422_INTERLEAVED)
-    m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
+   if(mISPOutputFmt == ISP_OUT_YUV422_INTERLEAVED){
+        m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
                                 CAMERIC_MI_DATAMODE_YUV422,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)true);
-    LOGD("%s:isp out put format is YUV422 interleaved.",__func__);
-#elif(ISP_OUT_FORMAT == ISP_OUT_YUV420SP)
-
-    m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
-                                CAMERIC_MI_DATAMODE_YUV420,CAMERIC_MI_DATASTORAGE_SEMIPLANAR,(bool_t)true);
-    LOGD("%s:isp out put format is YUV420SP.",__func__);
-#else
-    LOGE("%s:isp don't support this format %s now",__func__,ISP_OUT_FORMAT);
-#endif
+        LOGD("%s:isp out put format is YUV422 interleaved.",__func__);
+    }else if(mISPOutputFmt == ISP_OUT_YUV422_SEMI){
+        m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
+                                 CAMERIC_MI_DATAMODE_YUV422,CAMERIC_MI_DATASTORAGE_SEMIPLANAR,(bool_t)true);
+        LOGD("%s:isp out put format is YUV422 semi.",__func__);
+    }else if(mISPOutputFmt == ISP_OUT_YUV420SP){
+        m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
+                                 CAMERIC_MI_DATAMODE_YUV420,CAMERIC_MI_DATASTORAGE_SEMIPLANAR,(bool_t)true);
+        LOGD("%s:isp out put format is YUV420SP.",__func__);
+    }else if(mISPOutputFmt == ISP_OUT_RAW12){
+        m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
+                                CAMERIC_MI_DATAMODE_RAW12,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)false);
+        LOGD("%s:isp out put format is RAW12.",__func__);
+    }else{
+        LOGE("%s:isp don't support this format %d now",__func__,mISPOutputFmt);
+    }
 
 }
 status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture)
@@ -205,6 +218,26 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
          ( !m_camDevice->hasImage()  ) ){
           goto startPreview_end;
     	}
+
+    //for isp tunning
+    if((fmt != mISPOutputFmt)){
+        //restart isp
+        cameraDestroy();
+        mISPOutputFmt = fmt;
+        cameraCreate(mCamId);
+    }
+        
+	if(!strcmp(mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION), "-2"))
+		m_camDevice->setAePoint(manExpConfig.minus_level_2);
+	else if(!strcmp(mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION), "-1"))
+		m_camDevice->setAePoint(manExpConfig.minus_level_1);
+	else if(!strcmp(mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION), "0"))
+		m_camDevice->setAePoint(manExpConfig.level_0);
+	else if(!strcmp(mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION), "1"))
+		m_camDevice->setAePoint(manExpConfig.plus_level_1);
+	else if(!strcmp(mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION), "2"))
+		m_camDevice->setAePoint(manExpConfig.plus_level_2);
+	
 
     //must to get illum befor resolution changed
     if (is_capture) 
@@ -454,6 +487,7 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
                 if (strcmp(mParameters.get(CameraParameters::KEY_FLASH_MODE),params_set.get(CameraParameters::KEY_FLASH_MODE))) {
                     rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
                     flash_cfg.active_pol = (pCamInfo->mHardInfo.mFlashInfo.mFlashTrigger.active>0) ? CAM_ENGINE_FLASH_HIGH_ACTIVE:CAM_ENGINE_FLASH_LOW_ACTIVE;
+					flash_cfg.flashtype = pCamInfo->mHardInfo.mFlashInfo.mFlashMode;
                     if ((strcmp(params_set.get(CameraParameters::KEY_FLASH_MODE),CameraParameters::FLASH_MODE_ON)==0)
                         || ((strcmp(params_set.get(CameraParameters::KEY_FLASH_MODE),CameraParameters::FLASH_MODE_AUTO)==0))){
                         flash_cfg.mode = CAM_ENGINE_FLASH_ON;
@@ -513,7 +547,12 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         /* ddl@rock-chips.com: v0.d.2 */
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,2048x1536,2592x1944,3264x2448");
         params.setPictureSize(2592,1944);
-    } else if((pCaps.Resolution & ISI_RES_1600_1200)|| (pCaps.Resolution & ISI_RES_SVGA30)) {		
+    } else if((pCaps.Resolution & ISI_RES_2592_1944)) {
+		parameterString.append("800x600,640x48,1280x720");
+		params.setPreviewSize(800, 600);
+		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "2592x1944,1600x1200,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144");
+		params.setPictureSize(2592,1944);
+	} else if((pCaps.Resolution & ISI_RES_1600_1200)|| (pCaps.Resolution & ISI_RES_SVGA30)) {
         parameterString.append("1280x720,800x600,720x480,640x480");    	
         params.setPreviewSize(800, 600);	
 
@@ -596,6 +635,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 
             flash_cfg.mode = CAM_ENGINE_FLASH_ON;
             flash_cfg.active_pol = (pCamInfo->mHardInfo.mFlashInfo.mFlashTrigger.active>0) ? CAM_ENGINE_FLASH_HIGH_ACTIVE:CAM_ENGINE_FLASH_LOW_ACTIVE;
+			flash_cfg.flashtype = pCamInfo->mHardInfo.mFlashInfo.mFlashMode;
             m_camDevice->configureFlash(&flash_cfg);
         }
     }
@@ -678,11 +718,31 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     //params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES,CameraParameters::FOCUS_MODE_FIXED);
 
     // params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
+    //exposure setting
     params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, "0");
-    params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "1");
-    params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "0");
+    params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "2");
+    params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "-2");
     params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, "1");
-    params.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE, "false");
+	//WB setting
+	parameterString = "";
+	if(pCamInfo->mSoftInfo.mAwbConfig.mAwbSupport&(0x1<<AWB_AUTO_BITPOS))
+		parameterString.append("auto");
+//	if(pCamInfo->mSoftInfo.mAwbConfig.mAwbSupport&(0x1<<AWB_INCANDESCENT_BITPOS))
+//		parameterString.append(",incandescent");	
+	if(pCamInfo->mSoftInfo.mAwbConfig.mAwbSupport&0x1<<(AWB_FLUORESCENT_BITPOS))
+		parameterString.append(",fluorescent");	//荧光cwf
+	if(pCamInfo->mSoftInfo.mAwbConfig.mAwbSupport&0x1<<(AWB_WARM_FLUORESCENT_BITPOS))
+		parameterString.append(",incandescent");//白炽灯A	
+	if(pCamInfo->mSoftInfo.mAwbConfig.mAwbSupport&0x1<<(AWB_DAYLIGHT_BITPOS))
+		parameterString.append(",daylight");	//日光d65
+//	if(pCamInfo->mSoftInfo.mAwbConfig.mAwbSupport&0x1<<(AWB_CLOUDY_BITPOS))
+//		parameterString.append(",cloudy");
+	if(pCamInfo->mSoftInfo.mAwbConfig.mAwbSupport&0x1<<(AWB_TWILIGHT_BITPOS))
+		parameterString.append(",twilight");	//暮光tl84
+//	if(pCamInfo->mSoftInfo.mAwbConfig.mAwbSupport&0x1<<(AWB_SHADE_BITPOS))
+//		parameterString.append(",shade");	
+    params.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE, parameterString.string());
+	params.set(CameraParameters::KEY_WHITE_BALANCE, "auto");
     params.set(CameraParameters::KEY_SUPPORTED_EFFECTS, "false");
     params.set(CameraParameters::KEY_SUPPORTED_SCENE_MODES, "false");
     params.set(CameraParameters::KEY_SUPPORTED_ANTIBANDING, "false");
@@ -740,7 +800,46 @@ int CameraIspAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
     const char *white_balance = params.get(CameraParameters::KEY_WHITE_BALANCE);
 	const char *mwhite_balance = mParameters.get(CameraParameters::KEY_WHITE_BALANCE);
 	if (params.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE)) {	
-		//TODO
+		if ( !mwhite_balance || strcmp(white_balance, mwhite_balance) ){
+			//curAwbStatus.manual_mode = true;
+			if(!isInit)
+			{
+				char prfName[10];
+
+				if(!strcmp(white_balance, "auto"))
+				{
+					m_camDevice->stopAwb();
+					m_camDevice->resetAwb();
+					curAwbStatus.damping = true;
+					m_camDevice->startAwb(CAM_ENGINE_AWB_MODE_AUTO, 0, (bool_t)curAwbStatus.damping);
+					
+				}else{				
+					if(!strcmp(white_balance, "incandescent"))
+						strcpy(prfName, "A");
+					else if(!strcmp(white_balance, "daylight"))
+						strcpy(prfName, "D65");			
+					else if(!strcmp(white_balance, "fluorescent"))
+						strcpy(prfName, "F2_CWF");
+					else if(!strcmp(white_balance, "twilight"))
+						strcpy(prfName, "F11_TL84");	
+
+					std::vector<CamIlluProfile_t *> profiles;
+					m_camDevice->getIlluminationProfiles( profiles );
+					int i,size;
+					size = profiles.size();
+					for(i=0; i<size; i++)
+					{
+						if(strstr(profiles[i]->name, prfName))
+							curAwbStatus.idx = i;
+					}
+					
+					m_camDevice->stopAwb();
+					curAwbStatus.damping = false;
+					m_camDevice->startAwb(CAM_ENGINE_AWB_MODE_MANUAL, curAwbStatus.idx, (bool_t)curAwbStatus.damping);
+					m_camDevice->getAwbStatus(curAwbStatus.enabled, curAwbStatus.mode, curAwbStatus.idx, curAwbStatus.RgProj, curAwbStatus.damping);
+				}
+			}
+		}
 	}
 
 	/*zoom setting*/
@@ -818,7 +917,61 @@ int CameraIspAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 	if (strcmp("0", params.get(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION))
 		|| strcmp("0", params.get(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION))) {
 	    if (!mexposure || (exposure && strcmp(exposure,mexposure))) {
-			//TODO
+			if(isInit)
+			{
+				float tolerance;
+				manExpConfig.clmtolerance = m_camDevice->getAecClmTolerance();
+				tolerance = manExpConfig.clmtolerance/100.0f;
+				m_camDevice->getInitAePoint(&manExpConfig.level_0);
+
+				manExpConfig.plus_level_1 = (manExpConfig.level_0/(1-tolerance))+manExpConfig.clmtolerance*1.5;
+				manExpConfig.plus_level_2 = (manExpConfig.plus_level_1/(1-tolerance))+manExpConfig.clmtolerance*1.5;
+				manExpConfig.plus_level_3 = (manExpConfig.plus_level_2/(1-tolerance))+manExpConfig.clmtolerance*1.5;
+				
+				manExpConfig.minus_level_1 = (manExpConfig.level_0/(1+tolerance))-manExpConfig.clmtolerance*1.5;
+				if(manExpConfig.minus_level_1 < 0)
+					manExpConfig.minus_level_1 = 0;
+				manExpConfig.minus_level_2 = (manExpConfig.minus_level_1/(1+tolerance))-manExpConfig.clmtolerance*1.5;
+				if(manExpConfig.minus_level_2 < 0)
+					manExpConfig.minus_level_2 = 0;				
+				manExpConfig.minus_level_3 = (manExpConfig.minus_level_2/(1+tolerance))-manExpConfig.clmtolerance*1.5;	
+				if(manExpConfig.minus_level_3 < 0)
+					manExpConfig.minus_level_3 = 0;
+				LOGD("----(-3=%f,-2=%f,-1=%f,0=%f,1=%f,2=%f,3=%f)-----",manExpConfig.minus_level_3,manExpConfig.minus_level_2,manExpConfig.minus_level_1,manExpConfig.level_0,manExpConfig.plus_level_1,manExpConfig.plus_level_2,manExpConfig.plus_level_3);
+			}else{
+				int iexp;
+				iexp = atoi(exposure);
+				switch(iexp)
+				{
+					case -3:
+						m_camDevice->setAeClmTolerance(manExpConfig.clmtolerance*0.6);
+						m_camDevice->setAePoint(manExpConfig.minus_level_3);
+						break;
+					case -2:
+						m_camDevice->setAeClmTolerance(manExpConfig.clmtolerance*0.8);
+						m_camDevice->setAePoint(manExpConfig.minus_level_2);
+						break;
+					case -1:
+						m_camDevice->setAePoint(manExpConfig.minus_level_1);
+						break;
+					case 0:
+						m_camDevice->setAePoint(manExpConfig.level_0);
+						break;
+					case 1:
+						m_camDevice->setAePoint(manExpConfig.plus_level_1);
+						break;
+					case 2:
+						m_camDevice->setAeClmTolerance(manExpConfig.clmtolerance*0.8);
+						m_camDevice->setAePoint(manExpConfig.plus_level_2);
+						break;
+					case 3:
+						m_camDevice->setAeClmTolerance(manExpConfig.clmtolerance*0.6);
+						m_camDevice->setAePoint(manExpConfig.plus_level_3);
+						break;
+					default:
+						break;
+				}
+			}
 	    }
 	}    
 
@@ -855,11 +1008,14 @@ status_t CameraIspAdapter::autoFocus()
         m_camDevice->stopAf();  /* ddl@rock-chips.com: v0.d.0 */
         err_af = m_camDevice->startAfOneShot(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
     	if ( err_af == false ){
-    		TRACE_E("Trigger a single auto focus failed!");        		
+    		TRACE_E("Trigger a single auto focus failed!");  
+            goto finish_focus;  /* ddl@rock-chips.com: v0.0x27.0 */
     	} else {
             TRACE_D(1,"Trigger a single auto focus success");
     	}
     } else {
+
+finish_focus:    
         TRACE_D(1, "It has been focused!");
 
         CamEngineAfEvt_t evnt;
@@ -893,7 +1049,12 @@ status_t CameraIspAdapter::autoFocus()
 
 
 status_t CameraIspAdapter::cancelAutoFocus()
-{    
+{  
+    /* ddl@rock-chips.com: v0.0x27.0 */
+    if (strcmp(mParameters.get(CameraParameters::KEY_FOCUS_MODE), CameraParameters::FOCUS_MODE_AUTO) == 0) {
+        m_camDevice->stopAf();    
+    }
+    
     return 0;
 }
 
@@ -1150,7 +1311,6 @@ void CameraIspAdapter::clearFrameArray(){
     LOG_FUNCTION_NAME_EXIT
 }
 int CameraIspAdapter::adapterReturnFrame(int index,int cmd){
-	#if 1
     FramInfo_s* tmpFrame = ( FramInfo_s *)index;
     Mutex::Autolock lock(mFrameArrayLock);
     if(mFrameInfoArray.size() > 0){
@@ -1170,12 +1330,6 @@ int CameraIspAdapter::adapterReturnFrame(int index,int cmd){
     }else{
         LOGD("%s:frame array has been cleard!",__func__);
     }
-    #endif
-	#if 0
-	MediaBuffer_t *pMediaBuffer = (MediaBuffer_t *)index;
-    //unlock
-    MediaBufUnlockBuffer( pMediaBuffer );
-	#endif
     return 0;
 }
 
@@ -1217,26 +1371,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 //get vir addr
                 HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
                 HalMapMemory( tmpHandle, uv_addr, 100, HAL_MAPMEM_READWRITE, &uv_addr_vir );
-                #if 0
-                if(writeoneframe++ == 10){
-                    //write file
-                    	FILE* fp =NULL;
-                	char filename[40];
 
-                	filename[0] = 0x00;
-                	sprintf(filename, "/data/yuv420_%dx%d.bin",width,height);
-                	fp = fopen(filename, "wb+");
-                	if (fp > 0) {
-                		fwrite((char*)y_addr_vir, 1,width*height*3/2,fp);
-                //		fwrite((char*)uv_addr_vir, 1,width*height/2,fp); //yuv422
-
-                		fclose(fp);
-                		LOGD("Write success yuv data to %s",filename);
-                	} else {
-                		LOGE("Create %s failed(%d, %s)",filename,fp, strerror(errno));
-                	}
-                }
-                #endif
 
                 
             }else if(pPicBufMetaData->Layout == PIC_BUF_LAYOUT_COMBINED){
@@ -1244,53 +1379,60 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 width = pPicBufMetaData->Data.YCbCr.combined.PicWidthPixel>>1;
                 height = pPicBufMetaData->Data.YCbCr.combined.PicHeightPixel;
                 HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
-
             }
-     //      LOGD("user got frame,res(%dx%d),pMediaBuffer(%p)",width,height,pMediaBuffer);
 
+        }else if(pPicBufMetaData->Type == PIC_BUF_TYPE_RAW16){
+     
+            y_addr = (uint32_t)(pPicBufMetaData->Data.raw.pBuffer );
+            width = pPicBufMetaData->Data.raw.PicWidthPixel;
+            height = pPicBufMetaData->Data.raw.PicHeightPixel;
+            fmt = V4L2_PIX_FMT_SBGGR10;
+            HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
         }else{
-
-
-                y_addr = (uint32_t)(pPicBufMetaData->Data.raw.pBuffer );
-                width = pPicBufMetaData->Data.raw.PicWidthPixel;
-                height = pPicBufMetaData->Data.raw.PicHeightPixel;
-                HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
-				#if 0
-                if(writeoneframe++ == 10){
-                    //write file
-                    	FILE* fp =NULL;
-                	char filename[40];
-
-                	filename[0] = 0x00;
-                	sprintf(filename, "/data/raw8_%dx%d.raw",width,height);
-                	fp = fopen(filename, "wb+");
-                	if (fp > 0) {
-                		fwrite((char*)y_addr_vir, 1,width*height,fp);
-                	//	fwrite((char*)uv_addr_vir, 1,width*height*3/2,fp); //yuv422
-
-                		fclose(fp);
-                		LOGD("Write success yuv data to %s",filename);
-                	} else {
-                		LOGE("Create %s failed(%d, %s)",filename,fp, strerror(errno));
-                	}
-                }
-				#endif
             LOGE("not support this type(%dx%d)  ,just support  yuv20 now",width,height);
-            return;
-    }
+            return ;
+     }
     
 
     if ( pMediaBuffer->pNext != NULL )
     {
         MediaBufLockBuffer( (MediaBuffer_t*)pMediaBuffer->pNext );
     }
-#if 1
 	
 	if(preview_frame_inval > 0){
 	  	 preview_frame_inval--;
 		 LOGD("frame_inval:%d\n",preview_frame_inval);
 		 goto end;
 	  	}
+
+    if(mIsSendToTunningTh){
+        MediaBufLockBuffer( pMediaBuffer );
+        //new frames
+        FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+        if(!tmpFrame){
+            MediaBufUnlockBuffer( pMediaBuffer );
+            return;
+        }
+        //add to vector
+        tmpFrame->frame_index = (int)tmpFrame; 
+        tmpFrame->phy_addr = (int)y_addr;
+        tmpFrame->frame_width = width;
+        tmpFrame->frame_height= height;
+        tmpFrame->vir_addr = (int)y_addr_vir;
+        tmpFrame->frame_fmt = fmt;
+        tmpFrame->used_flag = (int)pMediaBuffer; // tunning thread will use pMediaBuffer
+
+        {
+            Mutex::Autolock lock(mFrameArrayLock);
+            mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+        }
+        Message msg;
+        msg.command = ISP_TUNNING_CMD_PROCESS_FRAME;
+        msg.arg2 = (void*)(tmpFrame);
+        msg.arg3 = (void*)(tmpFrame->used_flag);
+        mISPTunningQ->put(&msg);
+
+    }else{
 	//need to display ?
 	if(mRefDisplayAdapter->isNeedSendToDisplay()){  
 	    MediaBufLockBuffer( pMediaBuffer );
@@ -1343,10 +1485,14 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->vir_addr = (int)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
       tmpFrame->used_flag = 1;
+      #if (USE_RGA_TODO_ZOOM == 1)  
+         tmpFrame->zoom_value = mZoomVal;
+      #else
       if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
          tmpFrame->zoom_value = mZoomVal;
       }else
          tmpFrame->zoom_value = 100;
+      #endif
       
       {
         Mutex::Autolock lock(mFrameArrayLock);
@@ -1378,11 +1524,14 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     	  tmpFrame->vir_addr = (int)y_addr_vir;
     	  tmpFrame->frame_fmt = fmt;
           tmpFrame->used_flag = 2;
-
+      #if (USE_RGA_TODO_ZOOM == 1)  
+         tmpFrame->zoom_value = mZoomVal;
+      #else
           if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
              tmpFrame->zoom_value = mZoomVal;
           }else
              tmpFrame->zoom_value = 100;
+      #endif
           
           {
             Mutex::Autolock lock(mFrameArrayLock);
@@ -1411,11 +1560,14 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->vir_addr = (int)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
       tmpFrame->used_flag = 3;
-
+      #if (USE_RGA_TODO_ZOOM == 1)  
+         tmpFrame->zoom_value = mZoomVal;
+      #else
       if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
          tmpFrame->zoom_value = mZoomVal;
       }else
          tmpFrame->zoom_value = 100;
+      #endif
       
       {
         Mutex::Autolock lock(mFrameArrayLock);
@@ -1423,8 +1575,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       }
 	  mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);			
 	}
-	#endif
-
+    }
 end:
 	
 	tem_val =0 ;
@@ -1432,8 +1583,41 @@ end:
 
 void CameraIspAdapter::dump(int cameraId)
 {
+    Message msg;
 	rk_cam_total_info *pCamInfo = gCamInfos[cameraId].pcam_total_info;
 	m_camDevice->checkVersion(pCamInfo);
+
+    if(mISPTunningRun){
+        TRACE_D(0, "-----------stop isp tunning in--------------");
+        msg.command = ISP_TUNNING_CMD_EXIT;
+        mISPTunningQ->put(&msg);
+    	mISPTunningThread->requestExitAndWait();
+    	mISPTunningThread.clear();
+        delete mISPTunningQ;
+        mISPTunningQ = NULL;
+        delete mIspTunningTask;
+        mIspTunningTask = NULL;
+        mISPTunningRun = false;
+        TRACE_D(0, "-----------stop isp tunning out--------------");
+    }else{
+        TRACE_D(0, "-----------start isp tunning in--------------");
+        mISPTunningQ = new MessageQueue("ISPTunningQ");
+        mISPTunningThread = new CamISPTunningThread(this);
+
+        //parse tunning xml file
+        mIspTunningTask = CameraIspTunning::createInstance();
+        if(mIspTunningTask){
+            mISPTunningThread->run("CamISPTunningThread",ANDROID_PRIORITY_NORMAL);
+            msg.command = ISP_TUNNING_CMD_START;
+            mISPTunningQ->put(&msg);
+            mISPTunningRun = true;
+            TRACE_D(0, "-----------start isp tunning out--------------");
+        }else{
+            delete mISPTunningQ;
+            mISPTunningThread.clear();
+            TRACE_E("-----------start isp tunning failed--------------");
+        }
+    }
 }
 
 int CameraIspAdapter::afListenerThread(void)
@@ -1514,9 +1698,9 @@ bool CameraIspAdapter::isLowIllumin()
     m_camDevice->getIntegrationTimeLimits(mintime,maxtime,step);
     meanluma = m_camDevice->getAecMeanLuminance();
 
-    LOGD("gain %0.4f(%0.4f,%0.4f)",gain,mingain,maxgain);
-    LOGD("inttime %0.4f(%0.4f,%0.4f)",time,mintime,maxtime);
-    LOGD("meanluma %0.4f",meanluma);
+    LOGD("gain %f(%f,%f)",gain,mingain,maxgain);
+    LOGD("inttime %f(%f,%f)",time,mintime,maxtime);
+    LOGD("meanluma %f",meanluma);
 
     if(/*(gain > (gainPt*maxgain)) && (time > (timePt * maxtime)) && */(meanluma < lumaThreshold ))
         return true;
@@ -1590,6 +1774,315 @@ bool CameraIspAdapter::getFlashStatus()
 {
 	return mFlashStatus;
 }
+
+int CameraIspAdapter::ispTunningThread(void)
+{
+    bool bExit = false;
+    Message msg;
+    int curFmt = 0,curPreW = 0,curPreH =0;
+    float gain,setgain,mingain,maxgain,gainstep,time,settime,mintime,maxtime,timestep;
+    ispTuneTaskInfo_s* curTuneTask = NULL;
+    char szBaseFileName[100];
+    static int skip_frames = 0;
+    while (bExit == false)
+    {
+        memset(&msg,0,sizeof(msg));
+        mISPTunningQ->get(&msg);
+PROCESS_CMD:
+        switch(msg.command)
+        {
+            case ISP_TUNNING_CMD_START:
+                //stop preview
+                stopPreview();
+                //start preview
+                curTuneTask = mIspTunningTask->mCurTuneTask = mIspTunningTask->mTuneInfoVector[mIspTunningTask->mCurTunIndex];
+
+                curPreW = curTuneTask->mTuneWidth;
+                curPreH = curTuneTask->mTuneHeight;
+
+                if(curTuneTask->mTuneFmt == CAMERIC_MI_DATAMODE_RAW12){
+                    curFmt = ISP_OUT_RAW12;
+                    curTuneTask->mForceRGBOut = false;
+                    if(curTuneTask->mExpose.exposuseMode == EXPOSUSE_MODE_AUTO){
+                        //get tune task res ae value
+                        startPreview(curPreW, curPreH, 0, 0,ISP_OUT_YUV420SP, false);
+                        m_camDevice->stopAec();
+                        m_camDevice->startAec();
+                        sleep(3);
+                        m_camDevice->getGain(gain);
+                        m_camDevice->getIntegrationTime(time);
+                        stopPreview();
+                    }
+                }else if(curTuneTask->mTuneFmt == CAMERIC_MI_DATAMODE_YUV422){
+                    curFmt = ISP_OUT_YUV422_SEMI;
+                    curTuneTask->mForceRGBOut = true;
+                }else
+                    LOGE("%s:this format %d is not support",__func__,curTuneTask->mTuneFmt);
+                    
+                
+                startPreview(curPreW, curPreH, curPreW, curPreH,curFmt, false);
+
+                // need to do following steps in RAW capture mode ?
+                // following modules are bypassed in RAW mode ?
+                m_camDevice->stopAvs();
+                m_camDevice->stopAdpf();
+                m_camDevice->stopAec();
+                m_camDevice->stopAwb();
+                m_camDevice->stopAdpcc();
+                m_camDevice->lscDisable();
+                m_camDevice->cacDisable();
+                m_camDevice->wdrDisable();
+                m_camDevice->stopAf();
+
+                if(curTuneTask->mDpccEnable == true) 
+                    m_camDevice->startAdpcc();
+                if(curTuneTask->mLscEnable == true)
+                   m_camDevice->lscEnable();
+                if(curTuneTask->mCacEnable== true)
+                    m_camDevice->cacEnable();
+                if(curTuneTask->mGammarEnable == true)
+                    m_camDevice->gamCorrectEnable();
+                if(curTuneTask->mWdrEnable == true)
+                    m_camDevice->wdrEnable();
+
+                if(curTuneTask->mExpose.exposuseMode == EXPOSUSE_MODE_MANUAL){
+                   //set manual ae
+                    m_camDevice->getGain(gain);
+                    m_camDevice->getIntegrationTime(time);
+                    m_camDevice->getGainLimits(mingain,maxgain,gainstep);
+                    m_camDevice->getIntegrationTimeLimits(mintime,maxtime,timestep);
+                    m_camDevice->setIntegrationTime(curTuneTask->mExpose.integrationTime,settime);
+                    LOGD("00setIntegrationTime  desired:%0.3f,real:%0.3f",curTuneTask->mExpose.integrationTime,settime);
+                    m_camDevice->setGain(curTuneTask->mExpose.gain,setgain);
+                    LOGD("00setGain  desired:%0.3f,real:%0.3f",curTuneTask->mExpose.gain,setgain);
+                    
+                    mIspTunningTask->mCurGain = setgain;
+                    mIspTunningTask->mCurIntegrationTime = settime;
+                    if(curTuneTask->mExpose.aeRound == true){
+                        mIspTunningTask->mCurAeRoundNum = curTuneTask->mExpose.number;
+                    }
+
+                    
+                }else{
+                    if(curTuneTask->mTuneFmt == CAMERIC_MI_DATAMODE_YUV422){
+                       m_camDevice->startAec();
+                    }else{
+                        m_camDevice->setGain(gain,setgain);
+                        m_camDevice->setIntegrationTime(time,settime);
+                    }
+                   
+                }
+
+                if(curTuneTask->mWhiteBalance.whiteBalanceMode == WHITEBALANCE_MODE_AUTO){
+                    m_camDevice->startAwb(CAM_ENGINE_AWB_MODE_AUTO, 0, (bool_t)true);
+                }else if(curTuneTask->mWhiteBalance.whiteBalanceMode == WHITEBALANCE_MODE_MANUAL){
+                   //set manual awb
+                    uint32_t illu_index = 1;
+                    if(strcmp(curTuneTask->mWhiteBalance.illumination,"A") == 0)
+                        illu_index = 0;
+                    else if(strcmp(curTuneTask->mWhiteBalance.illumination,"D65") == 0)
+                        illu_index = 1;
+                    else if(strcmp(curTuneTask->mWhiteBalance.illumination,"CWF") == 0)
+                        illu_index = 2;
+                    else if(strcmp(curTuneTask->mWhiteBalance.illumination,"TL84") == 0)
+                        illu_index = 3;
+                    else if(strcmp(curTuneTask->mWhiteBalance.illumination,"D50") == 0)
+                        illu_index = 4;
+                    else if(strcmp(curTuneTask->mWhiteBalance.illumination,"D75") == 0)
+                        illu_index = 5;
+                    else if(strcmp(curTuneTask->mWhiteBalance.illumination,"HORIZON") == 0)
+                        illu_index = 6;
+                    else{
+                        LOGE("not support this illum %s ,set to D65!!!",curTuneTask->mWhiteBalance.illumination);
+                    }
+
+                    LOGD("current illum is %s ,illu_index %d !!!",curTuneTask->mWhiteBalance.illumination,illu_index);
+                    m_camDevice->startAwb( CAM_ENGINE_AWB_MODE_MANUAL, illu_index, (bool_t)true );
+
+                    if(strcmp(curTuneTask->mWhiteBalance.cc_matrix,"unit_matrix") == 0){
+                        LOGD(" set unit matrix ++++++++++++");
+                        m_camDevice->wbCcMatrixSet(1,0,0,
+                                                   0,1,0,
+                                                   0,0,1);
+                    }else if(strcmp(curTuneTask->mWhiteBalance.cc_matrix,"default") == 0){
+                    }else{
+                        LOGE("not support this cc_matrix %s !!!",curTuneTask->mWhiteBalance.cc_matrix);
+                    }
+
+                    if(strcmp(curTuneTask->mWhiteBalance.rggb_gain,"unit") == 0){
+                        m_camDevice->wbGainSet(1,1,1,1);
+                    }else if(strcmp(curTuneTask->mWhiteBalance.rggb_gain,"default") == 0){
+                    }else{
+                        LOGE("not support this rggb_gain %s !!!",curTuneTask->mWhiteBalance.rggb_gain);
+                    }
+
+                    if(strcmp(curTuneTask->mWhiteBalance.cc_offset,"zero") == 0){
+                        m_camDevice->wbCcOffsetSet(0,0,0);
+                    }else if(strcmp(curTuneTask->mWhiteBalance.cc_offset,"default") == 0){
+
+                    }else{
+                        LOGE("not support this cc_offset %s !!!",curTuneTask->mWhiteBalance.cc_offset);
+                    }
+                
+                }
+
+                #if 1
+                if(curTuneTask->mAfEnable){
+                    LOGD("%s:start oneshot af",__func__);
+                    m_camDevice->startAfOneShot(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
+                    sleep(2);
+                    m_camDevice->startAfOneShot(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
+                    sleep(1);
+                }
+                #endif   
+                skip_frames = 15;
+                
+                mIsSendToTunningTh = true;
+                break;
+            case ISP_TUNNING_CMD_EXIT:
+                //restore saved config
+                mIsSendToTunningTh = false;
+                stopPreview();
+                //mISPOutputFmt = oldFmt;
+                startPreview(800, 600, 0, 0, ISP_OUT_YUV420SP, false);
+                bExit = true;
+                break;
+            case ISP_TUNNING_CMD_PROCESS_FRAME:
+                {
+				FramInfo_s *frame = (FramInfo_s*)msg.arg2;
+                float newtime,newgain;
+                bool isStore = false;
+                LOG1("tunning thread receive a frame !!");
+                //
+                if(skip_frames-- > 0)
+                    goto PROCESS_OVER;
+                m_camDevice->getGain(gain);
+                m_camDevice->getIntegrationTime(time);
+                //is it the satisfied frame ?
+                if(curTuneTask->mExpose.exposuseMode == EXPOSUSE_MODE_MANUAL){
+                    bool isSetExp = true;
+
+                    if((gain != mIspTunningTask->mCurGain) || (time != mIspTunningTask->mCurIntegrationTime)){
+                        LOGD("%s:not the desired exposure frame,skip it,time(%0.3f,%0.3f),gain(%0.3f,%0.3f)",__func__,
+                            mIspTunningTask->mCurIntegrationTime,time,mIspTunningTask->mCurGain,gain);
+                        goto PROCESS_OVER;
+                    }
+
+                    //set different exposure parameter ?
+                    if(curFmt == ISP_OUT_RAW12 ){
+                        if((curTuneTask->mExpose.integrationTimeStep != 0)|| (curTuneTask->mExpose.gainStep != 0)){
+                            newtime = mIspTunningTask->mCurIntegrationTime+curTuneTask->mExpose.integrationTimeStep;
+                            if((newtime >maxtime) && ((newtime - maxtime) - curTuneTask->mExpose.integrationTimeStep < 0.0001)){
+                                //next loop
+                                LOGD("set new gain+++");
+                                newgain = mIspTunningTask->mCurGain+curTuneTask->mExpose.gainStep;
+                                newtime = curTuneTask->mExpose.integrationTime;
+                                if ((newgain > maxgain) && ((newgain - maxgain) - curTuneTask->mExpose.gainStep < 0.00001)){
+                                    curTuneTask->mTunePicNum = 0;
+                                    LOGD("time and gain are max ,newgain %0.5f,%0.5f!!!!",newgain,maxgain);
+                                    isSetExp = false;
+                                }
+                            }else
+                                newgain = mIspTunningTask->mCurGain;
+                                
+                            if(isSetExp){
+                                m_camDevice->setIntegrationTime(newtime,settime);
+                                m_camDevice->setGain(newgain,setgain);
+
+                                LOGD("11setIntegrationTime  desired:%0.3f,real:%0.3f",newtime,settime);
+                                LOGD("11setGain  desired:%0.3f,real:%0.3f",newgain,setgain);
+                                mIspTunningTask->mCurGain = setgain;
+                                mIspTunningTask->mCurIntegrationTime = settime;
+                                //skip some frames,max buffer count is 6,one is here now,so filter 5 frames
+                                skip_frames = 12;
+                            }
+                            int filter_result = mIspTunningTask->ispTuneDesiredExp(frame->vir_addr, frame->frame_width,frame->frame_height,
+                                    curTuneTask->mExpose.minRaw, curTuneTask->mExpose.maxRaw, curTuneTask->mExpose.threshold); 
+                            if(filter_result & 0x1){
+
+                                goto PROCESS_OVER;
+                            }else if(filter_result & 0x2){  
+                                LOGD("frame is overhead exposure , finish capture frame !!");
+                               // curTuneTask->mTunePicNum = 0;
+                                goto PROCESS_OVER;
+                            }
+                        }
+                    }else if(curFmt == ISP_OUT_YUV422_SEMI ){
+                       if(curTuneTask->mExpose.aeRound == true){
+                            newtime = curTuneTask->mExpose.integrationTime
+                                    +curTuneTask->mExpose.integrationTimeStep*((mIspTunningTask->mCurAeRoundNum+1)/2);
+                            newgain = curTuneTask->mExpose.gain+curTuneTask->mExpose.gainStep*(mIspTunningTask->mCurAeRoundNum/2);
+                            m_camDevice->setIntegrationTime(newtime,settime);
+                            m_camDevice->setGain(newgain,setgain);
+                            mIspTunningTask->mCurGain = setgain;
+                            mIspTunningTask->mCurIntegrationTime = settime;
+                            skip_frames = 6;
+
+                            LOGD("22setIntegrationTime  desired:%0.3f,real:%0.3f",newtime,settime);
+                            LOGD("22setGain  desired:%0.3f,real:%0.3f",newgain,setgain);
+                            if(mIspTunningTask->mCurAeRoundNum == 1){
+                                mIspTunningTask->mCurAeRoundNum -=3;
+                            }else
+                                mIspTunningTask->mCurAeRoundNum--;
+                            if(mIspTunningTask->mCurAeRoundNum < (-(curTuneTask->mExpose.number+3))){
+                                curTuneTask->mTunePicNum = 0;
+                            }
+                                
+                        }
+                    }
+                    
+                }
+
+                curTuneTask->mTunePicNum--;
+                //generate base file name
+                    
+                snprintf( szBaseFileName, sizeof(szBaseFileName)-1, "%st%0.3f_g%0.3f", "/data/isptune/",time, gain );
+                szBaseFileName[99] = '\0';
+
+                //store this frame
+                curTuneTask->y_addr = frame->vir_addr;
+                if(curFmt == ISP_OUT_YUV422_SEMI){
+                    curTuneTask->uv_addr = frame->vir_addr + frame->frame_width*frame->frame_height;
+                    curTuneTask->mForceRGBOut = true;
+                }else{
+                    curTuneTask->mForceRGBOut = false;
+                }
+
+                mIspTunningTask->ispTuneStoreBuffer(curTuneTask, (MediaBuffer_t * )frame->used_flag, 
+                                                    szBaseFileName, 0);
+                PROCESS_OVER:
+                //return this frame buffer
+                adapterReturnFrame(frame->frame_index, frame->used_flag);
+
+                //current task has been finished ? start next capture?
+                if(curTuneTask->mTunePicNum <= 0){
+                    skip_frames = 0;
+                    mIsSendToTunningTh = false;
+                    stopPreview();
+                    //remove redundant frame in queue
+                    while(!mISPTunningQ->isEmpty())
+                        mISPTunningQ->get(&msg);
+                    //start new cap?
+                    if(mIspTunningTask->mCurTunIndex < (mIspTunningTask->mTuneTaskcount-1)){
+                        mIspTunningTask->mCurTunIndex++;
+                        msg.command = ISP_TUNNING_CMD_START;
+                        mISPTunningQ->put(&msg);
+                    }else{
+                        LOGD("\n\n*********************\n all tune tasks have fininished\n\n ******************");
+                        startPreview(800, 600, 0, 0, ISP_OUT_YUV420SP, false);
+                    }
+                }
+                break;
+                }
+            default:
+                {                    
+                TRACE_E("%d tunning cmd is not support !",msg.command);
+                break;
+                }     
+        }
+    }
+    return 0;
+ }
 
 }
 

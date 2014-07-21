@@ -49,11 +49,12 @@ extern "C"
 *              SILICONIMAGE LIBISP VERSION NOTE
 *
 *v0.1.0x00 : sync OV8825_drv  v0.6.0
-*
+*v0.2.0:
+*   1). limit AecMinIntegrationTime 0.0001 for aec.
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 1, 0) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 2, 0) 
 
 
 

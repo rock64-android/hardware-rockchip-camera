@@ -503,7 +503,7 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 	#if (CONFIG_CAMERA_SETVIDEOSIZE == 1)
     params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
 	params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
-	params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,240x160,352x288,640x480,720x480,800x600,1280x720");
+	params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,240x160,352x288,640x480,720x480,800x600,1280x720,1920x1080");
     #else
 
     params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"");

@@ -49,10 +49,13 @@ extern "C"
 *
 *v0.1.0x00 : first version:preview && focus;   1: 2lane 3264x2448 is ok    2: 4lane can't preview now //hkw
 *v0.2.0x00 : fix 2lane 3264x2448;
+*v0.3.0:  tunning first version;
+*v0.4.0:
+*   1). limit AecMinIntegrationTime 0.0001 for aec.
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 1, 0) 
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION  KERNEL_VERSION(0, 4, 0) 
 
 /*****************************************************************************
  * System control registers

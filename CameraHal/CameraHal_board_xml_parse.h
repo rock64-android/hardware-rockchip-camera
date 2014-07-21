@@ -17,7 +17,7 @@ using namespace android;
 *
 *
 */
-#define ConfigBoardXmlVersion KERNEL_VERSION(0, 4, 0x00) 
+#define ConfigBoardXmlVersion KERNEL_VERSION(0, 5, 0x00) 
 
 #define UVC_CAM_NAME "UVC Camera"
 #define RK_CAM_FACING_FRONT (1)
@@ -207,6 +207,9 @@ struct rk_flash_info{
     
     camsys_gpio_info_t mFlashTrigger;
     camsys_gpio_info_t mFlashEn;
+	int mFlashMode;
+	float mLuminance;
+	float mColorTemperature;
 };
 
 struct rk_cam_hardware_info{
