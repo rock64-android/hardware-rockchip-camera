@@ -145,7 +145,6 @@ bool CameraAdapter::getFlashStatus()
 {
 	return false;
 }
-
 status_t CameraAdapter::startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture)
 {
     

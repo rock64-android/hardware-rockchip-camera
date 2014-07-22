@@ -220,9 +220,21 @@ v0.0x0a.0x01:
 *     3) add func getFlashStatus, fix wrong flash status in jpeg exif info.
 *v0.0x29.0
 *     1) modify isp tunning func
-*     2) zoom is not available when pic taken if pic size less than 5M,fix it       
+*     2) zoom is not available when pic taken if pic size less than 5M,fix it  
+*v0.0x2a.0
+*     1) fix CTS failed items as follows :
+        testPreviewCallback,testPreviewFormats,testPreviewFpsRange, testPreviewPictureSizesCombination
+*v0.0x2b.0
+*     1) fix CTS failed items as follows :
+        testInvalidParameters,testParameters,testSceneMode,testImmediateZoom
+*v0.0x2c.0
+*     1) fix CTS failed items as follows :
+        testFaceDetection,testFocusAreas
+*v0.0x2d.0
+*     1) fix CTS failed items as follows :
+        testJpegExif,testVideoSnapshot      
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x29, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2d, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -764,10 +776,10 @@ typedef struct cameraparam_info{
 	int thumbheight;
 
     //gps info
-	int	altitude;
-	int	latitude;
-	int	longtitude;
-	int	timestamp;    
+	double	altitude;
+	double	latitude;
+	double	longtitude;
+	long	timestamp;    
 	char	getMethod[33];//getMethod : len <= 32
 
 	int  focalen;
@@ -1277,7 +1289,7 @@ private:
   // bool mRecordRunning;
   // bool mPreviewCmdReceived;
    int mCamFd;
-   int mCameraStatus;
+   unsigned int mCameraStatus;
    int mCamId;
 };
 

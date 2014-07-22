@@ -956,7 +956,10 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
             tempMemSize = mPreviewDataW*mPreviewDataH*3/2;        
         } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
             tempMemSize = mPreviewDataW*mPreviewDataH*2;        
-        } else {
+        } else if(strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0){ 
+            tempMemSize = ((mPreviewDataW+15)&0xfffffff0)*mPreviewDataH
+                        +((mPreviewDataW/2+15)&0xfffffff0)*mPreviewDataH;    
+        }else {
             LOGE("%s(%d): pixel format %s is unknow!",__FUNCTION__,__LINE__,mPreviewDataFmt);        
         }
         mDataCbLock.unlock();

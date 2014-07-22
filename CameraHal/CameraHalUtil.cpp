@@ -23,6 +23,7 @@
 #endif
 
 #include "../jpeghw/release/encode_release/rk29-ipp.h"
+#include <utils/CallStack.h> 
 
 #define MIN(x,y)   ((x<y) ? x: y)
 #define MAX(x,y)    ((x>y) ? x: y)
@@ -55,6 +56,13 @@ extern "C" int getCallingPid() {
     return android::IPCThreadState::self()->getCallingPid();
 }
 
+
+extern "C" void callStack(){
+    android::CallStack stack;  
+    stack.update();  
+    stack.log("CameraHal");
+
+}
 extern "C" char* getCallingProcess()
 {
     int fp = -1;

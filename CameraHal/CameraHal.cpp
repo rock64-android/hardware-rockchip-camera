@@ -26,6 +26,7 @@
 #ifdef TARGET_RK29
 #include "../libyuvtorgb/yuvtorgb.h"
 #endif
+
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
 namespace android {
@@ -218,8 +219,8 @@ CameraHal::~CameraHal()
         msg.command = CMD_EXIT;
         sem.Create();
         msg.arg1 = (void*)(&sem);
-        commandThreadCommandQ.put(&msg);
 		setCamStatus(CMD_EXIT_PREPARE, 1);
+        commandThreadCommandQ.put(&msg);
         if(msg.arg1){
             sem.Wait();
         }
@@ -251,8 +252,8 @@ int CameraHal::setPreviewWindow(struct preview_stream_ops *window)
         sem.Create();
         msg.arg1 = (void*)(&sem);
         msg.arg2 = (void*)window;
-        commandThreadCommandQ.put(&msg);
 		setCamStatus(CMD_SET_PREVIEW_WINDOW_PREPARE, 1);
+        commandThreadCommandQ.put(&msg);
         if(msg.arg1){
             sem.Wait();
         }
@@ -272,8 +273,8 @@ int CameraHal::startPreview()
     if ((mCommandThread != NULL)) {
         msg.command = CMD_PREVIEW_START;
         msg.arg1  = NULL;
-        commandThreadCommandQ.put(&msg);
 		setCamStatus(CMD_PREVIEW_START_PREPARE, 1);
+        commandThreadCommandQ.put(&msg);
     }
    // mPreviewCmdReceived = true;
    setCamStatus(STA_PREVIEW_CMD_RECEIVED, 1);
@@ -292,8 +293,8 @@ void CameraHal::stopPreview()
         msg.command = CMD_PREVIEW_STOP;
         sem.Create();
         msg.arg1 = (void*)(&sem);
-        commandThreadCommandQ.put(&msg);
 		setCamStatus(CMD_PREVIEW_STOP_PREPARE, 1);
+        commandThreadCommandQ.put(&msg);
         if(msg.arg1){
             sem.Wait();
         }
@@ -357,8 +358,8 @@ int CameraHal::autoFocus()
         msg.command = CMD_AF_START;
         sem.Create();
         msg.arg1 = (void*)(&sem);
-        commandThreadCommandQ.put(&msg);
 		setCamStatus(CMD_AF_START_PREPARE, 1);
+        commandThreadCommandQ.put(&msg);
         if(msg.arg1){
             sem.Wait();
         }
@@ -466,8 +467,8 @@ int CameraHal::takePicture()
         msg.command = CMD_CONTINUOS_PICTURE;
         sem.Create();
         msg.arg1 = (void*)(&sem);
-        commandThreadCommandQ.put(&msg);
 		setCamStatus(CMD_CONTINUOS_PICTURE_PREPARE, 1);
+        commandThreadCommandQ.put(&msg);
         if(msg.arg1){
             sem.Wait();
         }
@@ -491,8 +492,8 @@ int CameraHal::cancelPicture()
         msg.command = CMD_PREVIEW_CAPTURE_CANCEL;
         sem.Create();
         msg.arg1 = (void*)(&sem);
-        commandThreadCommandQ.put(&msg);
 		setCamStatus(CMD_PREVIEW_CAPTURE_CANCEL_PREPARE, 1);
+        commandThreadCommandQ.put(&msg);
         if(msg.arg1){
             sem.Wait();
         }
@@ -532,13 +533,16 @@ int CameraHal::setParameters(const CameraParameters &params_set)
         sem.Create();
         msg.arg1 = (void*)(&sem);
         msg.arg2 = (void*)(&params_set);
-        commandThreadCommandQ.put(&msg);
 		setCamStatus(CMD_SET_PARAMETERS_PREPARE, 1);
+        commandThreadCommandQ.put(&msg);
         if(msg.arg1){
             sem.Wait();
         }
-		if(mCameraStatus&CMD_SET_PARAMETERS_DONE)
+		if(mCameraStatus&CMD_SET_PARAMETERS_DONE){
 			LOG1("set parameters OK.");
+        }else{
+            err = -1;
+        }
     }
     LOG_FUNCTION_NAME_EXIT
     return err;
@@ -600,6 +604,11 @@ int CameraHal::sendCommand(int32_t cmd, int32_t arg1, int32_t arg2)
     int ret = 0;
     Mutex::Autolock lock(mLock);
 
+    if(cmd == CAMERA_CMD_START_FACE_DETECTION){
+        const char* szFace = mParameters.get(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW);
+        if(!szFace || ( szFace && (strtol(szFace,0,0) == 0)))
+            ret = BAD_VALUE;
+    }
     return ret;
 }
 
@@ -659,7 +668,15 @@ int CameraHal::fillPicturInfo(picture_info_s& picinfo)
     // gps altitude
     const char *new_gps_altitude_str = mParameters.get(CameraParameters::KEY_GPS_ALTITUDE);
     if (new_gps_altitude_str) {
-        picinfo.latitude= strtod(new_gps_altitude_str,NULL);
+        picinfo.altitude= strtod(new_gps_altitude_str,NULL);
+    } else {
+        picinfo.altitude = -1;
+    }
+	
+    // gps latitude
+    const char *new_gps_latitude_str = mParameters.get(CameraParameters::KEY_GPS_LATITUDE);
+    if (new_gps_latitude_str) {
+        picinfo.latitude= strtod(new_gps_latitude_str,NULL);
     } else {
         picinfo.latitude = -1;
     }
@@ -829,11 +846,14 @@ get_command:
                 LOG1("%s(%d): receive CMD_SET_PARAMETERS", __FUNCTION__,__LINE__);
                 //set parameters
                 CameraParameters* para = (CameraParameters*)msg.arg2;
-                mCameraAdapter->setParameters(*para);
-                //update parameters
-                updateParameters(mParameters);
-				
-				setCamStatus(CMD_SET_PARAMETERS_DONE, 1);					
+                if(mCameraAdapter->setParameters(*para) == 0){
+                    //update parameters
+                    updateParameters(mParameters);
+    				setCamStatus(CMD_SET_PARAMETERS_DONE, 1);	
+                }else{
+                    //update parameters
+                    updateParameters(mParameters);
+                }
                 if(msg.arg1)
                     ((Semaphore*)(msg.arg1))->Signal();
                 LOG1("%s(%d): CMD_SET_PARAMETERS out",__FUNCTION__,__LINE__);
@@ -1046,7 +1066,7 @@ void CameraHal::setCamStatus(int status, int type)
 		}
 
 		if(status&CMD_SET_PARAMETERS_PREPARE)
-		{
+		{   
 			mCameraStatus &= ~CMD_SET_PARAMETERS_MASK;
 			mCameraStatus |= CMD_SET_PARAMETERS_PREPARE;
 		}

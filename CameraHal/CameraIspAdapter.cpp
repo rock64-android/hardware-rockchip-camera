@@ -386,6 +386,12 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
         return BAD_VALUE;
     } else if (strcmp(mParameters.get(CameraParameters::KEY_PREVIEW_SIZE), params_set.get(CameraParameters::KEY_PREVIEW_SIZE))) {
         LOGD("%s(%d): Set preview size %s",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_SIZE));
+        //should update preview cb settings ,for cts
+        int w,h;
+        const char * fmt=  params_set.getPreviewFormat();
+		params_set.getPreviewSize(&w, &h); 
+        mRefEventNotifier->setPreviewDataCbRes(w, h, fmt);
+
     }
 
     if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES), params_set.get(CameraParameters::KEY_PICTURE_SIZE)) == NULL) {
@@ -410,6 +416,47 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
         LOGE("%s(%d): FpsRange(%s) is invalidate",__FUNCTION__,__LINE__,params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
         return BAD_VALUE;
     }
+
+
+    if (params_set.getInt(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS) == 1) {
+        //parse zone,
+        int lx,ty,rx,dy,areas_num;
+        uint w;
+        const char* zoneStr = params_set.get(CameraParameters::KEY_FOCUS_AREAS);
+        const char *zone = zoneStr;
+
+        if (zoneStr) {
+            areas_num = 0;
+            for (w=0; w<strlen(zoneStr); w++) {
+                if (*zone++ == '(')
+                    areas_num++;                
+            }
+
+            if (areas_num > 1) {
+                LOGE("%s(%d): Focus areas number(%d) is invalidate",__FUNCTION__,__LINE__, areas_num);
+                return BAD_VALUE;
+            }          
+                     
+            lx = strtol(zoneStr+1,0,0);           //get lx 
+            char* tys = strstr(zoneStr,",");     //get ty
+            ty = strtol(tys+1,0,0);            
+            char* rxs = strstr(tys+1,",");       //get rx
+            rx = strtol(rxs+1,0,0);            
+            char* dys = strstr(rxs+1,",");       //get dy
+            dy = strtol(dys+1,0,0);
+            char* ws = strstr(dys+1,",");
+            w = strtol(ws+1,0,0);
+            
+            if ((!lx && !ty && !rx && !dy && !w) == false ) {            
+                if ((lx < -1000) || (ty < -1000) || (rx>1000) || (dy>1000)
+                    || (w<1) || (w>1000) || (lx>=rx) || (ty>=dy)) {                    
+
+                    LOGE("%s(%d): Focus areas(%s) is invalidate",__FUNCTION__,__LINE__,zoneStr);
+                    return  BAD_VALUE;
+                }
+            }
+        }
+	}
 
 
     {
@@ -473,6 +520,7 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
                 mParameters.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_AUTO);
             else 
                 mParameters.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_FIXED);
+            return BAD_VALUE;
         }
 
     }
@@ -503,6 +551,7 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
                 TRACE_E("%s isn't supported for this camera, support flash: %s",
                     params_set.get(CameraParameters::KEY_FLASH_MODE),
                     mParameters.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES));
+                return BAD_VALUE;
 
             }
 
@@ -542,18 +591,18 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 	LOGD("  ===pCaps.Resolution:0x%x;pCaps.AfpsResolutions:0x%x====\n",pCaps.Resolution,pCaps.AfpsResolutions);
 	/*preview size setting*/	
     if((pCaps.Resolution & ISI_RES_TV1080P15) || (pCaps.Resolution & ISI_RES_TV1080P30)) {		
-        parameterString.append("1920x1080,1280x720,800x600,640x480");    	
+        parameterString.append("1920x1080,1280x720,800x600,640x480,352x288,320x240,176x144");    	
         params.setPreviewSize(1920, 1080);	
         /* ddl@rock-chips.com: v0.d.2 */
-        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,2048x1536,2592x1944,3264x2448");
+        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "176x144,1280x720,2048x1536,2592x1944,3264x2448");
         params.setPictureSize(2592,1944);
-    } else if((pCaps.Resolution & ISI_RES_2592_1944)) {
-		parameterString.append("800x600,640x48,1280x720");
-		params.setPreviewSize(800, 600);
+    } else if((pCaps.Resolution & ISI_RES_2592_1944)) {             
+		parameterString.append("800x600,640x480,1280x720,352x288,320x240,176x144");      
+		params.setPreviewSize(800, 600);        
 		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "2592x1944,1600x1200,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144");
 		params.setPictureSize(2592,1944);
-	} else if((pCaps.Resolution & ISI_RES_1600_1200)|| (pCaps.Resolution & ISI_RES_SVGA30)) {
-        parameterString.append("1280x720,800x600,720x480,640x480");    	
+	} else if((pCaps.Resolution & ISI_RES_1600_1200)|| (pCaps.Resolution & ISI_RES_SVGA30)) {		
+        parameterString.append("1280x720,800x600,720x480,640x480,352x288,320x240,176x144");    	
         params.setPreviewSize(800, 600);	
 
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1600x1200,1024x768,800x600,640x480,352x288,320x240,176x144");
@@ -612,7 +661,8 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
              	params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
         	}
 
-		}
+		}else
+         	params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
     	params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES, parameterString.string());
 	}
 
@@ -628,8 +678,8 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             
             parameterString.append(",");
             parameterString.append(CameraParameters::FLASH_MODE_AUTO);
-
-            params.set(CameraParameters::KEY_FLASH_MODE,CameraParameters::FLASH_MODE_ON);
+            //must FLASH_MODE_OFF when initial,forced by cts
+            params.set(CameraParameters::KEY_FLASH_MODE,CameraParameters::FLASH_MODE_OFF);
             params.set(CameraParameters::KEY_SUPPORTED_FLASH_MODES,parameterString.string());
 
 
@@ -671,6 +721,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     }	
     
     /*preview format setting*/
+    //yuv420p ,forced by cts
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS, "yuv420sp,yuv420p");
     params.set(CameraParameters::KEY_VIDEO_FRAME_FORMAT,CameraParameters::PIXEL_FORMAT_YUV420SP);
     params.setPreviewFormat(CameraParameters::PIXEL_FORMAT_YUV420SP);
@@ -708,7 +759,8 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     params.set(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH, parameterString.string());
     parameterString = "128";
     params.set(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT, parameterString.string()); 
-    /* zyc@rock-chips.com: for cts ,KEY_MAX_NUM_DETECTED_FACES_HW should not be 0 */
+//	params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"0");
+//	params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_SW,"0");
     params.set(CameraParameters::KEY_RECORDING_HINT,"false");
     params.set(CameraParameters::KEY_VIDEO_STABILIZATION_SUPPORTED,"false");
     params.set(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED,"true");
@@ -743,14 +795,15 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 //		parameterString.append(",shade");	
     params.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE, parameterString.string());
 	params.set(CameraParameters::KEY_WHITE_BALANCE, "auto");
-    params.set(CameraParameters::KEY_SUPPORTED_EFFECTS, "false");
-    params.set(CameraParameters::KEY_SUPPORTED_SCENE_MODES, "false");
-    params.set(CameraParameters::KEY_SUPPORTED_ANTIBANDING, "false");
+//    params.set(CameraParameters::KEY_SUPPORTED_SCENE_MODES, "");
+//    params.set(CameraParameters::KEY_SUPPORTED_ANTIBANDING, "");
 
     //for video test
     params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, "3000,30000");
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(3000,30000)");
-    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, "10,15,30");  
+    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, "10,15,30"); 
+    params.setPreviewFrameRate(30);
+
 
 #if (CONFIG_CAMERA_SETVIDEOSIZE == 1)
     params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
