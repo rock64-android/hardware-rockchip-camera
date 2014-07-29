@@ -233,8 +233,10 @@ v0.0x0a.0x01:
 *v0.0x2d.0
 *     1) fix CTS failed items as follows :
         testJpegExif,testVideoSnapshot      
+*v0.0x2d.1
+*	  1) fix rk312x compile warning
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2d, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2d, 0x01)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
