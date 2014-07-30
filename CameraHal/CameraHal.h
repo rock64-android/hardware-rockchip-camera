@@ -237,8 +237,10 @@ v0.0x0a.0x01:
 *	  1) fix rk312x compile warning
 *v0.0x2d.2
 *	  1) move camera config file from device to hardware 
+*v0.0x2d.3
+*	  1) fix last commit bug 
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2d, 0x02)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2d, 0x03)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
