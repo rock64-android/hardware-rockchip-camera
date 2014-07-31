@@ -241,9 +241,10 @@ namespace android {
         testJpegExif,testVideoSnapshot
 *v0.0x2e.3
 *     1) when preview stopped ,preview cb should be stopped ,or may cause CTS faile  
-
+*v0.0x2e.4
+*     1) fix CTS verrify bugs  
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2e, 0x03)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2e, 0x04)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

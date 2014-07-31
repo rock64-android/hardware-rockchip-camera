@@ -9,7 +9,7 @@
 
 
 #include <camera/CameraParameters.h>
-
+#include "CameraHal_Tracer.h"
 #if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) || (defined(TARGET_BOARD_PLATFORM_RK2928)))
 #include "../libgralloc_ump/gralloc_priv.h"
 #if (CONFIG_CAMERA_INVALIDATE_RGA==0)
@@ -1158,6 +1158,7 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
 					 }
 				 }
 */			 } else if (android_fmt_dst && (strcmp(android_fmt_dst,android::CameraParameters::PIXEL_FORMAT_YUV420P)==0)) {
+				 LOG1("=================cameraHALUtil,yuv420p change to nv12============================");
 				 char *dst_u,*dst_v,*src_y,*dst_y,*srcuv;
 				 int dstc_size,dsty_size, align_dstw,align_dsthalfw;
 				 
