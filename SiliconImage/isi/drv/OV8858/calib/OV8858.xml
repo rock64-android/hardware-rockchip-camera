@@ -156,6 +156,21 @@
                <fRgProjOutdoorMin index="1" type="double" size="[1 1]">
                   [ 1.4688]
                </fRgProjOutdoorMin>
+               <fRgProjALimit index="1" type="double" size="[1 1]">
+                  [ 1.0]
+               </fRgProjALimit>
+               <fRgProjAWeight index="1" type="double" size="[1 1]">
+                  [ 0.6]
+               </fRgProjAWeight>
+               <fRgProjYellowLimit index="1" type="double" size="[1 1]">
+                  [ 1.3]
+               </fRgProjYellowLimit>
+               <fRgProjIllToCwf index="1" type="double" size="[1 1]">
+                  [ 0.12]
+               </fRgProjIllToCwf>
+               <fRgProjIllToCwfWeight index="1" type="double" size="[1 1]">
+                  [ 0.6]
+               </fRgProjIllToCwfWeight>
                <awb_clip_outdoor index="1" type="char" size="[1 3]">
                   D65
                </awb_clip_outdoor>
@@ -275,6 +290,21 @@
                <fRgProjOutdoorMin index="1" type="double" size="[1 1]">
                   [ 1.4688]
                </fRgProjOutdoorMin>
+                <fRgProjALimit index="1" type="double" size="[1 1]">
+                  [ 1.0]
+               </fRgProjALimit>
+               <fRgProjAWeight index="1" type="double" size="[1 1]">
+                  [ 0.6]
+               </fRgProjAWeight>
+               <fRgProjYellowLimit index="1" type="double" size="[1 1]">
+                  [ 1.3]
+               </fRgProjYellowLimit>
+               <fRgProjIllToCwf index="1" type="double" size="[1 1]">
+                  [ 0.12]
+               </fRgProjIllToCwf>
+               <fRgProjIllToCwfWeight index="1" type="double" size="[1 1]">
+                  [ 0.6]
+               </fRgProjIllToCwfWeight>
                <awb_clip_outdoor index="1" type="char" size="[1 3]">
                   D65
                </awb_clip_outdoor>

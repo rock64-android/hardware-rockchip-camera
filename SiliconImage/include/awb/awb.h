@@ -211,6 +211,12 @@ typedef struct AwbRgProj_s
     float                           fRgProjOutdoorMin;
     float                           fRgProjMax;
     float                           fRgProjMaxSky;
+
+	float 							fRgProjALimit;    //oyyf
+	float							fRgProjAWeight;		//oyyf
+	float 							fRgProjYellowLimit;		//oyyf
+	float							fRgProjIllToCwf;		//oyyf
+	float							fRgProjIllToCwfWeight;	//oyyf
 } AwbRgProj_t;
 
 

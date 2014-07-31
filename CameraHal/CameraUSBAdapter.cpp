@@ -1,7 +1,6 @@
 #include "CameraHal.h"
 
 #define CONFIG_CAMERA_UVC_MJPEG_SUPPORT 1
-#define CONFIG_CAMERA_SETVIDEOSIZE   0
 #define CONFIG_CAMERA_UVC_MANEXP 1
 
 namespace android{
@@ -72,7 +71,7 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 	struct v4l2_querymenu *menu_ptr,query_menu;   
     struct v4l2_frmivalenum fival;
     struct v4l2_frmsizeenum fsize; 
-    bool dot;
+    bool dot,isRestartPreview = false;
     char *ptr,str_fov_h[4],str_fov_v[4],fov_h,fov_v;
     
     LOG_FUNCTION_NAME  
@@ -544,12 +543,12 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
     LOGD ("Support video stabilization: %s",params.get(CameraParameters::KEY_VIDEO_STABILIZATION_SUPPORTED));
     LOGD ("Support recording hint: %s",params.get(CameraParameters::KEY_RECORDING_HINT));
 
-    cameraConfig(params,true);
+    cameraConfig(params,true,isRestartPreview);
     LOG_FUNCTION_NAME_EXIT
 
 }
 
-int CameraUSBAdapter::setParameters(const CameraParameters &params_set)
+int CameraUSBAdapter::setParameters(const CameraParameters &params_set,bool &isRestartValue)
 {
     CameraParameters params;
     int fps_min,fps_max;
@@ -610,7 +609,7 @@ int CameraUSBAdapter::setParameters(const CameraParameters &params_set)
     
     int framerate = params.getPreviewFrameRate();
 
-	if (!cameraConfig(params,false)) {        
+	if (!cameraConfig(params,false,isRestartValue)) {        
         LOG1("PreviewSize(%s)", mParameters.get(CameraParameters::KEY_PREVIEW_SIZE));
         LOG1("PreviewFormat(%s)  mCamDriverPreviewFmt(%c%c%c%c)",params.getPreviewFormat(), 
             mCamDriverPreviewFmt & 0xFF, (mCamDriverPreviewFmt >> 8) & 0xFF,
@@ -633,7 +632,7 @@ int CameraUSBAdapter::setParameters(const CameraParameters &params_set)
     return 0;
 }
 
-int CameraUSBAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit)
+int CameraUSBAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit,bool &isRestartValue)
 {
     int err = 0, i = 0;
     struct v4l2_control control;
@@ -865,7 +864,8 @@ int CameraUSBAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 
     mParameters = params;
 	
-	changeVideoPreviewSize();
+	//changeVideoPreviewSize();
+	isRestartValue = isNeedToRestartPreview();
 
 end:  
     return err;

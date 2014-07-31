@@ -164,6 +164,30 @@ int AppMsgNotifier::flushPicture()
     return 0;
 }
 
+int AppMsgNotifier::pausePreviewCBFrameProcess()
+{
+    Message msg;
+    Semaphore sem;
+   LOG_FUNCTION_NAME
+    {
+	    Mutex::Autolock lock(mDataCbLock); 
+
+	    //mReceivePictureFrame = false;
+		mRunningState &= ~STA_RECEIVE_PREVIEWCB_FRAME;
+    }
+
+    //send a msg to pause event frame
+    msg.command = CameraAppMsgThread::CMD_EVENT_PAUSE;
+    sem.Create();
+    msg.arg1 = (void*)(&sem);
+    eventThreadCommandQ.put(&msg);
+    if(msg.arg1){
+        sem.Wait();
+    }
+    LOG_FUNCTION_NAME_EXIT
+    return 0;
+}
+
 bool AppMsgNotifier::isNeedSendToPicture()
 {
     Mutex::Autolock lock(mPictureLock); 
@@ -188,6 +212,7 @@ int AppMsgNotifier::startRecording(int w,int h)
     //release video buffer
     mVideoBufferProvider->freeBuffer();
     mVideoBufferProvider->createBuffer(CONFIG_CAMERA_VIDEOENC_BUF_CNT, frame_size, VIDEOENCBUFFER);
+
 	for (int i=0; i < CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++) {
     	if(!mVideoBufs[i])
     		mVideoBufs[i] = mRequestMemory(-1, 4, 1, NULL);
@@ -285,6 +310,7 @@ int AppMsgNotifier::enableMsgType(int32_t msgtype)
     if(msgtype & (CAMERA_MSG_PREVIEW_FRAME)){
         Mutex::Autolock lock(mDataCbLock);
         mMsgTypeEnabled |= msgtype;
+		mRunningState |= STA_RECEIVE_PREVIEWCB_FRAME;
 		//LOGE("%s(%d): this video buffer is invaildate",__FUNCTION__,__LINE__);
     }else
         mMsgTypeEnabled |= msgtype;
@@ -314,15 +340,11 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
                 LOG1("%s%d: get mDataCbLock",__FUNCTION__,__LINE__);
                 Mutex::Autolock lock(mDataCbLock);
                 mMsgTypeEnabled &= ~msgtype;
+        		mRunningState &= ~STA_RECEIVE_PREVIEWCB_FRAME;
+
                 LOG1("%s%d: release mDataCbLock",__FUNCTION__,__LINE__);
 
             }
-            //send a msg to disable preview frame cb 
-            Message msg;
-			msg.command = CameraAppMsgThread::CMD_EVENT_PAUSE;
-			msg.arg1 = NULL;
-			eventThreadCommandQ.put(&msg);
-			LOG1("%s%d: disable CAMERA_MSG_PREVIEW_FRAME success",__FUNCTION__,__LINE__);			
     }
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -350,8 +372,10 @@ void AppMsgNotifier::notifyCbMsg(int msg,int ret)
 bool AppMsgNotifier::isNeedSendToDataCB()
 {
     Mutex::Autolock lock(mDataCbLock);
-    
-    return ((mMsgTypeEnabled & CAMERA_MSG_PREVIEW_FRAME) &&(mDataCb));
+    if(mRunningState & STA_RECEIVE_PREVIEWCB_FRAME)
+        return ((mMsgTypeEnabled & CAMERA_MSG_PREVIEW_FRAME) &&(mDataCb));
+    else
+        return false;
 }
 
 void AppMsgNotifier::notifyNewPicFrame(FramInfo_s* frame)
@@ -372,10 +396,13 @@ void AppMsgNotifier::notifyNewPreviewCbFrame(FramInfo_s* frame)
     //send to app msg thread
     Message msg;
     Mutex::Autolock lock(mDataCbLock);
-    msg.command = CameraAppMsgThread::CMD_EVENT_PREVIEW_DATA_CB;
-    msg.arg2 = (void*)(frame);
-    msg.arg3 = (void*)(frame->used_flag);
-    eventThreadCommandQ.put(&msg);
+    if(mRunningState & STA_RECEIVE_PREVIEWCB_FRAME){
+        msg.command = CameraAppMsgThread::CMD_EVENT_PREVIEW_DATA_CB;
+        msg.arg2 = (void*)(frame);
+        msg.arg3 = (void*)(frame->used_flag);
+        eventThreadCommandQ.put(&msg);
+   }else
+        mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
 
 }
 void AppMsgNotifier::notifyNewVideoFrame(FramInfo_s* frame)
@@ -383,11 +410,14 @@ void AppMsgNotifier::notifyNewVideoFrame(FramInfo_s* frame)
     //send to app msg thread
     Message msg;
     Mutex::Autolock lock(mRecordingLock);
-    msg.command = CameraAppMsgThread::CMD_EVENT_VIDEO_ENCING ;
-    msg.arg2 = (void*)(frame);
-    msg.arg3 = (void*)(frame->used_flag);
-    LOG2("%s(%d):notify new frame,index(%d)",__FUNCTION__,__LINE__,frame->frame_index);
-    eventThreadCommandQ.put(&msg);
+   if(mRunningState & STA_RECORD_RUNNING){
+        msg.command = CameraAppMsgThread::CMD_EVENT_VIDEO_ENCING ;
+        msg.arg2 = (void*)(frame);
+        msg.arg3 = (void*)(frame->used_flag);
+        LOG2("%s(%d):notify new frame,index(%d)",__FUNCTION__,__LINE__,frame->frame_index);
+        eventThreadCommandQ.put(&msg);
+   }else
+        mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
 }
 
 static BufferProvider* g_rawbufProvider = NULL;
@@ -966,7 +996,7 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 	    tmpPreviewMemory = mRequestMemory(-1, tempMemSize, 1, NULL);
         if (tmpPreviewMemory) {
             //fill the tmpPreviewMemory
-            #if 1 
+            #if 0
             arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
                 (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
             #else
@@ -1038,9 +1068,17 @@ void AppMsgNotifier::stopReceiveFrame()
 {
     //pause event and enc thread
     flushPicture();
+    pausePreviewCBFrameProcess();
     //disable messeage receive
 }
 
+void AppMsgNotifier::startReceiveFrame()
+{
+    Mutex::Autolock lock(mDataCbLock); 
+
+    //mReceivePictureFrame = false;
+	mRunningState |= STA_RECEIVE_PREVIEWCB_FRAME;
+}
 void AppMsgNotifier::dump()
 {
 
@@ -1104,6 +1142,10 @@ void AppMsgNotifier::encProcessThread()
             		Message filter_msg;
                     while(!encProcessThreadCommandQ.isEmpty()){
                         encProcessThreadCommandQ.get(&filter_msg);
+                        if(filter_msg.command == EncProcessThread::CMD_ENCPROCESS_SNAPSHOT){
+        					FramInfo_s *frame = (FramInfo_s*)msg.arg2;
+                            mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
+                        }
                     }
                     if(msg.arg1)
                         ((Semaphore*)(msg.arg1))->Signal();
@@ -1162,7 +1204,16 @@ void AppMsgNotifier::eventThread()
                 break;
           case CameraAppMsgThread::CMD_EVENT_PAUSE:
 				{
+            		Message filter_msg;
                     LOG1("%s(%d),receive CameraAppMsgThread::CMD_EVENT_PAUSE",__FUNCTION__,__LINE__);
+                    while(!eventThreadCommandQ.isEmpty()){
+                        encProcessThreadCommandQ.get(&filter_msg);
+                        if((filter_msg.command == CameraAppMsgThread::CMD_EVENT_PREVIEW_DATA_CB)
+                            ||(filter_msg.command == CameraAppMsgThread::CMD_EVENT_VIDEO_ENCING)){
+        					FramInfo_s *frame = (FramInfo_s*)msg.arg2;
+                            mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
+                        }
+                    }
                     if(msg.arg1)
 						((Semaphore*)(msg.arg1))->Signal();
 					//wake up waiter					

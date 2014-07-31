@@ -42,7 +42,7 @@ public:
     virtual ~CameraIspAdapter();
     virtual status_t startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture);
     virtual status_t stopPreview();
-    virtual int setParameters(const CameraParameters &params_set);
+    virtual int setParameters(const CameraParameters &params_set,bool &isRestartValue);
     virtual void initDefaultParameters(int camFd);
     virtual status_t autoFocus();
     virtual status_t cancelAutoFocus();
@@ -80,7 +80,7 @@ private:
     int stop();
 
     int afListenerThread(void);
-    int cameraConfig(const CameraParameters &tmpparams,bool isInit);
+    int cameraConfig(const CameraParameters &tmpparams,bool isInit,bool &isRestartValue);
     bool isLowIllumin();
     void flashControl(bool on);
     bool isNeedToEnableFlash();
@@ -141,6 +141,11 @@ protected:
     int mISPOutputFmt;
     bool mISPTunningRun;
     bool mIsSendToTunningTh;
+
+    int mDispFrameLeak;
+    int mVideoEncFrameLeak;
+    int mPreviewCBFrameLeak;
+    int mPicEncFrameLeak;
 private:
     
     awbStatus curAwbStatus;

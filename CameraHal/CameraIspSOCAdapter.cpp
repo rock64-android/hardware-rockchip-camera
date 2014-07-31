@@ -231,9 +231,11 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->vir_addr = (int)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
+      tmpFrame->used_flag = 0;
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+        mDispFrameLeak++;
       }
       mRefDisplayAdapter->notifyNewFrame(tmpFrame);
     }
@@ -255,9 +257,11 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->vir_addr = (int)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
+      tmpFrame->used_flag = 1;
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+        mVideoEncFrameLeak++;
       }
       mRefEventNotifier->notifyNewVideoFrame(tmpFrame);		
 	}
@@ -279,9 +283,11 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->vir_addr = (int)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
+      tmpFrame->used_flag = 2;
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+        mPicEncFrameLeak++;
       }
 	  mRefEventNotifier->notifyNewPicFrame(tmpFrame);	
 	}
@@ -303,9 +309,11 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->vir_addr =  (int)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
+      tmpFrame->used_flag = 3;
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+        mPreviewCBFrameLeak++;
       }
 	  mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);			
 	}

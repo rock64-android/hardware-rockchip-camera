@@ -61,12 +61,31 @@ CameraIspAdapter::CameraIspAdapter(int cameraId)
     mISPOutputFmt = ISP_OUT_YUV420SP;
     mISPTunningRun = false;
     mIsSendToTunningTh = false;
+    mDispFrameLeak = 0;
+    mVideoEncFrameLeak = 0;
+    mPreviewCBFrameLeak = 0;
+    mPicEncFrameLeak = 0;
 	LOG_FUNCTION_NAME_EXIT
 }
 CameraIspAdapter::~CameraIspAdapter()
 {
 
     cameraDestroy();
+    if(mDispFrameLeak != 0){
+        LOGE("\n\n\n\nmay have disp frame mem leak,count is %d\n\n\n\n",mDispFrameLeak);
+    }
+    
+    if(mVideoEncFrameLeak!=0){
+        LOGE("\n\n\n\nmay have video frame mem leak,count is %d\n\n\n\n",mVideoEncFrameLeak);
+    }
+    
+    if(mPreviewCBFrameLeak != 0){
+        LOGE("\n\n\n\nmay have previewcb frame mem leak,count is %d\n\n\n\n",mPreviewCBFrameLeak);
+    }
+    
+    if(mPicEncFrameLeak != 0){
+        LOGE("\n\n\n\nmay have pic enc frame mem leak,count is %d\n\n\n\n",mPicEncFrameLeak);
+    }
 	
 }
 int CameraIspAdapter::cameraCreate(int cameraId)
@@ -366,7 +385,7 @@ status_t CameraIspAdapter::stopPreview()
     LOG_FUNCTION_NAME_EXIT
     return 0;
 }
-int CameraIspAdapter::setParameters(const CameraParameters &params_set)
+int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isRestartValue)
 {
     int fps_min,fps_max;
     int framerate=0;
@@ -558,8 +577,7 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
         }
 
     }
-    
-	if (!cameraConfig(params_set,false)) {        
+	if (!cameraConfig(params_set,false,isRestartValue)) {        
         LOG1("PreviewSize(%s)", mParameters.get(CameraParameters::KEY_PREVIEW_SIZE));
         LOG1("PreviewFormat(%s)",params_set.getPreviewFormat());  
         LOG1("FPS Range(%s)",mParameters.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
@@ -575,7 +593,7 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set)
     	LOG1("ZoomIndex: %s", params_set.get(CameraParameters::KEY_ZOOM));	    
 	}else{
 	    return BAD_VALUE;
-	} 
+	}  
     
     return 0;
 }
@@ -584,6 +602,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     CameraParameters params;
 	String8 parameterString;
     rk_cam_total_info *pCamInfo = gCamInfos[camFd].pcam_total_info;
+    bool isRestartPreview = false;
 	LOG_FUNCTION_NAME
 
 	IsiSensorCaps_t     pCaps;	
@@ -630,7 +649,15 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     }	
 	params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());
 
-
+#if (CONFIG_CAMERA_SETVIDEOSIZE == 1)
+    params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
+	params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
+	params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,parameterString); //here maybe erro , cause may not same with  XML 
+#else
+    params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"");
+    params.set(CameraParameters::KEY_VIDEO_SIZE,"");
+    params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
+#endif
     //auto focus parameters
 	{
         bool err_af;
@@ -805,16 +832,6 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     params.setPreviewFrameRate(30);
 
 
-#if (CONFIG_CAMERA_SETVIDEOSIZE == 1)
-    params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
-	params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
-	params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,240x160,352x288,640x480,720x480,800x600,1280x720");
-#else
-
-    params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"");
-    params.set(CameraParameters::KEY_VIDEO_SIZE,"");
-    params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
-#endif
 
     params.set(KEY_CONTINUOUS_PIC_NUM,"1");
 
@@ -840,11 +857,11 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         	params.get(CameraParameters::KEY_FLASH_MODE));
 
 
-	cameraConfig(params,true);
+	cameraConfig(params,true,isRestartPreview);
     LOG_FUNCTION_NAME_EXIT
 }
 
-int CameraIspAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit)
+int CameraIspAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit,bool &isRestartValue)
 {
 	int err = 0, i = 0;
 	CameraParameters params = tmpparams;
@@ -1029,7 +1046,8 @@ int CameraIspAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 	}    
 
 	mParameters = params;
-	changeVideoPreviewSize();
+	//changeVideoPreviewSize();
+	isRestartValue = isNeedToRestartPreview();
 
 	return err;
 }
@@ -1353,6 +1371,22 @@ void CameraIspAdapter::clearFrameArray(){
             LOGE("%s:this frame is not in frame array,used_flag is %d!",__func__,tmpFrame->used_flag);
         }else{
             pMediaBuffer = (MediaBuffer_t *)mFrameInfoArray.valueAt(num);
+            switch (tmpFrame->used_flag){
+                case 0:
+                    mDispFrameLeak--;
+                    break;
+                case 1:
+                    mVideoEncFrameLeak--;
+                    break;
+                case 2:
+                    mPicEncFrameLeak--;
+                    break;
+                case 3:
+                    mPreviewCBFrameLeak--;
+                    break;
+                default:
+                    LOGE("%s,not the valid used_flag %d",__func__,tmpFrame->used_flag);
+            }
             //remove item
             mFrameInfoArray.removeItem((void*)tmpFrame);
             free(tmpFrame);
@@ -1372,10 +1406,25 @@ int CameraIspAdapter::adapterReturnFrame(int index,int cmd){
         }else{
             MediaBuffer_t *pMediaBuffer = (MediaBuffer_t *)mFrameInfoArray.valueFor((void*)tmpFrame);
             {	
+                switch (tmpFrame->used_flag){
+                    case 0:
+                        mDispFrameLeak--;
+                        break;
+                    case 1:
+                        mVideoEncFrameLeak--;
+                        break;
+                    case 2:
+                        mPicEncFrameLeak--;
+                        break;
+                    case 3:
+                        mPreviewCBFrameLeak--;
+                        break;
+                    default:
+                        LOGE("%s,not the valid used_flag %d",__func__,tmpFrame->used_flag);
+                }
                 //remove item
                 mFrameInfoArray.removeItem((void*)tmpFrame);
                 free(tmpFrame);
-
                 //unlock
                 MediaBufUnlockBuffer( pMediaBuffer );
             }
@@ -1517,6 +1566,8 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+        mDispFrameLeak++;
+
       }
       mRefDisplayAdapter->notifyNewFrame(tmpFrame);
     }
@@ -1550,6 +1601,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+        mVideoEncFrameLeak++;
       }
       mRefEventNotifier->notifyNewVideoFrame(tmpFrame);		
 	}
@@ -1589,6 +1641,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
           {
             Mutex::Autolock lock(mFrameArrayLock);
             mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+            mPicEncFrameLeak++;
           }
 		  picture_info_s &picinfo = mRefEventNotifier->getPictureInfoRef();
 		  getCameraParamInfo(picinfo.cameraparam);
@@ -1625,6 +1678,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+        mPreviewCBFrameLeak++;
       }
 	  mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);			
 	}
@@ -1953,7 +2007,7 @@ PROCESS_CMD:
                     m_camDevice->startAwb( CAM_ENGINE_AWB_MODE_MANUAL, illu_index, (bool_t)true );
 
                     if(strcmp(curTuneTask->mWhiteBalance.cc_matrix,"unit_matrix") == 0){
-                        LOGD(" set unit matrix ++++++++++++");
+                        LOGD(" set unit matrix ");
                         m_camDevice->wbCcMatrixSet(1,0,0,
                                                    0,1,0,
                                                    0,0,1);

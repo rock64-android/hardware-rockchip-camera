@@ -114,11 +114,16 @@
 *          2) set FLASH_SKIP_FRAMES 3 for P4 case.
 *v0.0x23.0:
 *          1) verify if buffer has been fullfilled by isp (may be wrong mi frame_end irq ?)or not , if not ,drop it.
+*v0.0x24.0:
+*          1) add awb yellow and change d65 ill to cwf parament in tuning xml   
+*v0.0x25.0:
+*          1) set PIC_BUFFER_NUM_MAIN_SENSOR to 4, and set PIC_BUFFER_SIZE_MAIN_SENSOR to 30M for 1300M raw picture size
+*          2) may dead while on MediaBufPoolGetBuffer due to that some buffer may not freed by app,so reset buffer pool when stop preview.
 
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x23, 0x00)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x25, 0x00)
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);

@@ -90,17 +90,19 @@ int CameraAdapter::getCurVideoSize(int *video_w, int *video_h)
     return mPreviewRunning;
 
 }
-int CameraAdapter::changeVideoPreviewSize()
+
+bool CameraAdapter::isNeedToRestartPreview()
 {
     int preferPreviewW=0,preferPreviewH=0;
 	int previewFrame2AppW=0,previewFrame2AppH=0;
-	int ret = 0;
-	
-    mParameters.getPreviewSize(&previewFrame2AppW, &previewFrame2AppH);
+	bool ret = false;
 
-	if(mPreviewRunning)
+    mParameters.getPreviewSize(&previewFrame2AppW, &previewFrame2AppH);
+    //case 1: when setVideoSize is suported
+
+	if(mPreviewRunning){
     	mParameters.getVideoSize(&mVideoWidth,&mVideoHeight);
-	else{
+	}else{
 		mVideoWidth = -1;
 		mVideoHeight = -1;
 	}	
@@ -122,12 +124,11 @@ int CameraAdapter::changeVideoPreviewSize()
     LOG1("%s:mCamPreviewW (%dx%d)",__func__,mCamPreviewW,mCamPreviewH);
     LOG1("%s:video width (%dx%d)",__func__,mVideoWidth,mVideoHeight);
 
-	if(mPreviewRunning && ((preferPreviewW != mCamPreviewW) || (preferPreviewH != mCamPreviewH)))
+	if(mPreviewRunning && ((preferPreviewW != mCamPreviewW) || (preferPreviewH != mCamPreviewH)) && (mVideoWidth != -1))
 	{
-		ret = stopPreview();
-		ret = startPreview(preferPreviewW,preferPreviewH,preferPreviewW, preferPreviewH, 0,false);
+      ret = true;
 	}
-	return ret;
+    return ret;
 }
 
 void CameraAdapter::dump(int cameraId)
@@ -232,7 +233,7 @@ status_t CameraAdapter::stopPreview()
     LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
     return 0;
 }
-int CameraAdapter::setParameters(const CameraParameters &params_set)
+int CameraAdapter::setParameters(const CameraParameters &params_set,bool &isRestartValue)
 {
     
     return 0;

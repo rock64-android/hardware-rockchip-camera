@@ -878,6 +878,12 @@ typedef struct CamCalibAwbGlobal_s
     float                   fRgProjMax;
     float                   fRgProjMaxSky;
 
+	float 					fRgProjALimit;    //oyyf
+	float					fRgProjAWeight;		//oyyf
+	float 					fRgProjYellowLimit;		//oyyf
+	float					fRgProjIllToCwf;		//oyyf
+	float					fRgProjIllToCwfWeight;	//oyyf
+
     CamIlluminationName_t   outdoor_clipping_profile;
 
     float                   fRegionSize;

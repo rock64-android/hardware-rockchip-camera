@@ -417,7 +417,7 @@ int CameraHal::startRecording()
         err = -1;
         return err;
     }
-    #if 1
+    #if (CONFIG_CAMERA_SETVIDEOSIZE == 0)
     //set picture size
     mParameters.setPictureSize(recordW,recordH);
     setParametersUnlock(mParameters);
@@ -729,6 +729,7 @@ void CameraHal::commandThread()
     picture_info_s picinfo;
     int prevStatus = -1,drv_w,drv_h,picture_w,picture_h;
     int app_previw_w = 0,app_preview_h = 0;
+    bool isRestartPreview = false;
     LOG_FUNCTION_NAME
 
     while(shouldLive) {
@@ -743,6 +744,7 @@ get_command:
             { 
                 LOGD("%s(%d):receive CMD_PREVIEW_START",__FUNCTION__,__LINE__);
 
+            RESTART_PREVIEW_INTERNAL:
                 //1, need to stop or pause display ?
                 if(mDisplayAdapter->getDisplayStatus() == DisplayAdapter::STA_DISPLAY_RUNNING){
                     err=mDisplayAdapter->pauseDisplay();
@@ -757,6 +759,8 @@ get_command:
                 if(prevStatus){
                     //get preview size
                     if((prefered_w != drv_w) || (prefered_h != drv_h)){
+                        //stop eventnotify
+                        mEventNotifier->stopReceiveFrame();
                         //need to stop preview.
                         err=mCameraAdapter->stopPreview();
 						if(err != 0)
@@ -765,6 +769,8 @@ get_command:
                         drv_w = prefered_w;
                         drv_h = prefered_h;
                         err=mCameraAdapter->startPreview(app_previw_w,app_preview_h,drv_w, drv_h, 0, false);
+                        if(mEventNotifier->msgEnabled(CAMERA_MSG_PREVIEW_FRAME))
+                            mEventNotifier->startReceiveFrame();
 						if(err != 0)
 							goto PREVIEW_START_OUT;
                     }
@@ -772,10 +778,14 @@ get_command:
                 }else{
                     drv_w = prefered_w;
                     drv_h = prefered_h;
+                    //stop eventnotify
+                    mEventNotifier->stopReceiveFrame();
                     //selet a proper preview size.
                     err=mCameraAdapter->startPreview(app_previw_w,app_preview_h,drv_w, drv_h, 0, false);
 					if(err != 0)
 						goto PREVIEW_START_OUT;
+                    if(mEventNotifier->msgEnabled(CAMERA_MSG_PREVIEW_FRAME))
+                        mEventNotifier->startReceiveFrame();
                 }
                 if(mDisplayAdapter->getPreviewWindow())
                 {
@@ -846,17 +856,23 @@ get_command:
                 LOG1("%s(%d): receive CMD_SET_PARAMETERS", __FUNCTION__,__LINE__);
                 //set parameters
                 CameraParameters* para = (CameraParameters*)msg.arg2;
-                if(mCameraAdapter->setParameters(*para) == 0){
+                if(mCameraAdapter->setParameters(*para,isRestartPreview) == 0){
                     //update parameters
                     updateParameters(mParameters);
-    				setCamStatus(CMD_SET_PARAMETERS_DONE, 1);	
+    				setCamStatus(CMD_SET_PARAMETERS_DONE, 1);
                 }else{
                     //update parameters
                     updateParameters(mParameters);
                 }
                 if(msg.arg1)
                     ((Semaphore*)(msg.arg1))->Signal();
+
                 LOG1("%s(%d): CMD_SET_PARAMETERS out",__FUNCTION__,__LINE__);
+                if(isRestartPreview){
+                    LOGD("%s:setparameter demand restart preview!",__FUNCTION__);
+                    msg.arg1 = NULL;
+                    goto RESTART_PREVIEW_INTERNAL;
+                }
                 break;
                     
             }
@@ -867,7 +883,7 @@ get_command:
 				setCamStatus(CMD_PREVIEW_CAPTURE_CANCEL_DONE, 1);	
                 //reset pic num to 1
                 mParameters.set(KEY_CONTINUOUS_PIC_NUM,"1");
-                mCameraAdapter->setParameters(mParameters);
+                mCameraAdapter->setParameters(mParameters,isRestartPreview);
                 if(msg.arg1)
                     ((Semaphore*)(msg.arg1))->Signal();
                 LOGD("%s(%d): CMD_PREVIEW_CAPTURE_CANCEL out",__FUNCTION__,__LINE__);

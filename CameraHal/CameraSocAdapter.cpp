@@ -151,7 +151,7 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	char str_picturesize[200];//We support at most 4 resolutions: 2592x1944,2048x1536,1600x1200,1024x768 
 	int ret,picture_size_bit;
 	struct v4l2_format fmt;    
-	bool dot;
+	bool dot,isRestartPreview = false;
 	
 	LOG_FUNCTION_NAME	 
 	memset(str_picturesize,0x00,sizeof(str_picturesize));
@@ -636,11 +636,11 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	 LOGD ("Support recording hint: %s",params.get(CameraParameters::KEY_RECORDING_HINT));
 	 LOGD ("Support video snapshot: %s",params.get(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED));
 
-	 cameraConfig(params,true);
+	 cameraConfig(params,true,isRestartPreview);
 	 LOG_FUNCTION_NAME_EXIT
 	
 }
-int CameraSOCAdapter::setParameters(const CameraParameters &params_set)
+int CameraSOCAdapter::setParameters(const CameraParameters &params_set,bool &isRestartValue)
 {
     CameraParameters params;
     int fps_min,fps_max;
@@ -702,7 +702,7 @@ int CameraSOCAdapter::setParameters(const CameraParameters &params_set)
     
     int framerate = params.getPreviewFrameRate();
 
-	if (!cameraConfig(params,false)) {        
+	if (!cameraConfig(params,false,isRestartValue)) {        
         LOG1("PreviewSize(%s)", mParameters.get(CameraParameters::KEY_PREVIEW_SIZE));
         LOG1("PreviewFormat(%s)  mCamDriverPreviewFmt(%c%c%c%c)",params.getPreviewFormat(), 
             mCamDriverPreviewFmt & 0xFF, (mCamDriverPreviewFmt >> 8) & 0xFF,
@@ -725,7 +725,7 @@ int CameraSOCAdapter::setParameters(const CameraParameters &params_set)
     return 0;
 }
 
-int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit)
+int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit,bool &isRestartValue)
 {
     int err = 0, i = 0;
     struct v4l2_control control;
@@ -961,7 +961,8 @@ int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
     LOGD("config out ");
 
     mParameters = params;
-	changeVideoPreviewSize();
+	//changeVideoPreviewSize();
+	isRestartValue = isNeedToRestartPreview();
 	
 	return 0;
 }

@@ -83,6 +83,7 @@
 #include "CameraHal_Tracer.h"
 
 extern "C" int getCallingPid();
+extern "C" void callStack();
 extern "C" int cameraPixFmt2HalPixFmt(const char *fmt);
 extern "C" void arm_nv12torgb565(int width, int height, char *src, short int *dst,int dstbuf_w);
 extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short int *dst, 
@@ -131,8 +132,6 @@ namespace android {
 		do nothing if mFrameInfoArray has been cleared when return frame.
 *v0.0x0a.0x00:
 *       1) support no cam_board.xml;
-v0.0x0a.0x01:
-*       1) support DV_SVGA and VGA camera;
 *v0.0x0b.0x00:
 *       1) 	support setVideoSize function;
 *       2) add cameraConfig function;
@@ -239,8 +238,12 @@ v0.0x0a.0x01:
 *	  1) move camera config file from device to hardware 
 *v0.0x2d.3
 *	  1) fix last commit bug 
+        testJpegExif,testVideoSnapshot
+*v0.0x2e.3
+*     1) when preview stopped ,preview cb should be stopped ,or may cause CTS faile  
+
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2d, 0x03)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2e, 0x03)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -430,7 +433,6 @@ typedef struct mjpeg_interface {
     mjpegDecodeOneFrameFun      decode;
 } mjpeg_interface_t;
 
-
 /*************************
 CameraAdapter 负责与驱动通信，且为帧数据的提供者，为display及msgcallback提供数据。
 ***************************/
@@ -447,7 +449,7 @@ public:
     CameraParameters & getParameters();
     virtual int getCurPreviewState(int *drv_w,int *drv_h);
 	virtual int getCurVideoSize(int *video_w, int *video_h);
-	virtual int changeVideoPreviewSize();
+    virtual bool isNeedToRestartPreview();
     int getCameraFd();
    int initialize();
     
@@ -455,7 +457,7 @@ public:
     virtual status_t stopPreview();
    // virtual int initialize() = 0;
     virtual int returnFrame(int index,int cmd);
-    virtual int setParameters(const CameraParameters &params_set);
+    virtual int setParameters(const CameraParameters &params_set,bool &isRestartValue);
     virtual void initDefaultParameters(int camFd);
     virtual status_t autoFocus();
     virtual status_t cancelAutoFocus();
@@ -559,14 +561,14 @@ public:
     talk to driver 
     **********************/
     //parameters
-    virtual int setParameters(const CameraParameters &params_set);
+    virtual int setParameters(const CameraParameters &params_set,bool &isRestartValue);
     virtual void initDefaultParameters(int camFd);
     virtual int cameraAutoFocus(bool auto_trig_only);
     
 private:    
     int cameraFramerateQuery(unsigned int format, unsigned int w, unsigned int h, int *min, int *max);
     int cameraFpsInfoSet(CameraParameters &params);
-    int cameraConfig(const CameraParameters &tmpparams,bool isInit);
+    int cameraConfig(const CameraParameters &tmpparams,bool isInit,bool &isRestartValue);
 
 
     int mCamDriverFrmWidthMax;
@@ -617,13 +619,13 @@ public:
     CameraUSBAdapter(int cameraId);
     virtual ~CameraUSBAdapter();
     virtual int cameraStop();
-    virtual int setParameters(const CameraParameters &params_set);
+    virtual int setParameters(const CameraParameters &params_set,bool &isRestartValue);
     virtual void initDefaultParameters(int camFd);
     virtual int reprocessFrame(FramInfo_s* frame);
 
 
 private:
-    int cameraConfig(const CameraParameters &tmpparams,bool isInit);
+    int cameraConfig(const CameraParameters &tmpparams,bool isInit,bool &isRestartValue);
     
     int mCamDriverFrmWidthMax;
     int mCamDriverFrmHeightMax;
@@ -843,6 +845,7 @@ private:
 
 		STA_RECORD_RUNNING				= 0x4000,
 		STA_RECEIVE_PIC_FRAME				= 0x8000,
+		STA_RECEIVE_PREVIEWCB_FRAME         = 0x10000,
 	};
 	
     //处理preview data cb及video enc
@@ -899,7 +902,8 @@ public:
     
     int takePicture(picture_info_s picinfo);
     int flushPicture();
-    
+    int pausePreviewCBFrameProcess();
+
     void setVideoBufProvider(BufferProvider* bufprovider);
     int startRecording(int w,int h);
     int stopRecording();
@@ -925,6 +929,7 @@ public:
     int  setPreviewDataCbRes(int w,int h, const char *fmt);
     
     void stopReceiveFrame();
+    void startReceiveFrame();
     void dump();
 	void setDatacbFrontMirrorState(bool mirror);
 	picture_info_s&  getPictureInfoRef();
