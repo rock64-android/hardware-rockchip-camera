@@ -52,6 +52,9 @@ extern "C"
 *v0.3.0:  tunning first version;
 *v0.4.0:
 *   1). limit AecMinIntegrationTime 0.0001 for aec.
+v0.5.0:
+	1)fix AE difference between preview and capture;
+	2)fix MOTOR speed;
 */
 
 
@@ -88,6 +91,13 @@ extern "C"
 /*****************************************************************************
  * ov14825 context structure
  *****************************************************************************/
+typedef struct OV8858_VcmInfo_s                 /* ddl@rock-chips.com: v0.3.0 */
+{
+    uint32_t StartCurrent;
+    uint32_t RatedCurrent;
+    uint32_t Step;
+    uint32_t StepMode;
+} OV8858_VcmInfo_t;
 typedef struct OV8858_Context_s
 {
     IsiSensorContext_t  IsiCtx;                 /**< common context of ISI and ISI driver layer; @note: MUST BE FIRST IN DRIVER CONTEXT */
@@ -123,6 +133,7 @@ typedef struct OV8858_Context_s
     uint32_t            OldFineIntegrationTime;
 
     IsiSensorMipiInfo   IsiSensorMipiInfo;
+	OV8858_VcmInfo_t    VcmInfo; 
 } OV8858_Context_t;
 
 #ifdef __cplusplus

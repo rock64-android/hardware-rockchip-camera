@@ -639,10 +639,10 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448,4224x3136");
         params.setPictureSize(4224,3136);
     }else if((pCaps.Resolution & ISI_RES_1632_1224)|| (pCaps.Resolution & ISI_RES_3264_2448 )){
-        parameterString.append("1632x1224,1920x1080,1280x720,800x600,640x480");    	
+        parameterString.append("1632x1224,1280x720,800x600,640x480");    	
         params.setPreviewSize(1632, 1224);	
 
-        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448");
+        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448");
         params.setPictureSize(3264,2448);
     }else {
         LOGE("error,you need add the solution");

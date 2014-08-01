@@ -336,7 +336,7 @@ const IsiRegDescription_t OV8858_g_1632x1224_twolane[] =
 	{0x3015, 0x01,"0x0100",eReadWrite}, //									 
 	{0x3501, 0x4d,"0x0100",eReadWrite}, // exposure M						 
 	{0x3502, 0x40,"0x0100",eReadWrite}, // exposure L						 
-	{0x3508, 0x04,"0x0100",eReadWrite}, // gain H							 
+	//{0x3508, 0x04,"0x0100",eReadWrite}, // gain H							 
 	{0x3706, 0x35,"0x0100",eReadWrite}, //									 
 	{0x370a, 0x00,"0x0100",eReadWrite}, //									 
 	{0x370b, 0xb5,"0x0100",eReadWrite}, //									 
@@ -382,7 +382,7 @@ const IsiRegDescription_t OV8858_g_3264x2448_twolane[] =
 	{0x3015, 0x01,"0x0100",eReadWrite}, //									 
 	{0x3501, 0x4d,"0x0100",eReadWrite}, // exposure M						 
 	{0x3502, 0x40,"0x0100",eReadWrite}, // exposure L						 
-	{0x3508, 0x04,"0x0100",eReadWrite}, // gain H							 
+	//{0x3508, 0x04,"0x0100",eReadWrite}, // gain H							 
 	{0x3706, 0x35,"0x0100",eReadWrite}, //									 
 	{0x370a, 0x00,"0x0100",eReadWrite}, //									 
 	{0x370b, 0xb5,"0x0100",eReadWrite}, //									 
@@ -422,7 +422,7 @@ const IsiRegDescription_t OV8858_g_3264x2448_twolane[] =
 	{0x3015, 0x00,"0x0100",eReadWrite}, //								
 	{0x3501, 0x9a,"0x0100",eReadWrite}, //								
 	{0x3502, 0x20,"0x0100",eReadWrite}, //								
-	{0x3508, 0x02,"0x0100",eReadWrite}, //								
+	//{0x3508, 0x02,"0x0100",eReadWrite}, //								
 	{0x3706, 0x6a,"0x0100",eReadWrite}, //								
 	{0x370a, 0x01,"0x0100",eReadWrite}, //								
 	{0x370b, 0x6a,"0x0100",eReadWrite}, //								

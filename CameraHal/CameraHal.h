@@ -243,6 +243,8 @@ namespace android {
 *     1) when preview stopped ,preview cb should be stopped ,or may cause CTS faile  
 *v0.0x2e.4
 *     1) fix CTS verrify bugs  
+*v0.0x2e.5
+	  2) delete ov8858 presize:1080p,pic size:1280x720;
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2e, 0x04)
 

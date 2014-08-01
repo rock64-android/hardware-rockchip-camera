@@ -48,7 +48,7 @@ CREATE_TRACER( OV8858_DEBUG, "OV8858: ", INFO,     0U );
 CREATE_TRACER( OV8858_REG_INFO , "OV8858: ", INFO, 1);
 CREATE_TRACER( OV8858_REG_DEBUG, "OV8858: ", INFO, 1U );
 
-#define OV8858_SLAVE_ADDR       0x6cU                           /**< i2c slave address of the OV8858 camera sensor */
+#define OV8858_SLAVE_ADDR       0x6cU //0x20 //0x6cU                           /**< i2c slave address of the OV8858 camera sensor */
 #define OV8858_SLAVE_AF_ADDR    0x18U         //?                  /**< i2c slave address of the OV8858 integrated AD5820 */
 
 #define OV8858_MAXN_GAIN 		(128.0f)
@@ -59,13 +59,17 @@ CREATE_TRACER( OV8858_REG_DEBUG, "OV8858: ", INFO, 1U );
 /*!<
  * Focus position values:
  * 65 logical positions ( 0 - 64 )
- * where 64 is the setting for infinity and 0 for macro
+ * where 0 is the setting for infinity and 0 for macro
  * corresponding to
  * 1024 register settings (0 - 1023)
  * where 0 is the setting for infinity and 1023 for macro
  */
 #define MAX_LOG   64U
 #define MAX_REG 1023U
+
+#define MAX_VCMDRV_CURRENT      100U
+#define MAX_VCMDRV_REG          1023U
+
 
 
 
@@ -190,7 +194,7 @@ static RESULT OV8858_IsiCreateSensorIss
 )
 {
     RESULT result = RET_SUCCESS;
-
+	int32_t current_distance;
     OV8858_Context_t *pOV8858Ctx;
 
     TRACE( OV8858_INFO, "%s (enter)\n", __FUNCTION__);
@@ -234,6 +238,13 @@ static RESULT OV8858_IsiCreateSensorIss
     pOV8858Ctx->Streaming              = BOOL_FALSE;
     pOV8858Ctx->TestPattern            = BOOL_FALSE;
     pOV8858Ctx->isAfpsRun              = BOOL_FALSE;
+    /* ddl@rock-chips.com: v0.3.0 */
+    current_distance = pConfig->VcmRatedCurrent - pConfig->VcmStartCurrent;
+    current_distance = current_distance*MAX_VCMDRV_REG/MAX_VCMDRV_CURRENT;    
+    pOV8858Ctx->VcmInfo.Step = (current_distance+(MAX_LOG-1))/MAX_LOG;
+    pOV8858Ctx->VcmInfo.StartCurrent   = pConfig->VcmStartCurrent*MAX_VCMDRV_REG/MAX_VCMDRV_CURRENT;    
+    pOV8858Ctx->VcmInfo.RatedCurrent   = pOV8858Ctx->VcmInfo.StartCurrent + MAX_LOG*pOV8858Ctx->VcmInfo.Step;
+    pOV8858Ctx->VcmInfo.StepMode       = pConfig->VcmStepMode;    
 	
 	pOV8858Ctx->IsiSensorMipiInfo.sensorHalDevID = pOV8858Ctx->IsiCtx.HalDevID;
 	if(pConfig->mipiLaneNum & g_suppoted_mipi_lanenum_type)
@@ -1806,7 +1817,10 @@ RESULT OV8858_IsiGetGainIss
     float               *pSetGain
 )
 {
-    OV8858_Context_t *pOV8858Ctx = (OV8858_Context_t *)handle;
+	uint32_t data= 0;
+	uint32_t result_gain= 0;
+	
+	OV8858_Context_t *pOV8858Ctx = (OV8858_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
@@ -1823,7 +1837,17 @@ RESULT OV8858_IsiGetGainIss
         return ( RET_NULL_POINTER );
     }
 
-    *pSetGain = pOV8858Ctx->AecCurGain;
+	
+	result = OV8858_IsiRegReadIss ( pOV8858Ctx, OV8858_AEC_AGC_ADJ_H, &data);
+	TRACE( OV8858_INFO, " -------reg3508:%x-------\n",data );
+	result_gain = (data & 0x07) ;
+	result = OV8858_IsiRegReadIss ( pOV8858Ctx, OV8858_AEC_AGC_ADJ_L, &data);
+	TRACE( OV8858_INFO, " -------reg3509:%x-------\n",data );
+	result_gain = (result_gain<<8) + data;
+	*pSetGain = ( (float)result_gain ) / OV8858_MAXN_GAIN;
+	
+    //*pSetGain = pOV8858Ctx->AecCurGain;
+    
 
     TRACE( OV8858_INFO, "%s: (exit)\n", __FUNCTION__);
 
@@ -1910,8 +1934,10 @@ RESULT OV8858_IsiSetGainIss
     RESULT result = RET_SUCCESS;
 
     uint16_t usGain = 0;
+	uint32_t data= 0;
+	uint32_t result_gain= 0;
 
-    TRACE( OV8858_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8858_INFO, "%s: (enter) pOV8858Ctx->AecMaxGain(%f) \n", __FUNCTION__,pOV8858Ctx->AecMaxGain);
 
     if ( pOV8858Ctx == NULL )
     {
@@ -1938,8 +1964,17 @@ RESULT OV8858_IsiSetGainIss
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
         result = OV8858_IsiRegWriteIss( pOV8858Ctx, OV8858_AEC_AGC_ADJ_L, (usGain&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-
+		
         pOV8858Ctx->OldGain = usGain;
+
+		/*osSleep(30);
+		result = OV8858_IsiRegReadIss ( pOV8858Ctx, OV8858_AEC_AGC_ADJ_H, &data);
+		TRACE( OV8858_ERROR, " -------reg35088888888:%x-------\n",data );
+		result_gain = (data & 0x07) ;
+		result = OV8858_IsiRegReadIss ( pOV8858Ctx, OV8858_AEC_AGC_ADJ_L, &data);
+		TRACE( OV8858_ERROR, " -------reg35099999999:%x-------\n",data );
+		result_gain = (result_gain<<8) + data;*/
+		
     }
 
     //calculate gain actually set
@@ -1947,7 +1982,7 @@ RESULT OV8858_IsiSetGainIss
 
     //return current state
     *pSetGain = pOV8858Ctx->AecCurGain;
-    TRACE( OV8858_INFO, "%s: psetgain=%f, NewGain=%f\n", __FUNCTION__, *pSetGain, NewGain);
+    TRACE( OV8858_INFO, "-----------%s: psetgain=%f, NewGain=%f,result_gain=%x\n", __FUNCTION__, *pSetGain, NewGain,result_gain);
 
     TRACE( OV8858_INFO, "%s: (exit)\n", __FUNCTION__);
 
@@ -2084,6 +2119,9 @@ RESULT OV8858_IsiSetIntegrationTimeIss
     RESULT result = RET_SUCCESS;
 
     uint32_t CoarseIntegrationTime = 0;
+	uint32_t data= 0;
+	uint32_t result_intertime= 0;
+	
     //uint32_t FineIntegrationTime   = 0; //not supported by OV8858
 
     float ShutterWidthPck = 0.0f; //shutter width in pixel clock periods
@@ -2143,10 +2181,21 @@ RESULT OV8858_IsiSetIntegrationTimeIss
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
         result = OV8858_IsiRegWriteIss( pOV8858Ctx, OV8858_AEC_EXPO_L, (CoarseIntegrationTime & 0x0000000FU) << 4U );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-
-
+		
         pOV8858Ctx->OldCoarseIntegrationTime = CoarseIntegrationTime;   // remember current integration time
         *pNumberOfFramesToSkip = 1U; //skip 1 frame
+        
+		/*osSleep(30);
+		result = OV8858_IsiRegReadIss ( pOV8858Ctx, OV8858_AEC_EXPO_H, &data);
+		TRACE( OV8858_ERROR, " -------reg3500:%x-------\n",data );
+		result_intertime = (data & 0x0f) << 8;
+		result = OV8858_IsiRegReadIss ( pOV8858Ctx, OV8858_AEC_EXPO_M, &data);
+		TRACE( OV8858_ERROR, " -------reg3501:%x-------\n",data );
+		result_intertime = result_intertime + data;
+		result = OV8858_IsiRegReadIss ( pOV8858Ctx, OV8858_AEC_EXPO_L, &data);
+		TRACE( OV8858_ERROR, " -------reg3502:%x-------\n",data );
+		result_intertime = (result_intertime << 4) + (data >> 4);*/
+		
     }
     else
     {
@@ -2168,7 +2217,7 @@ RESULT OV8858_IsiSetIntegrationTimeIss
     //return current state
     *pSetIntegrationTime = pOV8858Ctx->AecCurIntegrationTime;
 
-    TRACE( OV8858_INFO, "%s: SetTi=%f NewTi=%f\n", __FUNCTION__, *pSetIntegrationTime,NewIntegrationTime);
+    TRACE( OV8858_INFO, "---------%s:pOV8858Ctx->VtPixClkFreq:%f;pOV8858Ctx->LineLengthPck:%x\n-------SetTi=%f NewTi=%f  CoarseIntegrationTime=%x,result_intertime = %x\n H:%x\n M:%x\n L:%x\n", __FUNCTION__, pOV8858Ctx->VtPixClkFreq,pOV8858Ctx->LineLengthPck,*pSetIntegrationTime,NewIntegrationTime,CoarseIntegrationTime,result_intertime,(CoarseIntegrationTime & 0x0000F000U) >> 12U ,(CoarseIntegrationTime & 0x00000FF0U) >> 4U,(CoarseIntegrationTime & 0x0000000FU) << 4U);
     TRACE( OV8858_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
@@ -2231,8 +2280,9 @@ RESULT OV8858_IsiExposureControlIss
     }
 
     TRACE( OV8858_INFO, "%s: g=%f, Ti=%f\n", __FUNCTION__, NewGain, NewIntegrationTime );
-
-
+	
+	//NewGain = 5.0;
+	//NewIntegrationTime = 0.03;
     result = OV8858_IsiSetIntegrationTimeIss( handle, NewIntegrationTime, pSetIntegrationTime, pNumberOfFramesToSkip );
     result = OV8858_IsiSetGainIss( handle, NewGain, pSetGain );
 
@@ -3142,7 +3192,7 @@ static RESULT OV8858_IsiMdiSetupMotoDrive
 )
 {
     OV8858_Context_t *pOV8858Ctx = (OV8858_Context_t *)handle;
-
+	uint32_t vcm_movefull_t;
     RESULT result = RET_SUCCESS;
 
     //TRACE( OV8858_ERROR, "%s: (enter)\n", __FUNCTION__);
@@ -3156,8 +3206,15 @@ static RESULT OV8858_IsiMdiSetupMotoDrive
     {
         return ( RET_NULL_POINTER );
     }
-
-    *pMaxStep = MAX_LOG;
+ if ((pOV8858Ctx->VcmInfo.StepMode & 0x0c) != 0) {
+ 	vcm_movefull_t = 64* (1<<(pOV8858Ctx->VcmInfo.StepMode & 0x03)) *1024/((1 << (((pOV8858Ctx->VcmInfo.StepMode & 0x0c)>>2)-1))*1000);
+ }else{
+ 	vcm_movefull_t =64*1023/1000;
+   TRACE( OV8858_ERROR, "%s: (---NO SRC---)\n", __FUNCTION__);
+ }
+ 
+	  *pMaxStep = (MAX_LOG|(vcm_movefull_t<<16));
+   // *pMaxStep = MAX_LOG;
 
     result = OV8858_IsiMdiFocusSet( handle, MAX_LOG );
 
@@ -3204,11 +3261,25 @@ static RESULT OV8858_IsiMdiFocusSet
     }
 
     /* map 64 to 0 -> infinity */
-    nPosition = ( Position >= MAX_LOG ) ? 0 : ( MAX_REG - (Position * 16U) );
+    //nPosition = ( Position >= MAX_LOG ) ? 0 : ( MAX_REG - (Position * 16U) );
+	if( Position > MAX_LOG ){
+		TRACE( OV8858_ERROR, "%s: pOV8858Ctx Position (%d) max_position(%d)\n", __FUNCTION__,Position, MAX_LOG);
+		//Position = MAX_LOG;
+	}	
+    /* ddl@rock-chips.com: v0.3.0 */
+    if ( Position >= MAX_LOG )
+        nPosition = pOV8858Ctx->VcmInfo.StartCurrent;
+    else 
+        nPosition = pOV8858Ctx->VcmInfo.StartCurrent + (pOV8858Ctx->VcmInfo.Step*(MAX_LOG-Position));
+    /* ddl@rock-chips.com: v0.6.0 */
+    if (nPosition > MAX_VCMDRV_REG)  
+        nPosition = MAX_VCMDRV_REG;
 
+    TRACE( OV8858_INFO, "%s: focus set position_reg_value(%d) position(%d) \n", __FUNCTION__, nPosition, Position);
     data[0] = (uint8_t)(0x00U | (( nPosition & 0x3F0U ) >> 4U));                 // PD,  1, D9..D4, see AD5820 datasheet
-    data[1] = (uint8_t)( ((nPosition & 0x0FU) << 4U) | MDI_SLEW_RATE_CTRL );    // D3..D0, S3..S0
-
+    //data[1] = (uint8_t)( ((nPosition & 0x0FU) << 4U) | MDI_SLEW_RATE_CTRL );    // D3..D0, S3..S0
+	data[1] = (uint8_t)( ((nPosition & 0x0FU) << 4U) | pOV8858Ctx->VcmInfo.StepMode );
+	
     //TRACE( OV8858_ERROR, "%s: value = %d, 0x%02x 0x%02x\n", __FUNCTION__, nPosition, data[0], data[1] );
 
     result = HalWriteI2CMem( pOV8858Ctx->IsiCtx.HalHandle,
@@ -3280,7 +3351,7 @@ static RESULT OV8858_IsiMdiFocusGet
     /* Data[1] = D3..D0, S3..S0 */
     *pAbsStep = ( ((uint32_t)(data[0] & 0x3FU)) << 4U ) | ( ((uint32_t)data[1]) >> 4U );
 
-    /* map 0 to 64 -> infinity */
+    /*  //map 0 to 64 -> infinity 
     if( *pAbsStep == 0 )
     {
         *pAbsStep = MAX_LOG;
@@ -3288,8 +3359,19 @@ static RESULT OV8858_IsiMdiFocusGet
     else
     {
         *pAbsStep = ( MAX_REG - *pAbsStep ) / 16U;
+    }*/
+	if( *pAbsStep <= pOV8858Ctx->VcmInfo.StartCurrent)
+    {
+        *pAbsStep = MAX_LOG;
     }
-
+    else if((*pAbsStep>pOV8858Ctx->VcmInfo.StartCurrent) && (*pAbsStep<=pOV8858Ctx->VcmInfo.RatedCurrent))
+    {
+        *pAbsStep = (pOV8858Ctx->VcmInfo.RatedCurrent - *pAbsStep ) / pOV8858Ctx->VcmInfo.Step;
+    }
+	else
+	{
+		*pAbsStep = 0;
+	}
    // TRACE( OV8858_ERROR, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
