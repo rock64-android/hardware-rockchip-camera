@@ -1069,10 +1069,12 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
             (CAMSYS_HEAD_VERSION&0xff));
         ALOGD("\n\n\n");
 
-        LOG_ALWAYS_FATAL_IF((CAMSYS_HEAD_VERSION != pCamInfo->mCamsysVersion.head_ver), 
-            "%s:\n"
-            "VERSION-WARNING: camsys_head.h version isn't match in Kernel and CameraHal\n\n\n", __PRETTY_FUNCTION__);
-        
+        //LOG_ALWAYS_FATAL_IF((CAMSYS_HEAD_VERSION != pCamInfo->mCamsysVersion.head_ver), 
+        //    "%s:\n"
+        //    "VERSION-WARNING: camsys_head.h version isn't match in Kernel and CameraHal\n\n\n", __PRETTY_FUNCTION__);
+        //just warning
+	    ALOGE("%s:\n VERSION-WARNING: camsys_head.h version isn't match in Kernel and CameraHal\n\n\n", __FUNCTION__);
+
 	}else{
 		ALOGE("%s(%d): get camsys head version failed! ---------\n\n\n",__FUNCTION__,__LINE__);
 		goto regist_err;

@@ -245,8 +245,10 @@ namespace android {
 *     1) fix CTS verrify bugs  
 *v0.0x2e.5
 	  2) delete ov8858 presize:1080p,pic size:1280x720;
+*v0.0x2e.6
+	  1) don't match camsys_head.h for boot system
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2e, 0x04)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2e, 0x06)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
