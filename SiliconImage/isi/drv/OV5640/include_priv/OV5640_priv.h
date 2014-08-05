@@ -11,8 +11,13 @@
  *
  *v0.1.0x00 : 1. OV5640 init;
  *v0.2.0x00 : 1. add OV5640 focus;
- *
- */
+ *v0.3.0x00 : 1. chang frome 720p to 5M failed ,fix it
+ *v0.4.0:
+*   1).add senosr drv version in get sensor i2c info func
+*v0.5.0:
+*   1). support for isi v0.5.0
+*/
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 5, 0) 
 
 #ifdef __cplusplus
 extern "C"

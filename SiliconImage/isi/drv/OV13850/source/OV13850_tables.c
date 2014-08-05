@@ -565,7 +565,7 @@ const IsiRegDescription_t OV13850_g_aRegDescription_twolane[] =
 const IsiRegDescription_t OV13850_g_twolane_resolution_4224_3136[] =
 {
 	{0x0100 ,0x00 ,"0x0100",eReadWrite},
-	{0x3501 ,0xc0 ,"0x0100",eReadWrite},
+	//{0x3501 ,0xc0 ,"0x0100",eReadWrite},
 	{0x3612 ,0x2f ,"0x0100",eReadWrite},
 	{0x370a ,0x24 ,"0x0100",eReadWrite},
 	{0x372a ,0x04 ,"0x0100",eReadWrite},
@@ -607,7 +607,7 @@ const IsiRegDescription_t OV13850_g_twolane_resolution_4224_3136[] =
 const IsiRegDescription_t OV13850_g_twolane_resolution_2112_1568[] =
 {
 	{0x0100 ,0x00 ,"0x0100",eReadWrite},
-	{0x3501 ,0x60 ,"0x0100",eReadWrite},
+	//{0x3501 ,0x60 ,"0x0100",eReadWrite},
 	{0x3612 ,0x27 ,"0x0100",eReadWrite},
 	{0x370a ,0x26 ,"0x0100",eReadWrite},
 	{0x372a ,0x00 ,"0x0100",eReadWrite},

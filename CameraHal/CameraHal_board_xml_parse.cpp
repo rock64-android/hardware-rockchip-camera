@@ -228,6 +228,15 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
         }
         strncpy(pSensorInfo->mSensorDriver, atts[1], sizeof(pSensorInfo->mSensorDriver));
     }
+	else if(strcmp(name, "SensorFovParemeter")==0){
+		sscanf(atts[1], "%f", &(pSensorInfo->fov_h));
+		sscanf(atts[3], "%f", &(pSensorInfo->fov_v));
+		ALOGD("%s(%d): SensorFovParemeter fov_h(%s)(%f) fov_v(%s)(%f)  \n", __FUNCTION__, __LINE__, atts[1],pSensorInfo->fov_h, atts[3],pSensorInfo->fov_v);
+	}
+	else if(strcmp(name, "SensorAWB_Frame_Skip")==0){
+    	ALOGD("%s(%d): SensorAWB_Frame_Skip fps(%s) \n", __FUNCTION__, __LINE__, atts[1]);
+        pSensorInfo->awb_frame_skip = atoi(atts[1]);
+	}
 }
 
 void camera_board_profiles::ParserVCMInfo(const char *name, const char **atts, void *userData)
@@ -708,13 +717,12 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
         ALOGD("\n\n");
 	}else if(strcmp(name,"CamDevie")==0){
 	    rk_cam_total_info* pNewCamInfo = new rk_cam_total_info();
-	    if(pNewCamInfo){
-	        ALOGD("%s(%d):  camdevice malloc success! (%p) \n", __FUNCTION__,__LINE__, pNewCamInfo);
+	    if(pNewCamInfo){	        
             pCamInfoProfiles->mCurDevice= pNewCamInfo;
             pCamInfoProfiles->mDevieVector.add(pNewCamInfo);
             pNewCamInfo->mDeviceIndex = (pCamInfoProfiles->mDevieVector.size()) - 1;
 	    }else{
-            ALOGD("%s(%d): Warnimg camdevice malloc fail! \n", __FUNCTION__,__LINE__);
+            ALOGE("%s(%d): Warnimg camdevice malloc fail! \n", __FUNCTION__,__LINE__);
 	    }
 	}else if (strstr(name, "Sensor")) {
         ParserSensorInfo(name, atts, userData);
@@ -773,7 +781,7 @@ camera_board_profiles* camera_board_profiles::createInstance()
     
     XML_Parser parser = XML_ParserCreate(NULL);
     if(parser==NULL){
-        ALOGD("XML_ParserCreate failed\n");
+        ALOGE("XML_ParserCreate failed\n");
         return NULL;
     }
     
@@ -784,19 +792,19 @@ camera_board_profiles* camera_board_profiles::createInstance()
     for (;;) {
         void *buff = ::XML_GetBuffer(parser, BUFF_SIZE);
         if (buff == NULL) {
-            ALOGD("failed to in call to XML_GetBuffer()");
+            ALOGE("failed to in call to XML_GetBuffer()");
             goto exit;
         }
 
         int bytes_read = ::fread(buff, 1, BUFF_SIZE, fp);
         if (bytes_read < 0) {
-            ALOGD("failed in call to read");
+            ALOGE("failed in call to read");
             goto exit;
         }
 
         int res = XML_ParseBuffer(parser, bytes_read, bytes_read == 0);
         if(res!=1){
-            ALOGD("XML_ParseBuffer error or susppend (%d)\n", res);
+            ALOGE("XML_ParseBuffer error or susppend (%d)\n", res);
         }
 
         if (bytes_read == 0) break;  // done parsing the xml file
@@ -842,7 +850,7 @@ bool camera_board_profiles::LoadALLCalibrationData(camera_board_profiles* profil
             if(res){
                 ALOGD("load %s success\n", filename);
             }else{
-                ALOGD("load %s failed\n", filename);
+                ALOGE("load %s failed\n", filename);
             }
         }
     }
@@ -857,14 +865,14 @@ void camera_board_profiles::OpenAndRegistALLSensor(camera_board_profiles* profil
     char filename[50];
     int err;    
 
-    ALOGD("enter OpenAndRegistALLSensor\n");
+    LOG_FUNCTION_NAME
     if(nCamDev2>=1){
         for(i=0; i<nCamDev2; i++)
         {         
             OpenAndRegistOneSensor(profiles->mDevieVector[i]);
         }
     }
-     ALOGD("exit OpenAndRegistALLSensor\n");
+    LOG_FUNCTION_NAME_EXIT
 }
 
 
@@ -878,14 +886,13 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
 
     pCamInfo->mIsConnect = 0;
     
-    sprintf(pLoadSensorInfo->mSensorLibName, "%s%s.so", RK_SENSOR_LIB_PATH, pSensorInfo->mSensorName);
-    ALOGD("dlopen (%s) start\n", pLoadSensorInfo->mSensorLibName);    
+    sprintf(pLoadSensorInfo->mSensorLibName, "%s%s.so", RK_SENSOR_LIB_PATH, pSensorInfo->mSensorName);    
     
     void *hSensorLib = dlopen( pLoadSensorInfo->mSensorLibName, RTLD_NOW/*RTLD_LAZY*/ );
     if ( NULL == hSensorLib )
     {
-        ALOGD( "%s can't open the specified driver(%s)\n", __FUNCTION__, pLoadSensorInfo->mSensorLibName);
-        ALOGD("dlopen err:%s.\n",dlerror()); 
+        ALOGE( "%s can't open the specified driver(%s)\n", __FUNCTION__, pLoadSensorInfo->mSensorLibName);
+        ALOGE("dlopen err:%s.\n",dlerror()); 
         pLoadSensorInfo->mhSensorLib = NULL;
         pLoadSensorInfo->pCamDrvConfig = NULL;
         return RK_RET_NULL_POINTER;
@@ -894,8 +901,8 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
     IsiCamDrvConfig_t *pIsiCamDrvConfig = (IsiCamDrvConfig_t *)dlsym( hSensorLib, "IsiCamDrvConfig" );
     if ( NULL == pIsiCamDrvConfig )
     {
-        ALOGD("%s (can't load sensor driver)\n", __FUNCTION__ );
-        ALOGD("dlsym err:%s.\n",dlerror()); 
+        ALOGE("%s (can't load sensor driver)\n", __FUNCTION__ );
+        ALOGE("dlsym err:%s.\n",dlerror()); 
         if(hSensorLib)
             dlclose( hSensorLib );
         pLoadSensorInfo->mhSensorLib = NULL;
@@ -907,18 +914,16 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
     if(pIsiCamDrvConfig->pfIsiGetSensorIss){
         if ( RET_SUCCESS != pIsiCamDrvConfig->pfIsiGetSensorIss( &(pIsiCamDrvConfig->IsiSensor) ) )
         {
-            ALOGD("%s (IsiGetSensorIss failed)\n", __FUNCTION__ );
+            ALOGE("%s (IsiGetSensorIss failed)\n", __FUNCTION__ );
             return RK_RET_FUNC_FAILED;              
         }
     }else{
-        ALOGD("%s ERROR(driver(%s) don't support IsiGetSensorIss)\n", __FUNCTION__,  pSensorInfo->mSensorName);
+        ALOGE("%s ERROR(driver(%s) don't support IsiGetSensorIss)\n", __FUNCTION__,  pSensorInfo->mSensorName);
         return RK_RET_NULL_POINTER;   
     }
 
     pLoadSensorInfo->mhSensorLib = hSensorLib;
     pLoadSensorInfo->pCamDrvConfig = pIsiCamDrvConfig;
-    ALOGD("dlopen success  sensor name(%s)\n", pIsiCamDrvConfig->IsiSensor.pszName);
-
     
     if(pIsiCamDrvConfig->pfIsiGetSensorI2cInfo){
         sensor_i2c_info_t* pI2cInfo;
@@ -935,14 +940,12 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         	if(pIsiCamDrvConfig->IsiSensor.pIsiSensorCaps->SensorOutputMode == ISI_SENSOR_OUTPUT_MODE_RAW){
 	            CalibDb *pcalidb = &(pCamInfo->mLoadSensorInfo.calidb);
 	            sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName);
-	            bool res = pcalidb->CreateCalibDb(pLoadSensorInfo->mSensorXmlFile);
-	           	ALOGD("-----------%s--------------",pLoadSensorInfo->mSensorXmlFile);
-			    if(res){
-	                ALOGD("load %s success\n", pLoadSensorInfo->mSensorXmlFile);
+	            bool res = pcalidb->CreateCalibDb(pLoadSensorInfo->mSensorXmlFile);	           	
+			    if(res){	                
 	                pCamInfo->mIsConnect = 1;
 	                return RK_RET_SUCCESS;
 	            }else{
-	                ALOGD("load %s failed\n", pLoadSensorInfo->mSensorXmlFile);
+	                ALOGE("load %s failed\n", pLoadSensorInfo->mSensorXmlFile);
 	                return RK_RET_FUNC_FAILED;
 	            }
     		}else{
@@ -950,10 +953,13 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
                 return RK_RET_SUCCESS;
 			}
         }else{
+            ALOGE("%s device register failed!",pSensorInfo->mSensorName);
+            if(hSensorLib)
+                dlclose( hSensorLib );
 			return RK_RET_NOSETUP;
     	}
     }else{
-        ALOGD("sensor(%s)'s driver don't have func pfIsiGetSensorI2cInfo\n", pSensorInfo->mSensorName);
+        ALOGE("sensor(%s)'s driver don't have func pfIsiGetSensorI2cInfo\n", pSensorInfo->mSensorName);
         return RK_RET_NULL_POINTER;
     }
 	
@@ -986,7 +992,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     
     camsys_fd = open(pSensorInfo->mCamsysDevPath, O_RDWR);
     if (camsys_fd < 0) {
-        ALOGD("Open (%s) failed, error=(%s)\n", pSensorInfo->mCamsysDevPath,strerror(errno));
+        ALOGE("Open (%s) failed, error=(%s)\n", pSensorInfo->mCamsysDevPath,strerror(errno));
         err = RK_RET_NOFILE;
 		ret = RK_RET_NOFILE;
         goto end;
@@ -1072,9 +1078,10 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
         //LOG_ALWAYS_FATAL_IF((CAMSYS_HEAD_VERSION != pCamInfo->mCamsysVersion.head_ver), 
         //    "%s:\n"
         //    "VERSION-WARNING: camsys_head.h version isn't match in Kernel and CameraHal\n\n\n", __PRETTY_FUNCTION__);
-        //just warning
-	    ALOGE("%s:\n VERSION-WARNING: camsys_head.h version isn't match in Kernel and CameraHal\n\n\n", __FUNCTION__);
-
+        //just warnning
+        ALOGE("%s:\n VERSION-WARNING: camsys_head.h version isn't match in Kernel and CameraHal\n\n\n", __FUNCTION__);
+        
+        
 	}else{
 		ALOGE("%s(%d): get camsys head version failed! ---------\n\n\n",__FUNCTION__,__LINE__);
 		goto regist_err;
@@ -1092,7 +1099,16 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     sysctl.on = 1;
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
-        ALOGD("CamSys_Avdd on failed!\n");
+        ALOGE("CamSys_Avdd on failed!\n");
+        ret = RK_RET_DEVICEERR;
+        goto power_off;
+    }
+
+    sysctl.ops = CamSys_Dvdd;
+    sysctl.on = 1;
+    err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
+    if (err<0) {
+        ALOGE("CamSys_Dvdd on failed!\n");
         ret = RK_RET_DEVICEERR;
         goto power_off;
     }
@@ -1101,7 +1117,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     sysctl.on = 1;
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
-        ALOGD("CamSys_Dovdd on failed!\n");
+        ALOGE("CamSys_Dovdd on failed!\n");
         ret = RK_RET_DEVICEERR;
         goto power_off;
     }
@@ -1112,7 +1128,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
-        ALOGD("CamSys_ClkIn on failed\n");
+        ALOGE("CamSys_ClkIn on failed\n");
         ret = RK_RET_DEVICEERR;
         goto power_off;
     }
@@ -1124,7 +1140,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     sysctl.on = 1;
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
-        ALOGD("CamSys_PwrDn on failed\n");
+        ALOGE("CamSys_PwrDn on failed\n");
         ret = RK_RET_DEVICEERR;
         goto power_off;
     }
@@ -1136,7 +1152,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     sysctl.on = 0;
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
-        ALOGD("CamSys_PwrDn on failed\n");
+        ALOGE("CamSys_PwrDn on failed\n");
         ret = RK_RET_DEVICEERR;
         goto power_off;
     }
@@ -1147,7 +1163,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     sysctl.on = 0;
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
-        ALOGD("CamSys_PwrDn on failed\n");
+        ALOGE("CamSys_PwrDn on failed\n");
         ret = RK_RET_DEVICEERR;
         goto power_off;
     }
@@ -1164,9 +1180,20 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     
 	err = ioctl(camsys_fd, CAMSYS_I2CWR, &i2cinfo);
     if(err<0) {
-        ALOGD("CAMSYS_I2CWR failed, soft reset fail, reg(0x%x) vale(0x%x)\n", i2cinfo.reg_addr, i2cinfo.val); 
+        ALOGE("WARNING: %s soft reset by i2c(reg: 0x%x  val: 0x%x) failed\n",pSensorInfo->mSensorName,i2cinfo.reg_addr, i2cinfo.val); 
 		ret = RK_RET_DEVICEERR;
         goto power_off;
+    }
+
+    //query iommu is enabled ?
+    {
+        int iommu_enabled = 0;
+    	err = ioctl(camsys_fd, CAMSYS_QUREYIOMMU, &iommu_enabled);
+        if(err<0) {
+            ALOGE("CAMSYS_QUREYIOMMU failed !!!!"); 
+        }else{
+            pCamInfo->mIsIommuEnabled = (iommu_enabled == 1) ? true:false;
+        }
     }
 
     if(!ListEmpty(&(pI2cInfo->chipid_info))){
@@ -1178,7 +1205,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 
             err = ioctl(camsys_fd, CAMSYS_I2CRD, &i2cinfo);
             if (err<0) {
-                ALOGD("CAMSYS_I2CRD failed\n");
+                ALOGE("CAMSYS_I2CRD failed\n");
             } else {
                 ALOGD("WARNING: I2c read: addr(0x%x) : read(0x%x) default(0x%x)\n",i2cinfo.reg_addr, i2cinfo.val, pChipIDInfo->chipid_reg_value);
                 if(i2cinfo.val!=pChipIDInfo->chipid_reg_value){
@@ -1190,7 +1217,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
             l = l->p_next;
         }
     }else{
-        ALOGD("ERROR: sensor dirver don't have chip id info\n");
+        ALOGE("ERROR: sensor dirver don't have chip id info\n");
         ret = RK_RET_DEVICEERR;
         goto power_off;
     }
@@ -1202,7 +1229,7 @@ power_off:
     sysctl.on = 1;
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
-        ALOGD("CamSys_PwrDn off failed\n");
+        ALOGE("CamSys_PwrDn off failed\n");
         ret = RK_RET_DEVICEERR;
         
     }
@@ -1212,7 +1239,7 @@ power_off:
     sysctl.on = 1;
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
-        ALOGD("CamSys_Rst off failed\n");
+        ALOGE("CamSys_Rst off failed\n");
         ret = RK_RET_DEVICEERR;
         
     }
@@ -1222,7 +1249,7 @@ power_off:
     sysctl.on = 0;
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
-        ALOGD("CamSys_PwrEn off failed\n");
+        ALOGE("CamSys_PwrEn off failed\n");
         ret = RK_RET_DEVICEERR;
        
     }
@@ -1234,30 +1261,40 @@ power_off:
 
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
-        ALOGD("CamSys_ClkIn off failed\n");
+        ALOGE("CamSys_ClkIn off failed\n");
         ret = RK_RET_DEVICEERR;
         
     }
 
     usleep(2000);
-    sysctl.dev_mask = pSensorInfo->mCamDevid;
-    sysctl.ops = CamSys_Avdd;
-    sysctl.on = 0;
-    err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
-    if (err<0) {
-        ALOGD("CamSys_Avdd off failed!\n");
-        ret = RK_RET_DEVICEERR;
-        
-    }
 
     sysctl.dev_mask = pSensorInfo->mCamDevid;
     sysctl.ops = CamSys_Dovdd;
     sysctl.on = 0;
     err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
     if (err<0) {
-        ALOGD("CamSys_Dovdd off failed!\n");
+        ALOGE("CamSys_Dovdd off failed!\n");
         ret = RK_RET_DEVICEERR;
        
+    }
+
+    sysctl.ops = CamSys_Dvdd;
+    sysctl.on = 0;
+    err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
+    if (err<0) {
+        ALOGE("CamSys_Dvdd on failed!\n");
+        ret = RK_RET_DEVICEERR;
+        goto power_off;
+    }
+    
+    sysctl.dev_mask = pSensorInfo->mCamDevid;
+    sysctl.ops = CamSys_Avdd;
+    sysctl.on = 0;
+    err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
+    if (err<0) {
+        ALOGE("CamSys_Avdd off failed!\n");
+        ret = RK_RET_DEVICEERR;
+        
     }
 
 
@@ -1268,7 +1305,7 @@ regist_err:
         // unregister device  need modify
         err = ioctl(camsys_fd, CAMSYS_DEREGISTER_DEVIO, &sysctl);
         if(err<0){
-            ALOGD("CamSys_Dovdd off failed!\n");
+            ALOGE("CAMSYS_DEREGISTER_DEVIO failed!\n");
             ret = RK_RET_DEVICEERR;
         }   
     }
@@ -1331,14 +1368,14 @@ int camera_board_profiles::WriteDevNameTOXML(camera_board_profiles* profiles, ch
 	fpsrc = fopen(SrcFile,"r"); 
 	if(fpsrc == NULL) 
 	{ 
-		ALOGD("%s OPEN SrcMediaProfiles '%s' FALID, mode(read only), error(%s)\n", __FUNCTION__, SrcFile, strerror(errno)); 
+		ALOGE("%s OPEN SrcMediaProfiles '%s' FALID, mode(read only), error(%s)\n", __FUNCTION__, SrcFile, strerror(errno)); 
 		return -1; 
 	} 
 	
 	fpdst = fopen(DstFile,"w"); 
 	if(fpdst == NULL) 
 	{ 
-		ALOGD("%s OPEN DstMediaProfiles %s TEMP FALID, mode(w), error(%s)\n",__FUNCTION__, DstFile, strerror(errno)); 
+		ALOGE("%s OPEN DstMediaProfiles %s TEMP FALID, mode(w), error(%s)\n",__FUNCTION__, DstFile, strerror(errno)); 
 		return -2; 
 	} 
 
@@ -1576,14 +1613,14 @@ int camera_board_profiles::ModifyMediaProfileXML( camera_board_profiles* profile
 	src_fp = fopen(src_xml_file, "r");
 	if(src_fp==NULL){
 		err = -1;
-		ALOGD("open file '%s' failed!!! (r)\n", src_xml_file);
+		ALOGE("open file '%s' failed!!! (r)\n", src_xml_file);
 		goto alter_exit;
 	}
 	
 	dst_fp = fopen(dst_xml_file, "w");
 	if(dst_fp==NULL){
 		err = -2;
-		ALOGD("open file '%s' failed!!! (r)\n", dst_xml_file);
+		ALOGE("open file '%s' failed!!! (r)\n", dst_xml_file);
 		goto alter_exit;
 	}
 	
@@ -1592,7 +1629,7 @@ int camera_board_profiles::ModifyMediaProfileXML( camera_board_profiles* profile
     fp_pos[0].camid_end = 0;
 	ret = XMLFseekCamIDPos(src_fp, &fp_pos[0]);
 	if(ret < 0 || fp_pos[0].camid_end <= fp_pos[0].camid_start){
-		ALOGD("find camid(%d) failed\n", fp_pos[0].camid);
+		ALOGE("find camid(%d) failed\n", fp_pos[0].camid);
 		err = -3;
 		goto alter_exit;	
 	}
@@ -1602,7 +1639,7 @@ int camera_board_profiles::ModifyMediaProfileXML( camera_board_profiles* profile
     fp_pos[1].camid_end = 0;
 	ret = XMLFseekCamIDPos(src_fp, &fp_pos[1]);
 	if(ret < 0 || fp_pos[1].camid_end <= fp_pos[1].camid_start){
-		ALOGD("find camid(%d) failed\n", fp_pos[1].camid);
+		ALOGE("find camid(%d) failed\n", fp_pos[1].camid);
 		err = -3;
 		goto alter_exit;	
 	}
@@ -1798,13 +1835,12 @@ int camera_board_profiles::ProduceNewXml(camera_board_profiles* profiles)
     }
 
     if(res == RK_RET_SUCCESS && profiles->xml_device_count==(int)nCamNum){
-		ALOGD("not produce new xml\n");
         return RK_RET_SUCCESS;
     }
 
 	
     if(nCamNum>=1){ 
-        ALOGD("enter produce new xml\n");
+        LOG1("enter produce new xml\n");
         //new xml file name
         strncpy(default_file, RK_DEFAULT_MEDIA_PROFILES_XML_PATH, sizeof(default_file));
         strncpy(dst_file, RK_DST_MEDIA_PROFILES_XML_PATH, sizeof(dst_file));
@@ -1817,18 +1853,18 @@ int camera_board_profiles::ProduceNewXml(camera_board_profiles* profiles)
         //write name to xml 
         err = WriteDevNameTOXML(profiles, default_file, temp_dst_file);
         if(err){
-            ALOGD("write dev name to xml failed\n");
+            ALOGE("write dev name to xml failed\n");
             goto end;
         }
 
         //modify xml
         err = ModifyMediaProfileXML( profiles, temp_dst_file, dst_file);
         if(err){
-            ALOGD("modify xml failed\n");
+            ALOGE("modify xml failed\n");
             goto end;
         }
 
-        ALOGD("exit produce new xml\n");
+        LOG1("exit produce new xml\n");
     }
 
 end:
@@ -1843,13 +1879,14 @@ int camera_board_profiles::LoadSensor(camera_board_profiles* profiles)
     int count = 0;
 	int result= 0;
 
-    ALOGD("enter Load Sensor\n");
+    LOG_FUNCTION_NAME
+        
     strncpy(dst_file, RK_DST_MEDIA_PROFILES_XML_PATH, sizeof(dst_file));
     ALOGD("read cam name from xml(%s)\n",dst_file );
 
     FILE* fp = fopen(dst_file, "r");
     if(!fp){
-        ALOGD(" is not exist, register all\n");
+        ALOGE(" is not exist, register all\n");
         goto err_end;
     }
 
@@ -1895,8 +1932,7 @@ int camera_board_profiles::LoadSensor(camera_board_profiles* profiles)
 
 err_end:
     OpenAndRegistALLSensor(profiles);
-    //ProduceNewXml(profiles);
-    ALOGD("enter Load Sensor\n");
+    LOG_FUNCTION_NAME_EXIT
     return err;
     
 }
@@ -1905,7 +1941,6 @@ int camera_board_profiles::BoardFileHaveDev(camera_board_profiles* profiles, xml
 {
     size_t nCamNum = profiles->mDevieVector.size();
 
-    ALOGD("BoardFileHaveDev enter \n");
     if(media_xml_device->index < (int)nCamNum)
     {
         rk_sensor_info *pSensorInfo =  &(profiles->mDevieVector[media_xml_device->index]->mHardInfo.mSensorInfo);
@@ -1915,8 +1950,6 @@ int camera_board_profiles::BoardFileHaveDev(camera_board_profiles* profiles, xml
             return RK_RET_SUCCESS;
         }  
     }
-
-    ALOGD("BoardFileHaveDev exit not have dev\n");
     return RK_RET_NOSETUP;
 }
 
@@ -1936,9 +1969,7 @@ void camera_board_profiles::AddConnectSensorToVector(camera_board_profiles* prof
 int camera_board_profiles::ConnectDevHaveDev(camera_board_profiles* profiles, xml_DEV_name_s* media_xml_device )
 {
     size_t nCamNum = profiles->mDevideConnectVector.size();
-
-    ALOGD("ConnectDevHaveDev enter \n");
-
+    
 	for(int i=0; i<(int)nCamNum; i++)
     {
         rk_sensor_info *pSensorInfo =  &(profiles->mDevideConnectVector[i]->mHardInfo.mSensorInfo);
@@ -1948,8 +1979,6 @@ int camera_board_profiles::ConnectDevHaveDev(camera_board_profiles* profiles, xm
             return RK_RET_SUCCESS;
         }  
     }
-
-    ALOGD("ConnectDevHaveDev exit not have dev \n");
     return RK_RET_NOSETUP;
 }
 

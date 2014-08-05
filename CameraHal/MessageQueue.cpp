@@ -110,11 +110,11 @@ MessageQueue::MessageQueue(const char *name)
     this->fd_write = fds[1];
     MsgQueName[0] = 0;
     strcat(MsgQueName, name);
-    LOGD("%s create",name);
+    LOG1("%s create",name);
 }
 MessageQueue::~MessageQueue()           /* ddl@rock-chips.com */
 {
-    LOGD("%s destory",this->MsgQueName);
+    LOG1("%s destory",this->MsgQueName);
     close(this->fd_read);
     close(this->fd_write);
 

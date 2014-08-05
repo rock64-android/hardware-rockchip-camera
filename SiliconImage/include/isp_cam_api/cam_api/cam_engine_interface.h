@@ -119,11 +119,27 @@
 *v0.0x25.0:
 *          1) set PIC_BUFFER_NUM_MAIN_SENSOR to 4, and set PIC_BUFFER_SIZE_MAIN_SENSOR to 30M for 1300M raw picture size
 *          2) may dead while on MediaBufPoolGetBuffer due to that some buffer may not freed by app,so reset buffer pool when stop preview.
-
+*v0.0x26.0:
+*          1) add sensor drv version
+*v0.0x27.0:
+*          1) add chkAwbIllumination api;
+*v0.0x28.0:
+*          1) add trace information in AfProcessFrame when result is RET_PENDING;
+*v0.0x29.0:
+*          1) add lockAec api;
+*          2) fix af search fine path distance is too short, af pos may be same, so AfProcessFrame return RET_PENDING;
+*v0.0x2a.0:
+*          1) support iommu;
+*v0.0x2b.0:
+*          1) add awb stable
+*v0.0x2c.0:
+*          1) limit MaxGain/MaxExposuretime in mannual exposure function.
+*
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x25, 0x00)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x2c, 0x00)
+
 
 class CamEngineItf;
 typedef void (AfpsResChangeCb_t)(void *ctx);
@@ -325,6 +341,7 @@ public:
     bool startAec();
     bool stopAec();
     bool resetAec();
+    bool lockAec( bool lock );  /* ddl@rock-chips.com: v0.0x29.0 */
     bool configureAec( const CamEngineAecSemMode_t &mode, const float setPoint, const float clmTolerance, const float dampOver, const float dampUnder );
     bool getAecStatus( bool &enabled, CamEngineAecSemMode_t &mode, float &setPoint, float &clmTolerance, float &dampOver, float &dampUnder );
     bool getAecHistogram( CamEngineAecHistBins_t &histogram ) const;
@@ -337,7 +354,7 @@ public:
     bool startAfContinous( const CamEngineAfSearchAlgorithm_t &searchAlgorithm );
     bool startAfOneShot( const CamEngineAfSearchAlgorithm_t &searchAlgorithm );
     bool stopAf();
-    bool getAfStatus( bool &enabled, CamEngineAfSearchAlgorithm_t &seachAlgorithm );
+    bool getAfStatus( bool &enabled, CamEngineAfSearchAlgorithm_t &seachAlgorithm, float *sharpness );
     bool checkAfShot( bool *shot );  /* ddl@rock-chips.com */
     bool registerAfEvtQue( CamEngineAfEvtQue_t *evtQue );   /* ddl@rock-chips.com */
 
@@ -352,7 +369,8 @@ public:
     bool stopAwb();
     bool resetAwb();
     bool getAwbStatus( bool &enabled, CamEngineAwbMode_t &mode, uint32_t &idx, CamEngineAwbRgProj_t &RgProj, bool &damping );
-
+    bool chkAwbIllumination( CamIlluminationName_t   name );
+	bool isAwbStable();
     bool startAdpf();
     bool stopAdpf();
     bool configureAdpf( const float gradient, const float offset, const float min, const float div, const uint8_t sigmaGreen, const uint8_t sigmaRedBlue );

@@ -37,18 +37,18 @@ int CameraAdapter::initialize()
 {
 	int ret = -1;
     //create focus thread
-    LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME
     
 	if((ret = cameraCreate(mCamId)) < 0)
 		return ret;
 	
 	initDefaultParameters(mCamId);
-    LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME_EXIT
 	return ret;
 }
 CameraAdapter::~CameraAdapter()
 {
-    LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME
 
     if(mPreviewBufProvider)
         mPreviewBufProvider->freeBuffer();
@@ -58,7 +58,7 @@ CameraAdapter::~CameraAdapter()
         mCamFd = -1;
     }  
 
-    LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME_EXIT
 }
 
 void CameraAdapter::setDisplayAdapterRef(DisplayAdapter& refDisplayAdap)

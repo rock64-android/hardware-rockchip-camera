@@ -37,12 +37,16 @@
 
 /*
 *v0.2.0: 
-*    1). support ov8858 and ov13850 driver
+*    1) support ov8858 and ov13850 driver
 *v0.3.0:
-*    1). add support vcm current information;  
+*    1) add support vcm current information;  
+*v0.4.0:
+*	 1) add sensor drv version to prop
+*v0.5.0:
+*    1) add IsiWhiteBalanceIlluminationSet and IsiWhiteBalanceIlluminationChk api
 */
 
-#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 3, 0x00) 
+#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 5, 0x00) 
 
 
 #ifdef __cplusplus
@@ -1252,6 +1256,54 @@ RESULT IsiGetResolutionParam
     uint16_t    *height,
     uint16_t    *fps
 );
+
+
+/*****************************************************************************/
+/**
+ *          IsiWhiteBalanceIlluminationChk
+ *
+ * @brief   Retrieves the currently applied focus point.
+ *
+ * @param   handle          sensor instance handle
+ *          name            illumination name for check sensor driver is support or not
+ *
+ * @return  Return the result of the function call.
+ * @retval  RET_SUCCESS
+ * @retval  RET_WRONG_HANDLE
+ * @retval  RET_NULL_POINTER
+ * @retval  RET_INVALID_PARM
+ 
+ *****************************************************************************/
+RESULT IsiWhiteBalanceIlluminationChk
+(
+    IsiSensorHandle_t   handle,
+    char                *name
+);
+
+/*****************************************************************************/
+/**
+ *          IsiWhiteBalanceIlluminationSet
+ *
+ * @brief   Retrieves the currently applied focus point.
+ *
+ * @param   handle          sensor instance handle
+ *          name            illumination name which be set to sensor driver;
+ *
+ * @return  Return the result of the function call.
+ * @retval  RET_SUCCESS
+ * @retval  RET_WRONG_HANDLE
+ * @retval  RET_NULL_POINTER
+ * @retval  RET_INVALID_PARM
+ 
+ *****************************************************************************/
+RESULT IsiWhiteBalanceIlluminationSet
+(
+    IsiSensorHandle_t   handle,
+    char                *name
+);
+
+
+
 #ifdef __cplusplus
 }
 #endif

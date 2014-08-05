@@ -39,6 +39,10 @@ extern "C"
 {
 #endif
 
+/*v0.1.0:
+*   1).add senosr drv version in get sensor i2c info func
+*/
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 1, 0) 
 
 
 /*****************************************************************************

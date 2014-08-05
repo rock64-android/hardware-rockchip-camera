@@ -631,7 +631,11 @@ RESULT HalFlashTrigCtrl
     uint32_t on
 );
 
-
+RESULT HalGetMemoryMapFd( 
+    HalHandle_t HalHandle, 
+    uint32_t mem_address, 
+    int *fd 
+);
 
 /******************************************************************************
  * inline implementations of API

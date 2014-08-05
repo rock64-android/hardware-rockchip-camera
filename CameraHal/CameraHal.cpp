@@ -79,7 +79,10 @@ CameraHal::CameraHal(int cameraId)
         mCamMemManager = new IonMemManager();
         LOGD("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
 	#elif(CONFIG_CAMERA_MEM == CAMERA_MEM_IONDMA)
-		mCamMemManager = new IonDmaMemManager();
+        if((strcmp(gCamInfos[cameraId].driver,"uvcvideo") == 0)) {
+            gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled = (UVC_IOMMU_ENABLED == 1)? true:false;
+        }
+		mCamMemManager = new IonDmaMemManager(gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled);
         LOGD("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
     #elif(CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)
         if(access(CAMERA_PMEM_NAME, O_RDWR) < 0) {
@@ -258,7 +261,7 @@ int CameraHal::setPreviewWindow(struct preview_stream_ops *window)
             sem.Wait();
         }
 		if(mCameraStatus&CMD_SET_PREVIEW_WINDOW_DONE)
-			LOGD("set preview window OK.");		
+			LOG1("set preview window OK.");		
     }
 	LOG_FUNCTION_NAME_EXIT
     return 0;

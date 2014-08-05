@@ -6,7 +6,7 @@ namespace android{
 DisplayAdapter::DisplayAdapter()
               :displayThreadCommandQ("displayCmdQ")
 {
-    LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME
 //	strcpy(mDisplayFormat,CAMERA_DISPLAY_FORMAT_YUV420SP/*CAMERA_DISPLAY_FORMAT_YUV420SP*/);
     strcpy(mDisplayFormat,DISPLAY_FORMAT);
     mFrameProvider =  NULL;
@@ -22,11 +22,11 @@ DisplayAdapter::DisplayAdapter()
 
     mDisplayThread = new DisplayThread(this);
     mDisplayThread->run("DisplayThread",ANDROID_PRIORITY_DISPLAY);
-    LOGD("%s(%d):OUT, display format is %s",__FUNCTION__,__LINE__,mDisplayFormat);
+    LOG_FUNCTION_NAME_EXIT
 }
 DisplayAdapter::~DisplayAdapter()
 {
-    LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME
 
     if(mDisplayThread != NULL){
         //stop thread and exit
@@ -35,7 +35,7 @@ DisplayAdapter::~DisplayAdapter()
         mDisplayThread->requestExitAndWait();
         mDisplayThread.clear();
     }
-    LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME_EXIT
 }
 void DisplayAdapter::dump()
 {
@@ -84,7 +84,7 @@ int DisplayAdapter::startDisplay(int width, int height)
     int err = NO_ERROR;
     Message msg;
     Semaphore sem;
-    LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME
     mDisplayLock.lock();
     if (mDisplayRuning == STA_DISPLAY_RUNNING) {
         LOGD("%s(%d): display thread is already run",__FUNCTION__,__LINE__);
@@ -105,7 +105,7 @@ cameraDisplayThreadStart_end:
 		if(mDisplayState != CMD_DISPLAY_START_DONE)
 			err = -1;
     }
-    LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME_EXIT
     return err;
 }
 //exit display
@@ -114,7 +114,7 @@ int DisplayAdapter::stopDisplay()
     int err = NO_ERROR;
     Message msg;
     Semaphore sem;
-    LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME
     mDisplayLock.lock();
     if (mDisplayRuning == STA_DISPLAY_STOP) {
         LOGD("%s(%d): display thread is already pause",__FUNCTION__,__LINE__);
@@ -133,7 +133,7 @@ cameraDisplayThreadPause_end:
 		if(mDisplayState != CMD_DISPLAY_STOP_DONE)
 			err = -1;		
     }
-    LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME_EXIT
     return err;
 
 }
@@ -143,7 +143,7 @@ int DisplayAdapter::pauseDisplay()
     Message msg;
     Semaphore sem;
     mDisplayLock.lock();
-    LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME
     if (mDisplayRuning == STA_DISPLAY_PAUSE) {
         LOGD("%s(%d): display thread is already stop",__FUNCTION__,__LINE__);
         goto cameraDisplayThreadStop_end;
@@ -161,7 +161,7 @@ cameraDisplayThreadStop_end:
 		if(mDisplayState != CMD_DISPLAY_PAUSE_DONE)
 			err = -1;		
     }
-    LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME_EXIT
     return err;
 }
 
@@ -170,7 +170,7 @@ int DisplayAdapter::setPreviewWindow(struct preview_stream_ops* window)
     //mDisplayRuning status
     //mANativeWindow null?
     //window null ?
-    LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME
     if(window == mANativeWindow){
         return 0;
     }
@@ -178,7 +178,7 @@ int DisplayAdapter::setPreviewWindow(struct preview_stream_ops* window)
         pauseDisplay();
     }
     mANativeWindow = window;
-    LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME_EXIT
     return 0;
 }
 
@@ -210,7 +210,7 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
     Rect bounds;  
     int stride; 
     
-    //LOG_FUNCTION_NAME
+    LOG_FUNCTION_NAME
     if(!mANativeWindow){
         LOGE("%s(%d): nativewindow is null!",__FUNCTION__,__LINE__);
     }
@@ -328,7 +328,7 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
             mDisplayBufInfo[i].vir_addr = (int)y_uv[0];
         #endif
         setBufferState(i,0);
-        LOGD("%s(%d): mGrallocBufferMap[%d] phy_addr: 0x%x  vir_dir: 0x%x",
+        LOG1("%s(%d): mGrallocBufferMap[%d] phy_addr: 0x%x  vir_dir: 0x%x",
             __FUNCTION__,__LINE__, i, mDisplayBufInfo[i].phy_addr,mDisplayBufInfo[i].vir_addr);
     }
 

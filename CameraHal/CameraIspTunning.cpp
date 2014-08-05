@@ -714,6 +714,10 @@ int CameraIspTunning::ispTuneStoreBuffer
         default:
             result = -1;
     }
+    if(pStoreFile){
+        // close file
+        fclose( pStoreFile );
+    }
     if (result != 0)
     {
         return result;

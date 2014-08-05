@@ -52,9 +52,13 @@ extern "C"
 *v0.2.0 : ov13850 add 1lane setting, 4224x3136 1lane can't preview yet  //oyyf
 *v0.3.0:
 *   1). limit AecMinIntegrationTime 0.0001 for aec.
+*v0.4.0:
+*   1). add sensor drv version in get sensor i2c info func
+*v0.5.0:
+*   1). support for isi v0.5.0
 */
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 3, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 5, 0x00) 
 
 
 #define OV13850_CHIP_ID_HIGH_BYTE            (0x300a) // r - 

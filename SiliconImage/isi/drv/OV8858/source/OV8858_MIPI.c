@@ -48,7 +48,7 @@ CREATE_TRACER( OV8858_DEBUG, "OV8858: ", INFO,     0U );
 CREATE_TRACER( OV8858_REG_INFO , "OV8858: ", INFO, 1);
 CREATE_TRACER( OV8858_REG_DEBUG, "OV8858: ", INFO, 1U );
 
-#define OV8858_SLAVE_ADDR       0x6cU //0x20 //0x6cU                           /**< i2c slave address of the OV8858 camera sensor */
+#define OV8858_SLAVE_ADDR       0x6cU                           /**< i2c slave address of the OV8858 camera sensor */
 #define OV8858_SLAVE_AF_ADDR    0x18U         //?                  /**< i2c slave address of the OV8858 integrated AD5820 */
 
 #define OV8858_MAXN_GAIN 		(128.0f)
@@ -59,7 +59,7 @@ CREATE_TRACER( OV8858_REG_DEBUG, "OV8858: ", INFO, 1U );
 /*!<
  * Focus position values:
  * 65 logical positions ( 0 - 64 )
- * where 0 is the setting for infinity and 0 for macro
+ * where 64 is the setting for infinity and 0 for macro
  * corresponding to
  * 1024 register settings (0 - 1023)
  * where 0 is the setting for infinity and 1023 for macro
@@ -1964,7 +1964,7 @@ RESULT OV8858_IsiSetGainIss
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
         result = OV8858_IsiRegWriteIss( pOV8858Ctx, OV8858_AEC_AGC_ADJ_L, (usGain&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-		
+
         pOV8858Ctx->OldGain = usGain;
 
 		/*osSleep(30);
@@ -2181,7 +2181,8 @@ RESULT OV8858_IsiSetIntegrationTimeIss
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
         result = OV8858_IsiRegWriteIss( pOV8858Ctx, OV8858_AEC_EXPO_L, (CoarseIntegrationTime & 0x0000000FU) << 4U );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-		
+
+
         pOV8858Ctx->OldCoarseIntegrationTime = CoarseIntegrationTime;   // remember current integration time
         *pNumberOfFramesToSkip = 1U; //skip 1 frame
         
@@ -2280,9 +2281,8 @@ RESULT OV8858_IsiExposureControlIss
     }
 
     TRACE( OV8858_INFO, "%s: g=%f, Ti=%f\n", __FUNCTION__, NewGain, NewIntegrationTime );
-	
-	//NewGain = 5.0;
-	//NewIntegrationTime = 0.03;
+
+
     result = OV8858_IsiSetIntegrationTimeIss( handle, NewIntegrationTime, pSetIntegrationTime, pNumberOfFramesToSkip );
     result = OV8858_IsiSetGainIss( handle, NewGain, pSetGain );
 
@@ -3732,6 +3732,9 @@ static RESULT OV8858_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
     ListPrepareItem( pChipIDInfo_L );
     ListAddTail( &pSensorI2cInfo->chipid_info, pChipIDInfo_L );
 
+	//oyyf sensor drv version
+	pSensorI2cInfo->sensor_drv_version = CONFIG_SENSOR_DRV_VERSION;
+	
     *pdata = pSensorI2cInfo;
     return RET_SUCCESS;
 }
@@ -3754,7 +3757,9 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pRegisterTable */
         0,                      /**< IsiSensor_t.pIsiSensorCaps */
         0,						/**< IsiSensor_t.pIsiGetSensorIsiVer_t>*/   //oyyf add
-        0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
+        0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add
+        0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationChk>*/   //ddl@rock-chips.com 
+        0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationSet>*/   //ddl@rock-chips.com
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

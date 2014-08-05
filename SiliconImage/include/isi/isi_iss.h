@@ -106,7 +106,9 @@ typedef struct IsiRegisterFlags_s
 
 
 typedef RESULT (IsiGetSensorIsiVer_t)               ( IsiSensorHandle_t handle, unsigned int* pVersion );//oyyf 
-typedef RESULT (IsiGetSensorTuningXmlVersion_t)               ( IsiSensorHandle_t handle, char** pTuningXmlVersion);//oyyf 
+typedef RESULT (IsiGetSensorTuningXmlVersion_t)     ( IsiSensorHandle_t handle, char** pTuningXmlVersion);//oyyf 
+typedef RESULT (IsiWhiteBalanceIlluminationChk_t)   ( IsiSensorHandle_t handle, char *name );//ddl@rock-chips.com
+typedef RESULT (IsiWhiteBalanceIlluminationSet_t)   ( IsiSensorHandle_t handle, char *name );//ddl@rock-chips.com
 
 
 typedef RESULT (IsiCreateSensorIss_t)               ( IsiSensorInstanceConfig_t *pConfig );
@@ -179,6 +181,8 @@ struct IsiSensor_s
 	//oyyf add
 	IsiGetSensorIsiVer_t				*pIsiGetSensorIsiVer;
 	IsiGetSensorTuningXmlVersion_t		*pIsiGetSensorTuningXmlVersion;
+	IsiWhiteBalanceIlluminationChk_t    *pIsiWhiteBalanceIlluminationChk;//ddl@rock-chips.com
+    IsiWhiteBalanceIlluminationSet_t    *pIsiWhiteBalanceIlluminationSet;//ddl@rock-chips.com
 	
     IsiCreateSensorIss_t                *pIsiCreateSensorIss;           /**< create a sensor handle */
     IsiReleaseSensorIss_t               *pIsiReleaseSensorIss;          /**< release a sensor handle */
@@ -259,7 +263,9 @@ typedef struct sensor_i2c_info_s{
     uint reg_size;
     uint value_size;
     List chipid_info;
-    uint32_t resolution;
+    uint32_t resolution; 
+
+	unsigned int sensor_drv_version;//oyyf
 }sensor_i2c_info_t;
 
 typedef RESULT (IsiGetSensorI2cInfo_t) (sensor_i2c_info_t **pdata);

@@ -16,8 +16,13 @@ using namespace android;
 *       CAMERA HAL BOARD XML PARSER VERSION NOTE
 *
 *
+*v.0.0x06.0:
+*	1: add awb frame skip
+* 	2: add fov fov_h fov_v
+*v.0.0x07.0
+*	1: change fov_h fov_v format from int to float
 */
-#define ConfigBoardXmlVersion KERNEL_VERSION(0, 5, 0x00) 
+#define ConfigBoardXmlVersion KERNEL_VERSION(0, 7, 0x00) 
 
 #define UVC_CAM_NAME "UVC Camera"
 #define RK_CAM_FACING_FRONT (1)
@@ -166,7 +171,11 @@ struct rk_sensor_info{
     camsys_extdev_phy_t mPhy;
 	camsys_fmt_t fmt;
 	int laneNum;
-    
+
+	float fov_h;
+	float fov_v;
+
+	int awb_frame_skip;
 
 };
 
@@ -331,7 +340,7 @@ struct camsys_load_sensor_info{
 };
 
 struct rk_cam_total_info{
-    rk_cam_total_info():mDeviceIndex(-1),mIsConnect(0){};
+    rk_cam_total_info():mDeviceIndex(-1),mIsConnect(0),mIsIommuEnabled(false){};
     ~rk_cam_total_info(){};
     rk_cam_hardware_info mHardInfo;
     rk_camera_softinfo_config mSoftInfo;
@@ -340,6 +349,7 @@ struct rk_cam_total_info{
 	unsigned int mLibIspVersion; 
     int mDeviceIndex;
     int mIsConnect;
+    bool mIsIommuEnabled;
 };
 
 

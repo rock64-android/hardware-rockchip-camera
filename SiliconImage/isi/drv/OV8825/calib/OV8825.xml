@@ -1,8 +1,8 @@
 <?xml version="1.0" ?>
 <matfile>
    <header type="struct" size="[1 1]">
-      <creation_date index="1" type="char" size="[1 11]">
-         30-April-2014
+      <creation_date index="1" type="char" size="[1 13]">
+         1-August-2014
       </creation_date>
       <creator index="1" type="char" size="[1 2]">
          OUYANG
@@ -14,7 +14,7 @@
          FX288
       </sample_name>
       <generator_version index="1" type="char" size="[1 4]">
-         v0.2.0
+         v0.3.0
       </generator_version>
       <resolution index="1" type="cell" size="[1 2]">
          <cell index="1" type="struct" size="[1 1]">
@@ -407,7 +407,7 @@
                      [1 2 4 8]
                   </gains>
                   <vig index="1" type="double" size="[1 4]">
-                     [100 100 100 100]
+                     [70 70 70 70]
                   </vig>
                </vig_CT>
                <aCC index="1" type="struct" size="[1 1]">
@@ -483,7 +483,7 @@
                      [1 2 4 8]
                   </gains>
                   <vig index="1" type="double" size="[1 4]">
-                     [100 100 100 100]
+                     [70 70 70 70]
                   </vig>
                </vig_CT>
                <aCC index="1" type="struct" size="[1 1]">
@@ -559,7 +559,7 @@
                      [1 2 4 8]
                   </gains>
                   <vig index="1" type="double" size="[1 4]">
-                     [100 100 100 100]
+                     [70 70 70 70]
                   </vig>
                </vig_CT>
                <aCC index="1" type="struct" size="[1 1]">
@@ -635,7 +635,7 @@
                      [1 2 4 8]
                   </gains>
                   <vig index="1" type="double" size="[1 4]">
-                     [100 100 100 100]
+                     [70 70 70 70]
                   </vig>
                </vig_CT>
                <aCC index="1" type="struct" size="[1 1]">
@@ -3946,10 +3946,10 @@
       </AF>
       <AEC index="1" type="struct" size="[1 1]">
          <SetPoint index="1" type="double" size="[1 1]">
-            [ 80]
+            [ 70]
          </SetPoint>
          <ClmTolerance index="1" type="double" size="[1 1]">
-            [ 10]
+            [ 8]
          </ClmTolerance>
          <DampOver index="1" type="double" size="[1 1]">
             [ 0.2]

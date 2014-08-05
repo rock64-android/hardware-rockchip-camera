@@ -157,7 +157,7 @@ typedef struct camera_ionbuf_s
 
 class IonDmaMemManager:public MemManagerBase{
 	public :
-		IonDmaMemManager();
+		IonDmaMemManager(bool iommuEnabled);
 		~IonDmaMemManager();
 
 		virtual int createPreviewBuffer(struct bufferinfo_s* previewbuf);
@@ -184,6 +184,7 @@ class IonDmaMemManager:public MemManagerBase{
 		camera_ionbuf_t* mJpegData;
 		camera_ionbuf_t* mVideoEncData;
 	    int client_fd;
+	    bool mIommuEnabled;
 
 };
 #endif

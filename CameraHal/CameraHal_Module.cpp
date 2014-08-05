@@ -656,33 +656,46 @@ int camera_get_number_of_cameras(void)
 
     profiles = camera_board_profiles::getInstance();
     nCamDev = profiles->mDevieVector.size();
+	LOGE("board profiles cam num %d\n", nCamDev);
     if (nCamDev>0) {
         camera_board_profiles::LoadSensor(profiles);
-        
-        for (i=0; (i<CAMERAS_SUPPORT_MAX && i<nCamDev); i++) 
+        char sensor_ver[32];
+		
+        for (i=0; (i<nCamDev); i++) 
         {  
+        	LOGE("load sensor name(%s) connect %d\n", profiles->mDevieVector[i]->mHardInfo.mSensorInfo.mSensorName, profiles->mDevieVector[i]->mIsConnect);
         	if(profiles->mDevieVector[i]->mIsConnect==1){
     	        rk_sensor_info *pSensorInfo = &(profiles->mDevieVector[i]->mHardInfo.mSensorInfo);
     	        
     	        camInfoTmp[cam_cnt&0x01].pcam_total_info = profiles->mDevieVector[i];     
     	        strncpy(camInfoTmp[cam_cnt&0x01].device_path, pSensorInfo->mCamsysDevPath, sizeof(camInfoTmp[cam_cnt&0x01].device_path));
     	        strncpy(camInfoTmp[cam_cnt&0x01].driver, pSensorInfo->mSensorDriver, sizeof(camInfoTmp[cam_cnt&0x01].driver));
+				unsigned int SensorDrvVersion = profiles->mDevieVector[i]->mLoadSensorInfo.mpI2cInfo->sensor_drv_version;
+				memset(version,0x00,sizeof(version));
+    	        sprintf(version,"%d.%d.%d",((SensorDrvVersion&0xff0000)>>16),
+	    	            ((SensorDrvVersion&0xff00)>>8),SensorDrvVersion&0xff);
+						 
     	        if(pSensorInfo->mFacing == RK_CAM_FACING_FRONT){     
-    	            camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_FRONT;
+    	            camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_FRONT;	    	        
     	        } else {
     	            camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_BACK;
     	        } 
-    	        
+
+                memset(sensor_ver,0x00,sizeof(sensor_ver));
+                if (strlen(pSensorInfo->mSensorName) < (sizeof(sensor_ver)-16))
+                    sprintf(sensor_ver,"%s%s%s","sys_graphic.",pSensorInfo->mSensorName,".ver");
+                else 
+                    sprintf(sensor_ver,"%s",pSensorInfo->mSensorName);                
+                property_set(sensor_ver, version);	
+                
     	        camInfoTmp[cam_cnt&0x01].facing_info.orientation = pSensorInfo->mOrientation;
     	        cam_cnt++;
 
     			unsigned int CamsysDrvVersion = profiles->mDevieVector[i]->mCamsysVersion.drv_ver;
-    	        
     	        memset(version,0x00,sizeof(version));
     	        sprintf(version,"%d.%d.%d",((CamsysDrvVersion&0xff0000)>>16),
     	            ((CamsysDrvVersion&0xff00)>>8),CamsysDrvVersion&0xff);
     	        property_set(CAMERAHAL_CAMSYS_VERSION_PROPERTY_KEY,version);
-    	       
     		}
         }
     }

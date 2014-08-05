@@ -10,9 +10,12 @@
  *
  * v0.1.0x00 : 1.optimize performace for rk3288-r089
  * v0.1.0x01 : 1.optimize performace for rk3288-r089 again
- * v0.2.0x00 : 1.optimize performace for rk3288-r089 again
- *
- */
+ * v0.2.0:
+*   1).add senosr drv version in get sensor i2c info func
+*v0.3.0:
+*   1). support for isi v0.5.0
+*/
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 3, 0) 
 
 #ifdef __cplusplus
 extern "C"

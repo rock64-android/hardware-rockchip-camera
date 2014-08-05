@@ -3509,6 +3509,9 @@ static RESULT OV8810_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
     ListPrepareItem( pChipIDInfo_L );
     ListAddTail( &pSensorI2cInfo->chipid_info, pChipIDInfo_L );
 
+	//oyyf sensor drv version
+	pSensorI2cInfo->sensor_drv_version = CONFIG_SENSOR_DRV_VERSION;
+	
     *pdata = pSensorI2cInfo;
     return RET_SUCCESS;
 }
@@ -3532,6 +3535,8 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pIsiSensorCaps */
         0,
         0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
+        0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationChk>*/   //ddl@rock-chips.com 
+        0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationSet>*/   //ddl@rock-chips.com
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

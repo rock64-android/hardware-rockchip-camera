@@ -1,4 +1,5 @@
 #include "CameraHal.h"
+
 namespace android {
 
 
@@ -15,7 +16,7 @@ AppMsgNotifier::AppMsgNotifier()
                 eventThreadCommandQ("eventThreadQ")
 
 {
-    LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME
 
     mMsgTypeEnabled = 0;
 //    mReceivePictureFrame = false;
@@ -36,6 +37,8 @@ AppMsgNotifier::AppMsgNotifier()
 
     mPreviewDataW = 0;
     mPreviewDataH = 0;
+    mPicSize =0;
+    mPicture = NULL;
     int i ;
     //request mVideoBufs
 	for (i=0; i<CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++) {
@@ -47,12 +50,11 @@ AppMsgNotifier::AppMsgNotifier()
     mCameraAppMsgThread->run("AppMsgThread",ANDROID_PRIORITY_DISPLAY);
     mEncProcessThread = new EncProcessThread(this);
     mEncProcessThread->run("EncProcessThread",ANDROID_PRIORITY_NORMAL);
-    LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
-
+    LOG_FUNCTION_NAME_EXIT
 }
 AppMsgNotifier::~AppMsgNotifier()
 {
-    LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
+    LOG_FUNCTION_NAME
     //stop thread
     Message msg;
     Semaphore sem,sem1;
@@ -98,7 +100,10 @@ AppMsgNotifier::~AppMsgNotifier()
         mJpegBufferProvider->freeBuffer();
     if(mVideoBufferProvider)
         mVideoBufferProvider->freeBuffer();
-    LOGD("%s(%d):OUT",__FUNCTION__,__LINE__);
+    if(mPicture){
+        mPicture->release(mPicture);
+    }
+    LOG_FUNCTION_NAME_EXIT
 }
 
 void AppMsgNotifier::setPictureRawBufProvider(BufferProvider* bufprovider)
@@ -447,14 +452,23 @@ int AppMsgNotifier::copyAndSendRawImage(void *raw_image, int size)
     void *dest = NULL, *src = NULL;
 
     if(mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE) {
-        picture = mRequestMemory(-1, size, 1, NULL);
+        if(mPicture == NULL){
+            mPicture = mRequestMemory(-1, size, 1, NULL);
+            mPicSize = size;
+        }else if(mPicSize != size){
+            mPicture->release(mPicture);
+            mPicture = mRequestMemory(-1, size, 1, NULL);
+            mPicSize = size;
+        }
+        picture = mPicture;
+      //  picture = mRequestMemory(-1, size, 1, NULL);
         if (NULL != picture) {
             dest = picture->data;
             if (NULL != dest) {
                 memcpy(dest, raw_image, size);
                 mDataCb(CAMERA_MSG_RAW_IMAGE, picture, 0, NULL, mCallbackCookie);
             }
-            picture->release(picture);
+      //      picture->release(picture);
         } else if (mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE_NOTIFY) {
             mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
         }
@@ -470,14 +484,23 @@ int AppMsgNotifier::copyAndSendCompressedImage(void *compressed_image, int size)
     void *dest = NULL, *src = NULL;
 
     if(mMsgTypeEnabled & CAMERA_MSG_COMPRESSED_IMAGE) {
-        picture = mRequestMemory(-1, size, 1, NULL);
+        if(mPicture == NULL){
+            mPicture = mRequestMemory(-1, size, 1, NULL);
+            mPicSize = size;
+        }else if(mPicSize != size){
+            mPicture->release(mPicture);
+            mPicture = mRequestMemory(-1, size, 1, NULL);
+            mPicSize = size;
+        }
+        picture = mPicture;
+      //  picture = mRequestMemory(-1, size, 1, NULL);
         if (NULL != picture) {
             dest = picture->data;
             if (NULL != dest) {
                 memcpy(dest, compressed_image, size);
                 mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie);
             }
-            picture->release(picture);
+        //    picture->release(picture);
         }
     }
     return 0;
@@ -811,7 +834,8 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     //2. copy to output buffer for mirro and flip
 	/*ddl@rock-chips.com: v0.4.7*/
     // bool rotat_180 = false; //used by ipp
-    if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && ((frame->frame_width != jpeg_w) || (frame->frame_height != jpeg_h) || (frame->zoom_value != 100))){
+    //frame->phy_addr = -1 ,just for isp soc camera used iommu,so ugly...
+    if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && ((frame->frame_width != jpeg_w) || (frame->frame_height != jpeg_h) || (frame->zoom_value != 100) || frame->phy_addr == -1)){
         output_phy_addr = rawbuf_phy;
         output_vir_addr = rawbuf_vir;
         #if 0
@@ -979,50 +1003,45 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
         //request bufer
         camera_memory_t* tmpPreviewMemory = NULL;
 
-		if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
-			tempMemSize = mPreviewDataW*mPreviewDataH*2;
-		} else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
-			tempMemSize = mPreviewDataW*mPreviewDataH*3/2;
-		} else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
-			tempMemSize = mPreviewDataW*mPreviewDataH*2;
-		} else if(strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0){ 
-			tempMemSize = ((mPreviewDataW+15)&0xfffffff0)*mPreviewDataH
-				+((mPreviewDataW/2+15)&0xfffffff0)*mPreviewDataH;
-			LOG1("-----------------android::CameraParameters::PIXEL_FORMAT_YUV420P-------------");	
-		}else {
-			LOGE("%s(%d): pixel format %s is unknow!",__FUNCTION__,__LINE__,mPreviewDataFmt);
-		}
-		mDataCbLock.unlock();
-		tmpPreviewMemory = mRequestMemory(-1, tempMemSize, 1, NULL);
-		if (tmpPreviewMemory) {
-			//fill the tmpPreviewMemory
-			if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0) {
-				cameraFormatConvert(V4L2_PIX_FMT_NV12,0,mPreviewDataFmt,
-						(char*)frame->vir_addr,(char*)tmpPreviewMemory->data,0,0,tempMemSize,
-						frame->frame_width, frame->frame_height,frame->frame_width,
-						//frame->frame_width,frame->frame_height,frame->frame_width,false);
-					mPreviewDataW,mPreviewDataH,mPreviewDataW,mDataCbFrontMirror);
-				LOG1("=========================yv12 change to nv12=======================");
-			}else {
-#if 1
-				arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
-						(char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
-#else
-				rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
-						(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
-						mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror);
-#endif
-				LOG1("=========================rga_nv12_scale_crop=======================");
-				//arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
-			}
-			//callback
-			mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
-			//release buffer
-			tmpPreviewMemory->release(tmpPreviewMemory);
-		} else {
-			LOGE("%s(%d): mPreviewMemory create failed",__FUNCTION__,__LINE__);
-		}
-	} else {
+        if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
+            tempMemSize = mPreviewDataW*mPreviewDataH*2;        
+        } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
+            tempMemSize = mPreviewDataW*mPreviewDataH*3/2;        
+        } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
+            tempMemSize = mPreviewDataW*mPreviewDataH*2;        
+        } else if(strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0){ 
+            tempMemSize = ((mPreviewDataW+15)&0xfffffff0)*mPreviewDataH
+                        +((mPreviewDataW/2+15)&0xfffffff0)*mPreviewDataH;    
+        }else {
+            LOGE("%s(%d): pixel format %s is unknow!",__FUNCTION__,__LINE__,mPreviewDataFmt);        
+        }
+        mDataCbLock.unlock();
+	    tmpPreviewMemory = mRequestMemory(-1, tempMemSize, 1, NULL);
+        if (tmpPreviewMemory) {
+            //fill the tmpPreviewMemory
+            #if 0
+            arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
+                (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
+            #else
+            rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+                                (char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
+                                mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror);
+            #endif
+            //if(cameraFormatConvert(frame->frame_fmt, V4L2_PIX_FMT_NV12, NULL,
+            //		(char*)frame->vir_addr,(char*)tmpPreviewMemory->data,0,0,tempMemSize,
+            //		frame->frame_width, frame->frame_height,frame->frame_width,mPreviewDataW, mPreviewDataH, mPreviewDataW,false)==0)
+            //arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
+            //fill the tmpPreviewMemory
+            //callback
+            mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
+            //release buffer
+            tmpPreviewMemory->release(tmpPreviewMemory);
+        } else {
+            LOGE("%s(%d): mPreviewMemory create failed",__FUNCTION__,__LINE__);
+        }
+    }
+	else
+	{
 		mDataCbLock.unlock();
 		LOG1("%s(%d): needn't to send preview datacb",__FUNCTION__,__LINE__);
 	}

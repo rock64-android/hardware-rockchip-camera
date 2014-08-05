@@ -335,7 +335,8 @@ RESULT AfStatus
 (
     AfHandle_t          handle,
     bool_t              *pRunning,
-    AfSearchStrategy_t  *pFss
+    AfSearchStrategy_t  *pFss,
+    float               *sharpness
 );
 
 /******************************************************************************

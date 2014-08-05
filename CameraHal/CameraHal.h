@@ -247,8 +247,16 @@ namespace android {
 	  2) delete ov8858 presize:1080p,pic size:1280x720;
 *v0.0x2e.6
 	  1) don't match camsys_head.h for boot system
+*v0.0x34.0
+*	  1)add awb stable
+*     2)add fov parameters
+*     3)modiy to fit more than 2 camera sensor board info
+*v0.0x35.0
+*     1)  file is opened in func ispTuneStoreBuffer  but not been closed,fix it;
+*v0.0x36.0
+*     1) modify fov format from int to float
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x2e, 0x06)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x36, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -313,6 +321,7 @@ namespace android {
 #define OPTIMIZE_MEMORY_USE
 #define VIDEO_ENC_BUFFER            0x151800 
 #define FILTER_FRAME_NUMBER (3)
+#define UVC_IOMMU_ENABLED   (0)
 
 
 
@@ -348,7 +357,6 @@ namespace android {
 
 #define RK_VIDEOBUF_CODE_CHK(rk_code)		((rk_code&(('R'<<24)|('K'<<16)))==(('R'<<24)|('K'<<16)))
 
-#define USE_ION_VMALLOC_BUF (0)
 
 class FrameProvider
 {
@@ -990,6 +998,8 @@ private:
     int mPreviewDataH;
 	int mRunningState;
     bool mDataCbFrontMirror;
+    int mPicSize;
+    camera_memory_t* mPicture;
 };
 
 

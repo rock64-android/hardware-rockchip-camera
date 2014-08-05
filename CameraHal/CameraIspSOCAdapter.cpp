@@ -184,7 +184,8 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     void* y_addr_vir = NULL,*uv_addr_vir = NULL ;
     int width = 0,height = 0;
     int fmt = 0;
-
+    int phy_addr;
+    
 	Mutex::Autolock lock(mLock);
     // get & check buffer meta data
     PicBufMetaData_t *pPicBufMetaData = (PicBufMetaData_t *)(pMediaBuffer->pMetaData);
@@ -201,7 +202,12 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 m_camDevice->getYCSequence();
                 arm_isp_yuyv_12bit_to_8bit(width,height,(char*)y_addr_vir,m_camDevice->getYCSequence(),mIs10bit0To0);
                 y_addr += width*height*2;
+                if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
+                    phy_addr = -1; //fd mode can't get offset,so must be copied when pic taken,ugly now
+                else
+                    phy_addr = y_addr;
                 y_addr_vir= (void*)((int)y_addr_vir + width*height*2);
+                
 
     }else{
            LOGE("not support this type(%dx%d)  ,just support  yuv20 now",width,height);
@@ -225,7 +231,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       }
       //add to vector
       tmpFrame->frame_index = (int)tmpFrame; 
-      tmpFrame->phy_addr = (int)(y_addr);
+      tmpFrame->phy_addr = (int)(phy_addr);
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
       tmpFrame->vir_addr = (int)y_addr_vir;
@@ -251,7 +257,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       }
       //add to vector
       tmpFrame->frame_index = (int)tmpFrame; 
-      tmpFrame->phy_addr = (int)(y_addr);
+      tmpFrame->phy_addr = (int)(phy_addr);
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
       tmpFrame->vir_addr = (int)y_addr_vir;
@@ -277,7 +283,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  //add to vector
 	  //fmt = V4L2_PIX_FMT_NV12;
 	  tmpFrame->frame_index = (int)tmpFrame; 
-	  tmpFrame->phy_addr = (int)(y_addr);
+	  tmpFrame->phy_addr = (int)(phy_addr);
 	  tmpFrame->frame_width = width;
 	  tmpFrame->frame_height= height;
 	  tmpFrame->vir_addr = (int)y_addr_vir;
@@ -303,7 +309,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 		}
 	  //add to vector
 	  tmpFrame->frame_index = (int)tmpFrame; 
-	  tmpFrame->phy_addr = (int)(y_addr);
+	  tmpFrame->phy_addr = (int)(phy_addr);
 	  tmpFrame->frame_width = width;
 	  tmpFrame->frame_height= height;
 	  tmpFrame->vir_addr =  (int)y_addr_vir;

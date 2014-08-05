@@ -247,8 +247,15 @@ RESULT CamEngineAwbReset
 (
     CamEngineHandle_t           hCamEngine      /**< handle CamEngine */
 );
-
-
+/* ddl@rock-chips.com: v0.0x29.0 */
+/******************************************************************************
+ * CamEngineAecLock()
+ *****************************************************************************/
+RESULT CamEngineAecLock
+(
+    CamEngineHandle_t hCamEngine,
+    bool_t            lock
+);
 
 /*****************************************************************************/
 /**
@@ -274,6 +281,12 @@ RESULT CamEngineAwbStatus
     bool_t                      *pDamping       /**< BOOL_TRUE: damping on, BOOL_FALSE: damping off */
 );
 
+RESULT CamEngineIsAwbStable
+(
+    CamEngineHandle_t       hCamEngine,
+    bool_t                  *pIsStable,
+    uint32_t				*pDNoWhitePixel
+);
 
 
 /*****************************************************************************/
@@ -540,7 +553,8 @@ RESULT CamEngineAfStatus
 (
     CamEngineHandle_t                   hCamEngine,
     bool_t                              *pRunning,
-    CamEngineAfSearchAlgorithm_t        *pSearchAgoritm
+    CamEngineAfSearchAlgorithm_t        *pSearchAgoritm,
+    float                               *sharpness
 );
 
 /******************************************************************************

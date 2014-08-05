@@ -51,10 +51,14 @@ extern "C"
 *v0.1.0x00 : sync OV8825_drv  v0.6.0
 *v0.2.0:
 *   1). limit AecMinIntegrationTime 0.0001 for aec.
+*v0.3.0:
+*   1). add sensor drv version in get sensor i2c info func
+*v0.4.0:
+*   1). support for isi v0.5.0
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 2, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 4, 0) 
 
 
 
