@@ -256,9 +256,12 @@ namespace android {
 *v0.0x36.0
 *     1) modify fov format from int to float
 *v0.0x36.1
-*     1) modify to pass cts FOV 
+*     1) modify to pass cts verifier FOV 
+*v0.0x36.2
+*     1) modify to pass cts verifier orientation 
+*     1) use arm scale when display,because VOIP need NV21 
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x36, 0x01)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x36, 0x02)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

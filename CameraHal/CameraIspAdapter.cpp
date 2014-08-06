@@ -617,7 +617,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 		parameterString.append("1920x1080,1280x720,800x600,640x480,352x288,320x240,176x144");    	
         params.setPreviewSize(1920, 1080);	
         /* ddl@rock-chips.com: v0.d.2 */
-        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "176x144,1024x768,2048x1536,2592x1944,3264x2448");
+        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "176x144,640x480,1024x768,2048x1536,2592x1944,3264x2448");
         params.setPictureSize(2592,1944);
         cts_verifier_width = 3264;
         cts_verifier_height = 2448;
