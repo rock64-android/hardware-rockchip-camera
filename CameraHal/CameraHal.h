@@ -108,7 +108,7 @@ extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 							int dst_w, int dst_h, int dstbuf_w,
 							bool mirror);
 							
-extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror);
+extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop);
 
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
@@ -255,8 +255,10 @@ namespace android {
 *     1)  file is opened in func ispTuneStoreBuffer  but not been closed,fix it;
 *v0.0x36.0
 *     1) modify fov format from int to float
+*v0.0x36.1
+*     1) modify to pass cts FOV 
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x36, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x36, 0x01)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

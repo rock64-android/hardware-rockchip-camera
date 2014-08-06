@@ -16,7 +16,7 @@ typedef struct FramInfo
     int zoom_value;
     int used_flag;
     int frame_size;
-
+    void* res;
 }FramInfo_s;
 
 typedef int (*func_displayCBForIsp)(void* frameinfo,void* cookie);

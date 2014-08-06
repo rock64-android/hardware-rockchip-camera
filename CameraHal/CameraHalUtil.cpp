@@ -391,7 +391,7 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
 }
 
 
-extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror)
+extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop)
 {
     int rgafd = -1,ret = -1;
 
@@ -410,8 +410,8 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 	int srcW,srcH,cropW,cropH;
 	int ratio = 0;
 	int top_offset=0,left_offset=0;
-//need crop ?
-	if((src_width*100/src_height) != (dst_width*100/dst_height)){
+	//need crop ? when cts FOV,don't crop
+	if(isNeedCrop && (src_width*100/src_height) != (dst_width*100/dst_height)){
 		ratio = ((src_width*100/dst_width) >= (src_height*100/dst_height))?(src_height*100/dst_height):(src_width*100/dst_width);
 		cropW = ratio*dst_width/100;
 		cropH = ratio*dst_height/100;

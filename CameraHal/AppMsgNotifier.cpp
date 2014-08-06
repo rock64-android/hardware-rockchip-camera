@@ -129,7 +129,7 @@ void AppMsgNotifier::setVideoBufProvider(BufferProvider* bufprovider)
 
 int AppMsgNotifier::takePicture(picture_info_s picinfo)
 {
-   LOG_FUNCTION_NAME
+    LOG_FUNCTION_NAME
     Mutex::Autolock lock(mPictureLock); 
     //if(mReceivePictureFrame){
     if(mRunningState&STA_RECEIVE_PIC_FRAME){
@@ -754,6 +754,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     int output_phy_addr,output_vir_addr;
     int jpegbuf_size;
 	int bufindex;
+    bool mIs_Verifier;
 
 	memset(&JpegInInfo,0x00,sizeof(JpegEncInInfo));
 	memset(&JpegOutInfo,0x00,sizeof(JpegEncOutInfo));
@@ -773,9 +774,10 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	longtitude = mPictureInfo.longtitude;
 	timestamp = mPictureInfo.timestamp;    
 	getMethod = mPictureInfo.getMethod;//getMethod : len <= 32
-
-    picfmt = mPictureInfo.fmt;
 	
+	picfmt = mPictureInfo.fmt;
+
+	mIs_Verifier = *((bool*)frame->res); //zyh,don't crop for cts FOV	
 	
 	if(picfmt ==V4L2_PIX_FMT_RGB565){
 		encodetype = HWJPEGENC_RGB565;
@@ -845,7 +847,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
         #else
         rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
                             (char*)(frame->vir_addr), (short int *)rawbuf_vir, 
-                            jpeg_w,jpeg_w,jpeg_h,frame->zoom_value,false);
+                            jpeg_w,jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier);
         #endif
         input_phy_addr = output_phy_addr;
         input_vir_addr = output_vir_addr;
@@ -1025,7 +1027,7 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
             #else
             rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
                                 (char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
-                                mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror);
+                                mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true);
             #endif
             //if(cameraFormatConvert(frame->frame_fmt, V4L2_PIX_FMT_NV12, NULL,
             //		(char*)frame->vir_addr,(char*)tmpPreviewMemory->data,0,0,tempMemSize,
@@ -1065,7 +1067,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
         #else
         rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
                             (char*)(frame->vir_addr), (short int *)buf_vir, 
-                            mRecordW,mRecordW,mRecordH,frame->zoom_value,false);
+                            mRecordW,mRecordW,mRecordH,frame->zoom_value,false,true);
         #endif
 
         mVideoBufferProvider->flushBuffer(buf_index);

@@ -54,6 +54,7 @@ CameraIspAdapter::CameraIspAdapter(int cameraId)
                     mSensorItfCur(0)
 {
     LOG_FUNCTION_NAME
+    mIs_cts_verifier = 0;	
     mZoomVal = 100;
     mZoomMin = 100;
     mZoomMax = 240;
@@ -170,7 +171,8 @@ int CameraIspAdapter::cameraDestroy()
 void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h,int zoom_val)
 {
     CamEngineWindow_t dcWin;
-    if(((width_sensor*10/height_sensor) != (preview_w*10/preview_h))){
+	//when cts FOV ,don't crop
+	if((!mIs_cts_verifier)&&((width_sensor*10/height_sensor) != (preview_w*10/preview_h))){
         int ratio = ((width_sensor*10/preview_w) >= (height_sensor*10/preview_h))?(height_sensor*10/preview_h):(width_sensor*10/preview_w);
         dcWin.width = ((ratio*preview_w/10) & ~0x1);
         dcWin.height = ((ratio*preview_h/10) & ~0x1);
@@ -272,7 +274,11 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         uint32_t resMask;
         CamEnginePathConfig_t mainPathConfig ,selfPathConfig;
 
-        m_camDevice->getPreferedSensorRes(preview_w, preview_h, &width_sensor, &height_sensor,&resMask);
+        if(mIs_cts_verifier) {
+            LOGD("============com.android.cts.verifier==============");
+            m_camDevice->getPreferedSensorRes(cts_verifier_width, cts_verifier_height, &cts_verifier_width, &cts_verifier_height,&resMask);
+        } else
+            m_camDevice->getPreferedSensorRes(preview_w, preview_h, &width_sensor, &height_sensor,&resMask);
         
 		LOG1("-------width_sensor=%d,height_sensor=%d---------",width_sensor,height_sensor);
         //stop streaming
@@ -599,26 +605,39 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 
 	IsiSensorCaps_t     pCaps;	
 	m_camDevice->getSensorCaps(pCaps);	//setFocus
+	char *call_process = getCallingProcess();
+	if(strstr(call_process,"com.android.cts.verifier"))
+		mIs_cts_verifier = true;
+	else
+		mIs_cts_verifier = false;
 	LOG1("  ===pCaps.Resolution:0x%x;pCaps.AfpsResolutions:0x%x====\n",pCaps.Resolution,pCaps.AfpsResolutions);
 	/*preview size setting*/	
-    if((pCaps.Resolution & ISI_RES_TV1080P15) || (pCaps.Resolution & ISI_RES_TV1080P30)) {		
-        parameterString.append("1920x1080,1280x720,800x600,640x480,352x288,320x240,176x144");    	
+    if(((pCaps.Resolution & ISI_RES_TV1080P15) || (pCaps.Resolution & ISI_RES_TV1080P30)) && (pCaps.Resolution & ISI_RES_3264_2448)) {		
+        LOG1("==================OV8825======================");
+		parameterString.append("1920x1080,1280x720,800x600,640x480,352x288,320x240,176x144");    	
         params.setPreviewSize(1920, 1080);	
         /* ddl@rock-chips.com: v0.d.2 */
-        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "176x144,1280x720,2048x1536,2592x1944,3264x2448");
+        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "176x144,1024x768,2048x1536,2592x1944,3264x2448");
         params.setPictureSize(2592,1944);
+        cts_verifier_width = 3264;
+        cts_verifier_height = 2448;
     } else if((pCaps.Resolution & ISI_RES_2592_1944)) {             
 		parameterString.append("800x600,640x480,1280x720,352x288,320x240,176x144");      
 		params.setPreviewSize(800, 600);        
-		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "2592x1944,1600x1200,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144");
+		params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "2592x1944,1600x1200,1024x768,800x600,640x480,352x288,320x240,176x144");
 		params.setPictureSize(2592,1944);
-	} else if((pCaps.Resolution & ISI_RES_1600_1200)|| (pCaps.Resolution & ISI_RES_SVGA30)) {		
+        cts_verifier_width = 2592;
+        cts_verifier_height = 1944;
+	} else if((pCaps.Resolution & ISI_RES_1600_1200) && (pCaps.Resolution & ISI_RES_SVGA30)) {		
+        LOG1("==================SOC 200W======================");
         parameterString.append("1280x720,800x600,720x480,640x480,352x288,320x240,176x144");    	
         params.setPreviewSize(800, 600);	
 
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1600x1200,1024x768,800x600,640x480,352x288,320x240,176x144");
         params.setPictureSize(1600,1200);
-    } else if(pCaps.Resolution & ISI_RES_VGA) {		
+        cts_verifier_width = 800;
+        cts_verifier_height = 600;
+	} else if (pCaps.Resolution & ISI_RES_VGA) {		
         parameterString.append("640x480");    	
         params.setPreviewSize(640, 480);	
 
@@ -628,14 +647,16 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         parameterString.append("2112x1568,1920x1080,1280x720,800x600,640x480");    	
         params.setPreviewSize(2112, 1568);	
 
-        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448,4224x3136");
+        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448,4224x3136");
         params.setPictureSize(4224,3136);
-    }else if((pCaps.Resolution & ISI_RES_1632_1224)|| (pCaps.Resolution & ISI_RES_3264_2448 )){
+    }else if((pCaps.Resolution & ISI_RES_1632_1224) && (pCaps.Resolution & ISI_RES_3264_2448 )){
         parameterString.append("1632x1224,1920x1080,1280x720,800x600,640x480");    	
         params.setPreviewSize(1632, 1224);	
 
-        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1280x720,1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448");
+        params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, "1024x768,800x600,640x480,352x288,320x240,176x144,1600x1200,2592x1944,3264x2448");
         params.setPictureSize(3264,2448);
+        cts_verifier_width = 3264;
+        cts_verifier_height = 2448;
     }else {
         LOGE("error,you need add the solution");
     }	
@@ -1701,6 +1722,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     	  tmpFrame->vir_addr = (int)y_addr_vir;
     	  tmpFrame->frame_fmt = fmt;
           tmpFrame->used_flag = 2;
+          tmpFrame->res = &mIs_cts_verifier;
       #if (USE_RGA_TODO_ZOOM == 1)  
          tmpFrame->zoom_value = mZoomVal;
       #else

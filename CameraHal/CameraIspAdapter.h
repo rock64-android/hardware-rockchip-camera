@@ -141,11 +141,14 @@ protected:
     int mISPOutputFmt;
     bool mISPTunningRun;
     bool mIsSendToTunningTh;
+    bool mIs_cts_verifier;
 
     int mDispFrameLeak;
     int mVideoEncFrameLeak;
     int mPreviewCBFrameLeak;
     int mPicEncFrameLeak;
+    int cts_verifier_width;
+    int cts_verifier_height;
 private:
     
     awbStatus curAwbStatus;
