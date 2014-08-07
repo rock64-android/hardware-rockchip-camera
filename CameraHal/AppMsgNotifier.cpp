@@ -17,6 +17,12 @@ AppMsgNotifier::AppMsgNotifier()
 
 {
     LOG_FUNCTION_NAME
+	if (create_vpu_memory_pool_allocator(&pool, 10, 200*200*2) < 0) {
+		LOGE("Create vpu memory pool for post process failed\n");
+		pool = NULL;
+	} else {
+		LOGD("============ create_vpu_memory_pool_allocator 10*80kB ==========");
+	}
 
     mMsgTypeEnabled = 0;
 //    mReceivePictureFrame = false;
@@ -103,6 +109,10 @@ AppMsgNotifier::~AppMsgNotifier()
     if(mPicture){
         mPicture->release(mPicture);
     }
+	if (pool) {
+		release_vpu_memory_pool_allocator(pool);
+		pool = NULL;
+	}
     LOG_FUNCTION_NAME_EXIT
 }
 
@@ -918,7 +928,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	//JpegInInfo.uv_vir_addr = input_vir_addr + jpeg_w*jpeg_h;
 	JpegInInfo.inputW = jpeg_w;
 	JpegInInfo.inputH = jpeg_h;
-
+	JpegInInfo.pool = pool;
 	JpegInInfo.qLvl = quality/10;
 	if (JpegInInfo.qLvl < 5) {
 		JpegInInfo.qLvl = 5;

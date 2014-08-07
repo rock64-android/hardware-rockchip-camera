@@ -58,6 +58,9 @@
 #include "CameraHal_Module.h"
 #include "common_type.h"
 
+#include "vpu_global.h"
+#include "vpu_mem_pool.h"
+
 /* 
 *NOTE: 
 *       CONFIG_CAMERA_INVALIDATE_RGA is debug macro, 
@@ -259,9 +262,11 @@ namespace android {
 *     1) modify to pass cts verifier FOV 
 *v0.0x36.2
 *     1) modify to pass cts verifier orientation 
-*     1) use arm scale when display,because VOIP need NV21 
+*     2) use arm scale when display,because VOIP need NV21 
+*v0.0x36.3
+*     1) support new jpeg vpumalloc,size is set by cameraHal  
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x36, 0x02)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x36, 0x03)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -951,6 +956,7 @@ public:
     void dump();
 	void setDatacbFrontMirrorState(bool mirror);
 	picture_info_s&  getPictureInfoRef();
+	vpu_display_mem_pool *pool;
 private:
 
    void encProcessThread();
