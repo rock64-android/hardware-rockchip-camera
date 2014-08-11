@@ -272,6 +272,26 @@ static RESULT GC2155_IsiGetCapsIss
     }
     else
     {
+        switch (pIsiSensorCaps->Index) 
+        {
+            case 0:
+            {
+                pIsiSensorCaps->Resolution = ISI_RES_1600_1200;
+                break;
+            }
+            case 1:
+            {
+                pIsiSensorCaps->Resolution = ISI_RES_SVGAP30;
+                break;
+            }
+            default:
+            {
+                result = RET_OUTOFRANGE;
+                goto end;
+            }
+
+        }
+    
         pIsiSensorCaps->BusWidth        = ISI_BUSWIDTH_12BIT;
         pIsiSensorCaps->Mode            = ISI_MODE_PICT|ISI_MODE_BT601;
         pIsiSensorCaps->FieldSelection  = ISI_FIELDSEL_BOTH;
@@ -284,9 +304,6 @@ static RESULT GC2155_IsiGetCapsIss
         pIsiSensorCaps->Bls             = ISI_BLS_OFF;
         pIsiSensorCaps->Gamma           = ISI_GAMMA_ON;
         pIsiSensorCaps->CConv           = ISI_CCONV_ON;
-
-        pIsiSensorCaps->Resolution      = (ISI_RES_SVGA30 | ISI_RES_1600_1200);
-
         pIsiSensorCaps->BLC             = ( ISI_BLC_AUTO );
         pIsiSensorCaps->AGC             = ( ISI_AGC_AUTO );
         pIsiSensorCaps->AWB             = ( ISI_AWB_AUTO );
@@ -300,7 +317,7 @@ static RESULT GC2155_IsiGetCapsIss
         pIsiSensorCaps->AfpsResolutions = ( ISI_AFPS_NOTSUPP );
         pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_YUV;
     }
-
+end:
     TRACE( GC2155_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
@@ -330,7 +347,7 @@ const IsiSensorCaps_t GC2155_g_IsiSensorDefaultConfig =
     ISI_BLS_OFF,                // Bls
     ISI_GAMMA_ON,              // Gamma
     ISI_CCONV_ON,              // CConv
-    ISI_RES_SVGA30,          // Res
+    ISI_RES_SVGAP30,          // Res
     ISI_DWNSZ_SUBSMPL,          // DwnSz
     ISI_BLC_AUTO,               // BLC
     ISI_AGC_AUTO,                // AGC
@@ -342,6 +359,7 @@ const IsiSensorCaps_t GC2155_g_IsiSensorDefaultConfig =
     ISI_MIPI_OFF,       // MipiMode
     ISI_AFPS_NOTSUPP,           // AfpsResolutions
     ISI_SENSOR_OUTPUT_MODE_YUV,
+    0,
 };
 
 
@@ -882,11 +900,14 @@ static RESULT GC2155_IsiChangeSensorResolutionIss
         return RET_WRONG_STATE;
     }
 
-    IsiSensorCaps_t Caps;
-    result = GC2155_IsiGetCapsIss( handle, &Caps);
-    if (RET_SUCCESS != result)
-    {
-        return result;
+    IsiSensorCaps_t Caps;    
+    Caps.Index = 0;
+    Caps.Resolution = 0;
+    while (GC2155_IsiGetCapsIss( handle, &Caps) == RET_SUCCESS) {
+        if (Resolution == Caps.Resolution) {            
+            break;
+        }
+        Caps.Index++;
     }
 
     if ( (Resolution & Caps.Resolution) == 0 )

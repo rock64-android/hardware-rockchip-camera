@@ -21,7 +21,7 @@ AppMsgNotifier::AppMsgNotifier()
 		LOGE("Create vpu memory pool for post process failed\n");
 		pool = NULL;
 	} else {
-		LOGD("============ create_vpu_memory_pool_allocator 10*80kB ==========");
+		LOG1("============ create_vpu_memory_pool_allocator 10*80kB ==========");
 	}
 
     mMsgTypeEnabled = 0;
@@ -139,7 +139,7 @@ void AppMsgNotifier::setVideoBufProvider(BufferProvider* bufprovider)
 
 int AppMsgNotifier::takePicture(picture_info_s picinfo)
 {
-    LOG_FUNCTION_NAME
+   LOG_FUNCTION_NAME
     Mutex::Autolock lock(mPictureLock); 
     //if(mReceivePictureFrame){
     if(mRunningState&STA_RECEIVE_PIC_FRAME){
@@ -1015,48 +1015,44 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
         //request bufer
         camera_memory_t* tmpPreviewMemory = NULL;
 
-		if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
-			tempMemSize = mPreviewDataW*mPreviewDataH*2;
-		} else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
-			tempMemSize = mPreviewDataW*mPreviewDataH*3/2;
-		} else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
-			tempMemSize = mPreviewDataW*mPreviewDataH*2;
-		} else if(strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0){ 
-			tempMemSize = ((mPreviewDataW+15)&0xfffffff0)*mPreviewDataH
-				+((mPreviewDataW/2+15)&0xfffffff0)*mPreviewDataH;
-			LOG1("-----------------android::CameraParameters::PIXEL_FORMAT_YUV420P-------------");	
-		}else {
-			LOGE("%s(%d): pixel format %s is unknow!",__FUNCTION__,__LINE__,mPreviewDataFmt);
-		}
-		mDataCbLock.unlock();
-		tmpPreviewMemory = mRequestMemory(-1, tempMemSize, 1, NULL);
-		if (tmpPreviewMemory) {
-			//fill the tmpPreviewMemory
+        if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
+            tempMemSize = mPreviewDataW*mPreviewDataH*2;        
+        } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
+            tempMemSize = mPreviewDataW*mPreviewDataH*3/2;        
+        } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
+            tempMemSize = mPreviewDataW*mPreviewDataH*2;        
+        } else if(strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0){ 
+            tempMemSize = ((mPreviewDataW+15)&0xfffffff0)*mPreviewDataH
+                        +((mPreviewDataW/2+15)&0xfffffff0)*mPreviewDataH;    
+        }else {
+            LOGE("%s(%d): pixel format %s is unknow!",__FUNCTION__,__LINE__,mPreviewDataFmt);        
+        }
+        mDataCbLock.unlock();
+	    tmpPreviewMemory = mRequestMemory(-1, tempMemSize, 1, NULL);
+        if (tmpPreviewMemory) {
+            //fill the tmpPreviewMemory
 			if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0) {
 				cameraFormatConvert(V4L2_PIX_FMT_NV12,0,mPreviewDataFmt,
 						(char*)frame->vir_addr,(char*)tmpPreviewMemory->data,0,0,tempMemSize,
 						frame->frame_width, frame->frame_height,frame->frame_width,
 						//frame->frame_width,frame->frame_height,frame->frame_width,false);
 					mPreviewDataW,mPreviewDataH,mPreviewDataW,mDataCbFrontMirror);
-				LOG1("=========================yv12 change to nv12=======================");
 			}else {
 #if 1
 				//QQ voip need NV21
-				LOG1("=========================arm_camera_yuv420_scale_crop=======================");
 				arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
 						(char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
 #else
 				rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 						(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
 						mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true);
-				LOG1("=========================rga_nv12_scale_crop=======================");
 #endif
 				//arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
 			}
-			//callback
-			mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);
-			//release buffer
-			tmpPreviewMemory->release(tmpPreviewMemory);
+            //callback
+            mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
+            //release buffer
+            tmpPreviewMemory->release(tmpPreviewMemory);
 		} else {
 			LOGE("%s(%d): mPreviewMemory create failed",__FUNCTION__,__LINE__);
 		}

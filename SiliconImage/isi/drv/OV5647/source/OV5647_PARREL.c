@@ -567,6 +567,7 @@ const IsiSensorCaps_t OV5647_g_IsiSensorDefaultConfig =
     ISI_MIPI_OFF,       // MipiMode
     ISI_AFPS_NOTSUPP,           // AfpsResolutions
     ISI_SENSOR_OUTPUT_MODE_RAW,
+    0,
 };
 
 

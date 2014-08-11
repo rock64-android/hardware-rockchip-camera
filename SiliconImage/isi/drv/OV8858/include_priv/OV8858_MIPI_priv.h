@@ -59,10 +59,14 @@ extern "C"
 *v0.7.0:
 *	1)fix AE difference between preview and capture;
 *	2)fix MOTOR speed;
+*v0.8.0:
+*   1)support 1 lane;
+*v0.9.0:
+*   1) support for isi v0.6.0
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(0, 7, 0) 
+#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(0, 9, 0) 
 
 /*****************************************************************************
  * System control registers

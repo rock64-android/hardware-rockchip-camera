@@ -258,6 +258,7 @@ typedef struct sensor_chipid_info_s{
 
 typedef struct sensor_i2c_info_s{
     uint i2c_addr;
+    uint i2c_addr2;
     uint soft_reg_addr;
     uint soft_reg_value;
     uint reg_size;

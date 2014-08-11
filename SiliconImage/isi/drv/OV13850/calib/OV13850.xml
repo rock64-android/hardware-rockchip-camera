@@ -2,10 +2,10 @@
 <matfile>
    <header type="struct" size="[1 1]">
       <creation_date index="1" type="char" size="[1 11]">
-         04-Aug-2014
+         06-Aug-2014
       </creation_date>
       <creator index="1" type="char" size="[1 2]">
-         ZYL-OY
+         ZYL-OYYF
       </creator>
       <sensor_name index="1" type="char" size="[1 7]">
          OV13850
@@ -14,7 +14,7 @@
          CMK-CT0116-FV1
       </sample_name>
       <generator_version index="1" type="char" size="[1 4]">
-         v0.1.1
+         v0.1.2
       </generator_version>
       <resolution index="1" type="cell" size="[1 2]">
          <cell index="1" type="struct" size="[1 1]">

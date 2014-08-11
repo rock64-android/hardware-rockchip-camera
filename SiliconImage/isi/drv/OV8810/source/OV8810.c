@@ -522,6 +522,7 @@ const IsiSensorCaps_t OV8810_g_IsiSensorDefaultConfig =
     ISI_MIPI_OFF,               // MipiMode
     ISI_AFPS_NOTSUPP,            // AfpsResolutions
     ISI_SENSOR_OUTPUT_MODE_RAW,
+    0,
 };
 
 

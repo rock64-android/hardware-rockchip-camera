@@ -56,9 +56,13 @@ extern "C"
 *   1). add sensor drv version in get sensor i2c info func
 *v0.5.0:
 *   1). support for isi v0.5.0
+*v0.6.0:
+*   1). af optimization.
+v0.7.0
+*   1). support for isi v0.6.0
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 5, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 7, 0x00) 
 
 
 #define OV13850_CHIP_ID_HIGH_BYTE            (0x300a) // r - 
@@ -70,6 +74,14 @@ extern "C"
 #define OV13850_MODE_SELECT  (0x0100)
 
 #define OV13850_SOFTWARE_RST                 (0x0103) // rw - Bit[7:1]not used  Bit[0]software_reset
+
+typedef struct OV13850_VcmInfo_s                 /* ddl@rock-chips.com: v0.3.0 */
+{
+    uint32_t StartCurrent;
+    uint32_t RatedCurrent;
+    uint32_t Step;
+    uint32_t StepMode;
+} OV13850_VcmInfo_t;
 
 typedef struct OV13850_Context_s
 {
@@ -106,6 +118,7 @@ typedef struct OV13850_Context_s
     uint32_t            OldFineIntegrationTime;
 
     IsiSensorMipiInfo   IsiSensorMipiInfo;
+	OV13850_VcmInfo_t    VcmInfo; 
 } OV13850_Context_t;
 
 #ifdef __cplusplus

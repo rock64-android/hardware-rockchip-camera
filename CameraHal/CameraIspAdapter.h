@@ -84,6 +84,8 @@ private:
     bool isLowIllumin();
     void flashControl(bool on);
     bool isNeedToEnableFlash();
+	void setMwb(const char *white_balance);
+	void setMe(const char *exposure);
 protected:
     CamDevice       *m_camDevice;
     KeyedVector<void *, void *> mFrameInfoArray;
@@ -140,15 +142,12 @@ protected:
     sp<CamISPTunningThread>   mISPTunningThread;
     int mISPOutputFmt;
     bool mISPTunningRun;
-    bool mIsSendToTunningTh;
-    bool mIs_cts_verifier;
+    bool mIsSendToTunningTh;    
 
     int mDispFrameLeak;
     int mVideoEncFrameLeak;
     int mPreviewCBFrameLeak;
     int mPicEncFrameLeak;
-    int cts_verifier_width;
-    int cts_verifier_height;
 private:
     
     awbStatus curAwbStatus;

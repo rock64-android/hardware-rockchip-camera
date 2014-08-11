@@ -45,10 +45,12 @@ CREATE_TRACER( OV8858_ERROR, "OV8858: ", ERROR,   1U );
 
 CREATE_TRACER( OV8858_DEBUG, "OV8858: ", INFO,     0U );
 
-CREATE_TRACER( OV8858_REG_INFO , "OV8858: ", INFO, 1);
-CREATE_TRACER( OV8858_REG_DEBUG, "OV8858: ", INFO, 1U );
+CREATE_TRACER( OV8858_NOTICE0 , "OV8858: ", TRACE_NOTICE0, 1);
+CREATE_TRACER( OV8858_NOTICE1, "OV8858: ", TRACE_NOTICE1, 1U );
+
 
 #define OV8858_SLAVE_ADDR       0x6cU                           /**< i2c slave address of the OV8858 camera sensor */
+#define OV8858_SLAVE_ADDR2      0x20U
 #define OV8858_SLAVE_AF_ADDR    0x18U         //?                  /**< i2c slave address of the OV8858 integrated AD5820 */
 
 #define OV8858_MAXN_GAIN 		(128.0f)
@@ -90,10 +92,13 @@ CREATE_TRACER( OV8858_REG_DEBUG, "OV8858: ", INFO, 1U );
  *****************************************************************************/
 const char OV8858_g_acName[] = "OV8858_MIPI";
 //extern const IsiRegDescription_t OV8858_g_aRegDescription[];
+extern const IsiRegDescription_t OV8858_g_aRegDescription_onelane[];
 extern const IsiRegDescription_t OV8858_g_aRegDescription_twolane[];
 extern const IsiRegDescription_t OV8858_g_aRegDescription_fourlane[];
+extern const IsiRegDescription_t OV8858_g_1632x1224_onelane[];
 extern const IsiRegDescription_t OV8858_g_1632x1224_twolane[];
 extern const IsiRegDescription_t OV8858_g_1632x1224_fourlane[];
+extern const IsiRegDescription_t OV8858_g_3264x2448_onelane[];
 extern const IsiRegDescription_t OV8858_g_3264x2448_twolane[];
 extern const IsiRegDescription_t OV8858_g_3264x2448_fourlane[];
 
@@ -105,7 +110,7 @@ const IsiSensorCaps_t OV8858_g_IsiSensorDefaultConfig;
 #define OV8858_I2C_NR_ADR_BYTES     (2U)                        // 1 byte base address and 2 bytes sub address
 #define OV8858_I2C_NR_DAT_BYTES     (1U)                        // 8 bit registers
 
-static uint16_t g_suppoted_mipi_lanenum_type = SUPPORT_MIPI_TWO_LANE|SUPPORT_MIPI_FOUR_LANE;
+static uint16_t g_suppoted_mipi_lanenum_type = SUPPORT_MIPI_ONE_LANE|SUPPORT_MIPI_TWO_LANE|SUPPORT_MIPI_FOUR_LANE;
 #define DEFAULT_NUM_LANES SUPPORT_MIPI_TWO_LANE
 
 
@@ -217,12 +222,9 @@ static RESULT OV8858_IsiCreateSensorIss
     {
         free ( pOV8858Ctx );
         return ( result );
-    }else{
-		TRACE( OV8858_ERROR, "%s(%d): 8888888888888 HalAddRef 8888888888 \n",  __FUNCTION__,__LINE__);
-	}
-
+    }
+    
     pOV8858Ctx->IsiCtx.HalHandle              = pConfig->HalHandle;
-	TRACE( OV8858_ERROR, "%s(%d): 8888888888888 HalAddRef 8888888888 pOV8858Ctx->IsiCtx.HalHandl(0x%x) pConfig->HalHandle(0x%x)\n",  __FUNCTION__,__LINE__,pOV8858Ctx->IsiCtx.HalHandle,pConfig->HalHandle);
     pOV8858Ctx->IsiCtx.HalDevID               = pConfig->HalDevID;
     pOV8858Ctx->IsiCtx.I2cBusNum              = pConfig->I2cBusNum;
     pOV8858Ctx->IsiCtx.SlaveAddress           = ( pConfig->SlaveAddr == 0 ) ? OV8858_SLAVE_ADDR : pConfig->SlaveAddr;
@@ -302,7 +304,6 @@ static RESULT OV8858_IsiReleaseSensorIss
     (void)OV8858_IsiSensorSetPowerIss( pOV8858Ctx, BOOL_FALSE );
 
     (void)HalDelRef( pOV8858Ctx->IsiCtx.HalHandle );
-	TRACE( OV8858_ERROR, "%s(%d): 777777777 HalDelRef 8888888888 handle(0x%x)\n",  __FUNCTION__,__LINE__, pOV8858Ctx->IsiCtx.HalHandle);
 
     MEMSET( pOV8858Ctx, 0, sizeof( OV8858_Context_t ) );
     free ( pOV8858Ctx );
@@ -350,6 +351,68 @@ static RESULT OV8858_IsiGetCapsIss
     }
     else
     {
+        if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_FOUR_LANE){            
+            switch (pIsiSensorCaps->Index) 
+            {
+                case 0:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_3264_2448P30;
+                    break;
+                }
+                case 1:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1632_1224P30;
+                    break;
+                }
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+
+            }
+        } else if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE) {
+            switch (pIsiSensorCaps->Index) 
+            {
+                case 0:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_3264_2448P15;
+                    break;
+                }
+                case 1:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1632_1224P30;
+                    break;
+                }
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+
+            }
+        }  else if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE) {
+            switch (pIsiSensorCaps->Index) 
+            {
+                case 0:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_3264_2448P7;
+                    break;
+                }
+                case 1:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1632_1224P15;
+                    break;
+                }
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+
+            }
+        }              
+    
         pIsiSensorCaps->BusWidth        = ISI_BUSWIDTH_10BIT; //
         pIsiSensorCaps->Mode            = ISI_MODE_MIPI;
         pIsiSensorCaps->FieldSelection  = ISI_FIELDSEL_BOTH;
@@ -361,15 +424,7 @@ static RESULT OV8858_IsiGetCapsIss
         pIsiSensorCaps->Edge            = ISI_EDGE_FALLING; //?
         pIsiSensorCaps->Bls             = ISI_BLS_OFF; //close;
         pIsiSensorCaps->Gamma           = ISI_GAMMA_OFF;//close;
-        pIsiSensorCaps->CConv           = ISI_CCONV_OFF;//close;
-
-        //pIsiSensorCaps->Resolution      = ( ISI_RES_TV1080P15 | ISI_RES_3264_2448 );
-        if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_FOUR_LANE){
-            pIsiSensorCaps->Resolution      = ( ISI_RES_1632_1224 | ISI_RES_3264_2448 );
-        }else if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
-            pIsiSensorCaps->Resolution      = ( ISI_RES_3264_2448 | ISI_RES_1632_1224); //( ISI_RES_TV1080P30 | ISI_RES_3264_2448 );
-        }
-
+        pIsiSensorCaps->CConv           = ISI_CCONV_OFF;//close;<
         pIsiSensorCaps->BLC             = ( ISI_BLC_AUTO | ISI_BLC_OFF);
         pIsiSensorCaps->AGC             = ( ISI_AGC_OFF );//close;
         pIsiSensorCaps->AWB             = ( ISI_AWB_OFF );
@@ -388,7 +443,7 @@ static RESULT OV8858_IsiGetCapsIss
         pIsiSensorCaps->AfpsResolutions = ( ISI_AFPS_NOTSUPP ); //ÌøÖ¡;Ã»ÓÃ
 		pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_RAW;//
     }
-
+end:
     TRACE( OV8858_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
@@ -418,7 +473,7 @@ const IsiSensorCaps_t OV8858_g_IsiSensorDefaultConfig =
     ISI_BLS_OFF,                // Bls
     ISI_GAMMA_OFF,              // Gamma
     ISI_CCONV_OFF,              // CConv
-    ISI_RES_3264_2448, //ISI_RES_TV1080P15,          // Res
+    ISI_RES_3264_2448P15, 
     ISI_DWNSZ_SUBSMPL,          // DwnSz
     ISI_BLC_AUTO,               // BLC
     ISI_AGC_OFF,                // AGC
@@ -430,6 +485,7 @@ const IsiSensorCaps_t OV8858_g_IsiSensorDefaultConfig =
     ISI_MIPI_MODE_RAW_10,       // MipiMode
     ISI_AFPS_NOTSUPP,           // AfpsResolutions
     ISI_SENSOR_OUTPUT_MODE_RAW,
+    0,
 };
 
 
@@ -758,95 +814,137 @@ static RESULT OV8858_SetupOutputWindow
     float    rVtPixClkFreq      = 0.0f;
     int xclk = 2400;
 	TRACE( OV8858_INFO, "%s (enter)\n", __FUNCTION__);
-
-if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
-
-    pOV8858Ctx->IsiSensorMipiInfo.ulMipiFreq = 720;
-	switch ( pConfig->Resolution )
-    {
-        case ISI_RES_1632_1224:
-        {
-            TRACE( OV8858_ERROR, "%s(%d): Resolution 1632x1224\n", __FUNCTION__,__LINE__ );
-			result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_1632x1224_twolane);
-		    if ( result != RET_SUCCESS )
-		    {
-		        return ( result );
-		    }
-			usTimeHts = 0x0788; //hkw
-            usTimeVts = 0x04dc;
-		    /* sleep a while, that sensor can take over new default values */
-		    osSleep( 10 );
-			break;
-            
-        }
-        
-        case ISI_RES_3264_2448:
-        {
-            TRACE( OV8858_ERROR, "%s(%d): Resolution 3264x2448\n", __FUNCTION__,__LINE__ );
-			result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_3264x2448_twolane);
-		    if ( result != RET_SUCCESS )
-		    {
-		        return ( result );
-		    }
-			usTimeHts = 0x0794;
-            usTimeVts = 0x09aa;
-		    /* sleep a while, that sensor can take over new default values */
-		    osSleep( 10 );
-			break;
-            
-        }
-
-        default:
-        {
-            TRACE( OV8858_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
-            return ( RET_NOTSUPP );
-        }
-	}
-}
-else if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_FOUR_LANE){
-    	pOV8858Ctx->IsiSensorMipiInfo.ulMipiFreq = 720;
+	
+	if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
+	
+		pOV8858Ctx->IsiSensorMipiInfo.ulMipiFreq = 720;
 		switch ( pConfig->Resolution )
 		{
-        case ISI_RES_1632_1224:
-        {
-            TRACE( OV8858_ERROR, "%s(%d): Resolution 1632x1224\n", __FUNCTION__,__LINE__ );
-			result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_1632x1224_fourlane);
-		    if ( result != RET_SUCCESS )
-		    {
-		        return ( result );
-		    }
-			usTimeHts = 0x0788; //hkw
-            usTimeVts = 0x04dc;
-		    /* sleep a while, that sensor can take over new default values */
-		    osSleep( 10 );
-			break;
-            
-        }
-        
-        case ISI_RES_3264_2448:
-        {
-            TRACE( OV8858_ERROR, "%s(%d): Resolution 3264x2448\n", __FUNCTION__,__LINE__ );
-			result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_3264x2448_fourlane);
-		    if ( result != RET_SUCCESS )
-		    {
-		        return ( result );
-		    }
-			usTimeHts = 0x0794;
-            usTimeVts = 0x09aa;
-		    /* sleep a while, that sensor can take over new default values */
-		    osSleep( 10 );
-			break;
-            
-        }
+			case ISI_RES_1632_1224P15:
+			{
+				TRACE( OV8858_NOTICE1, "%s(%d): Resolution 1632x1224\n", __FUNCTION__,__LINE__ );
+				result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_1632x1224_onelane);
+				if ( result != RET_SUCCESS )
+				{
+					return ( result );
+				}
+				usTimeHts = 0x0f10; //hkw
+				usTimeVts = 0x04dc;
+				/* sleep a while, that sensor can take over new default values */
+				osSleep( 10 );
+				break;
+				
+			}
+			
+			case ISI_RES_3264_2448P7:
+			{
+				TRACE( OV8858_NOTICE1, "%s(%d): Resolution 3264x2448\n", __FUNCTION__,__LINE__ );
+				result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_3264x2448_onelane);
+				if ( result != RET_SUCCESS )
+				{
+					return ( result );
+				}
+				usTimeHts = 0x0f28;
+				usTimeVts = 0x09aa;
+				/* sleep a while, that sensor can take over new default values */
+				osSleep( 10 );
+				break;
+				
+			}
+	
+			default:
+			{
+				TRACE( OV8858_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
+				return ( RET_NOTSUPP );
+			}
+		}
+	} else if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
 
-        default:
+        pOV8858Ctx->IsiSensorMipiInfo.ulMipiFreq = 720;
+    	switch ( pConfig->Resolution )
         {
-            TRACE( OV8858_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
-            return ( RET_NOTSUPP );
-        }
-	}
+            case ISI_RES_1632_1224P30:
+            {
+                TRACE( OV8858_NOTICE1, "%s(%d): Resolution 1632x1224\n", __FUNCTION__,__LINE__ );
+    			result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_1632x1224_twolane);
+    		    if ( result != RET_SUCCESS )
+    		    {
+    		        return ( result );
+    		    }
+    			usTimeHts = 0x0788; //hkw
+                usTimeVts = 0x04dc;
+    		    /* sleep a while, that sensor can take over new default values */
+    		    osSleep( 10 );
+    			break;
+                
+            }
+            
+            case ISI_RES_3264_2448P15:
+            {
+                TRACE( OV8858_NOTICE1, "%s(%d): Resolution 3264x2448\n", __FUNCTION__,__LINE__ );
+    			result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_3264x2448_twolane);
+    		    if ( result != RET_SUCCESS )
+    		    {
+    		        return ( result );
+    		    }
+    			usTimeHts = 0x0794;
+                usTimeVts = 0x09aa;
+    		    /* sleep a while, that sensor can take over new default values */
+    		    osSleep( 10 );
+    			break;
+                
+            }
 
-}
+            default:
+            {
+                TRACE( OV8858_ERROR, "%s: Resolution(0x%x) not supported\n", __FUNCTION__, pConfig->Resolution);
+                return ( RET_NOTSUPP );
+            }
+    	}
+    } else if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_FOUR_LANE) {
+    	pOV8858Ctx->IsiSensorMipiInfo.ulMipiFreq = 720;
+		switch ( pConfig->Resolution )
+        {
+            case ISI_RES_1632_1224P30:
+            {
+                TRACE( OV8858_NOTICE1, "%s(%d): Resolution 1632x1224\n", __FUNCTION__,__LINE__ );
+    			result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_1632x1224_fourlane);
+    		    if ( result != RET_SUCCESS )
+    		    {
+    		        return ( result );
+    		    }
+    			usTimeHts = 0x0788; //hkw
+                usTimeVts = 0x04dc;
+    		    /* sleep a while, that sensor can take over new default values */
+    		    osSleep( 10 );
+    			break;
+                
+            }
+            
+            case ISI_RES_3264_2448P30:
+            {
+                TRACE( OV8858_NOTICE1, "%s(%d): Resolution 3264x2448\n", __FUNCTION__,__LINE__ );
+    			result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_3264x2448_fourlane);
+    		    if ( result != RET_SUCCESS )
+    		    {
+    		        return ( result );
+    		    }
+    			usTimeHts = 0x0794;
+                usTimeVts = 0x09aa;
+    		    /* sleep a while, that sensor can take over new default values */
+    		    osSleep( 10 );
+    			break;
+                
+            }
+
+            default:
+            {
+                TRACE( OV8858_ERROR, "%s: Resolution(0x%x) not supported\n", __FUNCTION__, pConfig->Resolution);
+                return ( RET_NOTSUPP );
+            }
+    	}
+
+    }
     
 	
 /* 2.) write default values derived from datasheet and evaluation kit (static setup altered by dynamic setup further below) */
@@ -862,7 +960,7 @@ else if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_FOUR_LANE){
 
 
 
-    TRACE( OV8858_ERROR, "%s  resolution(0x%x) freq(%f)(exit)\n", __FUNCTION__, pConfig->Resolution,rVtPixClkFreq);
+    TRACE( OV8858_INFO, "%s  resolution(0x%x) freq(%f)(exit)\n", __FUNCTION__, pConfig->Resolution,rVtPixClkFreq);
 
     return ( result );
 }
@@ -1156,6 +1254,8 @@ static RESULT OV8858_IsiSetupSensorIss
         }
 	else if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE)
         result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_aRegDescription_twolane);
+	else if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE)
+        result = IsiRegDefaultsApply( pOV8858Ctx, OV8858_g_aRegDescription_onelane);
     if ( result != RET_SUCCESS )
     {
         return ( result );
@@ -1272,6 +1372,7 @@ static RESULT OV8858_IsiChangeSensorResolutionIss
     }
 
     IsiSensorCaps_t Caps;
+    #if 0
     result = OV8858_IsiGetCapsIss( handle, &Caps);
     if (RET_SUCCESS != result)
     {
@@ -1282,6 +1383,20 @@ static RESULT OV8858_IsiChangeSensorResolutionIss
     {
         return RET_OUTOFRANGE;
     }
+    #else
+    Caps.Index = 0;
+    Caps.Resolution = 0;
+    while (OV8858_IsiGetCapsIss( handle, &Caps) == RET_SUCCESS) {
+        if (Resolution == Caps.Resolution) {            
+            break;
+        }
+        Caps.Index++;
+    }
+
+    if (Resolution != Caps.Resolution) {
+        return RET_OUTOFRANGE;
+    }
+    #endif
 
     if ( Resolution == pOV8858Ctx->Config.Resolution )
     {
@@ -1630,7 +1745,6 @@ static RESULT OV8858_IsiRegReadIss
         {
             NrOfBytes = 1;
         }
- //       TRACE( OV8858_REG_DEBUG, "%s (IsiGetNrDatBytesIss %d 0x%08x)\n", __FUNCTION__, NrOfBytes, address);
 
         *p_value = 0;
         result = IsiI2cReadSensorRegister( handle, address, (uint8_t *)p_value, NrOfBytes, BOOL_TRUE );
@@ -1681,7 +1795,6 @@ static RESULT OV8858_IsiRegWriteIss
     {
         NrOfBytes = 1;
     }
-//    TRACE( OV8858_REG_DEBUG, "%s (IsiGetNrDatBytesIss %d 0x%08x 0x%08x)\n", __FUNCTION__, NrOfBytes, address, value);
 
     result = IsiI2cWriteSensorRegister( handle, address, (uint8_t *)(&value), NrOfBytes, BOOL_TRUE );
 
@@ -3155,14 +3268,14 @@ static RESULT OV8858_IsiMdiInitMotoDriveMds
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8858_ERROR, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV8858_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pOV8858Ctx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    TRACE( OV8858_ERROR, "%s: (exit)\n", __FUNCTION__);
+    TRACE( OV8858_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3690,12 +3803,13 @@ static RESULT OV8858_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
 
     
     pSensorI2cInfo->i2c_addr = OV8858_SLAVE_ADDR;
+    pSensorI2cInfo->i2c_addr2 = OV8858_SLAVE_ADDR2;
     pSensorI2cInfo->soft_reg_addr = OV8858_SOFTWARE_RST;
     pSensorI2cInfo->soft_reg_value = OV8858_SOFTWARE_RST_VALUE;
     pSensorI2cInfo->reg_size = 2;
     pSensorI2cInfo->value_size = 1;
 
-    pSensorI2cInfo->resolution = ( /*ISI_RES_1632_1224|*/ ISI_RES_3264_2448 );
+    pSensorI2cInfo->resolution = ISI_RES_3264_2448P15;
     
     ListInit(&pSensorI2cInfo->chipid_info);
 

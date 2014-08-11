@@ -527,6 +527,7 @@ const IsiSensorCaps_t OV2715_g_IsiSensorDefaultConfig =
     ISI_MIPI_OFF,               // MipiMode
     ( ISI_AFPS_NOTSUPP | ISI_RES_TV1080P24 | ISI_RES_TV1080P20 | ISI_RES_TV1080P15 ), // AfpsResolutions
     ISI_SENSOR_OUTPUT_MODE_RAW,
+    0,
 };
 
 

@@ -512,6 +512,48 @@ static RESULT OV8820_IsiGetCapsIss
     }
     else
     {
+        if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
+            switch (pIsiSensorCaps->Index) 
+            {
+                case 0:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_3264_2448P7;
+                    break;
+                }
+                case 1:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P15;
+                    break;
+                }
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+
+            }
+        }else if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
+            switch (pIsiSensorCaps->Index) 
+            {
+                case 0:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_3264_2448P15;
+                    break;
+                }
+                case 1:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P30;
+                    break;
+                }
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+            }
+        }
+
+    
         pIsiSensorCaps->BusWidth        = ISI_BUSWIDTH_10BIT;
         pIsiSensorCaps->Mode            = ISI_MODE_MIPI;
         pIsiSensorCaps->FieldSelection  = ISI_FIELDSEL_BOTH;
@@ -523,14 +565,7 @@ static RESULT OV8820_IsiGetCapsIss
         pIsiSensorCaps->Edge            = ISI_EDGE_FALLING;
         pIsiSensorCaps->Bls             = ISI_BLS_OFF;
         pIsiSensorCaps->Gamma           = ISI_GAMMA_OFF;
-        pIsiSensorCaps->CConv           = ISI_CCONV_OFF;
-
-        if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
-
-            pIsiSensorCaps->Resolution      = ( ISI_RES_TV1080P15 | ISI_RES_3264_2448 );
-        }else if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
-            pIsiSensorCaps->Resolution      = ( ISI_RES_TV1080P30 | ISI_RES_3264_2448 );
-        }
+        pIsiSensorCaps->CConv           = ISI_CCONV_OFF;        
 
         pIsiSensorCaps->BLC             = ( ISI_BLC_AUTO | ISI_BLC_OFF);
         pIsiSensorCaps->AGC             = ( ISI_AGC_OFF );
@@ -550,7 +585,7 @@ static RESULT OV8820_IsiGetCapsIss
         pIsiSensorCaps->AfpsResolutions = ( ISI_AFPS_NOTSUPP );
 		pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_RAW;
     }
-
+end:
     TRACE( OV8820_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
@@ -592,6 +627,7 @@ const IsiSensorCaps_t OV8820_g_IsiSensorDefaultConfig =
     ISI_MIPI_MODE_RAW_10,       // MipiMode
     ISI_AFPS_NOTSUPP,           // AfpsResolutions
     ISI_SENSOR_OUTPUT_MODE_RAW,
+    0,
 };
 
 
@@ -1034,7 +1070,7 @@ static RESULT OV8820_SetupOutputWindow
                 
             }
             
-            case ISI_RES_3264_2448:
+            case ISI_RES_3264_2448P15:
             {
                 TRACE( OV8820_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
                 usModeSelect = 0x00;
@@ -1262,7 +1298,7 @@ static RESULT OV8820_SetupOutputWindow
                 
             }
             
-            case ISI_RES_3264_2448:
+            case ISI_RES_3264_2448P7:
             {
                 TRACE( OV8820_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
                 usModeSelect = 0x00;
@@ -1846,15 +1882,17 @@ static RESULT OV8820_IsiChangeSensorResolutionIss
         return RET_WRONG_STATE;
     }
 
-    IsiSensorCaps_t Caps;
-    result = OV8820_IsiGetCapsIss( handle, &Caps);
-    if (RET_SUCCESS != result)
-    {
-        return result;
+    IsiSensorCaps_t Caps;    
+    Caps.Index = 0;
+    Caps.Resolution = 0;
+    while (OV8820_IsiGetCapsIss( handle, &Caps) == RET_SUCCESS) {
+        if (Resolution == Caps.Resolution) {            
+            break;
+        }
+        Caps.Index++;
     }
 
-    if ( (Resolution & Caps.Resolution) == 0 )
-    {
+    if (Resolution != Caps.Resolution) {
         return RET_OUTOFRANGE;
     }
 
@@ -4336,7 +4374,7 @@ static RESULT OV8820_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
     pSensorI2cInfo->reg_size = 2;
     pSensorI2cInfo->value_size = 1;
 
-    pSensorI2cInfo->resolution = ( ISI_RES_TV1080P30 | ISI_RES_3264_2448 );
+    pSensorI2cInfo->resolution = ISI_RES_3264_2448;
     
     ListInit(&pSensorI2cInfo->chipid_info);
 

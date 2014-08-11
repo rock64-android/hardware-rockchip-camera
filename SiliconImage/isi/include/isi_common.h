@@ -164,6 +164,7 @@ extern "C"
 #define ISI_CCONV_OFF                       0x00000002
 
 /**< Resolution */
+#if 0
 #define ISI_RES_VGA                         0x00000001      /**<  1  640x480     */
 #define ISI_RES_2592_1944                   0x00000002      /**<  2 2592x1944    */
 #define ISI_RES_3264_2448                   0x00000004      /**<  3 3264x2448    */
@@ -189,6 +190,100 @@ extern "C"
 #define ISI_RES_TV1080P30                   0x20000000      /**< 29 1920x1080@30 */
 #define ISI_RES_TV1080P50                   0x40000000      /**< 30 1920x1080@50 */
 #define ISI_RES_TV1080P60                   0x80000000      /**< 31 1920x1080@60 */
+#else
+
+#define ISI_RES_W_GET(v)                ((v&0x1fff000)>>12)
+#define ISI_RES_H_GET(v)                (v&0xfff)
+#define ISI_FPS_GET(v)                  ((v&0xfe000000)>>25)
+
+#define ISI_RES_VGAP5                          0x0a2801e0        /**<  1  640x480     */
+#define ISI_RES_VGAP10                         0x142801e0        /**<  1  640x480     */
+#define ISI_RES_VGAP15                         0x1e2801e0        /**<  1  640x480     */
+#define ISI_RES_VGAP20                         0x282801e0        /**<  1  640x480     */
+#define ISI_RES_VGAP30                         0x3c2801e0        /**<  1  640x480     */
+#define ISI_RES_VGAP60                         0x782801e0        /**<  1  640x480     */
+#define ISI_RES_VGAP120                        0xf02801e0        /**<  1  640x480     */
+#define ISI_RES_VGA                            ISI_RES_VGAP30
+
+#define ISI_RES_SVGAP5                         0x0a320258        /**< 16 1280x720@5   */
+#define ISI_RES_SVGAP10                        0x14320258        /**< 16 1280x720@5   */
+#define ISI_RES_SVGAP15                        0x1e320258        /**< 16 1280x720@5   */
+#define ISI_RES_SVGAP20                        0x28320258        /**< 16 1280x720@5   */
+#define ISI_RES_SVGAP30                        0x3c320258        /**< 16 1280x720@5   */
+#define ISI_RES_SVGAP60                        0x78320258        /**< 16 1280x720@5   */
+#define ISI_RES_SVGAP120                       0xf0320258        /**< 16 1280x720@5   */
+#define ISI_RES_SVGA                           ISI_RES_SVGAP30
+#define ISI_RES_SVGA30                         ISI_RES_SVGAP30 
+
+#define ISI_RES_2592_1944P7                    0x0ea20798      /**<  2 2592x1944    */
+#define ISI_RES_2592_1944P15                   0x1ea20798      /**<  2 2592x1944    */
+#define ISI_RES_2592_1944P30                   0x3ca20798      /**<  2 2592x1944    */
+#define ISI_RES_2592_1944                      ISI_RES_2592_1944P15
+
+#define ISI_RES_1296_972P7                     0x0e5103cc       /**<  3 3264x2448    */
+#define ISI_RES_1296_972P15                    0x1e5103cc       /**<  3 3264x2448    */
+#define ISI_RES_1296_972P30                    0x3c5103cc       /**<  3 3264x2448    */
+#define ISI_RES_1296_972                       ISI_RES_1296_972P30
+
+#define ISI_RES_3264_2448P7                    0x0ecc0990      /**<  3 3264x2448    */
+#define ISI_RES_3264_2448P15                   0x1ecc0990      /**<  3 3264x2448    */
+#define ISI_RES_3264_2448P30                   0x3ccc0990      /**<  3 3264x2448    */
+#define ISI_RES_3264_2448                      ISI_RES_3264_2448P15
+
+#define ISI_RES_1632_1224P7				       0x0e6604c8 
+#define ISI_RES_1632_1224P15				   0x1e6604c8
+#define ISI_RES_1632_1224P30				   0x3c6604c8
+#define ISI_RES_1632_1224                      ISI_RES_1632_1224P30
+
+#define ISI_RES_4416_3312P7                    0x0f140cf0      /**<  5 4416x3312    */
+#define ISI_RES_4416_3312P15                   0x1f140cf0
+#define ISI_RES_4416_3312P30                   0x3d140cf0
+#define ISI_RES_4416_3312                      ISI_RES_4416_3312P15
+
+#define ISI_RES_2208_1656P7                    0x0e8a0678      /**<  5 4416x3312    */
+#define ISI_RES_2208_1656P15                   0x1e8a0678      /**<  5 4416x3312    */
+#define ISI_RES_2208_1656P30                   0x3c8a0678      /**<  5 4416x3312    */
+
+#define ISI_RES_1600_1200P7                    0x0e6404b0      /**<  5 4416x3312    */
+#define ISI_RES_1600_1200P15                   0x1e6404b0       /**<  5 4416x3312    */
+#define ISI_RES_1600_1200P30                   0x3c6404b0       /**<  5 4416x3312    */
+#define ISI_RES_1600_1200                      ISI_RES_1600_1200P15
+
+#define ISI_RES_4208_3120P7                    0x0f070c30                    
+#define ISI_RES_4208_3120P15                   0x1f070c30
+#define ISI_RES_4208_3120P30                   0x3d070c30
+
+#define ISI_RES_4224_3136P4                    0x09080c40
+#define ISI_RES_4224_3136P7                    0x0f080c40      /**<  5 4416x3312    */
+#define ISI_RES_4224_3136P15                   0x1f080c40      /**<  5 4416x3312    */
+#define ISI_RES_4224_3136P30                   0x3d080c40      /**<  5 4416x3312    */
+#define ISI_RES_4224_3136                      ISI_RES_4224_3136P15
+
+#define ISI_RES_2112_1568P7                    0x0e840620      /**<  5 4416x3312    */
+#define ISI_RES_2112_1568P15                   0x1e840620      /**<  5 4416x3312    */
+#define ISI_RES_2112_1568P30                   0x3c840620      /**<  5 4416x3312    */
+#define ISI_RES_2112_1568                      ISI_RES_2112_1568P15
+
+#define ISI_RES_TV720P5                     0x0a5002d0      /**< 16 1280x720@5   */
+#define ISI_RES_TV720P15                    0x1e5002d0      /**< 17 1280x720@15  */
+#define ISI_RES_TV720P30                    0x3c5002d0      /**< 18 1280x720@30  */
+#define ISI_RES_TV720P60                    0x785002d0      /**< 19 1280x720@60  */
+
+#define ISI_RES_TV1080P5                    0x0a780438      /**< 21 1920x1080@5  */
+#define ISI_RES_TV1080P6                    0x0c780438      /**< 22 1920x1080@6  */
+#define ISI_RES_TV1080P10                   0x14780438      /**< 23 1920x1080@10 */
+#define ISI_RES_TV1080P12                   0x18780438
+#define ISI_RES_TV1080P15                   0x1e780438
+#define ISI_RES_TV1080P20                   0x28780438
+#define ISI_RES_TV1080P24                   0x30780438
+#define ISI_RES_TV1080P25                   0x32780438
+#define ISI_RES_TV1080P30                   0x3c780438
+#define ISI_RES_TV1080P50                   0x64780438
+#define ISI_RES_TV1080P60                   0x78780438
+
+
+#endif
+
 
 /**< DwnSz */
 #define ISI_DWNSZ_SUBSMPL                   0x00000001      //!< Use subsampling to downsize output window

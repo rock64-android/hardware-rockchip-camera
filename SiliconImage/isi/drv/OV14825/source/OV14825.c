@@ -569,6 +569,7 @@ const IsiSensorCaps_t OV14825_g_IsiSensorDefaultConfig =
     ISI_MIPI_MODE_RAW_12,       // MipiMode
     ( ISI_AFPS_NOTSUPP | ISI_RES_TV1080P15 | ISI_RES_TV1080P10 /*| ISI_RES_TV1080P5*/ ), // AfpsResolutions
     ISI_SENSOR_OUTPUT_MODE_RAW,
+    0,
 };
 
 

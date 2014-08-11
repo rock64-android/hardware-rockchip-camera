@@ -134,11 +134,13 @@
 *          1) add awb stable
 *v0.0x2c.0:
 *          1) limit MaxGain/MaxExposuretime in mannual exposure function.
-*
+*v0.0x2d.0:
+*          1) modify getPreferedSensorRes and getSensorCaps api;
+*          2) modify resolution macro ISI_RES_XXXX;
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x2c, 0x00)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x2d, 0x00)
 
 
 class CamEngineItf;
@@ -232,7 +234,7 @@ public:
 	//oyyf add
 	bool checkVersion(rk_cam_total_info *pCamInfo);
     //zyc add
-    bool getPreferedSensorRes(int width_in ,int height_in ,int *width_out,int *height_out,uint32_t* mask);
+    bool getPreferedSensorRes(CamEngineBestSensorResReq_t *req);
     bool previewSetup_ex(CamEngineWindow_t dcWin,int usr_w,int usr_h,CamerIcMiDataMode_t mode,CamerIcMiDataLayout_t layout,bool_t dcEnable);
 
     // open sensor driver
@@ -270,7 +272,7 @@ public:
     bool        isSubSensorConnected() const;
     const IsiRegDescription_t*
                 sensorRegisterTable() const;
-    void        getSensorCaps( IsiSensorCaps_t &sensorCaps ) const;
+    bool        getSensorCaps( IsiSensorCaps_t &sensorCaps ) const;
     void        getSensorConfig( IsiSensorConfig_t &sensorConfig ) const;
     void        setSensorConfig( const IsiSensorConfig_t &sensorConfig );
     bool        getIlluminationProfiles( std::vector<CamIlluProfile_t *> &profiles ) const;

@@ -234,22 +234,30 @@ namespace android {
         testFaceDetection,testFocusAreas
 *v0.0x2d.0
 *     1) fix CTS failed items as follows :
-        testJpegExif,testVideoSnapshot      
-*v0.0x2d.1
-*	  1) fix rk312x compile warning
-*v0.0x2d.2
-*	  1) move camera config file from device to hardware 
-*v0.0x2d.3
-*	  1) fix last commit bug 
         testJpegExif,testVideoSnapshot
-*v0.0x2e.3
+*v0.0x2e.0
 *     1) when preview stopped ,preview cb should be stopped ,or may cause CTS faile  
-*v0.0x2e.4
-*     1) fix CTS verrify bugs  
-*v0.0x2e.5
-	  2) delete ov8858 presize:1080p,pic size:1280x720;
-*v0.0x2e.6
-	  1) don't match camsys_head.h for boot system
+*v0.0x2f.0
+*     1) add sensor drv version
+*v0.0x30.0
+*     1) check illumination is support or not by chkAwbIllumination for MWB;
+*v0.0x31.0
+*     1) invalidate ME for soc sensor;
+*v0.0x32.0
+*     1) lock aec when take picture;
+*     2) add check sharpness for low illumnation;
+*v0.0x33.0
+*     1) support iommu;
+      2) merge source code frome mid,include following version:
+	    *v0.0x2d.1
+		*	  1) fix rk312x compile warning
+		*v0.0x2d.2
+		*	  1) move camera config file from device to hardware 
+		*v0.0x2d.3
+		*	  1) fix last commit bug 
+		        testJpegExif,testVideoSnapshot
+		*v0.0x2e.3
+		*     1) when preview stopped ,preview cb should be stopped ,or may cause CTS faile  
 *v0.0x34.0
 *	  1)add awb stable
 *     2)add fov parameters
@@ -258,15 +266,22 @@ namespace android {
 *     1)  file is opened in func ispTuneStoreBuffer  but not been closed,fix it;
 *v0.0x36.0
 *     1) modify fov format from int to float
-*v0.0x36.1
-*     1) modify to pass cts verifier FOV 
-*v0.0x36.2
-*     1) modify to pass cts verifier orientation 
-*     2) use arm scale when display,because VOIP need NV21 
-*v0.0x36.3
-*     1) support new jpeg vpumalloc,size is set by cameraHal  
+*v0.0x37.0
+*     1) set mwb when capture picture with changing resolution.
+*v0.0x38.0
+*     1) merge source code frome mid,include following version:
+*       *v0.0x36.1
+        *     1) modify to pass cts verifier FOV 
+        *v0.0x36.2
+        *     1) modify to pass cts verifier orientation 
+        *     2) use arm scale when display,because VOIP need NV21 
+        *v0.0x36.3
+        *     1) support new jpeg vpumalloc,size is set by cameraHal 
+*     2) fix initDefaultParameters for previewsize/picturesize;
+*v0.0x39.0:
+*     1) setMe is invalidate when soc sensor;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x36, 0x03)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x39, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -310,6 +325,8 @@ namespace android {
 #define CAMERAHAL_ISI_PROPERTY_KEY                      "sys_graphic.cam_isi.ver"
 #define CAMERAHAL_CAMBOARDXML_PARSER_PROPERTY_KEY       "sys_graphic.cam_camboard.ver"
 #define CAMERAHAL_TRACE_LEVEL_PROPERTY_KEY              "sys_graphic.cam_trace"
+#define CAMERAHAL_USER_PREVIEW_REQUEST_KEY              "sys_graphic.cam_preview_req"
+
 
 #define CAMERA_PMEM_NAME                     "/dev/pmem_cam"
 #define CAMERA_DRIVER_SUPPORT_FORMAT_MAX   32
@@ -342,6 +359,8 @@ namespace android {
 #define KEY_CONTINUOUS_PIC_NUM  "rk-continous-pic-num"
 #define KEY_CONTINUOUS_PIC_INTERVAL_TIME "rk-continous-pic-interval-time"
 #define KEY_CONTINUOUS_SUPPORTED    "rk-continous-supported"
+#define KEY_PREVIEW_W_FORCE  "rk-previwe-w-force"
+#define KEY_PREVIEW_H_FORCE  "rk-previwe-h-force"
 
 
 #define CAMHAL_GRALLOC_USAGE GRALLOC_USAGE_HW_TEXTURE | \
@@ -465,6 +484,7 @@ public:
     CameraAdapter(int cameraId);
     virtual ~CameraAdapter();
 
+    void setImageAllFov(bool sw){mImgAllFovReq=sw;}
     DisplayAdapter* getDisplayAdapterRef(){return mRefDisplayAdapter;}
     void setDisplayAdapterRef(DisplayAdapter& refDisplayAdap);
     void setEventNotifierRef(AppMsgNotifier& refEventNotify);
@@ -540,6 +560,7 @@ protected:
     int mCamPreviewW ;
     int mVideoWidth;
     int mVideoHeight;
+    bool mImgAllFovReq;
 
     unsigned int mCamDriverSupportFmt[CAMERA_DRIVER_SUPPORT_FORMAT_MAX];
     enum v4l2_memory mCamDriverV4l2MemType;

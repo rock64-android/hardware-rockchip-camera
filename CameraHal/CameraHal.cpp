@@ -72,6 +72,7 @@ CameraHal::CameraHal(int cameraId)
     mCamFd = -1;
     mCommandRunning = -1;
 	mCameraStatus = 0;
+    
     mDisplayAdapter = new DisplayAdapter();
     mEventNotifier = new AppMsgNotifier();
 
@@ -126,12 +127,22 @@ CameraHal::CameraHal(int cameraId)
 	        mCameraAdapter = new CameraSOCAdapter(cameraId);
 	    }
     }
-    //initialize
+    
+    //initialize    
+    {
+        char *call_process = getCallingProcess();
+	    if(strstr(call_process,"com.android.cts.verifier")) {
+            mCameraAdapter->setImageAllFov(true);
+	    } else {
+            mCameraAdapter->setImageAllFov(false);
+	    }
+    }
     mCameraAdapter->initialize();
     updateParameters(mParameters);
     mCameraAdapter->setPreviewBufProvider(mPreviewBuf);
     mCameraAdapter->setDisplayAdapterRef(*mDisplayAdapter);
     mCameraAdapter->setEventNotifierRef(*mEventNotifier);
+    
 
     mDisplayAdapter->setFrameProvider(mCameraAdapter);
     

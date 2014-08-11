@@ -16,8 +16,10 @@ extern "C"
 *   1).add senosr drv version in get sensor i2c info func
 *v0.2.0:
 *   1). support for isi v0.5.0
+*v0.3.0
+*   1). support for isi v0.6.0
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 2, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 3, 0) 
 
 #define GC2035_DELAY_5MS                    (0x0000) //delay 5 ms
 #define GC2035_MODE_SELECT                  (0x0100) // rw - Bit[7:1]not used  Bit[0]Streaming set 0: software_standby  1: streaming       

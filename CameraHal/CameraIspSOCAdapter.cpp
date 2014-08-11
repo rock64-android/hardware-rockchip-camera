@@ -290,7 +290,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
       tmpFrame->used_flag = 2;
-      tmpFrame->res = &mIs_cts_verifier;
+      tmpFrame->res = &mImgAllFovReq;
 	  {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);

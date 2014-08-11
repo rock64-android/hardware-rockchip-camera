@@ -498,7 +498,7 @@ static RESULT OV8825_IsiGetCapsIss
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV8825_INFO, "%s (enter) index: %d\n", __FUNCTION__, pIsiSensorCaps->Index);
 
     if ( pOV8825Ctx == NULL )
     {
@@ -511,6 +511,47 @@ static RESULT OV8825_IsiGetCapsIss
     }
     else
     {
+        if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
+            switch (pIsiSensorCaps->Index) 
+            {
+                case 0:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_3264_2448P7;
+                    break;
+                }
+                case 1:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P15;
+                    break;
+                }
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+
+            }
+        }else if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
+            switch (pIsiSensorCaps->Index) 
+            {
+                case 0:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_3264_2448P15;
+                    break;
+                }
+                case 1:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P30;
+                    break;
+                }
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+            }
+        }
+    
         pIsiSensorCaps->BusWidth        = ISI_BUSWIDTH_10BIT;
         pIsiSensorCaps->Mode            = ISI_MODE_MIPI;
         pIsiSensorCaps->FieldSelection  = ISI_FIELDSEL_BOTH;
@@ -523,14 +564,6 @@ static RESULT OV8825_IsiGetCapsIss
         pIsiSensorCaps->Bls             = ISI_BLS_OFF;
         pIsiSensorCaps->Gamma           = ISI_GAMMA_OFF;
         pIsiSensorCaps->CConv           = ISI_CCONV_OFF;
-
-        if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
-
-            pIsiSensorCaps->Resolution      = ( ISI_RES_TV1080P15 | ISI_RES_3264_2448 );
-        }else if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
-            pIsiSensorCaps->Resolution      = ( ISI_RES_TV1080P30 | ISI_RES_3264_2448 );
-        }
-
         pIsiSensorCaps->BLC             = ( ISI_BLC_AUTO | ISI_BLC_OFF);
         pIsiSensorCaps->AGC             = ( ISI_AGC_OFF );
         pIsiSensorCaps->AWB             = ( ISI_AWB_OFF );
@@ -551,7 +584,7 @@ static RESULT OV8825_IsiGetCapsIss
     }
 
     TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
-
+end:
     return ( result );
 }
 
@@ -591,6 +624,7 @@ const IsiSensorCaps_t OV8825_g_IsiSensorDefaultConfig =
     ISI_MIPI_MODE_RAW_10,       // MipiMode
     ISI_AFPS_NOTSUPP,           // AfpsResolutions
     ISI_SENSOR_OUTPUT_MODE_RAW,
+    0,
 };
 
 
@@ -982,7 +1016,7 @@ static RESULT OV8825_SetupOutputWindow
         {
             case ISI_RES_TV1080P30:
             {
-                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_TV1080P30", __FUNCTION__,__LINE__ );
+                TRACE( OV8825_NOTICE1, "%s(%d): ISI_RES_TV1080P30", __FUNCTION__,__LINE__ );
                 usModeSelect = 0x00;
                 usPllCtrl1 = 0xd8;
                 usPllCtrl3 = 0x00;
@@ -1033,9 +1067,9 @@ static RESULT OV8825_SetupOutputWindow
                 
             }
             
-            case ISI_RES_3264_2448:
+            case ISI_RES_3264_2448P15:
             {
-                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
+                TRACE( OV8825_NOTICE1, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
                 usModeSelect = 0x00;
                 usPllCtrl1 = 0xd8;
                 usPllCtrl3 = 0x10;
@@ -1088,7 +1122,7 @@ static RESULT OV8825_SetupOutputWindow
 
             default:
             {
-                TRACE( OV8825_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
+                TRACE( OV8825_ERROR, "%s: Resolution(0x%x) not supported\n", __FUNCTION__,pConfig->Resolution );
                 return ( RET_NOTSUPP );
             }
         }
@@ -1209,7 +1243,7 @@ static RESULT OV8825_SetupOutputWindow
         {
             case ISI_RES_TV1080P15:
             {
-                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_TV1080P15", __FUNCTION__,__LINE__ );
+                TRACE( OV8825_NOTICE1, "%s(%d): ISI_RES_TV1080P15", __FUNCTION__,__LINE__ );
                 usModeSelect = 0x00;
                 usPllCtrl1 = 0xd2; //0xd8;//0xd2;
                 usReg0x3005 = 0x00;
@@ -1261,9 +1295,9 @@ static RESULT OV8825_SetupOutputWindow
                 
             }
             
-            case ISI_RES_3264_2448:
+            case ISI_RES_3264_2448P7:
             {
-                TRACE( OV8825_NOTICE0, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
+                TRACE( OV8825_NOTICE1, "%s(%d): ISI_RES_3264_2448", __FUNCTION__,__LINE__ );
                 usModeSelect = 0x00;
                 usPllCtrl1 = 0xd8;   //0xce;
                 usReg0x3005 = 0x00;
@@ -1317,7 +1351,7 @@ static RESULT OV8825_SetupOutputWindow
 
             default:
             {
-                TRACE( OV8825_ERROR, "%s: Resolution not supported\n", __FUNCTION__ );
+                TRACE( OV8825_ERROR, "%s: Resolution(0x%x) not supported\n", __FUNCTION__,pConfig->Resolution );
                 return ( RET_NOTSUPP );
             }
         }
@@ -1435,7 +1469,10 @@ static RESULT OV8825_SetupOutputWindow
 
 //have to reset mipi freq here,zyc
 
-    TRACE( OV8825_INFO, "%s  resolution(0x%x) freq(%f)(exit)\n", __FUNCTION__, pConfig->Resolution,rVtPixClkFreq);
+    TRACE( OV8825_NOTICE1, "%s  Resolution: %dx%d@%dfps(exit)\n", __FUNCTION__, 
+        ISI_RES_W_GET(pConfig->Resolution),
+        ISI_RES_H_GET(pConfig->Resolution),
+        ISI_FPS_GET(pConfig->Resolution));
 
     return ( result );
 }
@@ -1845,15 +1882,17 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
         return RET_WRONG_STATE;
     }
 
-    IsiSensorCaps_t Caps;
-    result = OV8825_IsiGetCapsIss( handle, &Caps);
-    if (RET_SUCCESS != result)
-    {
-        return result;
+    IsiSensorCaps_t Caps;    
+    Caps.Index = 0;
+    Caps.Resolution = 0;
+    while (OV8825_IsiGetCapsIss( handle, &Caps) == RET_SUCCESS) {
+        if (Resolution == Caps.Resolution) {            
+            break;
+        }
+        Caps.Index++;
     }
 
-    if ( (Resolution & Caps.Resolution) == 0 )
-    {
+    if (Resolution != Caps.Resolution) {
         return RET_OUTOFRANGE;
     }
 
@@ -4335,7 +4374,7 @@ static RESULT OV8825_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
     pSensorI2cInfo->reg_size = 2;
     pSensorI2cInfo->value_size = 1;
 
-    pSensorI2cInfo->resolution = ( ISI_RES_TV1080P30 | ISI_RES_3264_2448 );
+    pSensorI2cInfo->resolution = ISI_RES_3264_2448P15;
     
     ListInit(&pSensorI2cInfo->chipid_info);
 

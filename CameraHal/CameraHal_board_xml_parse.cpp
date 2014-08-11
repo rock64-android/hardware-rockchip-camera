@@ -1034,10 +1034,11 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 		extdev.fl.fl.active = pFlashInfo->mFlashTrigger.active;
 		if(pFlashInfo->mFlashMode == 2)
 		{
-			LOG_ALWAYS_FATAL_IF((pFlashInfo->mFlashTrigger.active != pFlashInfo->mFlashEn.active),
-			"%s:\n"
-			"WARNING: flashen active value is not equal to flashtrigger active value!\n\n\n",  __PRETTY_FUNCTION__);
-			extdev.dev_cfg |= CAMSYS_DEVCFG_PREFLASHLIGHT;
+			if (pFlashInfo->mFlashTrigger.active != pFlashInfo->mFlashEn.active) {
+			    LOGE("%s:\n"
+			        "WARNING: flashen active value is not equal to flashtrigger active value!\n\n\n",  __PRETTY_FUNCTION__);
+			    extdev.dev_cfg |= CAMSYS_DEVCFG_PREFLASHLIGHT;
+			}
 		}
     }
 
@@ -1075,11 +1076,9 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
             (CAMSYS_HEAD_VERSION&0xff));
         ALOGD("\n\n\n");
 
-        //LOG_ALWAYS_FATAL_IF((CAMSYS_HEAD_VERSION != pCamInfo->mCamsysVersion.head_ver), 
-        //    "%s:\n"
-        //    "VERSION-WARNING: camsys_head.h version isn't match in Kernel and CameraHal\n\n\n", __PRETTY_FUNCTION__);
         //just warnning
-        ALOGE("%s:\n VERSION-WARNING: camsys_head.h version isn't match in Kernel and CameraHal\n\n\n", __FUNCTION__);
+        if (CAMSYS_HEAD_VERSION != pCamInfo->mCamsysVersion.head_ver)
+            ALOGE("%s:\n VERSION-WARNING: camsys_head.h version isn't match in Kernel and CameraHal\n\n\n", __FUNCTION__);
         
         
 	}else{
@@ -1177,12 +1176,26 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     i2cinfo.val_size = pLoadInfo->mpI2cInfo->value_size;
     i2cinfo.i2cbuf_directly = 0;
     i2cinfo.speed = pSensorInfo->mSensorI2cRate;
-    
 	err = ioctl(camsys_fd, CAMSYS_I2CWR, &i2cinfo);
     if(err<0) {
-        ALOGE("WARNING: %s soft reset by i2c(reg: 0x%x  val: 0x%x) failed\n",pSensorInfo->mSensorName,i2cinfo.reg_addr, i2cinfo.val); 
-		ret = RK_RET_DEVICEERR;
-        goto power_off;
+        if (pLoadInfo->mpI2cInfo->i2c_addr2 != 0) {
+            i2cinfo.slave_addr = pLoadInfo->mpI2cInfo->i2c_addr2;
+            err = ioctl(camsys_fd, CAMSYS_I2CWR, &i2cinfo);
+            if (err>=0) {
+                pLoadInfo->mpI2cInfo->i2c_addr = pLoadInfo->mpI2cInfo->i2c_addr2;
+            }
+        }
+
+        if (err<0) {            
+            ALOGE("WARNING: %s soft reset by i2c failed!, please check follow information:\n",pSensorInfo->mSensorName);
+            ALOGE("    Slave_addr: 0x%x 0x%x\n"
+                  "    Soft reset reg: 0x%x  val: 0x%x\n"
+                  "    Power/PowerDown/Reset/Mclk/I2cBus\n",
+                  pLoadInfo->mpI2cInfo->i2c_addr,pLoadInfo->mpI2cInfo->i2c_addr2,
+                  i2cinfo.reg_addr, i2cinfo.val); 
+    		ret = RK_RET_DEVICEERR;
+            goto power_off;
+        }
     }
 
     //query iommu is enabled ?
@@ -1205,9 +1218,11 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 
             err = ioctl(camsys_fd, CAMSYS_I2CRD, &i2cinfo);
             if (err<0) {
-                ALOGE("CAMSYS_I2CRD failed\n");
+                ALOGE("%s CAMSYS_I2CRD failed\n",pSensorInfo->mSensorName);
             } else {
-                ALOGD("WARNING: I2c read: addr(0x%x) : read(0x%x) default(0x%x)\n",i2cinfo.reg_addr, i2cinfo.val, pChipIDInfo->chipid_reg_value);
+                ALOGD("Check %s ID: reg: 0x%x  val: 0x%x default: 0x%x \n",
+                    pSensorInfo->mSensorName,
+                    i2cinfo.reg_addr, i2cinfo.val, pChipIDInfo->chipid_reg_value);
                 if(i2cinfo.val!=pChipIDInfo->chipid_reg_value){
                     ret = RK_RET_DEVICEERR;
                     goto power_off;

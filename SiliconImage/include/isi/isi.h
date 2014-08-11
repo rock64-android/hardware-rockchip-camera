@@ -44,9 +44,11 @@
 *	 1) add sensor drv version to prop
 *v0.5.0:
 *    1) add IsiWhiteBalanceIlluminationSet and IsiWhiteBalanceIlluminationChk api
+*v0.6.0:
+*    1) modify resolution macro ISI_RES_XXXX;
 */
 
-#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 5, 0x00) 
+#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 6, 0x00) 
 
 
 #ifdef __cplusplus
@@ -108,6 +110,8 @@ typedef struct IsiSensorCaps_s
     uint32_t MipiMode;
     uint32_t AfpsResolutions;           /**< resolutions supported by Afps */
 	uint32_t SensorOutputMode;
+
+	uint32_t Index;
 } IsiSensorCaps_t;
 
 

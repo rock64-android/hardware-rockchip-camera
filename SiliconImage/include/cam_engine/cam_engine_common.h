@@ -344,6 +344,18 @@ typedef struct CamEnginePathConfig_s
     CamEngineWindow_t       dcWin;          /**< image size after dual cropping unit */
 } CamEnginePathConfig_t;
 
+
+typedef struct CamEngineBestSensorResReq_s
+{
+    uint32_t request_w;
+    uint32_t request_h;
+    uint32_t request_fps;
+    bool_t   request_fullfov;
+    bool_t   requset_aspect;
+    uint32_t resolution;
+
+} CamEngineBestSensorResReq_t;
+
 #ifdef __cplusplus
 }
 #endif
