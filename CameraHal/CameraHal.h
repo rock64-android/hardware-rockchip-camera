@@ -280,8 +280,10 @@ namespace android {
 *     2) fix initDefaultParameters for previewsize/picturesize;
 *v0.0x39.0:
 *     1) setMe is invalidate when soc sensor;
+*v0.0x3a.0:
+*     1) enum sensor resolution and check for DV media_profiles.xml in CheckSensorSupportDV;
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x39, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x3a, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

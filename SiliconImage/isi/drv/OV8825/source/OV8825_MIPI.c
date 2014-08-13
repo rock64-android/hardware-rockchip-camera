@@ -488,22 +488,15 @@ static RESULT OV8825_IsiReleaseSensorIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_IsiGetCapsIss
+static RESULT OV8825_IsiGetCapsIssInternal
 (
-    IsiSensorHandle_t handle,
-    IsiSensorCaps_t   *pIsiSensorCaps
+    IsiSensorCaps_t   *pIsiSensorCaps,
+    uint32_t mipi_lanes
+    
 )
 {
-    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
-
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV8825_INFO, "%s (enter) index: %d\n", __FUNCTION__, pIsiSensorCaps->Index);
-
-    if ( pOV8825Ctx == NULL )
-    {
-        return ( RET_WRONG_HANDLE );
-    }
 
     if ( pIsiSensorCaps == NULL )
     {
@@ -511,7 +504,36 @@ static RESULT OV8825_IsiGetCapsIss
     }
     else
     {
-        if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
+        if(mipi_lanes == SUPPORT_MIPI_FOUR_LANE){            
+            switch (pIsiSensorCaps->Index) 
+            {
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+
+            }
+        } else if(mipi_lanes == SUPPORT_MIPI_TWO_LANE) {
+            switch (pIsiSensorCaps->Index) 
+            {
+                case 0:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_3264_2448P15;
+                    break;
+                }
+                case 1:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P30;
+                    break;
+                }
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+            }
+        }  else if(mipi_lanes == SUPPORT_MIPI_ONE_LANE) {
             switch (pIsiSensorCaps->Index) 
             {
                 case 0:
@@ -531,26 +553,7 @@ static RESULT OV8825_IsiGetCapsIss
                 }
 
             }
-        }else if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
-            switch (pIsiSensorCaps->Index) 
-            {
-                case 0:
-                {
-                    pIsiSensorCaps->Resolution = ISI_RES_3264_2448P15;
-                    break;
-                }
-                case 1:
-                {
-                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P30;
-                    break;
-                }
-                default:
-                {
-                    result = RET_OUTOFRANGE;
-                    goto end;
-                }
-            }
-        }
+        } 
     
         pIsiSensorCaps->BusWidth        = ISI_BUSWIDTH_10BIT;
         pIsiSensorCaps->Mode            = ISI_MODE_MIPI;
@@ -583,6 +586,31 @@ static RESULT OV8825_IsiGetCapsIss
 		pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_RAW;
     }
 
+end:
+    return ( result );
+}
+
+
+
+ 
+static RESULT OV8825_IsiGetCapsIss
+(
+    IsiSensorHandle_t handle,
+    IsiSensorCaps_t   *pIsiSensorCaps
+)
+{
+    OV8825_Context_t *pOV8825Ctx = (OV8825_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+    TRACE( OV8825_INFO, "%s (enter) index: %d\n", __FUNCTION__, pIsiSensorCaps->Index);
+
+    if ( pOV8825Ctx == NULL )
+    {
+        return ( RET_WRONG_HANDLE );
+    }
+
+    result = OV8825_IsiGetCapsIssInternal(pIsiSensorCaps, pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes);
     TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
 end:
     return ( result );
@@ -4374,7 +4402,28 @@ static RESULT OV8825_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
     pSensorI2cInfo->reg_size = 2;
     pSensorI2cInfo->value_size = 1;
 
-    pSensorI2cInfo->resolution = ISI_RES_3264_2448P15;
+    {
+        IsiSensorCaps_t Caps;
+        sensor_caps_t *pCaps;
+        uint32_t lanes,i;        
+
+        for (i=0; i<3; i++) {
+            lanes = (1<<i);
+            ListInit(&pSensorI2cInfo->lane_res[i]);
+            if (g_suppoted_mipi_lanenum_type & lanes) {
+                Caps.Index = 0;            
+                while(OV8825_IsiGetCapsIssInternal(&Caps,lanes)==RET_SUCCESS) {
+                    pCaps = malloc(sizeof(sensor_caps_t));
+                    if (pCaps != NULL) {
+                        memcpy(&pCaps->caps,&Caps,sizeof(IsiSensorCaps_t));
+                        ListPrepareItem(pCaps);
+                        ListAddTail(&pSensorI2cInfo->lane_res[i], pCaps);
+                    }
+                    Caps.Index++;
+                }
+            }
+        }
+    } 
     
     ListInit(&pSensorI2cInfo->chipid_info);
 

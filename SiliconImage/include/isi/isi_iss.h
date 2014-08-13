@@ -255,7 +255,10 @@ typedef struct sensor_chipid_info_s{
     uint chipid_reg_addr;
     uint chipid_reg_value;
 }sensor_chipid_info_t;
-
+typedef struct sensor_caps_s {
+    void *p_next;
+    IsiSensorCaps_t caps;
+}sensor_caps_t;
 typedef struct sensor_i2c_info_s{
     uint i2c_addr;
     uint i2c_addr2;
@@ -264,7 +267,7 @@ typedef struct sensor_i2c_info_s{
     uint reg_size;
     uint value_size;
     List chipid_info;
-    uint32_t resolution; 
+    List lane_res[3];
 
 	unsigned int sensor_drv_version;//oyyf
 }sensor_i2c_info_t;

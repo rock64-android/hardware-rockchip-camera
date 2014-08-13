@@ -47,6 +47,7 @@ CREATE_TRACER( OV2685_REG_INFO , "OV2685: ", INFO, 1);
 CREATE_TRACER( OV2685_REG_DEBUG, "OV2685: ", INFO, 0U );
 
 #define OV2685_SLAVE_ADDR       0x78U //0x20                           /**< i2c slave address of the OV2685 camera sensor */
+#define OV2685_SLAVE_ADDR2       0x20
 #define OV2685_SLAVE_AF_ADDR    0x00U                           /**< i2c slave address of the OV2685 integrated AD5820 */
 
 
@@ -67,7 +68,7 @@ const IsiSensorCaps_t OV2685_g_IsiSensorDefaultConfig;
 #define OV2685_I2C_NR_ADR_BYTES     (2U)                        // 1 byte base address and 2 bytes sub address
 #define OV2685_I2C_NR_DAT_BYTES     (1U)                        // 8 bit registers
 
-static uint16_t g_suppoted_mipi_lanenum_type = SUPPORT_MIPI_ONE_LANE|SUPPORT_MIPI_TWO_LANE|SUPPORT_MIPI_FOUR_LANE;
+static uint16_t g_suppoted_mipi_lanenum_type = SUPPORT_MIPI_ONE_LANE;
 #define DEFAULT_NUM_LANES SUPPORT_MIPI_ONE_LANE
 
 
@@ -263,22 +264,17 @@ static RESULT OV2685_IsiReleaseSensorIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV2685_IsiGetCapsIss
+static RESULT OV2685_IsiGetCapsIssInternal
 (
-    IsiSensorHandle_t handle,
-    IsiSensorCaps_t   *pIsiSensorCaps
+    IsiSensorCaps_t   *pIsiSensorCaps,
+    uint32_t  mipi_lanes
 )
 {
-    OV2685_Context_t *pOV2685Ctx = (OV2685_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     TRACE( OV2685_INFO, "%s (enter)\n", __FUNCTION__);
 
-    if ( pOV2685Ctx == NULL )
-    {
-        return ( RET_WRONG_HANDLE );
-    }
 
     if ( pIsiSensorCaps == NULL )
     {
@@ -286,26 +282,50 @@ static RESULT OV2685_IsiGetCapsIss
     }
     else
     {
-        switch (pIsiSensorCaps->Index) 
-        {
-            case 0:
-            {
-                pIsiSensorCaps->Resolution = ISI_RES_1600_1200;
-                break;
-            }
-            case 1:
-            {
-                pIsiSensorCaps->Resolution = ISI_RES_SVGAP30;
-                break;
-            }
-            default:
-            {
-                result = RET_OUTOFRANGE;
-                goto end;
-            }
 
-        }
-    
+        if(mipi_lanes == SUPPORT_MIPI_FOUR_LANE){            
+            switch (pIsiSensorCaps->Index) 
+            {
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+
+            }
+        } else if(mipi_lanes == SUPPORT_MIPI_TWO_LANE) {
+            switch (pIsiSensorCaps->Index) 
+            {
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+
+            }
+        }  else if(mipi_lanes == SUPPORT_MIPI_ONE_LANE) {
+            
+            switch (pIsiSensorCaps->Index) 
+            {
+                case 0:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1600_1200P7;
+                    break;
+                }
+                case 1:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_SVGAP30;
+                    break;
+                }
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+
+            }
+        } 
+        
         pIsiSensorCaps->BusWidth        = ISI_BUSWIDTH_8BIT_ZZ;
         pIsiSensorCaps->Mode            = ISI_MODE_BT601;
         pIsiSensorCaps->FieldSelection  = ISI_FIELDSEL_BOTH;
@@ -338,6 +358,30 @@ end:
 }
 
 
+static RESULT OV2685_IsiGetCapsIss
+(
+    IsiSensorHandle_t handle,
+    IsiSensorCaps_t   *pIsiSensorCaps
+)
+{
+    OV2685_Context_t *pOV2685Ctx = (OV2685_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+    TRACE( OV2685_INFO, "%s (enter)\n", __FUNCTION__);
+
+    if ( pOV2685Ctx == NULL )
+    {
+        return ( RET_WRONG_HANDLE );
+    }
+
+    result = OV2685_IsiGetCapsIssInternal(pIsiSensorCaps, pOV2685Ctx->IsiSensorMipiInfo.ucMipiLanes);
+
+    TRACE( OV2685_INFO, "%s (exit)\n", __FUNCTION__);
+
+    return ( result );
+}
+
 
 /*****************************************************************************/
 /**
@@ -361,7 +405,7 @@ const IsiSensorCaps_t OV2685_g_IsiSensorDefaultConfig =
     ISI_BLS_OFF,                // Bls
     ISI_GAMMA_ON,              // Gamma
     ISI_CCONV_ON,              // CConv
-    ISI_RES_SVGA30,          // Res
+    ISI_RES_SVGAP30,          // Res
     ISI_DWNSZ_SUBSMPL,          // DwnSz
     ISI_BLC_AUTO,               // BLC
     ISI_AGC_AUTO,                // AGC
@@ -661,23 +705,23 @@ static RESULT OV2685_SetupOutputWindow
         /* resolution */
     switch ( pConfig->Resolution )
     {
-        case ISI_RES_SVGA30:
+        case ISI_RES_SVGAP30:
         {
             if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV2685Ctx,OV2685_g_svga)) != RET_SUCCESS){
-                TRACE( OV2685_ERROR, "%s: failed to set  ISI_RES_SVGA30 \n", __FUNCTION__ );
+                TRACE( OV2685_ERROR, "%s: failed to set  ISI_RES_SVGAP30 \n", __FUNCTION__ );
             }else{
 
-                TRACE( OV2685_ERROR, "%s: success to set  ISI_RES_SVGA30 \n", __FUNCTION__ );
+                TRACE( OV2685_ERROR, "%s: success to set  ISI_RES_SVGAP30 \n", __FUNCTION__ );
             }
             break;
         }
-        case ISI_RES_1600_1200:
+        case ISI_RES_1600_1200P7:
         {
             if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV2685Ctx,OV2685_g_1600x1200)) != RET_SUCCESS){
-                TRACE( OV2685_ERROR, "%s: failed to set  ISI_RES_1600_1200 \n", __FUNCTION__ );
+                TRACE( OV2685_ERROR, "%s: failed to set  ISI_RES_1600_1200P7 \n", __FUNCTION__ );
             }else{
 
-                TRACE( OV2685_INFO, "%s: success to set  ISI_RES_1600_1200  \n", __FUNCTION__ );
+                TRACE( OV2685_INFO, "%s: success to set  ISI_RES_1600_1200P7  \n", __FUNCTION__ );
             }
             break;
         }
@@ -2868,12 +2912,34 @@ static RESULT OV2685_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
 
     
     pSensorI2cInfo->i2c_addr = OV2685_SLAVE_ADDR;
+    pSensorI2cInfo->i2c_addr2 = OV2685_SLAVE_ADDR2;
     pSensorI2cInfo->soft_reg_addr = OV2685_SOFTWARE_RST;
     pSensorI2cInfo->soft_reg_value = 0x01;
     pSensorI2cInfo->reg_size = 2;
     pSensorI2cInfo->value_size = 1;
 
-    pSensorI2cInfo->resolution = ( ISI_RES_SVGA30  );
+    {
+        IsiSensorCaps_t Caps;
+        sensor_caps_t *pCaps;
+        uint32_t lanes,i;        
+
+        for (i=0; i<3; i++) {
+            lanes = (1<<i);
+            ListInit(&pSensorI2cInfo->lane_res[i]);
+            if (g_suppoted_mipi_lanenum_type & lanes) {
+                Caps.Index = 0;            
+                while(OV2685_IsiGetCapsIssInternal(&Caps,lanes)==RET_SUCCESS) {
+                    pCaps = malloc(sizeof(sensor_caps_t));
+                    if (pCaps != NULL) {
+                        memcpy(&pCaps->caps,&Caps,sizeof(IsiSensorCaps_t));
+                        ListPrepareItem(pCaps);
+                        ListAddTail(&pSensorI2cInfo->lane_res[i], pCaps);
+                    }
+                    Caps.Index++;
+                }
+            }
+        }
+    }
     
     ListInit(&pSensorI2cInfo->chipid_info);
 

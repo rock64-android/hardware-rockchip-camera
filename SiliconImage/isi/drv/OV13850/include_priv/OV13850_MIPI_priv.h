@@ -60,9 +60,11 @@ extern "C"
 *   1). af optimization.
 v0.7.0
 *   1). support for isi v0.6.0
+*v0.8.0
+*   1). support for isi v0.7.0
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 7, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 8, 0x00) 
 
 
 #define OV13850_CHIP_ID_HIGH_BYTE            (0x300a) // r - 

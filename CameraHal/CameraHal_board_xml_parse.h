@@ -289,9 +289,9 @@ struct rk_DV_info{
     ~rk_DV_info(){};
     
     char mName[CAMSYS_NAME_LEN];
-    int mWidth;
-    int mHeight;
-    int mFps;
+    uint32_t mWidth;
+    uint32_t mHeight;
+    uint32_t mFps;
     int mIsSupport;
     uint32_t mResolution;
     int mAddMask;
@@ -372,8 +372,8 @@ public:
     struct xml_video_element_s{                
     	int n_cameraId;
     	char str_quality[CAMSYS_NAME_LEN];
-    	int n_width;
-    	int n_height;
+    	unsigned int n_width;
+    	unsigned int n_height;
     	int n_frameRate;
     	int isAddMark;
     };

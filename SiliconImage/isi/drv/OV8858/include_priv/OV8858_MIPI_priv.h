@@ -63,10 +63,12 @@ extern "C"
 *   1)support 1 lane;
 *v0.9.0:
 *   1) support for isi v0.6.0
+*v0.a.0
+*   1). support for isi v0.7.0
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(0, 9, 0) 
+#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(0, 0x0a, 0) 
 
 /*****************************************************************************
  * System control registers

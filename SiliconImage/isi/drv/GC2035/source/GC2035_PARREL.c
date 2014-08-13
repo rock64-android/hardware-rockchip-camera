@@ -251,22 +251,14 @@ static RESULT GC2035_IsiReleaseSensorIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT GC2035_IsiGetCapsIss
+static RESULT GC2035_IsiGetCapsIssInternal
 (
-    IsiSensorHandle_t handle,
     IsiSensorCaps_t   *pIsiSensorCaps
 )
 {
-    GC2035_Context_t *pGC2035Ctx = (GC2035_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( GC2035_INFO, "%s (enter)\n", __FUNCTION__);
-
-    if ( pGC2035Ctx == NULL )
-    {
-        return ( RET_WRONG_HANDLE );
-    }
 
     if ( pIsiSensorCaps == NULL )
     {
@@ -278,12 +270,12 @@ static RESULT GC2035_IsiGetCapsIss
         {
             case 0:
             {
-                pIsiSensorCaps->Resolution = ISI_RES_1600_1200;
+                pIsiSensorCaps->Resolution = ISI_RES_1600_1200P7;
                 break;
             }
             case 1:
             {
-                pIsiSensorCaps->Resolution = ISI_RES_SVGAP30;
+                pIsiSensorCaps->Resolution = ISI_RES_SVGAP15;
                 break;
             }
             default:
@@ -320,6 +312,29 @@ static RESULT GC2035_IsiGetCapsIss
         pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_YUV;
     }
 end:
+
+    return ( result );
+}
+
+static RESULT GC2035_IsiGetCapsIss
+(
+    IsiSensorHandle_t handle,
+    IsiSensorCaps_t   *pIsiSensorCaps
+)
+{
+    GC2035_Context_t *pGC2035Ctx = (GC2035_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+    TRACE( GC2035_INFO, "%s (enter)\n", __FUNCTION__);
+
+    if ( pGC2035Ctx == NULL )
+    {
+        return ( RET_WRONG_HANDLE );
+    }
+
+    result =GC2035_IsiGetCapsIssInternal(pIsiSensorCaps);
+    
     TRACE( GC2035_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
@@ -349,7 +364,7 @@ const IsiSensorCaps_t GC2035_g_IsiSensorDefaultConfig =
     ISI_BLS_OFF,                // Bls
     ISI_GAMMA_ON,              // Gamma
     ISI_CCONV_ON,              // CConv
-    ISI_RES_SVGAP30,          // Res
+    ISI_RES_SVGAP15,          // Res
     ISI_DWNSZ_SUBSMPL,          // DwnSz
     ISI_BLC_AUTO,               // BLC
     ISI_AGC_AUTO,                // AGC
@@ -646,7 +661,7 @@ static RESULT GC2035_SetupOutputWindow
         /* resolution */
     switch ( pConfig->Resolution )
     {
-        case ISI_RES_SVGAP30:
+        case ISI_RES_SVGAP15:
         {
             if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pGC2035Ctx,GC2035_g_svga)) != RET_SUCCESS){
                 TRACE( GC2035_ERROR, "%s: failed to set  ISI_RES_SVGA30 \n", __FUNCTION__ );
@@ -656,13 +671,13 @@ static RESULT GC2035_SetupOutputWindow
             }
             break;
         }
-        case ISI_RES_1600_1200:
+        case ISI_RES_1600_1200P7:
         {
             if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pGC2035Ctx,GC2035_g_1600x1200)) != RET_SUCCESS){
-                TRACE( GC2035_ERROR, "%s: failed to set  ISI_RES_1600_1200 \n", __FUNCTION__ );
+                TRACE( GC2035_ERROR, "%s: failed to set  ISI_RES_1600_1200P7 \n", __FUNCTION__ );
             }else{
 
-                TRACE( GC2035_INFO, "%s: success to set  ISI_RES_1600_1200  \n", __FUNCTION__ );
+                TRACE( GC2035_INFO, "%s: success to set  ISI_RES_1600_1200P7  \n", __FUNCTION__ );
             }
             break;
         }
@@ -2846,7 +2861,26 @@ static RESULT GC2035_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
     pSensorI2cInfo->reg_size = 1;
     pSensorI2cInfo->value_size = 1;
 
-    pSensorI2cInfo->resolution = ( ISI_RES_SVGAP30  );
+    {
+        IsiSensorCaps_t Caps;
+        sensor_caps_t *pCaps;
+        uint32_t lanes,i;
+        
+        ListInit(&pSensorI2cInfo->lane_res[0]);
+        ListInit(&pSensorI2cInfo->lane_res[1]);
+        ListInit(&pSensorI2cInfo->lane_res[2]);
+        
+        Caps.Index = 0;            
+        while(GC2035_IsiGetCapsIssInternal(&Caps)==RET_SUCCESS) {
+            pCaps = malloc(sizeof(sensor_caps_t));
+            if (pCaps != NULL) {
+                memcpy(&pCaps->caps,&Caps,sizeof(IsiSensorCaps_t));
+                ListPrepareItem(pCaps);
+                ListAddTail(&pSensorI2cInfo->lane_res[0], pCaps);
+            }
+            Caps.Index++;
+        }
+    }
     
     ListInit(&pSensorI2cInfo->chipid_info);
 

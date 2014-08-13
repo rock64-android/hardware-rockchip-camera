@@ -756,7 +756,7 @@ int camera_get_number_of_cameras(void)
 	    	    pDVResolution->mHeight = 480;
 	    	    pDVResolution->mFps = 10;
 	    	    pDVResolution->mIsSupport =  1;
-	            pDVResolution->mResolution = ISI_RES_VGA;
+	            pDVResolution->mResolution = ISI_RES_VGAP15;
 	            pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);
 				
 				//paremeters

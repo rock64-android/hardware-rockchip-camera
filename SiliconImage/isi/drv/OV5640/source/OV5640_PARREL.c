@@ -278,22 +278,15 @@ static RESULT OV5640_IsiReleaseSensorIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV5640_IsiGetCapsIss
+
+static RESULT OV5640_IsiGetCapsIssInternal
 (
-    IsiSensorHandle_t handle,
-    IsiSensorCaps_t   *pIsiSensorCaps
+    IsiSensorCaps_t   *pIsiSensorCaps    
 )
 {
-    OV5640_Context_t *pOV5640Ctx = (OV5640_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV5640_INFO, "%s (enter)\n", __FUNCTION__);
-
-    if ( pOV5640Ctx == NULL )
-    {
-        return ( RET_WRONG_HANDLE );
-    }
 
     if ( pIsiSensorCaps == NULL )
     {
@@ -305,7 +298,7 @@ static RESULT OV5640_IsiGetCapsIss
         {
             case 0:
             {
-                pIsiSensorCaps->Resolution = ISI_RES_2592_1944;
+                pIsiSensorCaps->Resolution = ISI_RES_2592_1944P7;
                 break;
             }
             case 1:
@@ -340,7 +333,6 @@ static RESULT OV5640_IsiGetCapsIss
         pIsiSensorCaps->Gamma           = ISI_GAMMA_ON;
         pIsiSensorCaps->CConv           = ISI_CCONV_ON;
 
-        pIsiSensorCaps->Resolution      = ISI_RES_2592_1944;
 
         pIsiSensorCaps->BLC             = ( ISI_BLC_AUTO );
         pIsiSensorCaps->AGC             = ( ISI_AGC_AUTO );
@@ -356,6 +348,29 @@ static RESULT OV5640_IsiGetCapsIss
         pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_YUV;
     }
 end:
+
+    return ( result );
+}
+
+ 
+static RESULT OV5640_IsiGetCapsIss
+(
+    IsiSensorHandle_t handle,
+    IsiSensorCaps_t   *pIsiSensorCaps
+)
+{
+    OV5640_Context_t *pOV5640Ctx = (OV5640_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+    TRACE( OV5640_INFO, "%s (enter)\n", __FUNCTION__);
+
+    if ( pOV5640Ctx == NULL )
+    {
+        return ( RET_WRONG_HANDLE );
+    }
+
+    result = OV5640_IsiGetCapsIssInternal(pIsiSensorCaps);
     TRACE( OV5640_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
@@ -385,7 +400,7 @@ const IsiSensorCaps_t OV5640_g_IsiSensorDefaultConfig =
     ISI_BLS_OFF,                // Bls
     ISI_GAMMA_ON,              // Gamma
     ISI_CCONV_ON,              // CConv
-    ISI_RES_SVGA30,          // Res
+    ISI_RES_SVGAP30,          // Res
     ISI_DWNSZ_SUBSMPL,          // DwnSz
     ISI_BLC_AUTO,               // BLC
     ISI_AGC_AUTO,                // AGC
@@ -683,13 +698,13 @@ static RESULT OV5640_SetupOutputWindow
         /* resolution */
     switch ( pConfig->Resolution )
     {
-        case ISI_RES_SVGA30:
+        case ISI_RES_SVGAP30:
         {
             if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV5640Ctx,OV5640_g_svga)) != RET_SUCCESS){
-                TRACE( OV5640_ERROR, "%s: failed to set  ISI_RES_SVGA30 \n", __FUNCTION__ );
+                TRACE( OV5640_ERROR, "%s: failed to set  ISI_RES_SVGAP30 \n", __FUNCTION__ );
             }else{
 
-                TRACE( OV5640_INFO, "%s: success to set  ISI_RES_SVGA30 \n", __FUNCTION__ );
+                TRACE( OV5640_INFO, "%s: success to set  ISI_RES_SVGAP30 \n", __FUNCTION__ );
             }
             break;
         }
@@ -713,22 +728,22 @@ static RESULT OV5640_SetupOutputWindow
             }
             break;
         }
-		case ISI_RES_2592_1944:
+		case ISI_RES_2592_1944P7:
         {
             if(oldRes == ISI_RES_TV720P30){
                 if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV5640Ctx,OV5640_g_svga)) != RET_SUCCESS){
-                    TRACE( OV5640_ERROR, "%s: failed to set  ISI_RES_SVGA30 \n", __FUNCTION__ );
+                    TRACE( OV5640_ERROR, "%s: failed to set  ISI_RES_SVGAP30 \n", __FUNCTION__ );
                 }else{
 
-                    TRACE( OV5640_INFO, "%s: success to set  ISI_RES_SVGA30 \n", __FUNCTION__ );
+                    TRACE( OV5640_INFO, "%s: success to set  ISI_RES_SVGAP30 \n", __FUNCTION__ );
                 }
             }
                 
             if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV5640Ctx,OV5640_g_2592x1944)) != RET_SUCCESS){
-                TRACE( OV5640_ERROR, "%s: failed to set  ISI_RES_2592_1944 \n", __FUNCTION__ );
+                TRACE( OV5640_ERROR, "%s: failed to set  ISI_RES_2592_1944P7 \n", __FUNCTION__ );
             }else{
 
-                TRACE( OV5640_INFO, "%s: success to set  ISI_RES_2592_1944  \n", __FUNCTION__ );
+                TRACE( OV5640_INFO, "%s: success to set  ISI_RES_2592_1944P7  \n", __FUNCTION__ );
             }
             break;
         }
@@ -3013,7 +3028,26 @@ static RESULT OV5640_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
     pSensorI2cInfo->reg_size = 2;
     pSensorI2cInfo->value_size = 1;
 
-    pSensorI2cInfo->resolution = ( ISI_RES_SVGA30  );
+    {
+        IsiSensorCaps_t Caps;
+        sensor_caps_t *pCaps;
+        uint32_t lanes,i;
+        
+        ListInit(&pSensorI2cInfo->lane_res[0]);
+        ListInit(&pSensorI2cInfo->lane_res[1]);
+        ListInit(&pSensorI2cInfo->lane_res[2]);
+        
+        Caps.Index = 0;            
+        while(OV5640_IsiGetCapsIssInternal(&Caps)==RET_SUCCESS) {
+            pCaps = malloc(sizeof(sensor_caps_t));
+            if (pCaps != NULL) {
+                memcpy(&pCaps->caps,&Caps,sizeof(IsiSensorCaps_t));
+                ListPrepareItem(pCaps);
+                ListAddTail(&pSensorI2cInfo->lane_res[0], pCaps);
+            }
+            Caps.Index++;
+        }
+    }
     
     ListInit(&pSensorI2cInfo->chipid_info);
 

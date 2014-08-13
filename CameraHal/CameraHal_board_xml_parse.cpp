@@ -636,7 +636,7 @@ void camera_board_profiles::ParserDVConfig(const char *name, const char **atts, 
     	    pDVResolution->mHeight = atoi(atts[5]);
     	    pDVResolution->mFps = atoi(atts[7]);
     	    pDVResolution->mIsSupport =  atoi(atts[9]);
-            pDVResolution->mResolution = ISI_RES_VGA;
+            pDVResolution->mResolution = ISI_RES_VGAP15;
             pCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);
         }
     }  else if (strcmp(name, "DV_480P")==0) {
@@ -1337,6 +1337,19 @@ end:
 int camera_board_profiles::CheckSensorSupportDV(rk_cam_total_info* pCamInfo)
 {
     size_t nDvVector = pCamInfo->mSoftInfo.mDV_vector.size();
+    uint32_t lanes;
+
+    if (pCamInfo->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_Mipi) {
+        lanes = pCamInfo->mHardInfo.mSensorInfo.laneNum;
+        if (lanes == 4)
+            lanes = 2;
+        else if (lanes == 2)
+            lanes = 1;
+        else 
+            lanes = 0;
+    } else { 
+        lanes = 0;
+    }
     
     if(nDvVector>=1){
         for(int i=0; i<(int)nDvVector; i++){
@@ -1348,18 +1361,29 @@ int camera_board_profiles::CheckSensorSupportDV(rk_cam_total_info* pCamInfo)
 	                else
 	                    pDVInfo->mAddMask = 1;
 					ALOGD("(%s) UVC camera resolution(%dx%d) is support \n", pCamInfo->mHardInfo.mSensorInfo.mSensorName, pDVInfo->mWidth, pDVInfo->mHeight);
-			}else{
-	            if((pDVInfo->mResolution & pCamInfo->mLoadSensorInfo.mpI2cInfo->resolution) 
-	                && pDVInfo->mIsSupport){
-	                pDVInfo->mAddMask = 0;
-	                ALOGD("(%s) resolution(%dx%d) is support by sensor \n", pCamInfo->mHardInfo.mSensorInfo.mSensorName, pDVInfo->mWidth, pDVInfo->mHeight);
-	            }else{
-	                if(pDVInfo->mIsSupport)
-	                    pDVInfo->mAddMask = 0;
-	                else
-	                    pDVInfo->mAddMask = 1;
-	                ALOGD("NOTICE: (%s)  resolution(%dx%d) is scale or crop from other resolution\n", pCamInfo->mHardInfo.mSensorInfo.mSensorName, pDVInfo->mWidth, pDVInfo->mHeight);
-	            }
+			}else{ 
+			    pDVInfo->mAddMask = 1;
+                if(pDVInfo->mIsSupport) {
+                    List *l,*head;
+                    sensor_caps_t *pCaps;                        
+                    
+                    head = &pCamInfo->mLoadSensorInfo.mpI2cInfo->lane_res[lanes];
+                    if (!ListEmpty(head)) {
+                        l = ListHead( head );
+                        while ( l )
+                        {
+                            pCaps = (sensor_caps_t*)l;                            
+                            if (ISI_RES_W_GET(pCaps->caps.Resolution)*ISI_RES_H_GET(pCaps->caps.Resolution)*10 >=
+                                pDVInfo->mHeight*pDVInfo->mWidth*9) {
+                                if ((unsigned int)(ISI_FPS_GET(pCaps->caps.Resolution)) >= pDVInfo->mFps) {
+                                    pDVInfo->mFps = ISI_FPS_GET(pCaps->caps.Resolution);
+                                    pDVInfo->mAddMask = 0;
+                                }
+                            }
+                            l = l->p_next;
+                        }
+                    }
+                }  
 			}
            
         }

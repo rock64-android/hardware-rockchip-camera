@@ -2,7 +2,6 @@
 <BoardFile>
 		<BoardXmlVersion version="v0.7.0">
 		</BoardXmlVersion>
-		
 		<CamDevie>
 			<HardWareInfo>
 				<Sensor>
@@ -23,7 +22,7 @@
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
 					<SensorOrientation orientation="0"></SensorOrientation>
-					<SensorPowerupSequence seq="1234"></SensorPowerupSequence>
+					<SensorPowerupSequence seq="1234"></SensorPowerupSequence>					
 					<SensorFovParemeter h="60.0" v="60.0"></SensorFovParemeter>
 					<SensorAWB_Frame_Skip fps="15"></SensorAWB_Frame_Skip>					
 					<SensorPhy phyMode="CamSys_Phy_Mipi" lane="2"  phyIndex="1" sensorFmt="CamSys_Fmt_Raw_10b"></SensorPhy>
@@ -404,7 +403,7 @@
 					<SensorInterface mode="CCIR601"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
 					<SensorOrientation orientation="0"></SensorOrientation>
-					<SensorPowerupSequence seq="1234"></SensorPowerupSequence>
+					<SensorPowerupSequence seq="1234"></SensorPowerupSequence>					
 					<SensorFovParemeter h="60.0" v="60.0"></SensorFovParemeter>
 					<SensorAWB_Frame_Skip fps="15"></SensorAWB_Frame_Skip>					
 					<SensorPhy phyMode="CamSys_Phy_Cif" sensor_d0_to_cif_d ="0" cif_num="0" sensorFmt="CamSys_Fmt_Raw_10b"></SensorPhy>
@@ -429,7 +428,7 @@
 					<FlashEn ioname="NC" active="1"></FlashEn>
 					<FlashModeType mode="0"></FlashModeType>
 					<FlashLuminance luminance="0"></FlashLuminance>
-					<FlashColorTemp colortemp="0"></FlashColorTemp>
+					<FlashColorTemp colortemp="0"></FlashColorTemp>					
 				</Flash>
 			</HardWareInfo>
 			<SoftWareInfo>

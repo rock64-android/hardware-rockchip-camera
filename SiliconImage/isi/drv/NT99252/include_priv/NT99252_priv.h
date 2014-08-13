@@ -18,8 +18,10 @@ extern "C"
 *   1). support for isi v0.5.0
 *v0.3.0
 *   1). support for isi v0.6.0
+*v0.4.0
+*   1). support for isi v0.7.0
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 3, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 4, 0) 
 
 
 #define NT99252_DELAY_5MS                    (0x0000) //delay 5 ms

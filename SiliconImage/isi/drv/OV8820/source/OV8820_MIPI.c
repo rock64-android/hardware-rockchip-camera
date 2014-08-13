@@ -489,22 +489,14 @@ static RESULT OV8820_IsiReleaseSensorIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8820_IsiGetCapsIss
+static RESULT OV8820_IsiGetCapsIssInternal
 (
-    IsiSensorHandle_t handle,
-    IsiSensorCaps_t   *pIsiSensorCaps
+    IsiSensorCaps_t   *pIsiSensorCaps,
+    uint32_t mipi_lanes
 )
 {
-    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
-
-    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
-
-    if ( pOV8820Ctx == NULL )
-    {
-        return ( RET_WRONG_HANDLE );
-    }
 
     if ( pIsiSensorCaps == NULL )
     {
@@ -512,7 +504,17 @@ static RESULT OV8820_IsiGetCapsIss
     }
     else
     {
-        if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
+        if(mipi_lanes == SUPPORT_MIPI_FOUR_LANE){            
+            switch (pIsiSensorCaps->Index) 
+            {
+                default:
+                {
+                    result = RET_OUTOFRANGE;
+                    goto end;
+                }
+
+            }
+        } else if(mipi_lanes == SUPPORT_MIPI_ONE_LANE){
             switch (pIsiSensorCaps->Index) 
             {
                 case 0:
@@ -532,7 +534,7 @@ static RESULT OV8820_IsiGetCapsIss
                 }
 
             }
-        }else if(pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
+        }else if(mipi_lanes == SUPPORT_MIPI_TWO_LANE){
             switch (pIsiSensorCaps->Index) 
             {
                 case 0:
@@ -586,6 +588,27 @@ static RESULT OV8820_IsiGetCapsIss
 		pIsiSensorCaps->SensorOutputMode = ISI_SENSOR_OUTPUT_MODE_RAW;
     }
 end:
+
+    return ( result );
+}
+static RESULT OV8820_IsiGetCapsIss
+(
+    IsiSensorHandle_t handle,
+    IsiSensorCaps_t   *pIsiSensorCaps
+)
+{
+    OV8820_Context_t *pOV8820Ctx = (OV8820_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+    TRACE( OV8820_INFO, "%s (enter)\n", __FUNCTION__);
+
+    if ( pOV8820Ctx == NULL )
+    {
+        return ( RET_WRONG_HANDLE );
+    }
+
+    result = OV8820_IsiGetCapsIssInternal(pIsiSensorCaps, pOV8820Ctx->IsiSensorMipiInfo.ucMipiLanes);
     TRACE( OV8820_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
@@ -4374,7 +4397,28 @@ static RESULT OV8820_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
     pSensorI2cInfo->reg_size = 2;
     pSensorI2cInfo->value_size = 1;
 
-    pSensorI2cInfo->resolution = ISI_RES_3264_2448;
+    {
+        IsiSensorCaps_t Caps;
+        sensor_caps_t *pCaps;
+        uint32_t lanes,i;        
+
+        for (i=0; i<3; i++) {
+            lanes = (1<<i);
+            ListInit(&pSensorI2cInfo->lane_res[i]);
+            if (g_suppoted_mipi_lanenum_type & lanes) {
+                Caps.Index = 0;            
+                while(OV8820_IsiGetCapsIssInternal(&Caps,lanes)==RET_SUCCESS) {
+                    pCaps = malloc(sizeof(sensor_caps_t));
+                    if (pCaps != NULL) {
+                        memcpy(&pCaps->caps,&Caps,sizeof(IsiSensorCaps_t));
+                        ListPrepareItem(pCaps);
+                        ListAddTail(&pSensorI2cInfo->lane_res[i], pCaps);
+                    }
+                    Caps.Index++;
+                }
+            }
+        }
+    }
     
     ListInit(&pSensorI2cInfo->chipid_info);
 

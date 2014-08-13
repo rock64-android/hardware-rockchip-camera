@@ -70,10 +70,12 @@ extern "C"
 *   1).add senosr drv version in get sensor i2c info func
 *v0.9.0:
 *   1). support for isi v0.5.0
+*v0.a.0
+*   1). support for isi v0.7.0
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 9, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xa, 0) 
 
 
 

@@ -46,6 +46,8 @@
 *    1) add IsiWhiteBalanceIlluminationSet and IsiWhiteBalanceIlluminationChk api
 *v0.6.0:
 *    1) modify resolution macro ISI_RES_XXXX;
+*v0.7.0
+*    1) add struct sensor_caps_t in struct sensor_i2c_info_t, IsiGetSensorI2cInfo support enum resolution; 
 */
 
 #define CONFIG_ISI_VERSION KERNEL_VERSION(0, 6, 0x00) 

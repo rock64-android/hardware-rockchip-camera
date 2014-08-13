@@ -78,20 +78,20 @@ CameraHal::CameraHal(int cameraId)
 
     #if (CONFIG_CAMERA_MEM == CAMERA_MEM_ION)
         mCamMemManager = new IonMemManager();
-        LOGD("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
+        LOG1("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
 	#elif(CONFIG_CAMERA_MEM == CAMERA_MEM_IONDMA)
         if((strcmp(gCamInfos[cameraId].driver,"uvcvideo") == 0)) {
             gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled = (UVC_IOMMU_ENABLED == 1)? true:false;
         }
 		mCamMemManager = new IonDmaMemManager(gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled);
-        LOGD("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
+        LOG1("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
     #elif(CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)
         if(access(CAMERA_PMEM_NAME, O_RDWR) < 0) {
             LOGE("%s(%d): %s isn't registered, CameraHal_Mem current configuration isn't support ION memory!!!",
                 __FUNCTION__,__LINE__,CAMERA_PMEM_NAME);
         } else {
             mCamMemManager = new PmemManager((char*)CAMERA_PMEM_NAME);
-            LOGD("%s(%d): Camera Hal memory is alloced from %s device",__FUNCTION__,__LINE__,CAMERA_PMEM_NAME);
+            LOG1("%s(%d): Camera Hal memory is alloced from %s device",__FUNCTION__,__LINE__,CAMERA_PMEM_NAME);
         }
     #endif
     

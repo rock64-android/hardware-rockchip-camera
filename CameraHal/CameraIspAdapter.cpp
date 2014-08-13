@@ -267,7 +267,7 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
 
         resReq.request_w = preview_w;
         resReq.request_h = preview_h;
-        resReq.request_fps = 0;
+        resReq.request_fps = (is_capture)?0:15;
         resReq.requset_aspect = (bool_t)false;        
         resReq.request_fullfov = (bool_t)mImgAllFovReq;
         
@@ -604,6 +604,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         IsiSensorCaps_t pCaps;
         unsigned int pixels;
         unsigned int max_w,max_h,max_fps,maxfps_res;
+        bool chk_720p,chk_1080p;
         
         parameterString = "176x144,320x240,352x288,640x480,800x600";
         LOG1("Sensor resolution list:");
@@ -613,24 +614,34 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         max_fps = 0;
         maxfps_res = 0;
         pCaps.Index = 0;
+        chk_720p = false;
+        chk_1080p = false;
 	    while (m_camDevice->getSensorCaps(pCaps) == true) {
          
             memset(string,0x00,sizeof(string));        
-            if (ISI_FPS_GET(pCaps.Resolution) >= 20) {
-                pixels = ISI_RES_W_GET(pCaps.Resolution)*ISI_RES_H_GET(pCaps.Resolution)*10;
+            if (ISI_FPS_GET(pCaps.Resolution) >= 15) {
+                pixels = ISI_RES_W_GET(pCaps.Resolution)*ISI_RES_H_GET(pCaps.Resolution)*10;                
                 if (pixels > 1280*720*9) {
-                    sprintf(string,",%s","1280x720");
+                    if (chk_720p == false) {
+                        strcat(string,",1280x720");
+                        chk_720p = true;
+                    }
                 }
 
                 if (pixels > 1920*1080*9) {
-                    sprintf(string,",%s","1920x1080");
+                    if (chk_1080p == false) {
+                        strcat(string,",1920x1080");
+                        chk_1080p = true;
+                    }
                 } 
+
+                parameterString.append(string);
             }
 
             if (max_fps < ISI_FPS_GET(pCaps.Resolution)) {
                 maxfps_res = pCaps.Resolution;
             }
-
+            memset(string,0x00,sizeof(string)); 
             sprintf(string,",%dx%d",ISI_RES_W_GET(pCaps.Resolution),ISI_RES_H_GET(pCaps.Resolution));
             parameterString.append(string);
             LOG1("    %dx%d @ %d fps", ISI_RES_W_GET(pCaps.Resolution),ISI_RES_H_GET(pCaps.Resolution),
@@ -1351,7 +1362,7 @@ void CameraIspAdapter::loadSensor( const int cameraId)
 
             resReq.request_w = DEFAULTPREVIEWWIDTH;
             resReq.request_h = DEFAULTPREVIEWHEIGHT;
-            resReq.request_fps = 0;
+            resReq.request_fps = 15;
             resReq.requset_aspect = (bool_t)false;
             resReq.request_fullfov = (bool_t)mImgAllFovReq;
             m_camDevice->getPreferedSensorRes(&resReq);            
