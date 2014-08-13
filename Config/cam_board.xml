@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <BoardFile>
-		<BoardXmlVersion version="v0.7.0">
+		<BoardXmlVersion version="v0.7.1">
 		</BoardXmlVersion>
 		<CamDevie>
 			<HardWareInfo>
@@ -163,7 +163,7 @@
 					<VCMVdd name="NC" min="0" max="0"></VCMVdd>
 					<VCMGpioPwdn ioname="NC" active="0"></VCMGpioPwdn>
 					<VCMGpioPower ioname="NC" active="0"></VCMGpioPower>
-					<VCMCurrent start="20" rated="80" vcmmax="100" stepmode="13"  drivermax="100"></VCMCurrent>
+					<VCMCurrent start="20" rated="80" vcmmax="100" stepmode="4"  drivermax="100"></VCMCurrent>
 				</VCM>
 				<Flash>
 					<FlashName name="Internal"></FlashName>
