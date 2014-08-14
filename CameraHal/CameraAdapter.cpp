@@ -626,10 +626,11 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
         mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = 0;
     mPreviewFrameInfos[cfilledbuffer1.index].vir_addr = (int)mCamDriverV4l2Buffer[cfilledbuffer1.index];
     //get zoom_value
-    mPreviewFrameInfos[cfilledbuffer1.index].zoom_value = 100;
+    mPreviewFrameInfos[cfilledbuffer1.index].zoom_value = mZoomVal;
     mPreviewFrameInfos[cfilledbuffer1.index].used_flag = 0;
     mPreviewFrameInfos[cfilledbuffer1.index].frame_size = cfilledbuffer1.bytesused;
-
+    mPreviewFrameInfos[cfilledbuffer1.index].res        = NULL;
+        
     *tmpFrame = &(mPreviewFrameInfos[cfilledbuffer1.index]);
     LOG2("%s(%d): fill  frame info success",__FUNCTION__,__LINE__);
  //   if (gLogLevel == 2)

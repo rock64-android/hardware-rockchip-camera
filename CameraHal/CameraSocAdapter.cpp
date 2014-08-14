@@ -1,6 +1,21 @@
 #include "CameraHal.h"
 namespace android{
 
+unsigned int CameraSOCAdapter::mFrameSizesEnumTable[][2] = {
+    {176,144},
+    {320,240},
+    {352,288},
+    {640,480},
+    {720,480},
+    {800,600},
+    {1024,768},
+    {1280,720},
+    {1280,960},
+    {1600,1200},
+    {2048,1536},
+    {2592,1944},
+    {0,0}
+};
 
 
 CameraSOCAdapter::CameraSOCAdapter(int cameraId)
@@ -11,9 +26,42 @@ CameraSOCAdapter::CameraSOCAdapter(int cameraId)
 }
 CameraSOCAdapter::~CameraSOCAdapter()
 {
-
+    mFrameSizeVector.clear();
 }
+int CameraSOCAdapter::selectPreferedDrvSize(int *width,int * height,bool is_capture)
+{
+    int num = static_cast<int>(mFrameSizeVector.size());
+    const frameSize_t* tmpItem = NULL;
+    int ori_w = *width,ori_h = *height,pref_w=0,pref_h=0;
+    int demand_ratio = (*width * 100) / (*height);
+    int32_t total_pix = (*width) * (*height);
 
+    int cur_ratio ,cur_ratio_diff,pref_ratio_diff = 10000;
+    int32_t cur_pix ,cur_pix_diff,pref_pix_diff = 8*1000*1000;
+    //serch for the preferred res
+    for(int i =0;i<num;i++){
+        tmpItem = &(mFrameSizeVector[i]);
+        cur_ratio = tmpItem->width * 100 / tmpItem->height;
+        cur_pix   = tmpItem->width * tmpItem->height;
+        cur_pix_diff = ABS(total_pix - cur_pix);
+        cur_ratio_diff = ABS(demand_ratio - cur_ratio);
+        //
+        if((cur_pix_diff < pref_pix_diff) && (cur_ratio_diff <=  pref_ratio_diff)){
+            pref_pix_diff = cur_pix_diff;
+            cur_ratio_diff = pref_ratio_diff;
+            pref_w = tmpItem->width;
+            pref_h = tmpItem->height;
+        }
+    }
+    if(pref_w != 0){
+        *width = pref_w;
+        *height = pref_h;
+        LOGD("%s:prefer res (%dx%d)",__FUNCTION__,pref_w,pref_h);
+    }else{
+        LOGE("WARINING:have not select preferred res!!");
+    }
+    return 0;
+}
 
 int CameraSOCAdapter::cameraFramerateQuery(unsigned int format, unsigned int w, unsigned int h, int *min, int *max)
 {
@@ -146,7 +194,7 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 {
 	CameraParameters params;
 	String8 parameterString;
-	int i,j,previewFrameSizeMax;
+	int i=0,j,previewFrameSizeMax;
 	char cur_param[32],cam_size[12];		/* ddl@rock-chips.com: v0.4.f */
 	char str_picturesize[200];//We support at most 4 resolutions: 2592x1944,2048x1536,1600x1200,1024x768 
 	int ret,picture_size_bit;
@@ -178,126 +226,66 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 
 	/*preview size setting*/
 
-	if (mCamDriverFrmWidthMax >= 320) { 		   
-		fmt.fmt.pix.width = 320;
-		fmt.fmt.pix.height = 240;
-		if (ioctl(mCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
-			if ((fmt.fmt.pix.width == 320) && (fmt.fmt.pix.height == 240)) {
-				if (parameterString.length() == 0)
-					parameterString.append("320x240");
-				else
-					parameterString.append(",320x240");
-				params.setPreviewSize(320, 240);
-				previewFrameSizeMax =  PAGE_ALIGN(320*240*2)*2; 		 // 320*240*2
-				
-			}
-		}
-	}
-	if (mCamDriverFrmWidthMax >= 640) { 		   
-		fmt.fmt.pix.width = 640;
-		fmt.fmt.pix.height = 480;
-		if (ioctl(mCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
-			if ((fmt.fmt.pix.width == 640) && (fmt.fmt.pix.height == 480)) {
-				parameterString.append(",640x480");
-				params.setPreviewSize(640, 480);
-				previewFrameSizeMax =  PAGE_ALIGN(640*480*2)*2; 		 // 640*480*1.5*2
-				
-			}
-		}
-	}
-
-	if (mCamDriverFrmWidthMax >= 720) { 		   
-		fmt.fmt.pix.width = 720;
-		fmt.fmt.pix.height = 480;
-		if (ioctl(mCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
-			if ((fmt.fmt.pix.width == 720) && (fmt.fmt.pix.height == 480)) {
-				parameterString.append(",720x480");
-				previewFrameSizeMax =  PAGE_ALIGN(720*480*2)*2; 		 // 720*480*1.5*2
-				
-			}
-		}
-	}
-    
-	if (mCamDriverFrmWidthMax >= 800) {
-		fmt.fmt.pix.width = 800;
-		fmt.fmt.pix.height = 600;
-		if (ioctl(mCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
-			if ((fmt.fmt.pix.width == 800) && (fmt.fmt.pix.height == 600)) {
-				parameterString.append(",800x600");
-				previewFrameSizeMax =  PAGE_ALIGN(800*600*2)*2; 		 // 720*480*1.5*2
-				params.setPreviewSize(800, 600);
-			}
-		}
-	}
-	
-	if (mCamDriverFrmWidthMax >= 1280) {
-		fmt.fmt.pix.width = 1280;
-		fmt.fmt.pix.height = 720;
-		if (ioctl(mCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
-			if ((fmt.fmt.pix.width == 1280) && (fmt.fmt.pix.height == 720)) {
-				parameterString.append(",1280x720");
-				previewFrameSizeMax =  PAGE_ALIGN(1280*720*2)*2;		  // 1280*720*1.5*2
-				
-			}
-		}
-		fmt.fmt.pix.width = 1280;
-		fmt.fmt.pix.height = 960;
-		if (ioctl(mCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
-			if ((fmt.fmt.pix.width == 1280) && (fmt.fmt.pix.height == 960)) {
-				parameterString.append(",1280x960");
-				previewFrameSizeMax =  PAGE_ALIGN(1280*960*2)*2;		  // 1280*960*1.5*2
-			}
-		}
-	}
-	if (mCamDriverFrmWidthMax >= 1600) {
-		fmt.fmt.pix.width = 1600;
-		fmt.fmt.pix.height = 1200;
-		if (ioctl(mCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
-			if ((fmt.fmt.pix.width == 1600) && (fmt.fmt.pix.height == 1200)) {
-				parameterString.append(",1600x1200");
-				previewFrameSizeMax =  PAGE_ALIGN(1600*1200*2)*2;		   // 1600*1200*1.5*2
-			}
-		}
-	}
-
+    while(mFrameSizesEnumTable[i][0]){
+        if (mCamDriverFrmWidthMax >= mFrameSizesEnumTable[i][0]) {
+            fmt.fmt.pix.width = mFrameSizesEnumTable[i][0];
+            fmt.fmt.pix.height = mFrameSizesEnumTable[i][1];
+            if (ioctl(mCamFd, VIDIOC_TRY_FMT, &fmt) == 0) {
+                if ((fmt.fmt.pix.width == mFrameSizesEnumTable[i][0]) && (fmt.fmt.pix.height == mFrameSizesEnumTable[i][1])) {
+                	String8 tmpFrameStr = String8::format( "%dx%d",  mFrameSizesEnumTable[i][0],mFrameSizesEnumTable[i][1]);
+                    if(parameterString.string())
+                        parameterString.append(",");
+                    parameterString.append(tmpFrameStr);
+                    frameSize_t newItem;
+                    newItem.width = mFrameSizesEnumTable[i][0];
+                    newItem.height = mFrameSizesEnumTable[i][1];
+                    newItem.fmt = mCamDriverPreviewFmt;
+                    mFrameSizeVector.push_back(newItem);
+                }
+            }
+        }
+        i++;
+    }
 	mSupportPreviewSizeReally = parameterString;
-	/* ddl@rock-chips.com: Facelock speed is low, so scale down preview data to facelock for speed up */
-    char* cameraCallProcess = getCallingProcess();
-	if ((strcmp(cameraCallProcess,"com.android.facelock")==0)) {			
-		if (strstr(mSupportPreviewSizeReally.string(),"640x480")||
-			strstr(mSupportPreviewSizeReally.string(),"320x240")) {
-			parameterString = "160x120";
-			params.setPreviewSize(160, 120);	
-		}
-	}
-	params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());
-
-
+    
 	//set supported picturesize
 
 	if(mCamDriverFrmWidthMax <= 640){
+        params.setPreviewSize(640, 480);
+        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "640x480,352x288,320x240,176x144");
 		strcat( str_picturesize,"640x480,320x240");
 		params.setPictureSize(640,480);
 	}else if (mCamDriverFrmWidthMax <= 1280) {
-	
 		if(mCamDriverFrmHeightMax <= 720){
+            params.setPreviewSize(800, 600);
+            params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x720,800x600,640x480,352x288,320x240,176x144");
 			strcat( str_picturesize,"1280x720,1024x768,800x600,640x480,352x288,320x240,176x144");
 			params.setPictureSize(1280,720);
 		}
 		else if(mCamDriverFrmHeightMax <= 960){
+            params.setPreviewSize(800, 600);
+            params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x960,1280x720,800x600,640x480,352x288,320x240,176x144");
 			strcat( str_picturesize,"1280x960,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144");
 			params.setPictureSize(1280,960);
 		}
 	} else if (mCamDriverFrmWidthMax <= 1600) {
+        params.setPreviewSize(800, 600);
+        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x960,1280x720,800x600,640x480,352x288,320x240,176x144");
 		strcat( str_picturesize,"1600x1200,1600x900,1280x960,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144");			
 		params.setPictureSize(1600,1200);
 	} else if (mCamDriverFrmWidthMax <= 2048) {
+        params.setPreviewSize(800, 600);
+        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x960,1280x720,800x600,640x480,352x288,320x240,176x144");
 		strcat( str_picturesize,"2048x1536,1600x1200,1600x900,1280x960,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144"); 		
 		params.setPictureSize(2048,1536);
-	} else if (mCamDriverFrmWidthMax <= 2592) {    
+	} else if (mCamDriverFrmWidthMax <= 2592) {  
+        params.setPreviewSize(800, 600);
+        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x960,1280x720,800x600,640x480,352x288,320x240,176x144");
 		strcat( str_picturesize,"2592x1944,2592x1458,2048x1536,2048x1152,1600x1200,1600x900,1280x960,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144");			
 		params.setPictureSize(2592,1944);
-	} else if (mCamDriverFrmWidthMax <= 3264) {    
+	} else if (mCamDriverFrmWidthMax <= 3264) {  
+        params.setPreviewSize(800, 600);
+        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x960,1280x720,800x600,640x480,352x288,320x240,176x144");
 		strcat( str_picturesize,"3264x2448,2592x1944,2592x1458,2048x1536,2048x1152,1600x1200,1600x900,1280x960,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144"); 			
 		params.setPictureSize(3264,2448);
 	} else {
@@ -311,29 +299,27 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	cameraFpsInfoSet(params);
 	
 	/*zoom setting*/
-	struct v4l2_queryctrl zoom;
-	char str_zoom_max[3],str_zoom_element[5];
-	char str_zoom[200];
-	strcpy(str_zoom, "");//default zoom
-	int max;
-	
-	zoom.id = V4L2_CID_ZOOM_ABSOLUTE;
-	if (!ioctl(mCamFd, VIDIOC_QUERYCTRL, &zoom)) {
-		mZoomMax = zoom.maximum;
-		mZoomMin= zoom.minimum;
-		mZoomStep = zoom.step;	
-	
-		max = (mZoomMax - mZoomMin)/mZoomStep;
-		sprintf(str_zoom_max,"%d",max);
-		params.set(CameraParameters::KEY_ZOOM_SUPPORTED, "true");
-		params.set(CameraParameters::KEY_MAX_ZOOM, str_zoom_max);
-		params.set(CameraParameters::KEY_ZOOM, "0");
-		for (i=mZoomMin; i<=mZoomMax; i+=mZoomStep) {
-			sprintf(str_zoom_element,"%d,", i);
-			strcat(str_zoom,str_zoom_element);
-		}
-		params.set(CameraParameters::KEY_ZOOM_RATIOS, str_zoom);
+    /*zoom setting*/
+    char str[300],str_zoom_max[3],str_zoom_element[5];
+    int max;
+    
+    memset(str,0x00,sizeof(str));
+    strcpy(str, "");//default zoom
+
+	mZoomMax = 300;
+	mZoomMin= 100;
+	mZoomStep = 5;	
+
+	max = (mZoomMax - mZoomMin)/mZoomStep;
+	sprintf(str_zoom_max,"%d",max);
+	params.set(CameraParameters::KEY_ZOOM_SUPPORTED, "true");
+	params.set(CameraParameters::KEY_MAX_ZOOM, str_zoom_max);
+	params.set(CameraParameters::KEY_ZOOM, "0");
+	for (i=mZoomMin; i<=mZoomMax; i+=mZoomStep) {
+		sprintf(str_zoom_element,"%d,", i);
+		strcat(str,str_zoom_element);
 	}
+	params.set(CameraParameters::KEY_ZOOM_RATIOS, str);
 
 	/*preview format setting*/
 	params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS, "yuv420sp,yuv420p");
@@ -607,6 +593,8 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	 params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
 #endif
 
+     params.set(KEY_CONTINUOUS_PIC_NUM,"1");
+
 	 LOGD ("Support Preview format: %s .. %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),
 		 params.get(CameraParameters::KEY_PREVIEW_FORMAT));
 	 LOGD ("Support Preview sizes: %s ",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES));
@@ -758,7 +746,12 @@ int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 	}
 
     /*zoom setting*/
-    //setzoom
+
+    const int zoom = params.getInt(CameraParameters::KEY_ZOOM);
+	const int mzoom = mParameters.getInt(CameraParameters::KEY_ZOOM);
+	if ((mzoom < 0) || (zoom != mzoom)) {	
+		mZoomVal = zoom * mZoomStep + mZoomMin;
+	}
 
 
     LOGD("set color effect");

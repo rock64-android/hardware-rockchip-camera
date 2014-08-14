@@ -282,8 +282,10 @@ namespace android {
 *     1) setMe is invalidate when soc sensor;
 *v0.0x3a.0:
 *     1) enum sensor resolution and check for DV media_profiles.xml in CheckSensorSupportDV;
+*v0.0x3a.1:
+	  1) support rk312x preview and picture taken .
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x3a, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x3a, 0x01)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -350,9 +352,7 @@ namespace android {
 #define OPTIMIZE_MEMORY_USE
 #define VIDEO_ENC_BUFFER            0x151800 
 #define FILTER_FRAME_NUMBER (3)
-#define UVC_IOMMU_ENABLED   (0)
-
-
+#define IOMMU_ENABLED   (0)
 
 #define V4L2_BUFFER_MAX             32
 #define V4L2_BUFFER_MMAP_MAX        16
@@ -510,6 +510,7 @@ public:
     virtual void dump(int cameraId);
 	virtual void getCameraParamInfo(cameraparam_info_s &paraminfo);
 	virtual bool getFlashStatus();
+    virtual int selectPreferedDrvSize(int *width,int * height,bool is_capture){ return 0;}
 protected:
     //talk to driver
     virtual int cameraCreate(int cameraId);
@@ -610,15 +611,26 @@ public:
     virtual int setParameters(const CameraParameters &params_set,bool &isRestartValue);
     virtual void initDefaultParameters(int camFd);
     virtual int cameraAutoFocus(bool auto_trig_only);
+    virtual int selectPreferedDrvSize(int *width,int * height,bool is_capture);
     
-private:    
+private:   
+    static unsigned int mFrameSizesEnumTable[][2];
+    
+    typedef struct frameSize_s{
+        unsigned int width;
+        unsigned int height;
+        unsigned int fmt;
+        int framerate;
+    }frameSize_t;
+    Vector<frameSize_t> mFrameSizeVector;
+    
     int cameraFramerateQuery(unsigned int format, unsigned int w, unsigned int h, int *min, int *max);
     int cameraFpsInfoSet(CameraParameters &params);
     int cameraConfig(const CameraParameters &tmpparams,bool isInit,bool &isRestartValue);
 
 
-    int mCamDriverFrmWidthMax;
-    int mCamDriverFrmHeightMax;
+    unsigned int mCamDriverFrmWidthMax;
+    unsigned int mCamDriverFrmHeightMax;
     String8 mSupportPreviewSizeReally;
  
     struct v4l2_querymenu mWhiteBalance_menu[20];
