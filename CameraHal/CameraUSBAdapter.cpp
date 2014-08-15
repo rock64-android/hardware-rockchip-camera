@@ -122,6 +122,8 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
     	fsize.index++;
     }
 
+    params.set(KEY_PREVIEW_W_FORCE,"0");
+    params.set(KEY_PREVIEW_H_FORCE,"0");
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());
     params.setPreviewSize(640,480);
     /*picture size setting*/      
@@ -509,6 +511,7 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
     params.set(CameraParameters::KEY_VIDEO_SIZE,"");
     params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
 	#endif
+    params.set(KEY_CONTINUOUS_PIC_NUM,"1");  
 
     LOGD ("Support Preview format: %s .. %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),
         params.get(CameraParameters::KEY_PREVIEW_FORMAT));

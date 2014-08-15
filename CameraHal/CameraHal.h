@@ -282,8 +282,10 @@ namespace android {
 *     1) setMe is invalidate when soc sensor;
 *v0.0x3a.0:
 *     1) enum sensor resolution and check for DV media_profiles.xml in CheckSensorSupportDV;
+*v0.0x3b.0:
+*     1) include box commit which usb adapter modify for initDefaultParameters
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x3a, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x3b, 0x00)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -327,7 +329,6 @@ namespace android {
 #define CAMERAHAL_ISI_PROPERTY_KEY                      "sys_graphic.cam_isi.ver"
 #define CAMERAHAL_CAMBOARDXML_PARSER_PROPERTY_KEY       "sys_graphic.cam_camboard.ver"
 #define CAMERAHAL_TRACE_LEVEL_PROPERTY_KEY              "sys_graphic.cam_trace"
-#define CAMERAHAL_USER_PREVIEW_REQUEST_KEY              "sys_graphic.cam_preview_req"
 
 
 #define CAMERA_PMEM_NAME                     "/dev/pmem_cam"

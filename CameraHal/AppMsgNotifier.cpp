@@ -207,7 +207,7 @@ bool AppMsgNotifier::isNeedSendToPicture()
     Mutex::Autolock lock(mPictureLock); 
     //if((mReceivePictureFrame) && (mPictureInfo.num > 0)){
     if((mRunningState&STA_RECEIVE_PIC_FRAME) && (mPictureInfo.num > 0)){
-        LOGD("%s%d:need to encode picture this frame",__FUNCTION__,__LINE__);
+        LOGD("This frame need to be encode picture, mPictureInfo.num: %d",mPictureInfo.num);
         return true;
     }else
         return false;

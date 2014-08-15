@@ -21,10 +21,8 @@ using namespace android;
 * 	2: add fov fov_h fov_v
 *v.0.0x07.0
 *	1: change fov_h fov_v format from int to float
-*v.0.0x07.1
-*	1: decrease 8858 vcm noise 
 */
-#define ConfigBoardXmlVersion KERNEL_VERSION(0, 7, 0x01) 
+#define ConfigBoardXmlVersion KERNEL_VERSION(0, 7, 0x00) 
 
 #define UVC_CAM_NAME "UVC Camera"
 #define RK_CAM_FACING_FRONT (1)

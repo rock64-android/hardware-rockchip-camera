@@ -50,7 +50,7 @@
 *    1) add struct sensor_caps_t in struct sensor_i2c_info_t, IsiGetSensorI2cInfo support enum resolution; 
 */
 
-#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 6, 0x00) 
+#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 7, 0x00) 
 
 
 #ifdef __cplusplus
