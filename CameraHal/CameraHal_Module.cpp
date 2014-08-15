@@ -775,7 +775,6 @@ int camera_get_number_of_cameras(void)
 				pNewCamInfo->mSoftInfo.mSenceConfig.mSenceSupport= 0;
 				pNewCamInfo->mSoftInfo.mSenceConfig.mDefault = 0;
 				pNewCamInfo->mSoftInfo.mZSLConfig = 0;
-                pNewCamInfo->mHardInfo.mSensorInfo.mPhy.type = CamSys_Phy_end;
 				
             	pNewCamInfo->mDeviceIndex = (profiles->mDevieVector.size()) - 1;
 				pNewCamInfo->mIsConnect = 1;
@@ -783,8 +782,7 @@ int camera_get_number_of_cameras(void)
             	profiles->mDevieVector.add(pNewCamInfo);
 				//profiles->AddConnectUVCSensorToVector(pNewCamInfo, profiles);
 
-               // gCamInfos[cam_cnt].pcam_total_info = pNewCamInfo;
-                camInfoTmp[cam_cnt].pcam_total_info = pNewCamInfo;
+                gCamInfos[cam_cnt].pcam_total_info = pNewCamInfo;
                 cam_cnt++;
                 if (cam_cnt >= CAMERAS_SUPPORT_MAX)
                     i = 10;

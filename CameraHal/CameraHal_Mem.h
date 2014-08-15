@@ -9,7 +9,7 @@
 *   configuration macro 
 *      
 */
-#if  (defined(TARGET_RK32) || defined(TARGET_RK312x))
+#ifdef  TARGET_RK32
 #define CONFIG_CAMERA_MEM               CAMERA_MEM_IONDMA
 #elif	defined(TARGET_RK30)
 #define CONFIG_CAMERA_MEM               CAMERA_MEM_ION
@@ -46,7 +46,6 @@ struct bufferinfo_s{
 	unsigned int mPhyBaseAddr;
 	unsigned int mVirBaseAddr;
 	buffer_type_enum mBufType;
-	bool        mIsForceIommuBuf;
 };
 
 typedef enum buffer_addr_e {

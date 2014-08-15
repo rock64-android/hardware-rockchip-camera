@@ -463,10 +463,10 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
     Rga_Request.dst.x_offset = 0;
     Rga_Request.dst.y_offset = 0;
     Rga_Request.mmu_info.mmu_en    = 1;
-    Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1 | (1 << 8) | (1 << 10);
+    Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1;
     Rga_Request.alpha_rop_flag |= (1 << 5);             /* ddl@rock-chips.com: v0.4.3 */
 
-	if(1/*(cropW != dst_width) || ( cropH != dst_height)*/){
+	if((cropW != dst_width) || ( cropH != dst_height)){
 		Rga_Request.sina = 0;
 		Rga_Request.cosa = 0x10000;
 		Rga_Request.scale_mode = 1;

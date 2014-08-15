@@ -80,10 +80,8 @@ CameraHal::CameraHal(int cameraId)
         mCamMemManager = new IonMemManager();
         LOG1("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
 	#elif(CONFIG_CAMERA_MEM == CAMERA_MEM_IONDMA)
-        if((strcmp(gCamInfos[cameraId].driver,"uvcvideo") == 0) //uvc camera
-            || (gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_end)// soc cif
-            ) {
-            gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled = (IOMMU_ENABLED == 1)? true:false;
+        if((strcmp(gCamInfos[cameraId].driver,"uvcvideo") == 0)) {
+            gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled = (UVC_IOMMU_ENABLED == 1)? true:false;
         }
 		mCamMemManager = new IonDmaMemManager(gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled);
         LOG1("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
@@ -662,7 +660,7 @@ int CameraHal::getCameraFd()
 
 int CameraHal::selectPreferedDrvSize(int *width,int * height,bool is_capture)
 {
-    return mCameraAdapter->selectPreferedDrvSize(width,height,is_capture);
+    return 0;
 }
 int CameraHal::fillPicturInfo(picture_info_s& picinfo)
 {

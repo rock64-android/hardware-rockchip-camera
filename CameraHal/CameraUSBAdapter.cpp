@@ -472,8 +472,6 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
     }    
     params.set(CameraParameters::KEY_HORIZONTAL_VIEW_ANGLE, str_fov_h);
     params.set(CameraParameters::KEY_VERTICAL_VIEW_ANGLE, str_fov_v);
-
-    params.set(KEY_CONTINUOUS_PIC_NUM,"1");
     
     /*lzg@rockchip.com :add some settings to pass cts*/    
     /*focus distance setting ,no much meaning ,only for passing cts */

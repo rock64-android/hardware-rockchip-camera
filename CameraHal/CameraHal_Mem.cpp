@@ -535,7 +535,7 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
     for(i = 0;i < numBufs;i++){
     	memset(tmpalloc,0,sizeof(struct bufferinfo_s));
 
-        if((!mIommuEnabled) || (!ionbuf->mIsForceIommuBuf))
+        if(!mIommuEnabled)
             ret = ion_alloc(client_fd, ionbuf->mPerBuffersize, PAGE_SIZE, 2, 0, &handle);
         else
             ret = ion_alloc(client_fd, ionbuf->mPerBuffersize, PAGE_SIZE, 8, 0, &handle);
@@ -561,7 +561,7 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
             break;
         }
         
-        if((!mIommuEnabled) || (!ionbuf->mIsForceIommuBuf))
+        if(!mIommuEnabled)
             ion_get_phys(client_fd,handle,&(tmpalloc->phy_addr));
         else
             tmpalloc->phy_addr = map_fd;
