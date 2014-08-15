@@ -284,10 +284,8 @@ namespace android {
 *     1) enum sensor resolution and check for DV media_profiles.xml in CheckSensorSupportDV;
 *v0.0x3a.1:
 	  1) support rk312x preview and picture taken .
-*v0.0x3a.2:
-	  1) pre_scaling_mode must be set when using rga to do yuv tranform
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x3a, 0x02)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x3a, 0x01)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

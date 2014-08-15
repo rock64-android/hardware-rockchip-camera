@@ -45,8 +45,10 @@ int BufferProvider::createBuffer(int count,int perbufsize,buffer_type_enum bufty
         case PREVIEWBUFFER:
             
 #if defined(TARGET_RK312x)
-            //should use cma buffer
-            buf.mIsForceIommuBuf = false;
+            if((strcmp(gCamInfos[cameraId].driver,"uvcvideo") != 0)) { //soc camera
+                //should use cma buffer
+                buf.mIsForceIommuBuf = false;
+            }
 #endif
             if(mCamBuffer->createPreviewBuffer(&buf) !=0) {
                 LOGE("%s(%d): preview buffer create failed",__FUNCTION__,__LINE__);		
