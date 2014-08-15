@@ -18,4 +18,12 @@ ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk312x)
 
 endif
 
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3036)
+
+   include $(CLEAR_VARS)
+    LOCAL_PREBUILT_LIBS := libisp_silicomimageisp_api.so
+    LOCAL_MODULE_TAGS := optional
+    include $(BUILD_MULTI_PREBUILT)
+
+endif
 

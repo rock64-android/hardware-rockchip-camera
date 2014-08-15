@@ -14,3 +14,9 @@ PRODUCT_COPY_FILES += \
     hardware/rk29/camera/Config/libisp_silicomimageisp_api.so:obj/lib/libisp_silicomimageisp_api.so \
     hardware/rk29/camera/Config/libisp_silicomimageisp_api.so:system/lib/libisp_silicomimageisp_api.so 
 endif
+
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk3036)
+PRODUCT_COPY_FILES += \
+    hardware/rk29/camera/Config/libisp_silicomimageisp_api.so:obj/lib/libisp_silicomimageisp_api.so \
+    hardware/rk29/camera/Config/libisp_silicomimageisp_api.so:system/lib/libisp_silicomimageisp_api.so 
+endif
