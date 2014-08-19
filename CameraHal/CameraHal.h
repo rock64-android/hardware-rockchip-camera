@@ -284,8 +284,10 @@ namespace android {
 *     1) enum sensor resolution and check for DV media_profiles.xml in CheckSensorSupportDV;
 *v0.0x3b.0:
 *     1) include box commit which usb adapter modify for initDefaultParameters
+*v0.0x3b.1:
+*     1) fix wechat orientation 
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x3b, 0x00)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x3b, 0x01)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -304,7 +306,8 @@ namespace android {
 #define CONFIG_CAMERA_FRAME_DV_PROC_STAT    0
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL  0
-#define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>,<com.tencent.mm>"
+#define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>"
+#define CONFIG_CAMERA_FRONT_MIRROR_FLIP_MDATACB_APK  "<com.tencent.mm>"
 #define CONFIG_CAMERA_SETVIDEOSIZE	0
 
 #define CONFIG_CAMERA_PREVIEW_BUF_CNT 4
@@ -978,7 +981,7 @@ public:
     void stopReceiveFrame();
     void startReceiveFrame();
     void dump();
-	void setDatacbFrontMirrorState(bool mirror);
+	void setDatacbFrontMirrorFlipState(bool mirror,bool mirrorFlip);
 	picture_info_s&  getPictureInfoRef();
 	vpu_display_mem_pool *pool;
 private:
@@ -1033,6 +1036,7 @@ private:
     int mPreviewDataH;
 	int mRunningState;
     bool mDataCbFrontMirror;
+    bool mDataCbFrontMirrorFlip;
     int mPicSize;
     camera_memory_t* mPicture;
 };
