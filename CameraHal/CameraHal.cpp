@@ -155,7 +155,6 @@ CameraHal::CameraHal(int cameraId)
 	mCommandThread->run("CameraCmdThread", ANDROID_PRIORITY_URGENT_DISPLAY);
 
 	bool dataCbFrontMirror;
-	bool dataCbFrontMirrorFlip;
 #if CONFIG_CAMERA_FRONT_MIRROR_MDATACB
     if (gCamInfos[cameraId].facing_info.facing == CAMERA_FACING_FRONT) {
 #if CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL
@@ -167,11 +166,6 @@ CameraHal::CameraHal(int cameraId)
         } else {
             dataCbFrontMirror = false;
         }
-        if (strstr(CONFIG_CAMERA_FRONT_MIRROR_FLIP_MDATACB_APK,cameraCallProcess)) {
-            dataCbFrontMirrorFlip = true; 
-        } else {
-            dataCbFrontMirrorFlip = false;
-        }
 #endif
     } else {
         dataCbFrontMirror = false;
@@ -179,7 +173,7 @@ CameraHal::CameraHal(int cameraId)
 #else
     dataCbFrontMirror = false;
 #endif 
-	mEventNotifier->setDatacbFrontMirrorFlipState(dataCbFrontMirror,dataCbFrontMirrorFlip);
+	mEventNotifier->setDatacbFrontMirrorState(dataCbFrontMirror);
 
     
 	LOG_FUNCTION_NAME_EXIT

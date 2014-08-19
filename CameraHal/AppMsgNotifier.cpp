@@ -1038,7 +1038,6 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 						//frame->frame_width,frame->frame_height,frame->frame_width,false);
 					mPreviewDataW,mPreviewDataH,mPreviewDataW,mDataCbFrontMirror);
 			}else {
-
 #if 1
 				//QQ voip need NV21
 				arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
@@ -1049,11 +1048,6 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 						mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true);
 #endif
 				//arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
-			}
-			if(mDataCbFrontMirrorFlip) {
-				LOG1("----------------need mirro flip -------------------");	
-				YuvData_Mirror_Flip(V4L2_PIX_FMT_NV12, (char*) tmpPreviewMemory->data,
-						(char*)frame->vir_addr,mPreviewDataW, mPreviewDataH);
 			}
             //callback
             mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
@@ -1128,10 +1122,9 @@ void AppMsgNotifier::dump()
 
 }
 
-void AppMsgNotifier::setDatacbFrontMirrorFlipState(bool mirror,bool mirrorFlip)
+void AppMsgNotifier::setDatacbFrontMirrorState(bool mirror)
 {
 	mDataCbFrontMirror = mirror;
-	mDataCbFrontMirrorFlip = mirrorFlip;
 }
 
 picture_info_s&  AppMsgNotifier::getPictureInfoRef()
