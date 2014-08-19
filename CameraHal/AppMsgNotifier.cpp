@@ -764,7 +764,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     int output_phy_addr,output_vir_addr;
     int jpegbuf_size;
 	int bufindex;
-    bool mIs_Verifier;
+    bool mIs_Verifier = false;
 
 	memset(&JpegInInfo,0x00,sizeof(JpegEncInInfo));
 	memset(&JpegOutInfo,0x00,sizeof(JpegEncOutInfo));
@@ -787,7 +787,8 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	
 	picfmt = mPictureInfo.fmt;
 
-	mIs_Verifier = *((bool*)frame->res); //zyh,don't crop for cts FOV	
+    if(frame->res)
+    	mIs_Verifier = *((bool*)frame->res); //zyh,don't crop for cts FOV	
 	
 	if(picfmt ==V4L2_PIX_FMT_RGB565){
 		encodetype = HWJPEGENC_RGB565;
