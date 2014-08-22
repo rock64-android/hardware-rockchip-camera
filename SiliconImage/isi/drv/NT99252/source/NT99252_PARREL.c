@@ -1062,14 +1062,14 @@ static RESULT NT99252_IsiSensorSetStreamingIss
     {
         /* enable streaming */
         // hkw add;
-        result = NT99252_IsiRegWriteIss( handle, 0x0100, 0x1);
+        result = NT99252_IsiRegWriteIss( handle, 0x3021, 0x2);
        //result = RET_SUCCESS;
 
     }
     else
     {
         /* disable streaming */
-        result = NT99252_IsiRegWriteIss( handle, 0x0100, 0x0);
+        result = NT99252_IsiRegWriteIss( handle, 0x3021, 0x0);
 		//		result = RET_SUCCESS;
 
     }
@@ -1835,6 +1835,8 @@ RESULT NT99252_IsiExposureControlIss
 
     result = NT99252_IsiSetIntegrationTimeIss( handle, NewIntegrationTime, pSetIntegrationTime, pNumberOfFramesToSkip );
     result = NT99252_IsiSetGainIss( handle, NewGain, pSetGain );
+
+	*pNumberOfFramesToSkip = 2;
 
     TRACE( NT99252_DEBUG, "%s: set: g=%f, Ti=%f, skip=%d\n", __FUNCTION__, *pSetGain, *pSetIntegrationTime, *pNumberOfFramesToSkip );
     TRACE( NT99252_INFO, "%s: (exit)\n", __FUNCTION__);
