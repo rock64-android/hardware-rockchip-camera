@@ -761,20 +761,23 @@ get_command:
                 LOGD("%s(%d):receive CMD_PREVIEW_START",__FUNCTION__,__LINE__);
 
             RESTART_PREVIEW_INTERNAL:
-                //1, need to stop or pause display ?
-                if(mDisplayAdapter->getDisplayStatus() == DisplayAdapter::STA_DISPLAY_RUNNING){
-                    err=mDisplayAdapter->pauseDisplay();
-					if(err != -1)
-						setCamStatus(STA_DISPLAY_PAUSE, 1);
-                }
+                
                 //2. current preview status ?
                 mParameters.getPreviewSize(&app_previw_w,&app_preview_h);
                 prevStatus = mCameraAdapter->getCurPreviewState(&drv_w,&drv_h);
                 int prefered_w = app_previw_w, prefered_h = app_preview_h;
                 selectPreferedDrvSize(&prefered_w,&prefered_h,false);
-                if(prevStatus){
+                
+                if(prevStatus){                    
                     //get preview size
                     if((prefered_w != drv_w) || (prefered_h != drv_h)){
+
+                        if (mDisplayAdapter->getDisplayStatus() == DisplayAdapter::STA_DISPLAY_RUNNING) {
+                            err=mDisplayAdapter->pauseDisplay();
+        					if(err != -1)
+        						setCamStatus(STA_DISPLAY_PAUSE, 1);
+                        }
+                        
                         //stop eventnotify
                         mEventNotifier->stopReceiveFrame();
                         //need to stop preview.
@@ -792,6 +795,13 @@ get_command:
                     }
                         
                 }else{
+
+                    if (mDisplayAdapter->getDisplayStatus() == DisplayAdapter::STA_DISPLAY_RUNNING) {
+                        err=mDisplayAdapter->pauseDisplay();
+    					if(err != -1)
+    						setCamStatus(STA_DISPLAY_PAUSE, 1);
+                    }
+                
                     drv_w = prefered_w;
                     drv_h = prefered_h;
                     //stop eventnotify
@@ -803,13 +813,16 @@ get_command:
                     if(mEventNotifier->msgEnabled(CAMERA_MSG_PREVIEW_FRAME))
                         mEventNotifier->startReceiveFrame();
                 }
+                
                 if(mDisplayAdapter->getPreviewWindow())
                 {
-                 	err = mDisplayAdapter->startDisplay(app_previw_w, app_preview_h);
-					if(err != -1)
-						setCamStatus(STA_DISPLAY_RUNNING, 1);
-					else
-						goto PREVIEW_START_OUT;
+                    if (mDisplayAdapter->getDisplayStatus() != DisplayAdapter::STA_DISPLAY_RUNNING) {
+                     	err = mDisplayAdapter->startDisplay(app_previw_w, app_preview_h);
+    					if(err != -1)
+    						setCamStatus(STA_DISPLAY_RUNNING, 1);
+    					else
+    						goto PREVIEW_START_OUT;
+                    }
             	}
 				
 				setCamStatus(CMD_PREVIEW_START_DONE, 1);

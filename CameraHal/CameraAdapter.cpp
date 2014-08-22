@@ -100,7 +100,7 @@ bool CameraAdapter::isNeedToRestartPreview()
     mParameters.getPreviewSize(&previewFrame2AppW, &previewFrame2AppH);
     //case 1: when setVideoSize is suported
 
-	if(mPreviewRunning){
+	if(mPreviewRunning && (mParameters.get(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES) != NULL)) {
     	mParameters.getVideoSize(&mVideoWidth,&mVideoHeight);
 	}else{
 		mVideoWidth = -1;
@@ -110,7 +110,7 @@ bool CameraAdapter::isNeedToRestartPreview()
 	if(previewFrame2AppW >= mVideoWidth){
 		preferPreviewW = previewFrame2AppW;
 		preferPreviewH = previewFrame2AppH;
-	}else{
+	} else {
 		preferPreviewW = mVideoWidth;
 		preferPreviewH = mVideoHeight;	
 	}
@@ -120,9 +120,9 @@ bool CameraAdapter::isNeedToRestartPreview()
         mVideoHeight = preferPreviewH;
     }
 	
-    LOG1("%s:mPreviewFrame2AppW (%dx%d)",__func__,previewFrame2AppW,previewFrame2AppH);
-    LOG1("%s:mCamPreviewW (%dx%d)",__func__,mCamPreviewW,mCamPreviewH);
-    LOG1("%s:video width (%dx%d)",__func__,mVideoWidth,mVideoHeight);
+    LOG1("mPreviewFrame2AppW (%dx%d)",previewFrame2AppW,previewFrame2AppH);
+    LOG1("mCamPreviewW (%dx%d)",mCamPreviewW,mCamPreviewH);
+    LOG1("video width (%dx%d)",mVideoWidth,mVideoHeight);
 
 	if(mPreviewRunning && ((preferPreviewW != mCamPreviewW) || (preferPreviewH != mCamPreviewH)) && (mVideoWidth != -1))
 	{

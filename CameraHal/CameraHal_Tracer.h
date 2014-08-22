@@ -34,7 +34,7 @@ extern "C"
 #endif
 
 #ifdef ALOGD_IF
-#define TRACE_D(level,msg,...)       ALOGD_IF(getTracerLevel()>=level, "%s(%d): " msg ,__FUNCTION__,__LINE__,##__VA_ARGS__);
+#define TRACE_D(level,msg,...)       ALOGD_IF((getTracerLevel()&level)==level, "%s(%d): " msg ,__FUNCTION__,__LINE__,##__VA_ARGS__);
 #endif
 
 

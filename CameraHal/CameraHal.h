@@ -289,7 +289,7 @@ namespace android {
 *v0.0x3b.2:
 	  1) pre_scaling_mode must be set when using rga to do yuv tranform
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(0, 0x3b, 0x02)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

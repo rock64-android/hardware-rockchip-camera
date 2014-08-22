@@ -54,7 +54,7 @@ bool DisplayAdapter::isNeedSendToDisplay()
     if((mDisplayRuning == STA_DISPLAY_PAUSE) || (mDisplayRuning == STA_DISPLAY_STOP))
         return false;
     else{
-        LOG2("%s(%d): need to display this frame",__FUNCTION__,__LINE__);
+        LOG2("need to display this frame");
         return true;
     }
 }
@@ -720,8 +720,6 @@ display_receive_cmd:
                     #endif
                     }
 #endif
-//                    LOGD("%s(%d): receive buffer %d, queue buffer %d to display", __FUNCTION__,__LINE__,queue_buf_index,queue_display_index);
-
                     setBufferState(queue_display_index, 1);
                     mapper.unlock((buffer_handle_t)mDisplayBufInfo[queue_display_index].priv_hnd);
                     err = mANativeWindow->enqueue_buffer(mANativeWindow, (buffer_handle_t*)mDisplayBufInfo[queue_display_index].buffer_hnd);                    

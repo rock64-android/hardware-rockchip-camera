@@ -380,7 +380,7 @@ status_t CameraIspAdapter::stopPreview()
     if(mPreviewRunning) {
         if(-1 == stop())
 			return -1;
-        clearFrameArray();
+        clearFrameArray();        
     }
     mPreviewRunning = 0;
 
@@ -391,7 +391,6 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isR
 {
     int fps_min,fps_max;
     int framerate=0;
-
 
     if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES), params_set.get(CameraParameters::KEY_PREVIEW_SIZE)) == NULL) {
         LOGE("PreviewSize(%s) not supported",params_set.get(CameraParameters::KEY_PREVIEW_SIZE));        
@@ -583,7 +582,7 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isR
             params_set.get(CameraParameters::KEY_FOCUS_AREAS));
         LOG1("Scene: %s", params_set.get(CameraParameters::KEY_SCENE_MODE));
     	LOG1("Effect: %s", params_set.get(CameraParameters::KEY_EFFECT));
-    	LOG1("ZoomIndex: %s", params_set.get(CameraParameters::KEY_ZOOM));	    
+    	LOG1("ZoomIndex: %s", params_set.get(CameraParameters::KEY_ZOOM));
 	}else{
 	    return BAD_VALUE;
 	}  
@@ -718,10 +717,6 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
 	params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
 	params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,parameterString); //here maybe erro , cause may not same with  XML 
-#else
-    params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"");
-    params.set(CameraParameters::KEY_VIDEO_SIZE,"");
-    params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
 #endif
 
 
@@ -1525,6 +1520,7 @@ void CameraIspAdapter::clearFrameArray(){
             mFrameInfoArray.removeItem((void*)tmpFrame);
             free(tmpFrame);
             //unlock
+            
             MediaBufUnlockBuffer( pMediaBuffer );
         }
     }
@@ -1559,6 +1555,7 @@ int CameraIspAdapter::adapterReturnFrame(int index,int cmd){
                 //remove item
                 mFrameInfoArray.removeItem((void*)tmpFrame);
                 free(tmpFrame);
+                
                 //unlock
                 MediaBufUnlockBuffer( pMediaBuffer );
             }
@@ -1590,62 +1587,62 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     // get & check buffer meta data
     PicBufMetaData_t *pPicBufMetaData = (PicBufMetaData_t *)(pMediaBuffer->pMetaData);
     HalHandle_t  tmpHandle = m_camDevice->getHalHandle();
+    
     //
-    if(pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr420 || pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr422){
-            if(pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr420){
-                fmt = V4L2_PIX_FMT_NV12;
-                }else{
-                fmt = V4L2_PIX_FMT_YUYV;
-                }
-        
-            if(pPicBufMetaData->Layout == PIC_BUF_LAYOUT_SEMIPLANAR ){
-                y_addr = (uint32_t)(pPicBufMetaData->Data.YCbCr.semiplanar.Y.pBuffer);
-                //now gap of y and uv buffer is 0. so uv addr could be calc from y addr.
-                uv_addr = (uint32_t)(pPicBufMetaData->Data.YCbCr.semiplanar.CbCr.pBuffer);
-                width = pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicWidthPixel;
-                height = pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicHeightPixel;
-                //get vir addr
-                HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
-                HalMapMemory( tmpHandle, uv_addr, 100, HAL_MAPMEM_READWRITE, &uv_addr_vir );
-                if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
-                    HalGetMemoryMapFd(tmpHandle, y_addr,&phy_addr);
-                else
-                    phy_addr = y_addr;
-                
-            }else if(pPicBufMetaData->Layout == PIC_BUF_LAYOUT_COMBINED){
-                y_addr = (uint32_t)(pPicBufMetaData->Data.YCbCr.combined.pBuffer );
-                width = pPicBufMetaData->Data.YCbCr.combined.PicWidthPixel>>1;
-                height = pPicBufMetaData->Data.YCbCr.combined.PicHeightPixel;
-                HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
-                if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
-                    HalGetMemoryMapFd(tmpHandle, y_addr,&phy_addr);
-                else
-                    phy_addr = y_addr;
-            }
+    if(pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr420 || pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr422){        
+        if(pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr420){
+            fmt = V4L2_PIX_FMT_NV12;
+        }else{
+            fmt = V4L2_PIX_FMT_YUYV;
+        }
 
-        }else if(pPicBufMetaData->Type == PIC_BUF_TYPE_RAW16){
-     
-            y_addr = (uint32_t)(pPicBufMetaData->Data.raw.pBuffer );
-            width = pPicBufMetaData->Data.raw.PicWidthPixel;
-            height = pPicBufMetaData->Data.raw.PicHeightPixel;
-            fmt = V4L2_PIX_FMT_SBGGR10;
+        if(pPicBufMetaData->Layout == PIC_BUF_LAYOUT_SEMIPLANAR ){
+            y_addr = (uint32_t)(pPicBufMetaData->Data.YCbCr.semiplanar.Y.pBuffer);
+            //now gap of y and uv buffer is 0. so uv addr could be calc from y addr.
+            uv_addr = (uint32_t)(pPicBufMetaData->Data.YCbCr.semiplanar.CbCr.pBuffer);
+            width = pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicWidthPixel;
+            height = pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicHeightPixel;
+            //get vir addr
+            HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
+            HalMapMemory( tmpHandle, uv_addr, 100, HAL_MAPMEM_READWRITE, &uv_addr_vir );
+            if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
+                HalGetMemoryMapFd(tmpHandle, y_addr,&phy_addr);
+            else
+                phy_addr = y_addr;
+
+        }else if(pPicBufMetaData->Layout == PIC_BUF_LAYOUT_COMBINED){
+            y_addr = (uint32_t)(pPicBufMetaData->Data.YCbCr.combined.pBuffer );
+            width = pPicBufMetaData->Data.YCbCr.combined.PicWidthPixel>>1;
+            height = pPicBufMetaData->Data.YCbCr.combined.PicHeightPixel;
             HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
             if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
                 HalGetMemoryMapFd(tmpHandle, y_addr,&phy_addr);
             else
                 phy_addr = y_addr;
-        }else{
-            LOGE("not support this type(%dx%d)  ,just support  yuv20 now",width,height);
-            return ;
-     }
+        }
+
+    } else if(pPicBufMetaData->Type == PIC_BUF_TYPE_RAW16) {
+
+        y_addr = (uint32_t)(pPicBufMetaData->Data.raw.pBuffer );
+        width = pPicBufMetaData->Data.raw.PicWidthPixel;
+        height = pPicBufMetaData->Data.raw.PicHeightPixel;
+        fmt = V4L2_PIX_FMT_SBGGR10;
+        HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
+        if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
+            HalGetMemoryMapFd(tmpHandle, y_addr,&phy_addr);
+        else
+            phy_addr = y_addr;
+    } else {
+        LOGE("not support this type(%dx%d)  ,just support  yuv20 now",width,height);
+        return ;
+    }
     
 
-    if ( pMediaBuffer->pNext != NULL )
-    {
+    if ( pMediaBuffer->pNext != NULL ) {
         MediaBufLockBuffer( (MediaBuffer_t*)pMediaBuffer->pNext );
     }
 	
-	if(preview_frame_inval > 0){
+	if(preview_frame_inval > 0) {
 	  	preview_frame_inval--;
 		LOG1("frame_inval:%d\n",preview_frame_inval);
 
@@ -1657,8 +1654,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 				LOG1("awb test fps(%d) awb stable(%d)\n", preview_frame_inval, awb_ret);
 				goto end;
 			}
-		}
-			 
+		}			 
   	}
 
 
@@ -1690,154 +1686,158 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
         mISPTunningQ->put(&msg);
 
     }else{
-	//need to display ?
-	if(mRefDisplayAdapter->isNeedSendToDisplay()){  
-	    MediaBufLockBuffer( pMediaBuffer );
-		//new frames
-		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
-		if(!tmpFrame){
-			MediaBufUnlockBuffer( pMediaBuffer );
-			return;
-      }
-      //add to vector
-      tmpFrame->frame_index = (int)tmpFrame; 
-      tmpFrame->phy_addr = (int)phy_addr;
-      tmpFrame->frame_width = width;
-      tmpFrame->frame_height= height;
-      tmpFrame->vir_addr = (int)y_addr_vir;
-      tmpFrame->frame_fmt = fmt;
-	  
-      tmpFrame->used_flag = 0;
+    	//need to display ?
+        if(mRefDisplayAdapter->isNeedSendToDisplay()) {  
+            MediaBufLockBuffer( pMediaBuffer );
+            //new frames
+            FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+            if(!tmpFrame){
+            	MediaBufUnlockBuffer( pMediaBuffer );
+            	return;
+            }
+            //add to vector
+            tmpFrame->frame_index = (int)tmpFrame; 
+            tmpFrame->phy_addr = (int)phy_addr;
+            tmpFrame->frame_width = width;
+            tmpFrame->frame_height= height;
+            tmpFrame->vir_addr = (int)y_addr_vir;
+            tmpFrame->frame_fmt = fmt;
 
-      #if (USE_RGA_TODO_ZOOM == 1)  
-         tmpFrame->zoom_value = mZoomVal;
-      #else
-      if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
-         tmpFrame->zoom_value = mZoomVal;
-      }else
-         tmpFrame->zoom_value = 100;
-      #endif
-    
-      {
-        Mutex::Autolock lock(mFrameArrayLock);
-        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
-        mDispFrameLeak++;
+            tmpFrame->used_flag = 0;
 
-      }
-      mRefDisplayAdapter->notifyNewFrame(tmpFrame);
-    }
+#if (USE_RGA_TODO_ZOOM == 1)  
+            tmpFrame->zoom_value = mZoomVal;
+#else
+            if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ) {
+                tmpFrame->zoom_value = mZoomVal;
+            } else {
+                tmpFrame->zoom_value = 100;
+            }
+#endif
 
-	//video enc ?
-	if(mRefEventNotifier->isNeedSendToVideo()){
-	    MediaBufLockBuffer( pMediaBuffer );
-		//new frames
-		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
-		if(!tmpFrame){
-			MediaBufUnlockBuffer( pMediaBuffer );
-			return;
-      }
-      //add to vector
-      tmpFrame->frame_index = (int)tmpFrame; 
-      tmpFrame->phy_addr = (int)phy_addr;
-      tmpFrame->frame_width = width;
-      tmpFrame->frame_height= height;
-      tmpFrame->vir_addr = (int)y_addr_vir;
-      tmpFrame->frame_fmt = fmt;
-      tmpFrame->used_flag = 1;
-      #if (USE_RGA_TODO_ZOOM == 1)  
-         tmpFrame->zoom_value = mZoomVal;
-      #else
-      if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
-         tmpFrame->zoom_value = mZoomVal;
-      }else
-         tmpFrame->zoom_value = 100;
-      #endif
-      
-      {
-        Mutex::Autolock lock(mFrameArrayLock);
-        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
-        mVideoEncFrameLeak++;
-      }
-      mRefEventNotifier->notifyNewVideoFrame(tmpFrame);		
-	}
-	//picture ?
-	if(mRefEventNotifier->isNeedSendToPicture()){
-        bool send_to_pic = true;
-        if(mFlashStatus && ((int)(pPicBufMetaData->priv) != 1)){
-            pPicBufMetaData->priv = NULL;
-            send_to_pic = false;
-            LOG1("not the desired flash pic,skip it,mFlashStatus %d!",mFlashStatus);
+            {
+                Mutex::Autolock lock(mFrameArrayLock);
+                mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+                mDispFrameLeak++;
+            }
+            mRefDisplayAdapter->notifyNewFrame(tmpFrame);
         }
-        if(send_to_pic){ 
-    		MediaBufLockBuffer( pMediaBuffer );
-    		//new frames
-    		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
-    		if(!tmpFrame){
-    			MediaBufUnlockBuffer( pMediaBuffer );
-    			return;
-    		}
-    	  //add to vector
-    	  tmpFrame->frame_index = (int)tmpFrame; 
-    	  tmpFrame->phy_addr = (int)phy_addr;
-    	  tmpFrame->frame_width = width;
-    	  tmpFrame->frame_height= height;
-    	  tmpFrame->vir_addr = (int)y_addr_vir;
-    	  tmpFrame->frame_fmt = fmt;
-          tmpFrame->used_flag = 2;
-          tmpFrame->res = &mImgAllFovReq;
-      #if (USE_RGA_TODO_ZOOM == 1)  
-         tmpFrame->zoom_value = mZoomVal;
-      #else
-          if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
-             tmpFrame->zoom_value = mZoomVal;
-          }else
-             tmpFrame->zoom_value = 100;
-      #endif
+
+    	//video enc ?
+    	if(mRefEventNotifier->isNeedSendToVideo()) {
+            MediaBufLockBuffer( pMediaBuffer );
+            //new frames
+            FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+            if(!tmpFrame){
+            	MediaBufUnlockBuffer( pMediaBuffer );
+            	return;
+            }          
+            //add to vector
+            tmpFrame->frame_index = (int)tmpFrame; 
+            tmpFrame->phy_addr = (int)phy_addr;
+            tmpFrame->frame_width = width;
+            tmpFrame->frame_height= height;
+            tmpFrame->vir_addr = (int)y_addr_vir;
+            tmpFrame->frame_fmt = fmt;
+            tmpFrame->used_flag = 1;
+#if (USE_RGA_TODO_ZOOM == 1)  
+            tmpFrame->zoom_value = mZoomVal;
+#else
+            if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ) {
+                tmpFrame->zoom_value = mZoomVal;
+            } else {
+                tmpFrame->zoom_value = 100;
+            }
+#endif
           
-          {
-            Mutex::Autolock lock(mFrameArrayLock);
-            mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
-            mPicEncFrameLeak++;
-          }
-		  picture_info_s &picinfo = mRefEventNotifier->getPictureInfoRef();
-		  getCameraParamInfo(picinfo.cameraparam);
-    	  mRefEventNotifier->notifyNewPicFrame(tmpFrame);	
-        }
-	}
+            {
+                Mutex::Autolock lock(mFrameArrayLock);
+                mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+                mVideoEncFrameLeak++;
+            }
+            mRefEventNotifier->notifyNewVideoFrame(tmpFrame);		
+    	}
+        
+    	//picture ?
+    	if(mRefEventNotifier->isNeedSendToPicture()){
+            bool send_to_pic = true;
+            if(mFlashStatus && ((int)(pPicBufMetaData->priv) != 1)){
+                pPicBufMetaData->priv = NULL;
+                send_to_pic = false;
+                LOG1("not the desired flash pic,skip it,mFlashStatus %d!",mFlashStatus);
+            }
+            if (send_to_pic) { 
+                MediaBufLockBuffer( pMediaBuffer );
+                //new frames
+                FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+                if(!tmpFrame){
+                	MediaBufUnlockBuffer( pMediaBuffer );
+                	return;
+                }
+                //add to vector
+                tmpFrame->frame_index = (int)tmpFrame; 
+                tmpFrame->phy_addr = (int)phy_addr;
+                tmpFrame->frame_width = width;
+                tmpFrame->frame_height= height;
+                tmpFrame->vir_addr = (int)y_addr_vir;
+                tmpFrame->frame_fmt = fmt;
+                tmpFrame->used_flag = 2;
+                tmpFrame->res = &mImgAllFovReq;
+#if (USE_RGA_TODO_ZOOM == 1)  
+                tmpFrame->zoom_value = mZoomVal;
+#else
+                if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
+                    tmpFrame->zoom_value = mZoomVal;
+                } else {
+                    tmpFrame->zoom_value = 100;
+                }
+#endif
 
-	//preview data callback ?
-	if(mRefEventNotifier->isNeedSendToDataCB()){
-		MediaBufLockBuffer( pMediaBuffer );
-		//new frames
-		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
-		if(!tmpFrame){
-			MediaBufUnlockBuffer( pMediaBuffer );
-			return;
-		}
-	  //add to vector
-	  tmpFrame->frame_index = (int)tmpFrame; 
-	  tmpFrame->phy_addr = (int)phy_addr;
-	  tmpFrame->frame_width = width;
-	  tmpFrame->frame_height= height;
-	  tmpFrame->vir_addr = (int)y_addr_vir;
-	  tmpFrame->frame_fmt = fmt;
-      tmpFrame->used_flag = 3;
-      #if (USE_RGA_TODO_ZOOM == 1)  
-         tmpFrame->zoom_value = mZoomVal;
-      #else
-      if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
-         tmpFrame->zoom_value = mZoomVal;
-      }else
-         tmpFrame->zoom_value = 100;
-      #endif
-      
-      {
-        Mutex::Autolock lock(mFrameArrayLock);
-        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
-        mPreviewCBFrameLeak++;
-      }
-	  mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);			
-	}
+                {
+                    Mutex::Autolock lock(mFrameArrayLock);
+                    mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+                    mPicEncFrameLeak++;
+                }
+                picture_info_s &picinfo = mRefEventNotifier->getPictureInfoRef();
+                getCameraParamInfo(picinfo.cameraparam);
+                mRefEventNotifier->notifyNewPicFrame(tmpFrame);	
+            }
+    	}
+
+    	//preview data callback ?
+    	if(mRefEventNotifier->isNeedSendToDataCB()) {
+            MediaBufLockBuffer( pMediaBuffer );
+            //new frames
+            FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+            if(!tmpFrame){
+            	MediaBufUnlockBuffer( pMediaBuffer );
+            	return;
+            }
+            //add to vector
+            tmpFrame->frame_index = (int)tmpFrame; 
+            tmpFrame->phy_addr = (int)phy_addr;
+            tmpFrame->frame_width = width;
+            tmpFrame->frame_height= height;
+            tmpFrame->vir_addr = (int)y_addr_vir;
+            tmpFrame->frame_fmt = fmt;
+            tmpFrame->used_flag = 3;
+#if (USE_RGA_TODO_ZOOM == 1)  
+            tmpFrame->zoom_value = mZoomVal;
+#else
+            if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ) {
+                tmpFrame->zoom_value = mZoomVal;
+            } else {
+                tmpFrame->zoom_value = 100;
+            }
+#endif
+
+            {
+                Mutex::Autolock lock(mFrameArrayLock);
+                mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+                mPreviewCBFrameLeak++;
+            }
+                mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);			
+        }
     }
 end:
 	

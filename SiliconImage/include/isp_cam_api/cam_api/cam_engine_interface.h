@@ -141,10 +141,12 @@
 *          1) Resolution which pixels is large than 90% pixels request, this is ok resolution in getPreferedSensorRes;
 *v0.0x2f.0:
 *          1) fix isi.h version macro is error, switch to v0.7.0
+*v1.0.0:
+*          1) Reuse buffer if the buffer haven't been fill image data instead of drop it;
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(0, 0x2f, 0x00)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0, 0)
 
 
 class CamEngineItf;
