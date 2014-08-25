@@ -28,11 +28,20 @@ int BufferProvider::getBufVirAddr(int bufindex)
     return vir_addr;
 }
 
+int BufferProvider::getBufShareFd(int bufindex)
+{
+    int share_fd = -1;
+    mBufInfo[bufindex].lock->lock();
+    share_fd = mBufInfo[bufindex].share_fd;
+    mBufInfo[bufindex].lock->unlock();
+    return share_fd;
+}
 int BufferProvider::createBuffer(int count,int perbufsize,buffer_type_enum buftype)
 {
     int ret = 0,i;
     struct bufferinfo_s buf;
 
+	memset(&buf,0,sizeof(struct bufferinfo_s));
     mBufCount = count;
     buf.mNumBffers = count;	
     buf.mPerBuffersize = PAGE_ALIGN(perbufsize);	
@@ -92,7 +101,8 @@ int BufferProvider::createBuffer(int count,int perbufsize,buffer_type_enum bufty
             mBufInfo[i].lock = new Mutex();
             mBufInfo[i].vir_addr = (int)mCamBuffer->getBufferAddr(buftype,i,buffer_addr_vir);
             mBufInfo[i].phy_addr = (int)mCamBuffer->getBufferAddr(buftype,i,buffer_addr_phy);
-            mBufInfo[i].buf_state = 0;
+    		mBufInfo[i].share_fd = (int)mCamBuffer->getBufferAddr(buftype,i,buffer_sharre_fd);
+	        mBufInfo[i].buf_state = 0;
     }
 
 createBuffer_end:    

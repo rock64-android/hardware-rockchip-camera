@@ -288,8 +288,12 @@ namespace android {
 	  1) support rk312x preview and picture taken .
 *v0.0x3b.2:
 	  1) pre_scaling_mode must be set when using rga to do yuv tranform
+*v1.0.0:
+*v1.0.1:
+	  1) 312x support iommu
+	  2) xml file is produced auto
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 1)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -355,7 +359,7 @@ namespace android {
 #define OPTIMIZE_MEMORY_USE
 #define VIDEO_ENC_BUFFER            0x151800 
 #define FILTER_FRAME_NUMBER (3)
-#define IOMMU_ENABLED   (0)
+#define IOMMU_ENABLED   (1)
 
 #define V4L2_BUFFER_MAX             32
 #define V4L2_BUFFER_MMAP_MAX        16
@@ -405,6 +409,7 @@ typedef struct rk_buffer_info {
     Mutex* lock;
     int phy_addr;
     int vir_addr;
+	int share_fd;
     int buf_state;
 } rk_buffer_info_t;
 
@@ -418,7 +423,8 @@ public:
     int getBufCount();
     int getBufPhyAddr(int bufindex);
     int getBufVirAddr(int bufindex);
-    int flushBuffer(int bufindex);
+    int getBufShareFd(int bufindex);
+	int flushBuffer(int bufindex);
     BufferProvider(MemManagerBase* memManager):mBufInfo(NULL),mCamBuffer(memManager){}
     virtual ~BufferProvider(){mCamBuffer = NULL;mBufInfo = NULL;}
 protected:

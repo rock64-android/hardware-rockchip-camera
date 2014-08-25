@@ -45,13 +45,15 @@ struct bufferinfo_s{
 	size_t mBufferSizes;
 	unsigned int mPhyBaseAddr;
 	unsigned int mVirBaseAddr;
+	unsigned int mShareFd;
 	buffer_type_enum mBufType;
 	bool        mIsForceIommuBuf;
 };
 
 typedef enum buffer_addr_e {
     buffer_addr_phy,
-    buffer_addr_vir    
+    buffer_addr_vir,    
+	buffer_sharre_fd
 }buffer_addr_t;
 
 class MemManagerBase{

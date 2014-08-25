@@ -70,26 +70,14 @@ int CameraSOCAdapter::cameraFramerateQuery(unsigned int format, unsigned int w, 
     
     struct v4l2_frmivalenum fival;
 
-    if (mCamDriverCapability.version  < 0x0205) {
-        LOGE("Camera driver version: %d.%d.%d isn't support query framerate, Please update to v0.2.5",
-            (mCamDriverCapability.version>>16) & 0xff,(mCamDriverCapability.version>>8) & 0xff,
-            mCamDriverCapability.version & 0xff);
-        goto default_fps;
-    }
-    
     ret = 0;
     fival.index = 0;
     fival.pixel_format = format;
     fival.width = w;
     fival.height = h;
 	ret = ioctl(mCamFd, VIDIOC_ENUM_FRAMEINTERVALS, &fival);    
-    if (ret == 0) {
+    if (ret == 0) {		
         if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
-            /* ddl@rock-chip.com: Compatible for v0.x.5 camera driver*/
-            if (mCamDriverCapability.version > 0x0205) {
-                if ((fival.discrete.denominator < 60) && (fival.discrete.numerator == 1000))
-                    fival.discrete.denominator *= 1000;                
-            }
             *min = (fival.discrete.denominator*1000)/fival.discrete.numerator;
             *max = (fival.discrete.denominator*1000)/fival.discrete.numerator;
         } else {
@@ -97,18 +85,9 @@ int CameraSOCAdapter::cameraFramerateQuery(unsigned int format, unsigned int w, 
             goto default_fps;
         }
     } else {
-        if ((w==240) && (h==160)) {
-            if (mCamDriverCapability.version >= 0x0207) {
-                LOGE("%s(%d): Query 240x160 framerate error,please supply this framerate "
-                    "in kernel board_rk29_xxx.c file for CONFIG_SENSOR_240X160_FPS_FIXD_XX",__FUNCTION__,__LINE__);
-                ret = -EINVAL;
-                goto cameraFramerateQuery_end;
-            }
-        } else {
-            LOGE("%s(%d): Query framerate error(%dx%d@%c%c%c%c index:%d)",__FUNCTION__,__LINE__,
-                fival.width,fival.height,(fival.pixel_format & 0xFF), (fival.pixel_format >> 8) & 0xFF,
-    				((fival.pixel_format >> 16) & 0xFF), ((fival.pixel_format >> 24) & 0xFF),fival.index);
-        }
+        LOGE("%s(%d): Query framerate error(%dx%d@%c%c%c%c index:%d)",__FUNCTION__,__LINE__,
+            fival.width,fival.height,(fival.pixel_format & 0xFF), (fival.pixel_format >> 8) & 0xFF,
+				((fival.pixel_format >> 16) & 0xFF), ((fival.pixel_format >> 24) & 0xFF),fival.index);
 default_fps:    
         if (gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_BACK) {
             *min = CONFIG_CAMERA_BACK_PREVIEW_FPS_MIN;
@@ -145,7 +124,7 @@ int CameraSOCAdapter::cameraFpsInfoSet(CameraParameters &params)
     memset(framerates,0x00,sizeof(framerates));
     for (i=0; i<sizes.size(); i++) {
         cameraFramerateQuery(mCamDriverPreviewFmt,sizes[i].width,sizes[i].height,&min,&max);        
-        if (min<framerate_min) {
+		if (min<framerate_min) {
             framerate_min = min;
         }
 
@@ -258,35 +237,47 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	}else if (mCamDriverFrmWidthMax <= 1280) {
 		if(mCamDriverFrmHeightMax <= 720){
             params.setPreviewSize(800, 600);
-            params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x720,800x600,640x480,352x288,320x240,176x144");
-			strcat( str_picturesize,"1280x720,1024x768,800x600,640x480,352x288,320x240,176x144");
-			params.setPictureSize(1280,720);
+            params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x720,800x600,720x480,640x480,352x288,320x240,176x144");
+			strcat( str_picturesize,"1024x768,800x600,640x480,352x288,320x240,176x144");
+			params.setPictureSize(1024,768);
 		}
 		else if(mCamDriverFrmHeightMax <= 960){
             params.setPreviewSize(800, 600);
-            params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x960,1280x720,800x600,640x480,352x288,320x240,176x144");
-			strcat( str_picturesize,"1280x960,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144");
-			params.setPictureSize(1280,960);
+            params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x960,1280x720,800x600,720x480,640x480,352x288,320x240,176x144");
+			strcat( str_picturesize,"1024x768,800x600,640x480,352x288,320x240,176x144");
+			params.setPictureSize(1024,768);
 		}
 	} else if (mCamDriverFrmWidthMax <= 1600) {
         params.setPreviewSize(800, 600);
-        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x960,1280x720,800x600,640x480,352x288,320x240,176x144");
-		strcat( str_picturesize,"1600x1200,1600x900,1280x960,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144");			
+		if(strstr(parameterString.string(),"1280x720"))
+	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x720,800x600,720x480,640x480,352x288,320x240,176x144");
+		else
+	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "800x600,720x480,640x480,352x288,320x240,176x144");
+		strcat( str_picturesize,"1600x1200,1600x900,1024x768,800x600,640x480,352x288,320x240,176x144");			
 		params.setPictureSize(1600,1200);
 	} else if (mCamDriverFrmWidthMax <= 2048) {
         params.setPreviewSize(800, 600);
-        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x960,1280x720,800x600,640x480,352x288,320x240,176x144");
-		strcat( str_picturesize,"2048x1536,1600x1200,1600x900,1280x960,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144"); 		
+		if(strstr(parameterString.string(),"1280x720"))
+	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x720,800x600,720x480,640x480,352x288,320x240,176x144");
+		else
+	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "800x600,720x480,640x480,352x288,320x240,176x144");
+		strcat( str_picturesize,"2048x1536,1600x1200,1600x900,1024x768,800x600,640x480,352x288,320x240,176x144"); 		
 		params.setPictureSize(2048,1536);
 	} else if (mCamDriverFrmWidthMax <= 2592) {  
         params.setPreviewSize(800, 600);
-        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x960,1280x720,800x600,640x480,352x288,320x240,176x144");
-		strcat( str_picturesize,"2592x1944,2592x1458,2048x1536,2048x1152,1600x1200,1600x900,1280x960,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144");			
+		if(strstr(parameterString.string(),"1280x720"))
+	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x720,800x600,720x480,640x480,352x288,320x240,176x144");
+		else
+	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "800x600,720x480,640x480,352x288,320x240,176x144");
+		strcat( str_picturesize,"2592x1944,2592x1458,2048x1536,2048x1152,1600x1200,1600x900,1024x768,800x600,640x480,352x288,320x240,176x144");			
 		params.setPictureSize(2592,1944);
 	} else if (mCamDriverFrmWidthMax <= 3264) {  
         params.setPreviewSize(800, 600);
-        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x960,1280x720,800x600,640x480,352x288,320x240,176x144");
-		strcat( str_picturesize,"3264x2448,2592x1944,2592x1458,2048x1536,2048x1152,1600x1200,1600x900,1280x960,1280x720,1024x768,800x600,640x480,352x288,320x240,176x144"); 			
+		if(strstr(parameterString.string(),"1280x720"))
+	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x720,720x480,800x600,640x480,352x288,320x240,176x144");
+		else
+	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "800x600,720x480,640x480,352x288,320x240,176x144");
+		strcat( str_picturesize,"3264x2448,2592x1944,2592x1458,2048x1536,2048x1152,1600x1200,1600x900,1024x768,800x600,640x480,352x288,320x240,176x144"); 			
 		params.setPictureSize(3264,2448);
 	} else {
 		sprintf(str_picturesize, "%dx%d", mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);

@@ -621,8 +621,12 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
     mPreviewFrameInfos[cfilledbuffer1.index].frame_width = mCamDrvWidth;
     mPreviewFrameInfos[cfilledbuffer1.index].frame_index = cfilledbuffer1.index;
     if(mCamDriverV4l2MemType == V4L2_MEMORY_OVERLAY){
-        mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = mPreviewBufProvider->getBufPhyAddr(cfilledbuffer1.index);
-    }else
+		#if (defined(TARGET_RK312x) && (IOMMU_ENABLED == 1))
+			mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = mPreviewBufProvider->getBufShareFd(cfilledbuffer1.index);
+		#else
+        	mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = mPreviewBufProvider->getBufPhyAddr(cfilledbuffer1.index);
+    	#endif
+	}else
         mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = 0;
     mPreviewFrameInfos[cfilledbuffer1.index].vir_addr = (int)mCamDriverV4l2Buffer[cfilledbuffer1.index];
     //get zoom_value
@@ -705,7 +709,7 @@ void CameraAdapter::previewThread(){
             
             ret = getFrame(&tmpFrame);
 
-            LOG2("%s(%d),frame addr = %p,%dx%d,index(%d)",__FUNCTION__,__LINE__,tmpFrame,tmpFrame->frame_width,tmpFrame->frame_height,tmpFrame->frame_index);
+//            LOG2("%s(%d),frame addr = %p,%dx%d,index(%d)",__FUNCTION__,__LINE__,tmpFrame,tmpFrame->frame_width,tmpFrame->frame_height,tmpFrame->frame_index);
             if((ret!=-1) && (!camera_device_error)){
                 //set preview buffer status
                 ret = reprocessFrame(tmpFrame);

@@ -593,6 +593,30 @@ fail:
     return rv;
 }
 
+static uint MediaProfile_Resolution[][2] = {{176,144},{240,160},{320,240},{352,288},
+                     {640,480},{720,480},{800,600}, {1280,720},{1920,1080},
+                     {0,0}};
+
+int find_DV_resolution_index(int w, int h)
+{
+	int list_w, list_h;
+	int i=0;
+	int index=-1;
+	
+	do{
+		list_w = MediaProfile_Resolution[i][0];
+		list_h = MediaProfile_Resolution[i][1];
+		
+		if(list_w==w && list_h==h){
+			index = i;
+			break;
+		}
+		i++;
+	}while(list_w!=0 && list_h!=0);
+
+	return index;
+}
+
 int camera_get_number_of_cameras(void)
 {
     char cam_path[20];
@@ -701,8 +725,16 @@ int camera_get_number_of_cameras(void)
     }
 
    	if(cam_cnt<CAMERAS_SUPPORT_MAX){
+		int i=0;
+		int element_count=0;
+		while(MediaProfile_Resolution[i][0]>0 && MediaProfile_Resolution[i][1]>0){
+			element_count++;
+			i++;
+		}
+		
         for (i=0; i<10; i++) {
             cam_path[0] = 0x00;
+			unsigned int pix_format_tmp = V4L2_PIX_FMT_NV12;
             strcat(cam_path, CAMERA_DEVICE_NAME);
             sprintf(cam_num, "%d", i);
             strcat(cam_path,cam_num);
@@ -722,6 +754,7 @@ int camera_get_number_of_cameras(void)
             if ((capability.capabilities & (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING)) != (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING)) {
         	    LOGD("Video device(%s): video capture not supported.\n",cam_path);
             } else {
+            	rk_cam_total_info* pNewCamInfo = new rk_cam_total_info();
                 memset(camInfoTmp[cam_cnt&0x01].device_path,0x00, sizeof(camInfoTmp[cam_cnt&0x01].device_path));
                 strcat(camInfoTmp[cam_cnt&0x01].device_path,cam_path);
                 memset(camInfoTmp[cam_cnt&0x01].fival_list,0x00, sizeof(camInfoTmp[cam_cnt&0x01].fival_list));
@@ -744,46 +777,128 @@ int camera_get_number_of_cameras(void)
                 sprintf(version,"%d.%d.%d",((capability.version&0xff0000)>>16),
                     ((capability.version&0xff00)>>8),capability.version&0xff);
                 property_set(CAMERAHAL_V4L2_VERSION_PROPERTY_KEY,version);
+				
+				if(strcmp((char*)&capability.driver[0],"uvcvideo") == 0)//uvc
+				{
+					//add usb camera to board_profiles 
+					rk_DV_info *pDVResolution = new rk_DV_info();
+					memset(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, 0x00, sizeof(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName));
+					strcpy(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, UVC_CAM_NAME);
+					//DV
+					strcpy(pDVResolution->mName, "480p");
+		    	    pDVResolution->mWidth = 640;
+		    	    pDVResolution->mHeight = 480;
+		    	    pDVResolution->mFps = 10;
+		    	    pDVResolution->mIsSupport =  1;
+		            pDVResolution->mResolution = ISI_RES_VGAP15;
+		            pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);
+					
+					//paremeters
+					pNewCamInfo->mSoftInfo.mAntiBandingConfig.mAntiBandingSupport = 0;
+					pNewCamInfo->mSoftInfo.mAntiBandingConfig.mDefault = 0;
+					pNewCamInfo->mSoftInfo.mAwbConfig.mAwbSupport = 0;
+					pNewCamInfo->mSoftInfo.mAwbConfig.mDefault = 0;
+					pNewCamInfo->mSoftInfo.mContinue_snapshot_config= 0;
+					pNewCamInfo->mSoftInfo.mEffectConfig.mEffectSupport = 0;
+					pNewCamInfo->mSoftInfo.mEffectConfig.mDefault = 0;
+					pNewCamInfo->mSoftInfo.mFlashConfig.mFlashSupport= 0;
+					pNewCamInfo->mSoftInfo.mFlashConfig.mDefault = 0;
+					pNewCamInfo->mSoftInfo.mFocusConfig.mFocusSupport= 0;
+					pNewCamInfo->mSoftInfo.mFocusConfig.mDefault = 0;
+					pNewCamInfo->mSoftInfo.mHDRConfig= 0;
+					pNewCamInfo->mSoftInfo.mSenceConfig.mSenceSupport= 0;
+					pNewCamInfo->mSoftInfo.mSenceConfig.mDefault = 0;
+					pNewCamInfo->mSoftInfo.mZSLConfig = 0;
+					//profiles->AddConnectUVCSensorToVector(pNewCamInfo, profiles);
+				}
+				else//cif soc camera
+				{
+					int i=0;					 
+					int fps;
+					int crop_w, crop_h;
+					int width, height;
+					struct v4l2_format fmt;
+					struct v4l2_format format;
+					struct v4l2_frmivalenum fival;
+					int sensor_resolution_w=0,sensor_resolution_h=0;
+					int resolution_index = -1;
+					
+					fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+			        fmt.fmt.pix.pixelformat= V4L2_PIX_FMT_NV12;
+			        fmt.fmt.pix.field = V4L2_FIELD_NONE;
+			        fmt.fmt.pix.width = 10000;
+			        fmt.fmt.pix.height = 10000;
+			        int ret = ioctl(fd, VIDIOC_TRY_FMT, &fmt);
+			        sensor_resolution_w = fmt.fmt.pix.width;
+			        sensor_resolution_h = fmt.fmt.pix.height;  /* ddl@rock-chips.com: v0.4.e */				
+					LOGD("@@@@@@@@@@@@%d@@@@@@@@@@@@@",__LINE__);
+					for(i=0; i<element_count; i++){
+						width = MediaProfile_Resolution[i][0];
+			            height = MediaProfile_Resolution[i][1];				
+			            memset(&fival, 0, sizeof(fival));
+			            fival.index = 0;
+			            fival.pixel_format = pix_format_tmp;
+			            fival.width = width;
+			            fival.height = height;
+			            fival.reserved[1] = 0x00;	
 
-				//add usb camera to board_profiles 
-				rk_cam_total_info* pNewCamInfo = new rk_cam_total_info();
-				rk_DV_info *pDVResolution = new rk_DV_info();
-				memset(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, 0x00, sizeof(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName));
-				strcpy(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, UVC_CAM_NAME);
-				//DV
-				strcpy(pDVResolution->mName, "480p");
-	    	    pDVResolution->mWidth = 640;
-	    	    pDVResolution->mHeight = 480;
-	    	    pDVResolution->mFps = 10;
-	    	    pDVResolution->mIsSupport =  1;
-	            pDVResolution->mResolution = ISI_RES_VGAP15;
-	            pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);
-				
-				//paremeters
-				pNewCamInfo->mSoftInfo.mAntiBandingConfig.mAntiBandingSupport = 0;
-				pNewCamInfo->mSoftInfo.mAntiBandingConfig.mDefault = 0;
-				pNewCamInfo->mSoftInfo.mAwbConfig.mAwbSupport = 0;
-				pNewCamInfo->mSoftInfo.mAwbConfig.mDefault = 0;
-				pNewCamInfo->mSoftInfo.mContinue_snapshot_config= 0;
-				pNewCamInfo->mSoftInfo.mEffectConfig.mEffectSupport = 0;
-				pNewCamInfo->mSoftInfo.mEffectConfig.mDefault = 0;
-				pNewCamInfo->mSoftInfo.mFlashConfig.mFlashSupport= 0;
-				pNewCamInfo->mSoftInfo.mFlashConfig.mDefault = 0;
-				pNewCamInfo->mSoftInfo.mFocusConfig.mFocusSupport= 0;
-				pNewCamInfo->mSoftInfo.mFocusConfig.mDefault = 0;
-				pNewCamInfo->mSoftInfo.mHDRConfig= 0;
-				pNewCamInfo->mSoftInfo.mSenceConfig.mSenceSupport= 0;
-				pNewCamInfo->mSoftInfo.mSenceConfig.mDefault = 0;
-				pNewCamInfo->mSoftInfo.mZSLConfig = 0;
+						rk_DV_info *pDVResolution = new rk_DV_info();
+						pDVResolution->mWidth = width;
+		    	    	pDVResolution->mHeight = height;
+		    	    	pDVResolution->mFps = 0;
+		    	    	pDVResolution->mIsSupport =  0;
+
+						if ((width>sensor_resolution_w) || (height>sensor_resolution_h)) {
+							pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);
+	                		continue;
+	            		}
+										
+						if ((ret = ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) {
+							if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {	
+								fps = (fival.discrete.denominator/fival.discrete.numerator);
+	                    		crop_w = (fival.reserved[1]&0xffff0000)>>16;
+	                    		crop_h = (fival.reserved[1]&0xffff);
+	                    		pDVResolution->mFps = fps;
+								LOGD("fps = %d,crop_w = %d,crop_h = %d&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n",fps,crop_w,crop_h);
+								pDVResolution->mIsSupport = 1;
+								
+								if ((crop_w != width) || (crop_h != height)) {
+			                        if(width==1280 && height==720 ) {
+			                            pDVResolution->mIsSupport = 0;
+			                        }
+			                    }
+
+								if(width==720 && height==480){
+			                        if ((crop_w>800) || (crop_h>600)) {    /* ddl@rock-chips.com: v0.4.e */
+			                             pDVResolution->mIsSupport =  0;    
+			                        } else {                       
+			                            resolution_index = find_DV_resolution_index(640,480);
+										if(resolution_index>0)
+			                 				pNewCamInfo->mSoftInfo.mDV_vector[resolution_index]->mIsSupport = 0;
+			                        }
+			                    }
+								
+							}else{
+								pDVResolution->mIsSupport = 0;
+								LOGE("find frame intervals failed ret(%d)\n", ret);
+							}
+						}else{
+							pDVResolution->mIsSupport = 0;
+							LOGE("find frame intervals failed ret(%d)\n", ret);
+						}
+						
+						pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);	        
+					}
+					
+					strcpy(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, SOC_CAM_NAME);//yzm822
+				}
                 pNewCamInfo->mHardInfo.mSensorInfo.mPhy.type = CamSys_Phy_end;
-				
-            	pNewCamInfo->mDeviceIndex = (profiles->mDevieVector.size()) - 1;
+
+				pNewCamInfo->mDeviceIndex = (profiles->mDevieVector.size()) - 1;
 				pNewCamInfo->mIsConnect = 1;
 				profiles->mCurDevice= pNewCamInfo;
             	profiles->mDevieVector.add(pNewCamInfo);
-				//profiles->AddConnectUVCSensorToVector(pNewCamInfo, profiles);
-
-               // gCamInfos[cam_cnt].pcam_total_info = pNewCamInfo;
+				//strcpy(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, SOC_CAM_NAME);//yzm822
                 camInfoTmp[cam_cnt].pcam_total_info = pNewCamInfo;
                 cam_cnt++;
                 if (cam_cnt >= CAMERAS_SUPPORT_MAX)

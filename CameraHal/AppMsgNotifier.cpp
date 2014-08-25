@@ -981,7 +981,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	JpegOutInfo.outBuflen = jpegbuf_size;
 	JpegOutInfo.jpegFileLen = 0x00;
 	JpegOutInfo.cacheflush= /*jpegEncFlushBufferCb*/NULL;
-	LOG1("JpegOutInfo.outBufPhyAddr:%x,JpegOutInfo.outBufVirAddr:%p,jpegbuf_size:%d",JpegOutInfo.outBufPhyAddr,JpegOutInfo.outBufVirAddr,jpegbuf_size);
+	LOG1("input_phy_addr %d,JpegOutInfo.outBufPhyAddr:%x,JpegOutInfo.outBufVirAddr:%p,jpegbuf_size:%d",input_phy_addr,JpegOutInfo.outBufPhyAddr,JpegOutInfo.outBufVirAddr,jpegbuf_size);
 
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
 	

@@ -60,7 +60,9 @@ unsigned int MemManagerBase::getBufferAddr(enum buffer_type_enum buf_type, unsig
         addr = (buf_info+buf_idx)->mVirBaseAddr;
     } else if (addr_type == buffer_addr_phy) {
         addr = (buf_info+buf_idx)->mPhyBaseAddr;
-    }
+    } else if(addr_type == buffer_sharre_fd){
+		addr = (buf_info+buf_idx)->mShareFd;
+	}
 getVirAddr_end:
     return addr;
 }
@@ -533,7 +535,7 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
     }
 
     for(i = 0;i < numBufs;i++){
-    	memset(tmpalloc,0,sizeof(struct bufferinfo_s));
+    	memset(tmpalloc,0,sizeof(struct camera_ionbuf_s));
 
         if((!mIommuEnabled) || (!ionbuf->mIsForceIommuBuf))
             ret = ion_alloc(client_fd, ionbuf->mPerBuffersize, PAGE_SIZE, 2, 0, &handle);
@@ -571,15 +573,15 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
         tmpalloc->map_fd    =   map_fd;
 
         
-    	ionbuf->mPhyBaseAddr = (unsigned long)tmpalloc->phy_addr;
-    	ionbuf->mVirBaseAddr = (unsigned long)tmpalloc->vir_addr;
+    	ionbuf->mPhyBaseAddr = (unsigned int)tmpalloc->phy_addr;
+    	ionbuf->mVirBaseAddr = (unsigned int)tmpalloc->vir_addr;
     	ionbuf->mPerBuffersize = PAGE_ALIGN(frame_size);
-    	*tmp_buf = *ionbuf;
-        tmp_buf++;
+    	ionbuf->mShareFd     = (unsigned int)tmpalloc->map_fd;
+		*tmp_buf = *ionbuf;
+		tmp_buf++;
         tmpalloc++;
         
     }
-
     if(ret < 0){
         LOGE(" failed !");
         while(--i >= 0){
@@ -588,8 +590,8 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
             munmap((void *)tmpalloc->vir_addr, tmpalloc->size);
             ion_free(client_fd, (struct ion_handle*)(tmpalloc->ion_hdl));
         }
-        delete tmpalloc;
-        delete tmp_buf;
+        free(tmpalloc);
+        free(tmp_buf);
     }
     return ret;
 }
@@ -645,27 +647,27 @@ void IonDmaMemManager::destroyIonBuffer(buffer_type_enum buftype)
 	switch(buftype)
 	{
 		case PREVIEWBUFFER:
-			delete mPreviewData;
-            mPreviewData = NULL;
-            delete mPreviewBufferInfo;
+			free(mPreviewData);
+			mPreviewData = NULL;
+            free(mPreviewBufferInfo);
             mPreviewBufferInfo = NULL;
 			break;
 		case RAWBUFFER:
-			delete mRawData;
+			free(mRawData);
             mRawData = NULL;
-            delete mRawBufferInfo;
+            free(mRawBufferInfo);
             mRawBufferInfo = NULL;
 			break;
 		case JPEGBUFFER:
-			delete mJpegData;
+			free(mJpegData);
             mJpegData = NULL;
-            delete mJpegBufferInfo;
+            free(mJpegBufferInfo);
             mJpegBufferInfo = NULL;
 			break;
 		case VIDEOENCBUFFER:
-			delete mVideoEncData;
+			free(mVideoEncData);
             mVideoEncData = NULL;
-            delete mVideoEncBufferInfo;
+            free(mVideoEncBufferInfo);
             mVideoEncBufferInfo = NULL;
 			break;
 
@@ -729,6 +731,11 @@ int IonDmaMemManager::createPreviewBuffer(struct bufferinfo_s* previewbuf)
     
 	if(!mPreviewData) {
 		mPreviewData = (camera_ionbuf_t*)malloc(sizeof(camera_ionbuf_t) * previewbuf->mNumBffers);
+		if(!mPreviewData){
+			LOGE("malloc mPreviewData failed!");
+			ret = -1;
+			return ret;
+		}
 	} else if(mPreviewData->vir_addr) {
 		LOG1("FREE the preview buffer alloced before firstly");
 		destroyPreviewBuffer();

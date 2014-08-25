@@ -25,6 +25,7 @@ using namespace android;
 #define ConfigBoardXmlVersion KERNEL_VERSION(0, 7, 0x00) 
 
 #define UVC_CAM_NAME "UVC Camera"
+#define SOC_CAM_NAME "SOC Camera"//yzm
 #define RK_CAM_FACING_FRONT (1)
 #define RK_CAM_FACING_BACK  (0)
 #define INVALID_VALUE -1

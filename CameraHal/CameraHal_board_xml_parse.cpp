@@ -1350,18 +1350,27 @@ int camera_board_profiles::CheckSensorSupportDV(rk_cam_total_info* pCamInfo)
     } else { 
         lanes = 0;
     }
-    
-    if(nDvVector>=1){
+    if((int)nDvVector>=1){
         for(int i=0; i<(int)nDvVector; i++){
             rk_DV_info *pDVInfo = pCamInfo->mSoftInfo.mDV_vector[i];
-
+			char *p = pCamInfo->mHardInfo.mSensorInfo.mSensorName;
 			if(strcmp(pCamInfo->mHardInfo.mSensorInfo.mSensorName, UVC_CAM_NAME)==0){
+				
 					if(pDVInfo->mIsSupport)
 	                    pDVInfo->mAddMask = 0;
 	                else
 	                    pDVInfo->mAddMask = 1;
 					ALOGD("(%s) UVC camera resolution(%dx%d) is support \n", pCamInfo->mHardInfo.mSensorInfo.mSensorName, pDVInfo->mWidth, pDVInfo->mHeight);
-			}else{ 
+			}
+			else if(strcmp(pCamInfo->mHardInfo.mSensorInfo.mSensorName, SOC_CAM_NAME)==0){
+				if(pDVInfo->mIsSupport)
+					pDVInfo->mAddMask = 0;
+				else{
+					pDVInfo->mAddMask = 1;
+					ALOGD("(%s) SOC camera resolution(%dx%d) is support \n", pCamInfo->mHardInfo.mSensorInfo.mSensorName, pDVInfo->mWidth, pDVInfo->mHeight);
+				}
+			}
+			else{ 
 			    pDVInfo->mAddMask = 1;
                 if(pDVInfo->mIsSupport) {
                     List *l,*head;
@@ -1878,7 +1887,7 @@ int camera_board_profiles::ProduceNewXml(camera_board_profiles* profiles)
     }
 
 	
-    if(nCamNum>=1){ 
+    if((int)nCamNum>=1){ 
         LOG1("enter produce new xml\n");
         //new xml file name
         strncpy(default_file, RK_DEFAULT_MEDIA_PROFILES_XML_PATH, sizeof(default_file));
