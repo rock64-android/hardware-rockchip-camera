@@ -292,8 +292,10 @@ namespace android {
 *v1.0.1:
 	  1) 312x support iommu
 	  2) xml file is produced auto
+*v1.0.2:
+	  1) fix uvc preview erro, caused by wrong MjpegDecoder phy addr.	
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 2)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

@@ -889,11 +889,16 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
         unsigned int input_len;
         output_len = 0;
         input_len = frame->frame_size;
+		#if (IOMMU_ENABLED == 1)
+		int phy_addr = mPreviewBufProvider->getBufShareFd(frame->frame_index);
+		#else
+		int phy_addr = mPreviewBufProvider->getBufPhyAddr(frame->frame_index);
+		#endif
 
         ret = mMjpegDecoder.decode(mMjpegDecoder.decoder,
                                     (unsigned char*)&outbuf, &output_len, 
     		                          (unsigned char*)frame->vir_addr, &input_len,
-    		                          mPreviewBufProvider->getBufPhyAddr(frame->frame_index));
+    		                          phy_addr);
         if (ret < 0){
             LOGE("%s(%d): mjpeg stream is error!",__FUNCTION__,__LINE__);
         }
