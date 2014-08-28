@@ -58,6 +58,7 @@ CameraAdapter::~CameraAdapter()
         mCamFd = -1;
     }  
 
+	this->cameraDestroy();
     LOG_FUNCTION_NAME_EXIT
 }
 

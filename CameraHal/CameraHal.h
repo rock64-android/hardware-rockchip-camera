@@ -296,8 +296,10 @@ namespace android {
 	  1) fix uvc preview erro, caused by wrong MjpegDecoder phy addr.	
 *v1.0.3:
       1) fix uvc pic taken erro, caused by wrong phy addr(should use fd).
+*v1.0.4:
+      1) mMjpegDecoder didn't deinit ,this will cause mem leak,fix it
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 3)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 4)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
