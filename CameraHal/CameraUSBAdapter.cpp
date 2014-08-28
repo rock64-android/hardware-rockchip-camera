@@ -881,7 +881,11 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
 {
     int ret = 0;
     //  usb camera may do something
-
+   	#if (IOMMU_ENABLED == 1)
+    int phy_addr = mPreviewBufProvider->getBufShareFd(frame->frame_index);
+    #else
+    int phy_addr = mPreviewBufProvider->getBufPhyAddr(frame->frame_index);
+    #endif
     if( frame->frame_fmt == V4L2_PIX_FMT_MJPEG){
         //decoder to NV12
         VPU_FRAME outbuf; 
@@ -889,11 +893,6 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
         unsigned int input_len;
         output_len = 0;
         input_len = frame->frame_size;
-		#if (IOMMU_ENABLED == 1)
-		int phy_addr = mPreviewBufProvider->getBufShareFd(frame->frame_index);
-		#else
-		int phy_addr = mPreviewBufProvider->getBufPhyAddr(frame->frame_index);
-		#endif
 
         ret = mMjpegDecoder.decode(mMjpegDecoder.decoder,
                                     (unsigned char*)&outbuf, &output_len, 
@@ -920,15 +919,12 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
     }
 
     frame->frame_fmt = V4L2_PIX_FMT_NV12;
-    frame->phy_addr = mPreviewBufProvider->getBufPhyAddr(frame->frame_index);
+    frame->phy_addr = phy_addr;
     frame->vir_addr = mPreviewBufProvider->getBufVirAddr(frame->frame_index);
     frame->zoom_value = mZoomVal;
-    
-
     //do zoom here?
     return ret;
     
 }
-
 
 }
