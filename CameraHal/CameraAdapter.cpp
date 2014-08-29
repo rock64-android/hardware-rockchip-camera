@@ -23,6 +23,7 @@ CameraAdapter::CameraAdapter(int cameraId):mPreviewRunning(0),
     mCamFd = -1;
     mCamDriverPreviewFmt = 0;
     mZoomVal = 100;
+	mLibstageLibHandle = NULL;
 
     CameraHal_SupportFmt[0] = V4L2_PIX_FMT_NV12;
     CameraHal_SupportFmt[1] = V4L2_PIX_FMT_NV16;
@@ -418,7 +419,7 @@ int CameraAdapter::cameraDestroy()
     int err,i;
 
     LOG_FUNCTION_NAME
-    if (mMjpegDecoder.state == 0) {
+    if (mLibstageLibHandle && (mMjpegDecoder.state == 0)) {
         mMjpegDecoder.deInit(mMjpegDecoder.decoder);
         mMjpegDecoder.destroy(mMjpegDecoder.decoder);
         mMjpegDecoder.decoder = NULL;

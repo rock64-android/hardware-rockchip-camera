@@ -298,8 +298,11 @@ namespace android {
       1) fix uvc pic taken erro, caused by wrong phy addr(should use fd).
 *v1.0.4:
       1) mMjpegDecoder didn't deinit ,this will cause mem leak,fix it
+*v1.0.5:
+	  1) mMjpegDecoder.deInit in func CameraAdapter::cameraDestroy maybe called 
+		when mMjpegDecoder havn't been initialized,fix it.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 4)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 5)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
