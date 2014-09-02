@@ -274,7 +274,7 @@ static RESULT NT99252_IsiGetCapsIssInternal
             }
             case 1:
             {
-                pIsiSensorCaps->Resolution = ISI_RES_SVGAP30;
+                pIsiSensorCaps->Resolution = ISI_RES_SVGAP15;
                 break;
             }
             default:

@@ -564,7 +564,7 @@ const IsiRegDescription_t GC0308_g_aRegDescription[] =
 		{0x20 , 0xff,"",eReadWrite},									
 		{0x21 , 0xf8,"",eReadWrite},									
 		{0x22 , 0x57,"",eReadWrite},									
-		{0x24 , 0xa2,"",eReadWrite},									
+		{0x24 , 0xa0,"",eReadWrite},									
 		{0x25 , 0x0f,"",eReadWrite},									
 																		 
 		//output sync_mode												 

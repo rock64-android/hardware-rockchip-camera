@@ -22,8 +22,10 @@ extern "C"
 *   1). support for isi v0.7.0
 *v0.5.0
 *   1). update init svga and 2M setting 
+*v0.5.0
+*   1). fix bugs
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 5, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 6, 0) 
 
 
 #define NT99252_DELAY_5MS                    (0x0000) //delay 5 ms
