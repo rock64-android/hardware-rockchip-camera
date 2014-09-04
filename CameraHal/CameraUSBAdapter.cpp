@@ -23,6 +23,15 @@ CameraUSBAdapter::CameraUSBAdapter(int cameraId)
     CameraHal_SupportFmt[4] = 0x00;
     #endif
     CameraHal_SupportFmt[5] = 0x00;
+	
+	mWhiteBalance_number = 0;
+	mEffect_number = 0;
+	mScene_number = 0;
+	mAntibanding_number = 0;
+	mZoomMin = 0;
+	mZoomMax = 0;
+	mZoomStep = 0;
+	mFlashMode_number = 0;
 
 }
 CameraUSBAdapter::~CameraUSBAdapter()

@@ -301,8 +301,10 @@ namespace android {
 *v1.0.5:
 	  1) mMjpegDecoder.deInit in func CameraAdapter::cameraDestroy maybe called 
 		when mMjpegDecoder havn't been initialized,fix it.
+*v1.0.6:
+	  1) some variable of class soc adapter havn't been initialized ,fix it.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 5)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 6)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

@@ -23,6 +23,14 @@ CameraSOCAdapter::CameraSOCAdapter(int cameraId)
 {
     LOGD("%s(%d):IN",__FUNCTION__,__LINE__);
     mCamDriverV4l2MemType = V4L2_MEMORY_OVERLAY;
+	
+	mWhiteBalance_number = 0;
+	mEffect_number = 0;
+	mScene_number = 0;
+	mAntibanding_number = 0;
+	mFlashMode_number = 0;
+	m_focus_mode = 0;
+	m_focus_value = 0;
 }
 CameraSOCAdapter::~CameraSOCAdapter()
 {
