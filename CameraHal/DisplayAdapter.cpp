@@ -715,7 +715,7 @@ display_receive_cmd:
                     #else
                         rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
                                             (char*)(frame->vir_addr), (short int *)(mDisplayBufInfo[queue_display_index].vir_addr), 
-                                            mDisplayWidth,mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true);
+                                            mDisplayWidth,mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false);
 
                     #endif
                     }

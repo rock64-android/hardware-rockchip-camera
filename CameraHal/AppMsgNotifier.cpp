@@ -858,7 +858,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
         #else
         rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
                             (char*)(frame->vir_addr), (short int *)rawbuf_vir, 
-                            jpeg_w,jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier);
+                            jpeg_w,jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false);
         #endif
         input_phy_addr = output_phy_addr;
         input_vir_addr = output_vir_addr;
@@ -1039,14 +1039,14 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 						//frame->frame_width,frame->frame_height,frame->frame_width,false);
 					mPreviewDataW,mPreviewDataH,mPreviewDataW,mDataCbFrontMirror);
 			}else {
-#if 1
+#if 0
 				//QQ voip need NV21
 				arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
 						(char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
 #else
 				rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 						(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
-						mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true);
+						mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,true);
 #endif
 				//arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
 			}
@@ -1081,7 +1081,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
         #else
         rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
                             (char*)(frame->vir_addr), (short int *)buf_vir, 
-                            mRecordW,mRecordW,mRecordH,frame->zoom_value,false,true);
+                            mRecordW,mRecordW,mRecordH,frame->zoom_value,false,true,false);
         #endif
 
         mVideoBufferProvider->flushBuffer(buf_index);

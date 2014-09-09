@@ -391,7 +391,7 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
 }
 
 
-extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop)
+extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21)
 {
     int rgafd = -1,ret = -1;
 
@@ -453,7 +453,10 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
     Rga_Request.dst.v_addr   = 0;
     Rga_Request.dst.vir_w = dstbuf_width;
     Rga_Request.dst.vir_h = dst_height;
-    Rga_Request.dst.format = RK_FORMAT_YCbCr_420_SP;
+    if(isDstNV21) 
+        Rga_Request.dst.format = RK_FORMAT_YCrCb_420_SP;
+    else 
+        Rga_Request.dst.format = RK_FORMAT_YCbCr_420_SP;
     Rga_Request.clip.xmin = 0;
     Rga_Request.clip.xmax = dst_width - 1;
     Rga_Request.clip.ymin = 0;

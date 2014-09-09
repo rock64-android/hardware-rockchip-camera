@@ -111,7 +111,7 @@ extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 							int dst_w, int dst_h, int dstbuf_w,
 							bool mirror);
 							
-extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop);
+extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21);
 
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
@@ -303,8 +303,10 @@ namespace android {
 		when mMjpegDecoder havn't been initialized,fix it.
 *v1.0.6:
 	  1) some variable of class soc adapter havn't been initialized ,fix it.
+*v1.0.7:
+	  1) modify for rga output format suport NV21.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 6)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 7)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
