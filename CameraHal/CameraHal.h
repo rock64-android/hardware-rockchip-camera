@@ -305,8 +305,12 @@ namespace android {
 	  1) some variable of class soc adapter havn't been initialized ,fix it.
 *v1.0.7:
 	  1) modify for rga output format suport NV21.
+*v1.0.8:
+	  1) VIDIOC_QBUF operation in func getFrame MUST be protected by mCamDriverStreamLock
+		to ensure VIDIOC_QBUF sync with VIDIOC_STREAMOFF 
+
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 7)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 8)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

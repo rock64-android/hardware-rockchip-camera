@@ -614,8 +614,11 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
     if(mPreviewFrameIndex++ < FILTER_FRAME_NUMBER)
     {
         LOG2("%s:filter frame %d",__FUNCTION__,mPreviewFrameIndex);
-        ioctl(mCamFd, VIDIOC_QBUF, &cfilledbuffer1);
-        goto FILTER_FRAMES; 
+    	mCamDriverStreamLock.lock();
+		if(mCamDriverStream)
+	    	ioctl(mCamFd, VIDIOC_QBUF, &cfilledbuffer1);
+        mCamDriverStreamLock.unlock();
+		goto FILTER_FRAMES; 
     }
     // fill frame info:w,h,phy,vir
     mPreviewFrameInfos[cfilledbuffer1.index].frame_fmt=  mCamDriverPreviewFmt;
