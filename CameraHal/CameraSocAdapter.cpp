@@ -29,8 +29,9 @@ CameraSOCAdapter::CameraSOCAdapter(int cameraId)
 	mScene_number = 0;
 	mAntibanding_number = 0;
 	mFlashMode_number = 0;
-	m_focus_mode = 0;
+	m_focus_mode = CameraSOCAdapter::focus_fixed;
 	m_focus_value = 0;
+
 }
 CameraSOCAdapter::~CameraSOCAdapter()
 {
@@ -721,6 +722,7 @@ int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 	CameraParameters params = tmpparams;
 
     LOGD("set whitebalance");
+	
     /*white balance setting*/
     const char *white_balance = params.get(CameraParameters::KEY_WHITE_BALANCE);
 	const char *mwhite_balance = mParameters.get(CameraParameters::KEY_WHITE_BALANCE);
@@ -750,8 +752,9 @@ int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 	const int mzoom = mParameters.getInt(CameraParameters::KEY_ZOOM);
 	if ((mzoom < 0) || (zoom != mzoom)) {	
 		mZoomVal = zoom * mZoomStep + mZoomMin;
+		if((mZoomVal < mZoomMin) || (mZoomVal > mZoomMax))
+			return BAD_VALUE;
 	}
-
 
     LOGD("set color effect");
 
@@ -886,16 +889,19 @@ int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
     /*focus setting*/
     const char *focusMode = params.get(CameraParameters::KEY_FOCUS_MODE);
 	const char *mfocusMode = mParameters.get(CameraParameters::KEY_FOCUS_MODE);
-	if (params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES)) {
+	if (strstr(params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES),focusMode)) {
 		if ( !mfocusMode || strcmp(focusMode, mfocusMode) ) {
-			GetAFParameters(focusMode);
-       		if(!cameraAutoFocus(isInit)){
-        		params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
-        		err = -1;
-   			}
+			if(strcmp(focusMode,CameraParameters::FOCUS_MODE_FIXED)){
+				GetAFParameters(focusMode);
+	       		if(!cameraAutoFocus(isInit)){
+	        		params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
+	        		err = -1;
+	   			}
+			}
 		}
 	} else{
 		params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
+		return BAD_VALUE;
 	}
     LOGD("set flash ");
 
@@ -1131,7 +1137,6 @@ int CameraSOCAdapter::cameraAutoFocus(bool auto_trig_only)
     int err;
     struct v4l2_ext_control extCtrInfo;
 	struct v4l2_ext_controls extCtrInfos;
-    
     if (m_focus_mode == 0) {
     	LOGE("%s(%d): focus mode is not set",__FUNCTION__,__LINE__);
     	err = false;
@@ -1173,7 +1178,8 @@ int CameraSOCAdapter::cameraAutoFocus(bool auto_trig_only)
 	    LOG1("%s(%d): Set focus mode %d",__FUNCTION__,__LINE__, m_focus_mode);
         err = true;
 	}
-cameraAutoFocus_end:
+	
+cameraAutoFocus_end:	
     return err;
 }
 

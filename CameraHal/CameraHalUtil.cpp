@@ -390,6 +390,8 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
 #endif
 }
 
+extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst, 
+									char *srcbuf, char *dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool mirror,int zoom_val);
 
 extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21)
 {
@@ -403,7 +405,16 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 
     struct rga_req  Rga_Request;
     int err = 0;
-    
+
+    /*has something wrong with rga of rk312x mirror operation*/
+#if defined(TARGET_RK312x)
+    if(mirror){
+        return arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, (isDstNV21 ? V4L2_PIX_FMT_NV21:V4L2_PIX_FMT_NV12), 
+				                            src, (char *)dst,src_width, src_height,dst_width, dst_height,
+				                            true,zoom_val);
+    }
+#endif
+
     memset(&Rga_Request,0x0,sizeof(Rga_Request));
 
 	unsigned char *psY, *psUV;
@@ -468,8 +479,13 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
     Rga_Request.mmu_info.mmu_en    = 1;
     Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1 | (1 << 8) | (1 << 10);
     Rga_Request.alpha_rop_flag |= (1 << 5);             /* ddl@rock-chips.com: v0.4.3 */
-
+    
+#if defined(TARGET_RK312x)
+    /* wrong operation of nv12 to nv21 ,not scale */
+	if(1/*(cropW != dst_width) || ( cropH != dst_height)*/){
+#else
 	if((cropW != dst_width) || ( cropH != dst_height)){
+#endif
 		Rga_Request.sina = 0;
 		Rga_Request.cosa = 0x10000;
 		Rga_Request.scale_mode = 1;

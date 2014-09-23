@@ -308,9 +308,12 @@ namespace android {
 *v1.0.8:
 	  1) VIDIOC_QBUF operation in func getFrame MUST be protected by mCamDriverStreamLock
 		to ensure VIDIOC_QBUF sync with VIDIOC_STREAMOFF 
-
+*v1.0.9:
+      1) fix 312x rga issues.
+      2) disable cif soc sensor DV resolution 800x600(VPU IOMMU pagefault occured when
+         snapshot during recording)
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 8)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 9)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -572,6 +575,27 @@ private:
             return false;
         }
     };
+	
+    void autofocusThread();	
+    class AutoFocusThread : public Thread {
+        CameraAdapter* mCameraAdapter;
+    public:
+        AutoFocusThread(CameraAdapter* hw)
+            : Thread(false), mCameraAdapter(hw) { }
+
+        virtual bool threadLoop() {
+            mCameraAdapter->autofocusThread();
+
+            return false;
+        }
+    };
+	
+    sp<AutoFocusThread>  mAutoFocusThread;
+	Mutex mAutoFocusLock;
+    bool mExitAutoFocusThread; 
+    Condition mAutoFocusCond;
+    camera_notify_callback mNotifyCb;
+
 
 
 protected:    

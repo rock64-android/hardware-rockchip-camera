@@ -31,6 +31,7 @@ CameraAdapter::CameraAdapter(int cameraId):mPreviewRunning(0),
     CameraHal_SupportFmt[3] = V4L2_PIX_FMT_RGB565;
     CameraHal_SupportFmt[4] = 0x00;
     CameraHal_SupportFmt[5] = 0x00;
+
    LOG_FUNCTION_NAME_EXIT   
 }
 
@@ -50,6 +51,17 @@ int CameraAdapter::initialize()
 CameraAdapter::~CameraAdapter()
 {
     LOG_FUNCTION_NAME
+		
+	
+	if(mAutoFocusThread != NULL){
+    	mAutoFocusLock.lock();
+    	mExitAutoFocusThread = true;
+    	mAutoFocusLock.unlock();
+    	mAutoFocusCond.signal();
+		mAutoFocusThread->requestExitAndWait();
+		mAutoFocusThread.clear();
+        mAutoFocusThread = NULL;
+	}
 
     if(mPreviewBufProvider)
         mPreviewBufProvider->freeBuffer();
@@ -246,7 +258,9 @@ void CameraAdapter::initDefaultParameters(int camFd)
 }
 status_t CameraAdapter::autoFocus()
 {
-    return 0;
+	
+	mAutoFocusCond.signal();
+	return 0;
 }
 status_t CameraAdapter::cancelAutoFocus()
 {
@@ -400,6 +414,12 @@ int CameraAdapter::cameraCreate(int cameraId)
     LOGD("%s(%d): Current driver is %s, v4l2 memory is %s",__FUNCTION__,__LINE__,mCamDriverCapability.driver, 
         (mCamDriverV4l2MemType==V4L2_MEMORY_MMAP)?"V4L2_MEMORY_MMAP":"V4L2_MEMORY_OVERLAY");
    mCamFd = iCamFd;
+
+    //create focus thread for soc or usb camera.
+    mAutoFocusThread = new AutoFocusThread(this);
+	mAutoFocusThread->run("AutoFocusThread", ANDROID_PRIORITY_URGENT_DISPLAY);	
+    mExitAutoFocusThread = false;
+
 
     LOG_FUNCTION_NAME_EXIT 
     return 0;
@@ -768,6 +788,44 @@ void CameraAdapter::previewThread(){
                         returnFrame(tmpFrame->frame_index,buffer_log);
             }
     }
+    LOG_FUNCTION_NAME_EXIT
+    return;
+}
+
+
+void CameraAdapter::autofocusThread()
+{
+    int err;
+	LOG_FUNCTION_NAME
+    while (1) {
+        mAutoFocusLock.lock();
+        /* check early exit request */
+        if (mExitAutoFocusThread) {
+            mAutoFocusLock.unlock();
+            LOG1("%s(%d) exit", __FUNCTION__,__LINE__);
+            goto autofocusThread_end;
+        }
+        mAutoFocusCond.wait(mAutoFocusLock);
+		LOGD("wait out\n");
+        /* check early exit request */
+        if (mExitAutoFocusThread) {
+            mAutoFocusLock.unlock();
+            LOG1("%s(%d) exit", __FUNCTION__,__LINE__);
+            goto autofocusThread_end;
+        }
+        mAutoFocusLock.unlock();
+
+       	//const char *mfocusMode = params.get(CameraParameters::KEY_FOCUS_MODE);
+		//if(mfocusMode) 
+        	//err = cameraAutoFocus(mfocusMode/*CameraParameters::FOCUS_MODE_AUTO*/,false);
+			err = cameraAutoFocus(false);
+		if(mRefEventNotifier){
+			mRefEventNotifier->notifyCbMsg(CAMERA_MSG_FOCUS, err);		
+		}
+        
+    }
+
+autofocusThread_end: 
     LOG_FUNCTION_NAME_EXIT
     return;
 }

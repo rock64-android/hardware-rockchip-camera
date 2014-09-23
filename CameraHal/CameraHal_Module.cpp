@@ -831,7 +831,6 @@ int camera_get_number_of_cameras(void)
 			        int ret = ioctl(fd, VIDIOC_TRY_FMT, &fmt);
 			        sensor_resolution_w = fmt.fmt.pix.width;
 			        sensor_resolution_h = fmt.fmt.pix.height;  /* ddl@rock-chips.com: v0.4.e */				
-					LOGD("@@@@@@@@@@@@%d@@@@@@@@@@@@@",__LINE__);
 					for(i=0; i<element_count; i++){
 						width = MediaProfile_Resolution[i][0];
 			            height = MediaProfile_Resolution[i][1];				
@@ -859,7 +858,6 @@ int camera_get_number_of_cameras(void)
 	                    		crop_w = (fival.reserved[1]&0xffff0000)>>16;
 	                    		crop_h = (fival.reserved[1]&0xffff);
 	                    		pDVResolution->mFps = fps;
-								LOGD("fps = %d,crop_w = %d,crop_h = %d&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n",fps,crop_w,crop_h);
 								pDVResolution->mIsSupport = 1;
 								
 								if ((crop_w != width) || (crop_h != height)) {
@@ -877,6 +875,11 @@ int camera_get_number_of_cameras(void)
 			                 				pNewCamInfo->mSoftInfo.mDV_vector[resolution_index]->mIsSupport = 0;
 			                        }
 			                    }
+
+                                /* needn't support dv 800x600 ,just support vga*/
+								if((width == 800) && (height == 600)){
+									pDVResolution->mIsSupport = 0;
+								}
 								
 							}else{
 								pDVResolution->mIsSupport = 0;
