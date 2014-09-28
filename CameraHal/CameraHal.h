@@ -312,8 +312,10 @@ namespace android {
       1) fix 312x rga issues.
       2) disable cif soc sensor DV resolution 800x600(VPU IOMMU pagefault occured when
          snapshot during recording)
+*v1.0.a:
+      1) video buffer should be aligned to 16.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 9)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0xa)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

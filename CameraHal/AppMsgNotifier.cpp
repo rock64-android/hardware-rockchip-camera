@@ -222,8 +222,10 @@ int AppMsgNotifier::startRecording(int w,int h)
     Mutex::Autolock lock(mRecordingLock);
     //create video buffer
     //video enc just support yuv420 format
-    frame_size = PAGE_ALIGN(w*h*3/2);
-    //release video buffer
+    //w,h align up to 16
+    frame_size = PAGE_ALIGN(((w+15) & (~15))*((h+15) & (~15))*3/2);
+
+	//release video buffer
     mVideoBufferProvider->freeBuffer();
     mVideoBufferProvider->createBuffer(CONFIG_CAMERA_VIDEOENC_BUF_CNT, frame_size, VIDEOENCBUFFER);
 
