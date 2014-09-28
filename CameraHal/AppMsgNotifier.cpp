@@ -1052,7 +1052,12 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 #endif
 				//arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
 			}
-            //callback
+			if(mDataCbFrontFlip) {
+				LOG1("----------------need  flip -------------------");
+				YuvData_Mirror_Flip(V4L2_PIX_FMT_NV12, (char*) tmpPreviewMemory->data,
+						(char*)frame->vir_addr,mPreviewDataW, mPreviewDataH);
+			}
+			//callback
             mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
             //release buffer
             tmpPreviewMemory->release(tmpPreviewMemory);
@@ -1125,9 +1130,10 @@ void AppMsgNotifier::dump()
 
 }
 
-void AppMsgNotifier::setDatacbFrontMirrorState(bool mirror)
+void AppMsgNotifier::setDatacbFrontMirrorFlipState(bool mirror,bool Flip)
 {
 	mDataCbFrontMirror = mirror;
+	mDataCbFrontFlip = Flip;
 }
 
 picture_info_s&  AppMsgNotifier::getPictureInfoRef()

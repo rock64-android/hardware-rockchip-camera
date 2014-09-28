@@ -314,6 +314,8 @@ namespace android {
          snapshot during recording)
 *v1.0.a:
       1) video buffer should be aligned to 16.
+*v1.0.b:
+      1) add flip for weixin and MiTalk.
 */
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0xa)
 
@@ -335,6 +337,7 @@ namespace android {
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL  0
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>,<com.tencent.mm>"
+#define CONFIG_CAMERA_FRONT_FLIP_MDATACB_APK  "<com.tencent.mm>,<com.xiaomi.channel>"
 #define CONFIG_CAMERA_SETVIDEOSIZE	0
 
 #define CONFIG_CAMERA_PREVIEW_BUF_CNT 4
@@ -1041,7 +1044,7 @@ public:
     void stopReceiveFrame();
     void startReceiveFrame();
     void dump();
-	void setDatacbFrontMirrorState(bool mirror);
+	void setDatacbFrontMirrorFlipState(bool mirror,bool mirrorFlip);
 	picture_info_s&  getPictureInfoRef();
 	vpu_display_mem_pool *pool;
 private:
@@ -1096,6 +1099,7 @@ private:
     int mPreviewDataH;
 	int mRunningState;
     bool mDataCbFrontMirror;
+    bool mDataCbFrontFlip;
     int mPicSize;
     camera_memory_t* mPicture;
 };
