@@ -569,8 +569,8 @@ int AppMsgNotifier::Jpegfillexifinfo(RkExifInfo *exifInfo,picture_info_s &params
 	timeinfo = localtime(&rawtime);
 	strftime((char *)exifInfo->DateTime, 20, "%Y:%m:%d %H:%M:%S", timeinfo);
 	
-	exifInfo->ExposureTime.num = (int)(params.cameraparam.ExposureTime*100);
-	exifInfo->ExposureTime.denom = 100;
+	exifInfo->ExposureTime.num = (int)(params.cameraparam.ExposureTime*10000);
+	exifInfo->ExposureTime.denom = 10000;
 	exifInfo->ApertureFNumber.num = 0x118;
 	exifInfo->ApertureFNumber.denom = 0x64;
 	exifInfo->ISOSpeedRatings = ((int)(params.cameraparam.ISOSpeedRatings))*100;

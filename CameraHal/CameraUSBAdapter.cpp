@@ -375,6 +375,10 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 
     parameterString = CameraParameters::FOCUS_MODE_FIXED;
     params.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_FIXED);
+#if 1
+	params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES, CameraParameters::FOCUS_MODE_FIXED);
+	params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");  
+#else
     focus.id = V4L2_CID_FOCUS_AUTO;
     if (!ioctl(mCamFd, VIDIOC_QUERYCTRL, &focus)) {
         parameterString.append(",");
@@ -407,6 +411,7 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 	}else{
 	   params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
 	}
+#endif 
 	//hardware face detect settings
 	struct v4l2_queryctrl facedetect;
 	facedetect.id = V4L2_CID_FACEDETECT;
@@ -672,7 +677,7 @@ int CameraUSBAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
                     LOGD ("%s(%d): Set framerate(%d fps) success",__FUNCTION__,__LINE__,params.getPreviewFrameRate());
                 }
             } else {                
-                LOGD("%s(%d): UVC isn't support set framerate after start preview",__FUNCTION__,__LINE__);
+                LOGE("%s(%d): UVC isn't support set framerate after start preview",__FUNCTION__,__LINE__);
             }
     }
 
@@ -860,19 +865,20 @@ int CameraUSBAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 	if (strcmp("0", params.get(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION))
 		|| strcmp("0", params.get(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION))) {
 	    if (!mexposure || (exposure && strcmp(exposure,mexposure))) {
-            #if CONFIG_CAMERA_UVC_MANEXP 
-			    query_control.id = V4L2_CID_BRIGHTNESS;
-        		if (!ioctl(mCamFd, VIDIOC_QUERYCTRL, &query_control)){
-	               control.id = V4L2_CID_BRIGHTNESS ;                    
-	               control.value = atoi(exposure) * ((query_control.maximum - query_control.minimum)/7);
-                
-                if (ioctl(mCamFd,VIDIOC_S_CTRL, &control) <0) {
-                     LOGE("%s(%d):  Set exposure(%s) failed",__FUNCTION__,__LINE__,exposure);
-                } else {
-                     LOGD("%s(%d): Set exposure %s  %d",__FUNCTION__,__LINE__,exposure,control.value);
-	                }
-                }
-            #endif
+				#if CONFIG_CAMERA_UVC_MANEXP 
+				query_control.id = V4L2_CID_BRIGHTNESS;
+				if (!ioctl(mCamFd, VIDIOC_QUERYCTRL, &query_control)){
+					const int medium = (query_control.maximum + query_control.minimum)/2;
+					control.id = V4L2_CID_BRIGHTNESS ;					  
+					control.value = medium + atoi(exposure) * (query_control.maximum - medium)/3;
+				
+					if (ioctl(mCamFd,VIDIOC_S_CTRL, &control) <0) {
+						 LOGE("%s(%d):	Set exposure(%s) failed",__FUNCTION__,__LINE__,exposure);
+					} else {
+						 LOGD("%s(%d): Set exposure %s	%d",__FUNCTION__,__LINE__,exposure,control.value);
+					}
+				}
+				#endif
 	    }
 	}    
 
@@ -896,6 +902,8 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
     int phy_addr = mPreviewBufProvider->getBufPhyAddr(frame->frame_index);
     #endif
     if( frame->frame_fmt == V4L2_PIX_FMT_MJPEG){
+    	   char *srcbuf = frame->vir_addr;
+    	   if((srcbuf[0] == 0xff) && (srcbuf[1] == 0xd8) && (srcbuf[2] == 0xff) && (srcbuf[3] == 0xe0)){
         //decoder to NV12
         VPU_FRAME outbuf; 
         unsigned int output_len;
@@ -909,6 +917,10 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
     		                          phy_addr);
         if (ret < 0){
             LOGE("%s(%d): mjpeg stream is error!",__FUNCTION__,__LINE__);
+	        }
+	    }else{
+	    		LOGE("mjpeg data error!!");
+	    		return -1;
         }
     }else if(frame->frame_fmt == V4L2_PIX_FMT_YUYV){
 

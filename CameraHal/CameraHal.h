@@ -316,8 +316,13 @@ namespace android {
       1) video buffer should be aligned to 16.
 *v1.0.b:
       1) add flip for weixin and MiTalk.
+*v1.0.c:
+      1) fix uvc exposure bug.
+      2) uvc capture may crash in librk_on2.so, fix it.
+      3) filter not mjpeg data when uvc output format is mjpeg.
+      4) invalide auto,infinity,macro focus function for uvc.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0xa)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0xc)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

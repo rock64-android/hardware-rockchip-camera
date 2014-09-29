@@ -780,10 +780,21 @@ int camera_get_number_of_cameras(void)
 				
 				if(strcmp((char*)&capability.driver[0],"uvcvideo") == 0)//uvc
 				{
+					int ret,i=0,j=0;					 
+					struct v4l2_frmivalenum fival;
+					struct v4l2_frmsizeenum fsize;
+					struct v4l2_fmtdesc fmtdesc;
+					unsigned int width, height;
+					unsigned int sensor_resolution_w=0,sensor_resolution_h=0;
+					unsigned int CameraHal_SupportFmt[6];
+					unsigned int mCamDriverSupportFmt[CAMERA_DRIVER_SUPPORT_FORMAT_MAX];
+					unsigned int mCamDriverPreviewFmt=0;
+					
 					//add usb camera to board_profiles 
 					rk_DV_info *pDVResolution = new rk_DV_info();
 					memset(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, 0x00, sizeof(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName));
 					strcpy(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, UVC_CAM_NAME);
+					#if 0
 					//DV
 					strcpy(pDVResolution->mName, "480p");
 		    	    pDVResolution->mWidth = 640;
@@ -792,7 +803,7 @@ int camera_get_number_of_cameras(void)
 		    	    pDVResolution->mIsSupport =  1;
 		            pDVResolution->mResolution = ISI_RES_VGAP15;
 		            pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);
-					
+					#endif
 					//paremeters
 					pNewCamInfo->mSoftInfo.mAntiBandingConfig.mAntiBandingSupport = 0;
 					pNewCamInfo->mSoftInfo.mAntiBandingConfig.mDefault = 0;
@@ -810,6 +821,114 @@ int camera_get_number_of_cameras(void)
 					pNewCamInfo->mSoftInfo.mSenceConfig.mDefault = 0;
 					pNewCamInfo->mSoftInfo.mZSLConfig = 0;
 					//profiles->AddConnectUVCSensorToVector(pNewCamInfo, profiles);
+
+					CameraHal_SupportFmt[0] = V4L2_PIX_FMT_NV12;
+				    CameraHal_SupportFmt[1] = V4L2_PIX_FMT_NV16;
+				    #if CONFIG_CAMERA_UVC_MJPEG_SUPPORT
+				    CameraHal_SupportFmt[2] = V4L2_PIX_FMT_MJPEG;
+				    CameraHal_SupportFmt[3] = V4L2_PIX_FMT_YUYV;
+				    CameraHal_SupportFmt[4] = V4L2_PIX_FMT_RGB565;
+				    #else
+				    CameraHal_SupportFmt[2] = V4L2_PIX_FMT_YUYV;
+				    CameraHal_SupportFmt[3] = V4L2_PIX_FMT_RGB565;
+				    CameraHal_SupportFmt[4] = 0x00;
+				    #endif
+				    CameraHal_SupportFmt[5] = 0x00;
+
+					memset(&fmtdesc, 0, sizeof(fmtdesc));	 
+					fmtdesc.index = 0;
+					fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;    
+					while (ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) == 0) {
+						mCamDriverSupportFmt[fmtdesc.index] = fmtdesc.pixelformat;
+						LOGD("mCamDriverSupportFmt: fmt = %d,index = %d",fmtdesc.pixelformat,fmtdesc.index);
+					
+						fmtdesc.index++;
+					}
+										
+					i = 0;	  
+					while (CameraHal_SupportFmt[i]) {
+						LOG1("CameraHal_SupportFmt:fmt = %d,index = %d",CameraHal_SupportFmt[i],i);
+						j = 0;
+						while (mCamDriverSupportFmt[j]) {
+							if (mCamDriverSupportFmt[j] == CameraHal_SupportFmt[i]) {
+								break;
+							}
+							j++;
+						}
+						if (mCamDriverSupportFmt[j] == CameraHal_SupportFmt[i]) {
+							break;
+						}
+						i++;
+					}
+					
+					if (CameraHal_SupportFmt[i] == 0x00) {
+						mCamDriverPreviewFmt = 0;
+					} else {  
+						mCamDriverPreviewFmt = CameraHal_SupportFmt[i];
+					}
+
+					fsize.index = 0;
+					fsize.pixel_format = mCamDriverPreviewFmt;
+
+					while ((ret = ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &fsize)) == 0) {
+						if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {  
+							//if(fsize.discrete.width%16 || fsize.discrete.height%16)
+							//{
+							//	fsize.index++;
+							//	continue;
+							//}
+					
+							if (fsize.discrete.width > sensor_resolution_w) {
+								sensor_resolution_w = fsize.discrete.width;
+								sensor_resolution_h = fsize.discrete.height;
+							}
+						}
+						fsize.index++;
+					}
+					if(sensor_resolution_w == 0){
+						sensor_resolution_w = 640;
+						sensor_resolution_h = 480;
+						pDVResolution->mResolution = ISI_RES_VGAP15;
+					}
+					for(i=0; i<element_count; i++){
+						width = MediaProfile_Resolution[i][0];
+			            height = MediaProfile_Resolution[i][1];				
+			            memset(&fival, 0, sizeof(fival));
+			            fival.index = 0;
+			            fival.pixel_format = fsize.pixel_format;
+			            fival.width = width;
+			            fival.height = height;
+			            fival.reserved[1] = 0x00;	
+
+						rk_DV_info *pDVResolution = new rk_DV_info();
+						pDVResolution->mWidth = width;
+		    	    	pDVResolution->mHeight = height;
+		    	    	pDVResolution->mFps = 0;
+		    	    	pDVResolution->mIsSupport =  0;
+
+						if ((width>sensor_resolution_w) || (height>sensor_resolution_h)) {
+							pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);
+	                		continue;
+	            		}
+	            		//LOGE("index = %d, pixel_format = %d, width = %d, height = %d", 
+	            		//    fival.index, fival.pixel_format, fival.width,  fival.height);
+						if ((ret = ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) {
+							if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
+								pDVResolution->mFps = fival.discrete.denominator/fival.discrete.numerator;
+								pDVResolution->mIsSupport = 1;
+								LOGD("%dx%d : %d	%d/%d",fival.width,fival.height, pDVResolution->mFps,fival.discrete.denominator,fival.discrete.numerator);
+							}else{
+								pDVResolution->mIsSupport = 0;
+								LOGE("fival.type != V4L2_FRMIVAL_TYPE_DISCRETE\n");
+							}
+							fival.index++;
+						}else {
+							pDVResolution->mIsSupport = 1;
+							pDVResolution->mFps = 10;
+							LOGE("find frame intervals failed ret(%d), so set famerate 10fps.\n", ret);
+				 		}
+						pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);	        
+					}
 				}
 				else//cif soc camera
 				{

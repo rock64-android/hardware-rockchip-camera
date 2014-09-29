@@ -230,13 +230,15 @@ status_t CameraAdapter::stopPreview()
     if(mPreviewRunning == 1){
         //camera stop
         cameraStream(false);
-        cameraStop();
+        
         //quit preview thread
     	if(mCameraPreviewThread != NULL){
         	mCameraPreviewThread->requestExitAndWait();
         	mCameraPreviewThread.clear();
             mCameraPreviewThread = NULL;
     	}
+		
+    	cameraStop();
         //destroy preview buffer
         if(mPreviewBufProvider)
             mPreviewBufProvider->freeBuffer();
@@ -736,13 +738,13 @@ void CameraAdapter::previewThread(){
 
 //            LOG2("%s(%d),frame addr = %p,%dx%d,index(%d)",__FUNCTION__,__LINE__,tmpFrame,tmpFrame->frame_width,tmpFrame->frame_height,tmpFrame->frame_index);
             if((ret!=-1) && (!camera_device_error)){
+            	mPreviewBufProvider->setBufferStatus(tmpFrame->frame_index, 0,PreviewBufferProvider::CMD_PREVIEWBUF_WRITING);
                 //set preview buffer status
                 ret = reprocessFrame(tmpFrame);
                 if(ret < 0){
                     returnFrame(tmpFrame->frame_index,buffer_log);
                     continue;
                 }
-                mPreviewBufProvider->setBufferStatus(tmpFrame->frame_index, 0,PreviewBufferProvider::CMD_PREVIEWBUF_WRITING);
 
                 buffer_log = 0;
                 //display ?
