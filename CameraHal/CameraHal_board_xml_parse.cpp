@@ -1037,8 +1037,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 			if (pFlashInfo->mFlashTrigger.active != pFlashInfo->mFlashEn.active) {
 			    LOGE("%s:\n"
 			        "WARNING: flashen active value is not equal to flashtrigger active value!\n\n\n",  __PRETTY_FUNCTION__);
-			    extdev.dev_cfg |= CAMSYS_DEVCFG_PREFLASHLIGHT;
 			}
+		    extdev.dev_cfg |= CAMSYS_DEVCFG_PREFLASHLIGHT;
 		}
     }
 

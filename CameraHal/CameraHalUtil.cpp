@@ -396,6 +396,14 @@ extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst,
 extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21)
 {
     int rgafd = -1,ret = -1;
+	/*has something wrong with rga of rk312x mirror operation*/
+#if defined(TARGET_RK312x)
+		if(mirror){
+			return arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, (isDstNV21 ? V4L2_PIX_FMT_NV21:V4L2_PIX_FMT_NV12), 
+												src, (char *)dst,src_width, src_height,dst_width, dst_height,
+												true,zoom_val);
+		}
+#endif
 
     if((rgafd = open("/dev/rga",O_RDWR)) < 0) {
     	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
@@ -405,15 +413,6 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 
     struct rga_req  Rga_Request;
     int err = 0;
-
-    /*has something wrong with rga of rk312x mirror operation*/
-#if defined(TARGET_RK312x)
-    if(mirror){
-        return arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, (isDstNV21 ? V4L2_PIX_FMT_NV21:V4L2_PIX_FMT_NV12), 
-				                            src, (char *)dst,src_width, src_height,dst_width, dst_height,
-				                            true,zoom_val);
-    }
-#endif
 
     memset(&Rga_Request,0x0,sizeof(Rga_Request));
 

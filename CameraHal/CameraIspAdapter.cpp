@@ -857,7 +857,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     	}
 
     	if(pCamInfo->mSoftInfo.mAwbConfig.mAwbSupport&0x1<<(AWB_TWILIGHT_BITPOS)) {
-            if (m_camDevice->chkAwbIllumination((char*)"Horizon") == true) {
+            if (m_camDevice->chkAwbIllumination((char*)"HORIZON") == true) {
                 parameterString.append(",");
                 parameterString.append(CameraParameters::WHITE_BALANCE_TWILIGHT);
             }
@@ -2066,7 +2066,7 @@ void CameraIspAdapter::setMwb(const char *white_balance)
 			} else if(!strcmp(white_balance, CameraParameters::WHITE_BALANCE_SHADE)) {
 				strcpy(prfName, "D75");
 			} else if(!strcmp(white_balance, CameraParameters::WHITE_BALANCE_TWILIGHT)) {
-				strcpy(prfName, "Horizon");
+				strcpy(prfName, "HORIZON");
 			} else if(!strcmp(white_balance, CameraParameters::WHITE_BALANCE_CLOUDY_DAYLIGHT)) {
 				strcpy(prfName, "D50");
 			} else if(!strcmp(white_balance, CameraParameters::WHITE_BALANCE_WARM_FLUORESCENT)) {

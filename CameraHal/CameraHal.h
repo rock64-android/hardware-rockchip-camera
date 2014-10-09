@@ -321,8 +321,12 @@ namespace android {
       2) uvc capture may crash in librk_on2.so, fix it.
       3) filter not mjpeg data when uvc output format is mjpeg.
       4) invalide auto,infinity,macro focus function for uvc.
+*v1.0.d:
+      1) has something wrong with rga of rk312x mirror operation,fix it by yzm.
+      2) correct illuminant name "Horizon" to "HORIZON".
+      3) fix flashlight bug in mode 2.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0xc)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0xd)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
