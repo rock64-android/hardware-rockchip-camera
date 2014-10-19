@@ -51,8 +51,9 @@ CREATE_TRACER( OV5640_REG_DEBUG, "OV5640: ", INFO, 0U );
 
 #define SOC_AF 1
 
-#define AF_Address    0x3022U
-#define AF_CMD        0x03U
+#define AF_Address     0x3022U
+#define AF_CMD         0x03U
+#define AF_IDLE        0x08U
 #define AF_ACK_Address 0x3023U
 #define AF_ACK_VALUE   0x01U
 
@@ -303,12 +304,7 @@ static RESULT OV5640_IsiGetCapsIssInternal
             }
             case 1:
             {
-                pIsiSensorCaps->Resolution = ISI_RES_SVGAP30;
-                break;
-            }
-
-            case 2:
-            {
+                //remove svga,preview is from 720p.just for increase fps.
                 pIsiSensorCaps->Resolution = ISI_RES_TV720P30;
                 break;
             }
@@ -706,8 +702,7 @@ static RESULT OV5640_SetupOutputWindow
 
                 TRACE( OV5640_INFO, "%s: success to set  ISI_RES_SVGAP30 \n", __FUNCTION__ );
             }
-            break;
-        }
+       }
         /*case ISI_RES_1600_1200:
         {
             if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV5640Ctx,OV5640_g_1600x1200)) != RET_SUCCESS){
@@ -1058,7 +1053,7 @@ static RESULT OV5640_IsiChangeSensorResolutionIss
         }
 
         // restore old exposure values (at least within new exposure values' limits)
-        uint8_t NumberOfFramesToSkip = 2;
+        uint8_t NumberOfFramesToSkip = 0;
         float   DummySetGain;
         float   DummySetIntegrationTime;
         result = OV5640_IsiExposureControlIss( handle, OldGain, OldIntegrationTime, &NumberOfFramesToSkip, &DummySetGain, &DummySetIntegrationTime );
@@ -1069,7 +1064,7 @@ static RESULT OV5640_IsiChangeSensorResolutionIss
         }
 
         // return number of frames that aren't exposed correctly
-        *pNumberOfFramesToSkip = NumberOfFramesToSkip + 1;
+        *pNumberOfFramesToSkip = 0;//NumberOfFramesToSkip + 1;
     }
 
     TRACE( OV5640_INFO, "%s (exit)\n", __FUNCTION__);
@@ -2656,19 +2651,6 @@ static RESULT OV5640_IsiMdiFocusSet
         return ( RET_WRONG_HANDLE );
     }
 
-    /* map 64 to 0 -> infinity */
-/*
-    result = HalWriteI2CMem( pOV5640Ctx->IsiCtx.HalHandle,
-                             pOV5640Ctx->IsiCtx.I2cAfBusNum,
-                             pOV5640Ctx->IsiCtx.SlaveAfAddress,
-                             0,
-                             pOV5640Ctx->IsiCtx.NrOfAfAddressBytes,
-                             data,
-                             2U );
-    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-*/
-
-	//osSleep(1000);
 	TRACE( OV5640_ERROR, "%s: Position:%d\n", __FUNCTION__,Position);
 	if(Position == 1) { 
 		result = HalWriteI2CMem_Rate( pOV5640Ctx->IsiCtx.HalHandle,
@@ -2696,14 +2678,15 @@ static RESULT OV5640_IsiMdiFocusSet
 	}else if (Position == 2) {
 
 		TRACE( OV5640_ERROR, "%s: trigger one shot focus\n", __FUNCTION__ );
-		result = OV5640_IsiRegWriteIss( pOV5640Ctx, AF_Address, AF_CMD );
+		
+		result = OV5640_IsiRegWriteIss( pOV5640Ctx, AF_ACK_Address, AF_ACK_VALUE);
 		if ( result != RET_SUCCESS )
 		{
 			TRACE( OV5640_ERROR, "%s: trigger one shot focus failed\n", __FUNCTION__ );
 			return ( result );
 		}
-		result = OV5640_IsiRegWriteIss( pOV5640Ctx, 0x3024U, 0x01U );
-		result = OV5640_IsiRegWriteIss( pOV5640Ctx, AF_ACK_Address, AF_ACK_VALUE );
+	
+		result = OV5640_IsiRegWriteIss( pOV5640Ctx, AF_Address, AF_CMD);
 		if ( result != RET_SUCCESS )
 		{
 			TRACE( OV5640_ERROR, "%s: trigger one shot focus failed\n", __FUNCTION__ );
@@ -2716,7 +2699,9 @@ static RESULT OV5640_IsiMdiFocusSet
 			}
 
 			TRACE( OV5640_INFO, "%s: zyh read tag fail,data:%d \n", __FUNCTION__,data);
-		}while(data!=0x00 && cnt++<500);
+		}while(data!=0x00 && cnt++<100);
+
+		
 	}
 	else {
 		TRACE( OV5640_ERROR, "%s: download firmware and one shot focus failed\n", __FUNCTION__ );

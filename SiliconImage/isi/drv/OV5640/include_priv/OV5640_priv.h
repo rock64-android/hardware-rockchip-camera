@@ -20,8 +20,12 @@
 *   1). support for isi v0.6.0
 *v0.7.0
 *   1). support for isi v0.7.0
+*v0.8.0
+*   1). for fps, remove svga setting and preview is from 720p. 
+*   2). becaus fps's increasing,so the rate fps is increasing.
+*
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 7, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 8, 0) 
 
 #ifdef __cplusplus
 extern "C"

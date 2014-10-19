@@ -37,7 +37,7 @@
 /******************************************************************************
  * local macro definitions
  *****************************************************************************/
-CREATE_TRACER( NT99252_INFO , "NT99252: ", ERROR,    1U );
+CREATE_TRACER( NT99252_INFO , "NT99252: ", INFO,    0U );
 CREATE_TRACER( NT99252_WARN , "NT99252: ", WARNING, 1U );
 CREATE_TRACER( NT99252_ERROR, "NT99252: ", ERROR,   1U );
 
