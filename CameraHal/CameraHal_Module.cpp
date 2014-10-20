@@ -789,7 +789,8 @@ int camera_get_number_of_cameras(void)
 					unsigned int CameraHal_SupportFmt[6];
 					unsigned int mCamDriverSupportFmt[CAMERA_DRIVER_SUPPORT_FORMAT_MAX];
 					unsigned int mCamDriverPreviewFmt=0;
-					
+					unsigned int maxfps;
+
 					//add usb camera to board_profiles 
 					rk_DV_info *pDVResolution = new rk_DV_info();
 					memset(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, 0x00, sizeof(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName));
@@ -840,8 +841,8 @@ int camera_get_number_of_cameras(void)
 					fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;    
 					while (ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) == 0) {
 						mCamDriverSupportFmt[fmtdesc.index] = fmtdesc.pixelformat;
-						LOGD("mCamDriverSupportFmt: fmt = %d,index = %d",fmtdesc.pixelformat,fmtdesc.index);
-					
+						LOG1("mCamDriverSupportFmt:(%c%c%c%c),index = %d",fmtdesc.pixelformat&0xFF,(fmtdesc.pixelformat>>8)&0xFF,
+							(fmtdesc.pixelformat>>16)&0xFF,(fmtdesc.pixelformat>>24)&0xFF,fmtdesc.index);
 						fmtdesc.index++;
 					}
 										
@@ -899,7 +900,8 @@ int camera_get_number_of_cameras(void)
 			            fival.width = width;
 			            fival.height = height;
 			            fival.reserved[1] = 0x00;	
-
+						maxfps = 0;
+						
 						rk_DV_info *pDVResolution = new rk_DV_info();
 						pDVResolution->mWidth = width;
 		    	    	pDVResolution->mHeight = height;
@@ -912,20 +914,26 @@ int camera_get_number_of_cameras(void)
 	            		}
 	            		//LOGE("index = %d, pixel_format = %d, width = %d, height = %d", 
 	            		//    fival.index, fival.pixel_format, fival.width,  fival.height);
-						if ((ret = ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) {
+						while ((ret = ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) {
 							if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
 								pDVResolution->mFps = fival.discrete.denominator/fival.discrete.numerator;
 								pDVResolution->mIsSupport = 1;
-								LOGD("%dx%d : %d	%d/%d",fival.width,fival.height, pDVResolution->mFps,fival.discrete.denominator,fival.discrete.numerator);
-							}else{
-								pDVResolution->mIsSupport = 0;
-								LOGE("fival.type != V4L2_FRMIVAL_TYPE_DISCRETE\n");
-							}
+								if (pDVResolution->mFps > maxfps)
+									maxfps = pDVResolution->mFps;
+								LOG1("%dx%d : %d	%d/%d",fival.width,fival.height, pDVResolution->mFps,fival.discrete.denominator,fival.discrete.numerator);
+							}else if (fival.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
+			                    break;
+			                } else if (fival.type == V4L2_FRMIVAL_TYPE_STEPWISE) {
+			                    break;
+			                }
 							fival.index++;
-						}else {
+						}
+						if(ret){
 							pDVResolution->mIsSupport = 1;
-							pDVResolution->mFps = 10;
-							LOGE("find frame intervals failed ret(%d), so set famerate 10fps.\n", ret);
+							if(maxfps > 0)
+								pDVResolution->mFps = maxfps;
+							else
+								pDVResolution->mFps = 10;
 				 		}
 						pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);	        
 					}

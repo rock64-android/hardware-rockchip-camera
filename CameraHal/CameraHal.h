@@ -325,8 +325,12 @@ namespace android {
       1) has something wrong with rga of rk312x mirror operation,fix it by yzm.
       2) correct illuminant name "Horizon" to "HORIZON".
       3) fix flashlight bug in mode 2.
+*v1.0.e:
+      1) uvc support 16bit unaligned resolution.
+      2) uvc operation in camera_get_number_of_cameras func exist bug, fixed it.
+      3) filter frames for isp soc camera.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0xd)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0xe)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -354,6 +358,8 @@ namespace android {
 #define CONFIG_CAMERA_VIDEO_BUF_CNT 4
 #define CONFIG_CAMERA_VIDEOENC_BUF_CNT		4
 
+#define CONFIG_CAMERA_UVC_MJPEG_SUPPORT 1
+#define CONFIG_CAMERA_UVC_MANEXP 1
 #define CONFIG_CAMERA_UVC_INVAL_FRAMECNT    5
 #define CONFIG_CAMERA_ORIENTATION_SKYPE     0
 #define CONFIG_CAMERA_FRONT_ORIENTATION_SKYPE     0

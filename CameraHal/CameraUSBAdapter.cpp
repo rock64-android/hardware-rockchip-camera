@@ -1,7 +1,5 @@
 #include "CameraHal.h"
 
-#define CONFIG_CAMERA_UVC_MJPEG_SUPPORT 1
-#define CONFIG_CAMERA_UVC_MANEXP 1
 
 namespace android{
 
@@ -32,7 +30,8 @@ CameraUSBAdapter::CameraUSBAdapter(int cameraId)
 	mZoomMax = 0;
 	mZoomStep = 0;
 	mFlashMode_number = 0;
-
+	mCamDriverFrmWidthMax = 0;
+	mCamDriverFrmHeightMax = 0;
 }
 CameraUSBAdapter::~CameraUSBAdapter()
 {
@@ -91,13 +90,15 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
     /*preview size setting*/
     fsize.index = 0;       
     fsize.pixel_format = mCamDriverPreviewFmt;
+	mCamDriverFrmWidthMax = 0;
+	mCamDriverFrmHeightMax = 0;
     while ((ret = ioctl(mCamFd, VIDIOC_ENUM_FRAMESIZES, &fsize)) == 0) {
         if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {  
-			if(fsize.discrete.width%16 || fsize.discrete.height%16)
-			{
-				fsize.index++;
-				continue;
-			}
+			//if(fsize.discrete.width%16 || fsize.discrete.height%16)
+			//{
+			//	fsize.index++;
+			//	continue;
+			//}
             memset(str_element,0x00,sizeof(str_element));
             if (parameterString.size() != 0) 
                 str_element[0]=',';
@@ -944,6 +945,20 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
     frame->vir_addr = mPreviewBufProvider->getBufVirAddr(frame->frame_index);
     frame->zoom_value = mZoomVal;
     //do zoom here?
+
+	int w,h;
+	w = frame->frame_width;
+	h = frame->frame_height;
+	if((w&0x0f) || (h&0x0f)){
+		char *buf = malloc(w*h*3/2);
+		if(buf != NULL){
+			memcpy(buf,frame->vir_addr,w*h);
+			memcpy(buf+w*h,frame->vir_addr+((w+15)&0xfff0)*((h+15)&0xfff0), w*h/2);
+			memcpy(frame->vir_addr,buf,w*h*3/2);
+			free(buf);
+		}
+	}
+
     return ret;
     
 }

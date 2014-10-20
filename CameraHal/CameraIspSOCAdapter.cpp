@@ -219,6 +219,11 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     {
         MediaBufLockBuffer( (MediaBuffer_t*)pMediaBuffer->pNext );
     }
+	if(preview_frame_inval > 0){
+		preview_frame_inval--;
+		LOGD("frame_inval:%d\n",preview_frame_inval);
+		return;	
+	}	
 #if 1
 	//need to display ?
 	if(mRefDisplayAdapter->isNeedSendToDisplay()){  
