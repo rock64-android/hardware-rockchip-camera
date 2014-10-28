@@ -714,9 +714,7 @@ const IsiRegDescription_t OV8858_g_aRegDescription_twolane[] =
 };
 
 const IsiRegDescription_t OV8858_g_1632x1224_twolane[] =
-{
-	
-	{0x0100, 0x00,"0x0100",eReadWrite}, 									 
+{	
 	{0x030e, 0x00,"0x0100",eReadWrite}, // pll2_rdiv						 
 	{0x030f, 0x09,"0x0100",eReadWrite}, // pll2_divsp						 
 	{0x0312, 0x01,"0x0100",eReadWrite}, // pll2_pre_div0, pll2_r_divdac 	 
@@ -754,14 +752,54 @@ const IsiRegDescription_t OV8858_g_1632x1224_twolane[] =
 	{0x4500, 0x38,"0x0100",eReadWrite}, 									 
 	{0x4600, 0x00,"0x0100",eReadWrite}, 									 
 	{0x4601, 0xcb,"0x0100",eReadWrite}, 									 
-	{0x382d, 0x7f,"0x0100",eReadWrite}, 									 
-	//{0x0100, 0x01,"0x0100",eReadWrite}, 									 
+	{0x382d, 0x7f,"0x0100",eReadWrite}, 								 
+	{0x0000 ,0x00,"eTableEnd",eTableEnd}
+
+};
+const IsiRegDescription_t OV8858_g_1632x1224P30_twolane_fpschg[] =
+{    
+	{0x380e, 0x04,"0x0100",eReadWrite}, // VTS H							 
+	{0x380f, 0xdc,"0x0100",eReadWrite}, // VTS L
+	{0x0000 ,0x00,"eTableEnd",eTableEnd}
+
+};
+
+const IsiRegDescription_t OV8858_g_1632x1224P25_twolane_fpschg[] =
+{  	
+	{0x380e, 0x05,"0x0100",eReadWrite}, // VTS H							 
+	{0x380f, 0xd4,"0x0100",eReadWrite}, // VTS L
+	{0x0000 ,0x00,"eTableEnd",eTableEnd}
+};
+
+
+const IsiRegDescription_t OV8858_g_1632x1224P20_twolane_fpschg[] =
+{
+    {0x380e, 0x07,"0x0100",eReadWrite}, // VTS H							 
+	{0x380f, 0x4a,"0x0100",eReadWrite}, // VTS L
+	{0x0000 ,0x00,"eTableEnd",eTableEnd}
+
+};
+
+const IsiRegDescription_t OV8858_g_1632x1224P15_twolane_fpschg[] =
+{
+		
+	{0x380e, 0x09,"0x0100",eReadWrite}, // VTS H							 
+	{0x380f, 0xb8,"0x0100",eReadWrite}, // VTS L
+	{0x0000 ,0x00,"eTableEnd",eTableEnd}
+
+};
+
+const IsiRegDescription_t OV8858_g_1632x1224P10_twolane_fpschg[] =
+{ 
+	{0x380e, 0x0e,"0x0100",eReadWrite}, // VTS H							 
+	{0x380f, 0x94,"0x0100",eReadWrite}, // VTS L	
 	{0x0000 ,0x00,"eTableEnd",eTableEnd}
 
 };
 
 const IsiRegDescription_t OV8858_g_3264x2448_twolane[] =
 {
+#if 0      /* ddl@rock-chips.com:  */
 	{0x0100, 0x00,"0x0100",eReadWrite}, 									 
 	{0x030e, 0x00,"0x0100",eReadWrite}, // pll2_rdiv						 
 	{0x030f, 0x09,"0x0100",eReadWrite}, // pll2_divsp						 
@@ -781,7 +819,7 @@ const IsiRegDescription_t OV8858_g_3264x2448_twolane[] =
 	{0x380c, 0x07,"0x0100",eReadWrite}, // HTS H							 
 	{0x380d, 0x88,"0x0100",eReadWrite}, // HTS L							 
 	{0x380e, 0x04,"0x0100",eReadWrite}, // VTS H							 
-	{0x380f, 0xdc,"0x0100",eReadWrite}, // VTS L							 
+	{0x380f, 0xdc,"0x0100",eReadWrite}, // VTS L
 	{0x3814, 0x03,"0x0100",eReadWrite}, // x odd inc						 
 	{0x3821, 0x67,"0x0100",eReadWrite}, // mirror on, bin on				 
 	{0x382a, 0x03,"0x0100",eReadWrite}, // y odd inc						 
@@ -801,8 +839,7 @@ const IsiRegDescription_t OV8858_g_3264x2448_twolane[] =
 	{0x4600, 0x00,"0x0100",eReadWrite}, 									 
 	{0x4601, 0xcb,"0x0100",eReadWrite}, 									 
 	{0x382d, 0x7f,"0x0100",eReadWrite}, 
-	
-	//{0x0100, 0x00,"0x0100",eReadWrite}, 								
+#endif									
 	{0x030e, 0x02,"0x0100",eReadWrite}, // pll2_rdiv					
 	{0x030f, 0x04,"0x0100",eReadWrite}, // pll2_divsp					
 	{0x0312, 0x03,"0x0100",eReadWrite}, // pll2_pre_div0, pll2_r_divdac 
@@ -841,10 +878,23 @@ const IsiRegDescription_t OV8858_g_3264x2448_twolane[] =
 	{0x4600, 0x01,"0x0100",eReadWrite}, 								
 	{0x4601, 0x97,"0x0100",eReadWrite}, 								
 	{0x382d, 0xff,"0x0100",eReadWrite}, 								
-	//{0x0100, 0x01,"0x0100",eReadWrite}, 								
 	{0x0000 ,0x00,"eTableEnd",eTableEnd}
 
 };
+const IsiRegDescription_t OV8858_g_3264x2448P7_twolane_fpschg[] =
+{
+    {0x380e, 0x13,"0x0100",eReadWrite}, // VTS H						
+	{0x380f, 0x54,"0x0100",eReadWrite}, // VTS L						
+    {0x0000 ,0x00,"eTableEnd",eTableEnd}
+};
+
+const IsiRegDescription_t OV8858_g_3264x2448P15_twolane_fpschg[] =
+{
+    {0x380e, 0x09,"0x0100",eReadWrite}, // VTS H						
+	{0x380f, 0xaa,"0x0100",eReadWrite}, // VTS L						
+    {0x0000 ,0x00,"eTableEnd",eTableEnd}
+};
+
 
 
 const IsiRegDescription_t OV8858_g_aRegDescription_fourlane[] =
@@ -1224,7 +1274,46 @@ const IsiRegDescription_t OV8858_g_1632x1224_fourlane[] =
 {0x0000 ,0x00,"eTableEnd",eTableEnd}
 
 };
+const IsiRegDescription_t OV8858_g_1632x1224P30_fourlane_fpschg[] =
+{    
+	{0x380e, 0x04,"0x0100",eReadWrite}, // VTS H							 
+	{0x380f, 0xdc,"0x0100",eReadWrite}, // VTS L
+	{0x0000 ,0x00,"eTableEnd",eTableEnd}
 
+};
+
+const IsiRegDescription_t OV8858_g_1632x1224P25_fourlane_fpschg[] =
+{  	
+	{0x380e, 0x05,"0x0100",eReadWrite}, // VTS H							 
+	{0x380f, 0xd4,"0x0100",eReadWrite}, // VTS L
+	{0x0000 ,0x00,"eTableEnd",eTableEnd}
+};
+
+
+const IsiRegDescription_t OV8858_g_1632x1224P20_fourlane_fpschg[] =
+{
+    {0x380e, 0x07,"0x0100",eReadWrite}, // VTS H							 
+	{0x380f, 0x4a,"0x0100",eReadWrite}, // VTS L
+	{0x0000 ,0x00,"eTableEnd",eTableEnd}
+
+};
+
+const IsiRegDescription_t OV8858_g_1632x1224P15_fourlane_fpschg[] =
+{
+		
+	{0x380e, 0x09,"0x0100",eReadWrite}, // VTS H							 
+	{0x380f, 0xb8,"0x0100",eReadWrite}, // VTS L
+	{0x0000 ,0x00,"eTableEnd",eTableEnd}
+
+};
+
+const IsiRegDescription_t OV8858_g_1632x1224P10_fourlane_fpschg[] =
+{ 
+	{0x380e, 0x0e,"0x0100",eReadWrite}, // VTS H							 
+	{0x380f, 0x94,"0x0100",eReadWrite}, // VTS L	
+	{0x0000 ,0x00,"eTableEnd",eTableEnd}
+
+};
 const IsiRegDescription_t OV8858_g_3264x2448_fourlane[] =
 {
 {0x0100 , 0x00 , "0x0100",eReadWrite},
@@ -1325,6 +1414,44 @@ const IsiRegDescription_t OV8858_g_3264x2448_fourlane[] =
 //{0x0100 , 0x01 , "0x0100",eReadWrite},
 {0x0000 ,0x00,"eTableEnd",eTableEnd}
 
+};
+
+const IsiRegDescription_t OV8858_g_3264x2448P7_fourlane_fpschg[] =
+{
+    {0x380e, 0x26,"0x0100",eReadWrite}, // VTS H						
+	{0x380f, 0xa8,"0x0100",eReadWrite}, // VTS L						
+    {0x0000 ,0x00,"eTableEnd",eTableEnd}
+};
+const IsiRegDescription_t OV8858_g_3264x2448P10_fourlane_fpschg[] =
+{
+    {0x380e, 0x1c,"0x0100",eReadWrite}, // VTS H						
+	{0x380f, 0xfe,"0x0100",eReadWrite}, // VTS L						
+    {0x0000 ,0x00,"eTableEnd",eTableEnd}
+};
+const IsiRegDescription_t OV8858_g_3264x2448P15_fourlane_fpschg[] =
+{
+    {0x380e, 0x13,"0x0100",eReadWrite}, // VTS H						
+	{0x380f, 0x54,"0x0100",eReadWrite}, // VTS L						
+    {0x0000 ,0x00,"eTableEnd",eTableEnd}
+};
+const IsiRegDescription_t OV8858_g_3264x2448P20_fourlane_fpschg[] =
+{
+    {0x380e, 0x0e,"0x0100",eReadWrite}, // VTS H						
+	{0x380f, 0x7f,"0x0100",eReadWrite}, // VTS L						
+    {0x0000 ,0x00,"eTableEnd",eTableEnd}
+};
+const IsiRegDescription_t OV8858_g_3264x2448P25_fourlane_fpschg[] =
+{
+    {0x380e, 0x0b,"0x0100",eReadWrite}, // VTS H						
+	{0x380f, 0x98,"0x0100",eReadWrite}, // VTS L						
+    {0x0000 ,0x00,"eTableEnd",eTableEnd}
+};
+
+const IsiRegDescription_t OV8858_g_3264x2448P30_fourlane_fpschg[] =
+{
+    {0x380e, 0x09,"0x0100",eReadWrite}, // VTS H						
+	{0x380f, 0xaa,"0x0100",eReadWrite}, // VTS L						
+    {0x0000 ,0x00,"eTableEnd",eTableEnd}
 };
 
 

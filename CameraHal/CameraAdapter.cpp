@@ -83,6 +83,11 @@ void CameraAdapter::setEventNotifierRef(AppMsgNotifier& refEventNotify)
 {
     mRefEventNotifier = &refEventNotify;
 }
+
+int CameraAdapter::faceNotify(struct RectFace* faces, int* num)
+{    
+    return 0;
+}
 void CameraAdapter::setPreviewBufProvider(BufferProvider* bufprovider)
 {
     mPreviewBufProvider = bufprovider;

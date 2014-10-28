@@ -25,7 +25,8 @@ LOCAL_SRC_FILES:=\
 	CameraHal.cpp\
 	CameraHal_board_xml_parse.cpp\
 	CameraHal_Tracer.c\
-	CameraIspTunning.cpp
+	CameraIspTunning.cpp \
+	SensorListener.cpp
 	
   
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)	 
@@ -64,7 +65,7 @@ LOCAL_SHARED_LIBRARIES:= \
 	libisp_silicomimageisp_api \
 	libstlport\
 	libexpat \
-	libskia
+	libskia \
 
 #LOCAL_STATIC_LIBRARIES :=  libisp_calibdb libtinyxml2 libisp_cam_calibdb libisp_ebase \
 #							libisp_oslayer libisp_common libisp_hal libisp_isi\

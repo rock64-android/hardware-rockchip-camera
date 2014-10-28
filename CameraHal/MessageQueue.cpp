@@ -66,7 +66,7 @@ static char* MessageCmdConvert(char* msgQ, unsigned int cmd)
     }
     return cmd_name;
 }
-static char* MessageArg1Convert(char* msgQ, Message *msg)
+static char* MessageArg1Convert(char* msgQ, Message_cam *msg)
 {    
     char *arg_name = gInvalArg,*cmd_name=gInvalCommands;
     unsigned arg_val = (unsigned int)msg->arg1;
@@ -122,7 +122,7 @@ MessageQueue::~MessageQueue()           /* ddl@rock-chips.com */
     this->fd_write = -1;
 }
 
-int MessageQueue::get(Message* msg)
+int MessageQueue::get(Message_cam* msg)
 {
     char* p = (char*) msg;
     unsigned int read_bytes = 0;
@@ -150,7 +150,7 @@ int MessageQueue::get(Message* msg)
     return 0;
 }
 
-int MessageQueue::get(Message* msg, int timeout)
+int MessageQueue::get(Message_cam* msg, int timeout)
 {
     char* p = (char*) msg;
     unsigned int read_bytes = 0;
@@ -194,7 +194,7 @@ int MessageQueue::get(Message* msg, int timeout)
     return 0;
 }
 
-int MessageQueue::put(Message* msg)
+int MessageQueue::put(Message_cam* msg)
 {
     char* p = (char*) msg;
     unsigned int bytes = 0;

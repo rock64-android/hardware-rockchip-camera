@@ -1,4 +1,3 @@
-//OV13850 the same with ov14825
 
 /******************************************************************************
  *
@@ -11,7 +10,7 @@
  *
  *****************************************************************************/
 /**
- * @file OV13850.c
+ * @file OV5648.c
  *
  * @brief
  *   ADD_DESCRIPTION_HERE
@@ -28,9 +27,9 @@
 #include "isi_iss.h"
 #include "isi_priv.h"
 
-#include "OV13850_MIPI_priv.h"
+#include "OV5648_MIPI_priv.h"
 
-#define  OV13850_NEWEST_TUNING_XML "22-May-2014_OUYANG_OV13850_FX288_v1.0"
+#define  Sensor_NEWEST_TUNING_XML "22-May-2014_OUYANG_OV5648_FX288_v1.0"
 
 #define CC_OFFSET_SCALING  2.0f
 #define I2C_COMPLIANT_STARTBIT 1U
@@ -38,21 +37,21 @@
 /******************************************************************************
  * local macro definitions
  *****************************************************************************/
-CREATE_TRACER( OV13850_INFO , "OV13850: ", INFO,    0U );
-CREATE_TRACER( OV13850_WARN , "OV13850: ", WARNING, 1U );
-CREATE_TRACER( OV13850_ERROR, "OV13850: ", ERROR,   1U );
+CREATE_TRACER( Sensor_INFO , "OV5648: ", INFO,    0U );
+CREATE_TRACER( Sensor_WARN , "OV5648: ", WARNING, 1U );
+CREATE_TRACER( Sensor_ERROR, "OV5648: ", ERROR,   1U );
 
-CREATE_TRACER( OV13850_DEBUG, "OV13850: ", INFO,     0U );
+CREATE_TRACER( Sensor_DEBUG, "OV5648: ", INFO,     0U );
 
-CREATE_TRACER( OV13850_REG_INFO , "OV13850: ", INFO, 0);
-CREATE_TRACER( OV13850_REG_DEBUG, "OV13850: ", INFO, 0U );
+CREATE_TRACER( Sensor_REG_INFO , "OV5648: ", INFO, 0);
+CREATE_TRACER( Sensor_REG_DEBUG, "OV5648: ", INFO, 0U );
 
-#define OV13850_SLAVE_ADDR       0x20U                           /**< i2c slave address of the OV13850 camera sensor */
-#define OV13850_SLAVE_ADDR2      0x6cU
-#define OV13850_SLAVE_AF_ADDR    0x18U                           /**< i2c slave address of the OV13850 integrated AD5820 */
+#define Sensor_SLAVE_ADDR       0x6cU                           /**< i2c slave address of the OV5648 camera sensor */
+#define Sensor_SLAVE_ADDR2      0x6cU
+#define Sensor_SLAVE_AF_ADDR    0x18U                           /**< i2c slave address of the OV5648 integrated AD5820 */
 
-#define OV13850_MIN_GAIN_STEP   ( 1.0f / 16.0f); /**< min gain step size used by GUI ( 32/(32-7) - 32/(32-6); min. reg value is 6 as of datasheet; depending on actual gain ) */
-#define OV13850_MAX_GAIN_AEC    ( 8.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
+#define Sensor_MIN_GAIN_STEP   ( 1.0f / 16.0f); /**< min gain step size used by GUI ( 32/(32-7) - 32/(32-6); min. reg value is 6 as of datasheet; depending on actual gain ) */
+#define Sensor_MAX_GAIN_AEC    ( 8.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
 
 
 /*!<
@@ -85,28 +84,52 @@ CREATE_TRACER( OV13850_REG_DEBUG, "OV13850: ", INFO, 0U );
 /******************************************************************************
  * local variable declarations
  *****************************************************************************/
-const char OV13850_g_acName[] = "OV13850_MIPI";
+const char Sensor_g_acName[] = "OV5648_MIPI";
 
-extern const IsiRegDescription_t OV13850_g_aRegDescription_fourlane[];
-extern const IsiRegDescription_t OV13850_g_fourlane_resolution_4224_3136[];
-extern const IsiRegDescription_t OV13850_g_fourlane_resolution_2112_1568[];
-extern const IsiRegDescription_t OV13850_g_aRegDescription_twolane[];
-extern const IsiRegDescription_t OV13850_g_twolane_resolution_4224_3136[];
-extern const IsiRegDescription_t OV13850_g_twolane_resolution_2112_1568[];
-extern const IsiRegDescription_t OV13850_g_aRegDescription_onelane[];
-extern const IsiRegDescription_t OV13850_g_onelane_resolution_4224_3136[];
-extern const IsiRegDescription_t OV13850_g_onelane_resolution_2112_1568[];
+extern const IsiRegDescription_t Sensor_g_aRegDescription_fourlane[];
+extern const IsiRegDescription_t Sensor_g_fourlane_resolution_2592_1944[];
+extern const IsiRegDescription_t Sensor_g_fourlane_resolution_1296_972[];
+extern const IsiRegDescription_t Sensor_g_aRegDescription_twolane[];
+extern const IsiRegDescription_t Sensor_g_twolane_resolution_1296_972[];
+extern const IsiRegDescription_t Sensor_g_twolane_resolution_2592_1944[];
+extern const IsiRegDescription_t Sensor_g_aRegDescription_onelane[];
+extern const IsiRegDescription_t Sensor_g_onelane_resolution_2592_1944[];
+extern const IsiRegDescription_t Sensor_g_onelane_resolution_1296_972[];
+
+//extern const IsiRegDescription_t Sensor_g_twolane_resolution_1296_972P30_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P30_twolane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P25_twolane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P20_twolane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P15_twolane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P10_twolane_fpschg[];
+
+extern const IsiRegDescription_t Sensor_g_2592x1944P15_twolane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_2592x1944P7_twolane_fpschg[];
+
+/*
+extern const IsiRegDescription_t Sensor_g_1296x972P30_fourlane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P25_fourlane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P20_fourlane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P15_fourlane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P10_fourlane_fpschg[];
+
+extern const IsiRegDescription_t Sensor_g_2592x1944P30_fourlane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_2592x1944P25_fourlane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_2592x1944P20_fourlane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_2592x1944P15_fourlane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_2592x1944P10_fourlane_fpschg[];
+*/
 
 
-const IsiSensorCaps_t OV13850_g_IsiSensorDefaultConfig;
+const IsiSensorCaps_t Sensor_g_IsiSensorDefaultConfig;
 
 
-#define OV13850_I2C_START_BIT        (I2C_COMPLIANT_STARTBIT)    // I2C bus start condition
-#define OV13850_I2C_NR_ADR_BYTES     (2U)                        // 1 byte base address and 2 bytes sub address
-#define OV13850_I2C_NR_DAT_BYTES     (1U)                        // 8 bit registers
+#define Sensor_I2C_START_BIT        (I2C_COMPLIANT_STARTBIT)    // I2C bus start condition
+#define Sensor_I2C_NR_ADR_BYTES     (2U)                        // 1 byte base address and 2 bytes sub address
+#define Sensor_I2C_NR_DAT_BYTES     (1U)                        // 8 bit registers
 
 
-static uint16_t g_suppoted_mipi_lanenum_type = SUPPORT_MIPI_ONE_LANE|SUPPORT_MIPI_TWO_LANE|SUPPORT_MIPI_FOUR_LANE;
+static uint16_t g_suppoted_mipi_lanenum_type = SUPPORT_MIPI_TWO_LANE;//SUPPORT_MIPI_ONE_LANE|SUPPORT_MIPI_TWO_LANE|SUPPORT_MIPI_FOUR_LANE;
 #define DEFAULT_NUM_LANES SUPPORT_MIPI_TWO_LANE
 
 
@@ -114,50 +137,50 @@ static uint16_t g_suppoted_mipi_lanenum_type = SUPPORT_MIPI_ONE_LANE|SUPPORT_MIP
 /******************************************************************************
  * local function prototypes
  *****************************************************************************/
-static RESULT OV13850_IsiCreateSensorIss( IsiSensorInstanceConfig_t *pConfig );
-static RESULT OV13850_IsiReleaseSensorIss( IsiSensorHandle_t handle );
-static RESULT OV13850_IsiGetCapsIss( IsiSensorHandle_t handle, IsiSensorCaps_t *pIsiSensorCaps );
-static RESULT OV13850_IsiSetupSensorIss( IsiSensorHandle_t handle, const IsiSensorConfig_t *pConfig );
-static RESULT OV13850_IsiSensorSetStreamingIss( IsiSensorHandle_t handle, bool_t on );
-static RESULT OV13850_IsiSensorSetPowerIss( IsiSensorHandle_t handle, bool_t on );
-static RESULT OV13850_IsiCheckSensorConnectionIss( IsiSensorHandle_t handle );
-static RESULT OV13850_IsiGetSensorRevisionIss( IsiSensorHandle_t handle, uint32_t *p_value);
+static RESULT Sensor_IsiCreateSensorIss( IsiSensorInstanceConfig_t *pConfig );
+static RESULT Sensor_IsiReleaseSensorIss( IsiSensorHandle_t handle );
+static RESULT Sensor_IsiGetCapsIss( IsiSensorHandle_t handle, IsiSensorCaps_t *pIsiSensorCaps );
+static RESULT Sensor_IsiSetupSensorIss( IsiSensorHandle_t handle, const IsiSensorConfig_t *pConfig );
+static RESULT Sensor_IsiSensorSetStreamingIss( IsiSensorHandle_t handle, bool_t on );
+static RESULT Sensor_IsiSensorSetPowerIss( IsiSensorHandle_t handle, bool_t on );
+static RESULT Sensor_IsiCheckSensorConnectionIss( IsiSensorHandle_t handle );
+static RESULT Sensor_IsiGetSensorRevisionIss( IsiSensorHandle_t handle, uint32_t *p_value);
 
-static RESULT OV13850_IsiGetGainLimitsIss( IsiSensorHandle_t handle, float *pMinGain, float *pMaxGain);
-static RESULT OV13850_IsiGetIntegrationTimeLimitsIss( IsiSensorHandle_t handle, float *pMinIntegrationTime, float *pMaxIntegrationTime );
-static RESULT OV13850_IsiExposureControlIss( IsiSensorHandle_t handle, float NewGain, float NewIntegrationTime, uint8_t *pNumberOfFramesToSkip, float *pSetGain, float *pSetIntegrationTime );
-static RESULT OV13850_IsiGetCurrentExposureIss( IsiSensorHandle_t handle, float *pSetGain, float *pSetIntegrationTime );
-static RESULT OV13850_IsiGetAfpsInfoIss ( IsiSensorHandle_t handle, uint32_t Resolution, IsiAfpsInfo_t* pAfpsInfo);
-static RESULT OV13850_IsiGetGainIss( IsiSensorHandle_t handle, float *pSetGain );
-static RESULT OV13850_IsiGetGainIncrementIss( IsiSensorHandle_t handle, float *pIncr );
-static RESULT OV13850_IsiSetGainIss( IsiSensorHandle_t handle, float NewGain, float *pSetGain );
-static RESULT OV13850_IsiGetIntegrationTimeIss( IsiSensorHandle_t handle, float *pSetIntegrationTime );
-static RESULT OV13850_IsiGetIntegrationTimeIncrementIss( IsiSensorHandle_t handle, float *pIncr );
-static RESULT OV13850_IsiSetIntegrationTimeIss( IsiSensorHandle_t handle, float NewIntegrationTime, float *pSetIntegrationTime, uint8_t *pNumberOfFramesToSkip );
-static RESULT OV13850_IsiGetResolutionIss( IsiSensorHandle_t handle, uint32_t *pSetResolution );
+static RESULT Sensor_IsiGetGainLimitsIss( IsiSensorHandle_t handle, float *pMinGain, float *pMaxGain);
+static RESULT Sensor_IsiGetIntegrationTimeLimitsIss( IsiSensorHandle_t handle, float *pMinIntegrationTime, float *pMaxIntegrationTime );
+static RESULT Sensor_IsiExposureControlIss( IsiSensorHandle_t handle, float NewGain, float NewIntegrationTime, uint8_t *pNumberOfFramesToSkip, float *pSetGain, float *pSetIntegrationTime );
+static RESULT Sensor_IsiGetCurrentExposureIss( IsiSensorHandle_t handle, float *pSetGain, float *pSetIntegrationTime );
+static RESULT Sensor_IsiGetAfpsInfoIss ( IsiSensorHandle_t handle, uint32_t Resolution, IsiAfpsInfo_t* pAfpsInfo);
+static RESULT Sensor_IsiGetGainIss( IsiSensorHandle_t handle, float *pSetGain );
+static RESULT Sensor_IsiGetGainIncrementIss( IsiSensorHandle_t handle, float *pIncr );
+static RESULT Sensor_IsiSetGainIss( IsiSensorHandle_t handle, float NewGain, float *pSetGain );
+static RESULT Sensor_IsiGetIntegrationTimeIss( IsiSensorHandle_t handle, float *pSetIntegrationTime );
+static RESULT Sensor_IsiGetIntegrationTimeIncrementIss( IsiSensorHandle_t handle, float *pIncr );
+static RESULT Sensor_IsiSetIntegrationTimeIss( IsiSensorHandle_t handle, float NewIntegrationTime, float *pSetIntegrationTime, uint8_t *pNumberOfFramesToSkip );
+static RESULT Sensor_IsiGetResolutionIss( IsiSensorHandle_t handle, uint32_t *pSetResolution );
 
 
-static RESULT OV13850_IsiRegReadIss( IsiSensorHandle_t handle, const uint32_t address, uint32_t *p_value );
-static RESULT OV13850_IsiRegWriteIss( IsiSensorHandle_t handle, const uint32_t address, const uint32_t value );
+static RESULT Sensor_IsiRegReadIss( IsiSensorHandle_t handle, const uint32_t address, uint32_t *p_value );
+static RESULT Sensor_IsiRegWriteIss( IsiSensorHandle_t handle, const uint32_t address, const uint32_t value );
 
-static RESULT OV13850_IsiGetCalibKFactor( IsiSensorHandle_t handle, Isi1x1FloatMatrix_t **pIsiKFactor );
-static RESULT OV13850_IsiGetCalibPcaMatrix( IsiSensorHandle_t   handle, Isi3x2FloatMatrix_t **pIsiPcaMatrix );
-static RESULT OV13850_IsiGetCalibSvdMeanValue( IsiSensorHandle_t   handle, Isi3x1FloatMatrix_t **pIsiSvdMeanValue );
-static RESULT OV13850_IsiGetCalibCenterLine( IsiSensorHandle_t   handle, IsiLine_t  **ptIsiCenterLine);
-static RESULT OV13850_IsiGetCalibClipParam( IsiSensorHandle_t   handle, IsiAwbClipParm_t    **pIsiClipParam );
-static RESULT OV13850_IsiGetCalibGlobalFadeParam( IsiSensorHandle_t       handle, IsiAwbGlobalFadeParm_t  **ptIsiGlobalFadeParam);
-static RESULT OV13850_IsiGetCalibFadeParam( IsiSensorHandle_t   handle, IsiAwbFade2Parm_t   **ptIsiFadeParam);
-static RESULT OV13850_IsiGetIlluProfile( IsiSensorHandle_t   handle, const uint32_t CieProfile, IsiIlluProfile_t **ptIsiIlluProfile );
+static RESULT Sensor_IsiGetCalibKFactor( IsiSensorHandle_t handle, Isi1x1FloatMatrix_t **pIsiKFactor );
+static RESULT Sensor_IsiGetCalibPcaMatrix( IsiSensorHandle_t   handle, Isi3x2FloatMatrix_t **pIsiPcaMatrix );
+static RESULT Sensor_IsiGetCalibSvdMeanValue( IsiSensorHandle_t   handle, Isi3x1FloatMatrix_t **pIsiSvdMeanValue );
+static RESULT Sensor_IsiGetCalibCenterLine( IsiSensorHandle_t   handle, IsiLine_t  **ptIsiCenterLine);
+static RESULT Sensor_IsiGetCalibClipParam( IsiSensorHandle_t   handle, IsiAwbClipParm_t    **pIsiClipParam );
+static RESULT Sensor_IsiGetCalibGlobalFadeParam( IsiSensorHandle_t       handle, IsiAwbGlobalFadeParm_t  **ptIsiGlobalFadeParam);
+static RESULT Sensor_IsiGetCalibFadeParam( IsiSensorHandle_t   handle, IsiAwbFade2Parm_t   **ptIsiFadeParam);
+static RESULT Sensor_IsiGetIlluProfile( IsiSensorHandle_t   handle, const uint32_t CieProfile, IsiIlluProfile_t **ptIsiIlluProfile );
 
-static RESULT OV13850_IsiMdiInitMotoDriveMds( IsiSensorHandle_t handle );
-static RESULT OV13850_IsiMdiSetupMotoDrive( IsiSensorHandle_t handle, uint32_t *pMaxStep );
-static RESULT OV13850_IsiMdiFocusSet( IsiSensorHandle_t handle, const uint32_t Position );
-static RESULT OV13850_IsiMdiFocusGet( IsiSensorHandle_t handle, uint32_t *pAbsStep );
-static RESULT OV13850_IsiMdiFocusCalibrate( IsiSensorHandle_t handle );
+static RESULT Sensor_IsiMdiInitMotoDriveMds( IsiSensorHandle_t handle );
+static RESULT Sensor_IsiMdiSetupMotoDrive( IsiSensorHandle_t handle, uint32_t *pMaxStep );
+static RESULT Sensor_IsiMdiFocusSet( IsiSensorHandle_t handle, const uint32_t Position );
+static RESULT Sensor_IsiMdiFocusGet( IsiSensorHandle_t handle, uint32_t *pAbsStep );
+static RESULT Sensor_IsiMdiFocusCalibrate( IsiSensorHandle_t handle );
 
-static RESULT OV13850_IsiGetSensorMipiInfoIss( IsiSensorHandle_t handle, IsiSensorMipiInfo *ptIsiSensorMipiInfo);
-static RESULT OV13850_IsiGetSensorIsiVersion(  IsiSensorHandle_t   handle, unsigned int* pVersion);
-static RESULT OV13850_IsiGetSensorTuningXmlVersion(  IsiSensorHandle_t   handle, char** pTuningXmlVersion);
+static RESULT Sensor_IsiGetSensorMipiInfoIss( IsiSensorHandle_t handle, IsiSensorMipiInfo *ptIsiSensorMipiInfo);
+static RESULT Sensor_IsiGetSensorIsiVersion(  IsiSensorHandle_t   handle, unsigned int* pVersion);
+static RESULT Sensor_IsiGetSensorTuningXmlVersion(  IsiSensorHandle_t   handle, char** pTuningXmlVersion);
 
 
 static float dctfloor( const float f )
@@ -176,7 +199,7 @@ static float dctfloor( const float f )
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiCreateSensorIss
+ *          Sensor_IsiCreateSensorIss
  *
  * @brief   This function creates a new OV13850 sensor instance handle.
  *
@@ -188,77 +211,77 @@ static float dctfloor( const float f )
  * @retval  RET_OUTOFMEM
  *
  *****************************************************************************/
-static RESULT OV13850_IsiCreateSensorIss
+static RESULT Sensor_IsiCreateSensorIss
 (
     IsiSensorInstanceConfig_t *pConfig
 )
 {
     RESULT result = RET_SUCCESS;
 	int32_t current_distance;
-    OV13850_Context_t *pOV13850Ctx;
+    Sensor_Context_t *pSensorCtx;
 
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (enter)\n", __FUNCTION__);
 
     if ( (pConfig == NULL) || (pConfig->pSensor ==NULL) )
     {
         return ( RET_NULL_POINTER );
     }
 
-    pOV13850Ctx = ( OV13850_Context_t * )malloc ( sizeof (OV13850_Context_t) );
-    if ( pOV13850Ctx == NULL )
+    pSensorCtx = ( Sensor_Context_t * )malloc ( sizeof (Sensor_Context_t) );
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR,  "%s: Can't allocate ov14825 context\n",  __FUNCTION__ );
+        TRACE( Sensor_ERROR,  "%s: Can't allocate ov14825 context\n",  __FUNCTION__ );
         return ( RET_OUTOFMEM );
     }
-    MEMSET( pOV13850Ctx, 0, sizeof( OV13850_Context_t ) );
+    MEMSET( pSensorCtx, 0, sizeof( Sensor_Context_t ) );
 
     result = HalAddRef( pConfig->HalHandle );
     if ( result != RET_SUCCESS )
     {
-        free ( pOV13850Ctx );
+        free ( pSensorCtx );
         return ( result );
     }
 
-    pOV13850Ctx->IsiCtx.HalHandle              = pConfig->HalHandle;
-    pOV13850Ctx->IsiCtx.HalDevID               = pConfig->HalDevID;
-    pOV13850Ctx->IsiCtx.I2cBusNum              = pConfig->I2cBusNum;
-    pOV13850Ctx->IsiCtx.SlaveAddress           = ( pConfig->SlaveAddr == 0 ) ? OV13850_SLAVE_ADDR : pConfig->SlaveAddr;
-    pOV13850Ctx->IsiCtx.NrOfAddressBytes       = 2U;
+    pSensorCtx->IsiCtx.HalHandle              = pConfig->HalHandle;
+    pSensorCtx->IsiCtx.HalDevID               = pConfig->HalDevID;
+    pSensorCtx->IsiCtx.I2cBusNum              = pConfig->I2cBusNum;
+    pSensorCtx->IsiCtx.SlaveAddress           = ( pConfig->SlaveAddr == 0 ) ? Sensor_SLAVE_ADDR : pConfig->SlaveAddr;
+    pSensorCtx->IsiCtx.NrOfAddressBytes       = 2U;
 
-    pOV13850Ctx->IsiCtx.I2cAfBusNum            = pConfig->I2cAfBusNum;
-    pOV13850Ctx->IsiCtx.SlaveAfAddress         = ( pConfig->SlaveAfAddr == 0 ) ? OV13850_SLAVE_AF_ADDR : pConfig->SlaveAfAddr;
-    pOV13850Ctx->IsiCtx.NrOfAfAddressBytes     = 0U;
+    pSensorCtx->IsiCtx.I2cAfBusNum            = pConfig->I2cAfBusNum;
+    pSensorCtx->IsiCtx.SlaveAfAddress         = ( pConfig->SlaveAfAddr == 0 ) ? Sensor_SLAVE_AF_ADDR : pConfig->SlaveAfAddr;
+    pSensorCtx->IsiCtx.NrOfAfAddressBytes     = 0U;
 
-    pOV13850Ctx->IsiCtx.pSensor                = pConfig->pSensor;
+    pSensorCtx->IsiCtx.pSensor                = pConfig->pSensor;
 
-    pOV13850Ctx->Configured             = BOOL_FALSE;
-    pOV13850Ctx->Streaming              = BOOL_FALSE;
-    pOV13850Ctx->TestPattern            = BOOL_FALSE;
-    pOV13850Ctx->isAfpsRun              = BOOL_FALSE;
+    pSensorCtx->Configured             = BOOL_FALSE;
+    pSensorCtx->Streaming              = BOOL_FALSE;
+    pSensorCtx->TestPattern            = BOOL_FALSE;
+    pSensorCtx->isAfpsRun              = BOOL_FALSE;
     /* ddl@rock-chips.com: v0.3.0 */
     current_distance = pConfig->VcmRatedCurrent - pConfig->VcmStartCurrent;
     current_distance = current_distance*MAX_VCMDRV_REG/MAX_VCMDRV_CURRENT;    
-    pOV13850Ctx->VcmInfo.Step = (current_distance+(MAX_LOG-1))/MAX_LOG;
-    pOV13850Ctx->VcmInfo.StartCurrent   = pConfig->VcmStartCurrent*MAX_VCMDRV_REG/MAX_VCMDRV_CURRENT;    
-    pOV13850Ctx->VcmInfo.RatedCurrent   = pOV13850Ctx->VcmInfo.StartCurrent + MAX_LOG*pOV13850Ctx->VcmInfo.Step;
-    pOV13850Ctx->VcmInfo.StepMode       = pConfig->VcmStepMode;  
+    pSensorCtx->VcmInfo.Step = (current_distance+(MAX_LOG-1))/MAX_LOG;
+    pSensorCtx->VcmInfo.StartCurrent   = pConfig->VcmStartCurrent*MAX_VCMDRV_REG/MAX_VCMDRV_CURRENT;    
+    pSensorCtx->VcmInfo.RatedCurrent   = pSensorCtx->VcmInfo.StartCurrent + MAX_LOG*pSensorCtx->VcmInfo.Step;
+    pSensorCtx->VcmInfo.StepMode       = pConfig->VcmStepMode;  
 
-    pOV13850Ctx->IsiSensorMipiInfo.sensorHalDevID = pOV13850Ctx->IsiCtx.HalDevID;
+    pSensorCtx->IsiSensorMipiInfo.sensorHalDevID = pSensorCtx->IsiCtx.HalDevID;
     if(pConfig->mipiLaneNum & g_suppoted_mipi_lanenum_type)
-        pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes = pConfig->mipiLaneNum;
+        pSensorCtx->IsiSensorMipiInfo.ucMipiLanes = pConfig->mipiLaneNum;
     else{
-        pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes = DEFAULT_NUM_LANES;
+        pSensorCtx->IsiSensorMipiInfo.ucMipiLanes = DEFAULT_NUM_LANES;
     }
 
-    pConfig->hSensor = ( IsiSensorHandle_t )pOV13850Ctx;
+    pConfig->hSensor = ( IsiSensorHandle_t )pSensorCtx;
 
-    result = HalSetCamConfig( pOV13850Ctx->IsiCtx.HalHandle, pOV13850Ctx->IsiCtx.HalDevID, false, true, false );
+    result = HalSetCamConfig( pSensorCtx->IsiCtx.HalHandle, pSensorCtx->IsiCtx.HalDevID, false, true, false );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-    result = HalSetClock( pOV13850Ctx->IsiCtx.HalHandle, pOV13850Ctx->IsiCtx.HalDevID, 24000000U);
+    result = HalSetClock( pSensorCtx->IsiCtx.HalHandle, pSensorCtx->IsiCtx.HalDevID, 24000000U);
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-    TRACE( OV13850_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -267,42 +290,42 @@ static RESULT OV13850_IsiCreateSensorIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiReleaseSensorIss
+ *          Sensor_IsiReleaseSensorIss
  *
- * @brief   This function destroys/releases an OV13850 sensor instance.
+ * @brief   This function destroys/releases an Sensor instance.
  *
- * @param   handle      OV13850 sensor instance handle
+ * @param   handle      Sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
  * @retval  RET_WRONG_HANDLE
  *
  *****************************************************************************/
-static RESULT OV13850_IsiReleaseSensorIss
+static RESULT Sensor_IsiReleaseSensorIss
 (
     IsiSensorHandle_t handle
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    (void)OV13850_IsiSensorSetStreamingIss( pOV13850Ctx, BOOL_FALSE );
-    (void)OV13850_IsiSensorSetPowerIss( pOV13850Ctx, BOOL_FALSE );
+    (void)Sensor_IsiSensorSetStreamingIss( pSensorCtx, BOOL_FALSE );
+    (void)Sensor_IsiSensorSetPowerIss( pSensorCtx, BOOL_FALSE );
 
-    (void)HalDelRef( pOV13850Ctx->IsiCtx.HalHandle );
+    (void)HalDelRef( pSensorCtx->IsiCtx.HalHandle );
 
-    MEMSET( pOV13850Ctx, 0, sizeof( OV13850_Context_t ) );
-    free ( pOV13850Ctx );
+    MEMSET( pSensorCtx, 0, sizeof( Sensor_Context_t ) );
+    free ( pSensorCtx );
 
-    TRACE( OV13850_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -311,7 +334,7 @@ static RESULT OV13850_IsiReleaseSensorIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetCapsIss
+ *          Sensor_IsiGetCapsIss
  *
  * @brief   fills in the correct pointers for the sensor description struct
  *
@@ -322,7 +345,7 @@ static RESULT OV13850_IsiReleaseSensorIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetCapsIssInternal
+static RESULT Sensor_IsiGetCapsIssInternal
 (
     IsiSensorCaps_t   *pIsiSensorCaps,
     uint32_t mipi_lanes
@@ -342,12 +365,12 @@ static RESULT OV13850_IsiGetCapsIssInternal
             {
                 case 0:
                 {
-                    pIsiSensorCaps->Resolution = ISI_RES_4224_3136P4;
+                    pIsiSensorCaps->Resolution = ISI_RES_2592_1944P7;
                     break;
                 }
                 case 1:
                 {
-                    pIsiSensorCaps->Resolution = ISI_RES_2112_1568P15;
+                    pIsiSensorCaps->Resolution = ISI_RES_1296_972P15;
                     break;
                 }
                 default:
@@ -362,12 +385,37 @@ static RESULT OV13850_IsiGetCapsIssInternal
             {
                 case 0:
                 {
-                    pIsiSensorCaps->Resolution = ISI_RES_4224_3136P7;
+                    pIsiSensorCaps->Resolution = ISI_RES_2592_1944P15;
                     break;
                 }
-                case 1:
+				case 1:
                 {
-                    pIsiSensorCaps->Resolution = ISI_RES_2112_1568P30;
+                    pIsiSensorCaps->Resolution = ISI_RES_2592_1944P7;
+                    break;
+                }
+                case 2:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1296_972P30;
+                    break;
+                }
+				case 3:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1296_972P25;
+                    break;
+                }
+				case 4:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1296_972P20;
+                    break;
+                }
+				case 5:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1296_972P15;
+                    break;
+                }
+				case 6:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1296_972P10;
                     break;
                 }
                 default:
@@ -382,12 +430,17 @@ static RESULT OV13850_IsiGetCapsIssInternal
             {
                 case 0:
                 {
-                    pIsiSensorCaps->Resolution = ISI_RES_4224_3136P15;
+                    pIsiSensorCaps->Resolution = ISI_RES_2592_1944P15;
                     break;
                 }
-                case 1:
+				case 1:
                 {
-                    pIsiSensorCaps->Resolution = ISI_RES_2112_1568P30;
+                    pIsiSensorCaps->Resolution = ISI_RES_2592_1944P15;
+                    break;
+                }
+                case 2:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1296_972P30;
                     break;
                 }
                 default:
@@ -435,25 +488,25 @@ end:
     return ( result );
 }
 
-static RESULT OV13850_IsiGetCapsIss
+static RESULT Sensor_IsiGetCapsIss
 (
     IsiSensorHandle_t handle,
     IsiSensorCaps_t   *pIsiSensorCaps
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    result = OV13850_IsiGetCapsIssInternal(pIsiSensorCaps, pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes);
-    TRACE( OV13850_INFO, "%s (exit)\n", __FUNCTION__);
+    result = Sensor_IsiGetCapsIssInternal(pIsiSensorCaps, pSensorCtx->IsiSensorMipiInfo.ucMipiLanes);
+    TRACE( Sensor_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -462,13 +515,13 @@ static RESULT OV13850_IsiGetCapsIss
 
 /*****************************************************************************/
 /**
- *          OV13850_g_IsiSensorDefaultConfig
+ *          Sensor_g_IsiSensorDefaultConfig
  *
  * @brief   recommended default configuration for application use via call
  *          to IsiGetSensorIss()
  *
  *****************************************************************************/
-const IsiSensorCaps_t OV13850_g_IsiSensorDefaultConfig =
+const IsiSensorCaps_t Sensor_g_IsiSensorDefaultConfig =
 {
     ISI_BUSWIDTH_10BIT,         // BusWidth
     ISI_MODE_MIPI,              // MIPI
@@ -482,7 +535,7 @@ const IsiSensorCaps_t OV13850_g_IsiSensorDefaultConfig =
     ISI_BLS_OFF,                // Bls
     ISI_GAMMA_OFF,              // Gamma
     ISI_CCONV_OFF,              // CConv
-    ISI_RES_2112_1568P30,          // Res
+    ISI_RES_1296_972P30,          // Res
     ISI_DWNSZ_SUBSMPL,          // DwnSz
     ISI_BLC_AUTO,               // BLC
     ISI_AGC_OFF,                // AGC
@@ -501,11 +554,11 @@ const IsiSensorCaps_t OV13850_g_IsiSensorDefaultConfig =
 
 /*****************************************************************************/
 /**
- *          OV13850_SetupOutputFormat
+ *          Sensor_SetupOutputFormat
  *
  * @brief   Setup of the image sensor considering the given configuration.
  *
- * @param   handle      OV13850 sensor instance handle
+ * @param   handle      Sensor instance handle
  * @param   pConfig     pointer to sensor configuration structure
  *
  * @return  Return the result of the function call.
@@ -513,15 +566,15 @@ const IsiSensorCaps_t OV13850_g_IsiSensorDefaultConfig =
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV13850_SetupOutputFormat
+RESULT Sensor_SetupOutputFormat
 (
-    OV13850_Context_t       *pOV13850Ctx,
+    Sensor_Context_t       *pSensorCtx,
     const IsiSensorConfig_t *pConfig
 )
 {
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s%s (enter)\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+    TRACE( Sensor_INFO, "%s%s (enter)\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
 
     /* bus-width */
     switch ( pConfig->BusWidth )        /* only ISI_BUSWIDTH_12BIT supported, no configuration needed here */
@@ -533,7 +586,7 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s: bus width not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s: bus width not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -548,7 +601,7 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s: mode not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s: mode not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -563,12 +616,12 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s: field selection not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s: field selection not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
 
-    /* only Bayer mode is supported by OV13850 sensor, so the YCSequence parameter is not checked */
+    /* only Bayer mode is supported by Sensor, so the YCSequence parameter is not checked */
     switch ( pConfig->YCSequence )
     {
         default:
@@ -587,7 +640,7 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s: 422 conversion not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s: 422 conversion not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -602,7 +655,7 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s: bayer pattern not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s: bayer pattern not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -617,7 +670,7 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s: HPol not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s: HPol not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -632,7 +685,7 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s: VPol not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s: VPol not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -653,7 +706,7 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s:  edge mode not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s:  edge mode not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -668,7 +721,7 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s:  gamma not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s:  gamma not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -683,7 +736,7 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s: color conversion not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s: color conversion not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -697,7 +750,7 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s: SMIA mode not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s: SMIA mode not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -711,7 +764,7 @@ RESULT OV13850_SetupOutputFormat
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s%s: MIPI mode not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            TRACE( Sensor_ERROR, "%s%s: MIPI mode not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             return ( RET_NOTSUPP );
         }
     }
@@ -725,54 +778,66 @@ RESULT OV13850_SetupOutputFormat
         default:
         {
             // don't care about what comes in here
-            //TRACE( OV13850_ERROR, "%s%s: AFPS not supported\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"" );
+            //TRACE( Sensor_ERROR, "%s%s: AFPS not supported\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"" );
             //return ( RET_NOTSUPP );
         }
     }
 
-    TRACE( OV13850_INFO, "%s%s (exit)\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"");
+    TRACE( Sensor_INFO, "%s%s (exit)\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"");
 
     return ( result );
 }
 
-int OV13850_get_PCLK( OV13850_Context_t *pOV13850Ctx, int XVCLK)
+int Sensor_get_PCLK( Sensor_Context_t *pSensorCtx, int XVCLK)
 {
-	 // calculate PCLK
-	 uint32_t temp1, temp2;
-	 int Pll2_predivp, Pll2_prediv2x, Pll2_mult, Pll2_divsp, Pll2_divs2x;
-	 long SCLK;
-	 int Pll2_predivp_map[] = {1, 2};
-	 int Pll2_prediv2x_map[] = {2, 3, 4, 5, 6, 8, 12, 16};
-	 int Pll2_divs2x_map[] = {2, 3, 4, 5, 6, 7, 8, 10};
-	 
-	 OV13850_IsiRegReadIss(  pOV13850Ctx, 0x3611, &temp1 );
-	 temp2 = (temp1>>3) & 0x01;
-	 Pll2_predivp = Pll2_predivp_map[temp2];
-	 temp2 = temp1 & 0x07;
-	 Pll2_prediv2x = Pll2_prediv2x_map[temp2];
+	 // calculate sysclk
+    unsigned int sysclk, temp1, temp2;
+    int pre_div02x, div_cnt7b, sdiv0, pll_rdiv, bit_div2x, sclk_div,VCO;
+    int pre_div02x_map[] = {2, 2, 4, 6, 8, 3, 12, 5, 16, 2, 2, 2, 2, 2, 2, 2};
+    int sdiv0_map[] = {16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    int pll_rdiv_map[] = {1, 2};
+    int bit_div2x_map[] = {2, 2, 2, 2, 2, 2, 2, 2, 4, 2, 5, 2, 2, 2, 2, 2};
+    int sclk_div_map[] = {1, 2, 4, 1};
 
-	 OV13850_IsiRegReadIss(  pOV13850Ctx, 0x3615, &temp1 );
-	 temp2 = temp1 & 0x03;
-	 OV13850_IsiRegReadIss(  pOV13850Ctx, 0x3614, &temp1 );
-	 Pll2_mult = (temp2<<8) + temp1;
-	 OV13850_IsiRegReadIss(  pOV13850Ctx, 0x3612, &temp1 );
-	 temp2 = temp1 & 0x0f;
-	 Pll2_divsp = temp2 + 1;
-	 temp2 = (temp1>>4) & 0x07;
-	 Pll2_divs2x = Pll2_divs2x_map[temp2];
-	 
-	 SCLK = XVCLK /Pll2_predivp * 2 / Pll2_prediv2x * Pll2_mult / Pll2_divsp * 2 /Pll2_divs2x * 4;
-	 
-	 return SCLK;
+    //temp1 = OV5648_read_i2c(0x3037);
+    Sensor_IsiRegReadIss(  pSensorCtx, 0x3037, &temp1 );
+    temp2 = temp1 & 0x0f;
+    pre_div02x = pre_div02x_map[temp2];
+    temp2 = (temp1>>4) & 0x01;
+    pll_rdiv = pll_rdiv_map[temp2];
+    
+    //temp1 = OV5648_read_i2c(0x3036);
+    Sensor_IsiRegReadIss(  pSensorCtx, 0x3036, &temp1 );
+    if(temp1 & 0x80)
+        div_cnt7b = (int)((temp1/2)*2);
+    else
+        div_cnt7b = temp1;
+    
+    VCO = XVCLK * 2 / pre_div02x * div_cnt7b;
+    //temp1 = OV5648_read_i2c(0x3035);
+    Sensor_IsiRegReadIss(  pSensorCtx, 0x3035, &temp1 );
+    temp2 = temp1>>4;
+    sdiv0 = sdiv0_map[temp2];
+    //temp1 = OV5648_read_i2c(0x3034);
+    Sensor_IsiRegReadIss(  pSensorCtx, 0x3034, &temp1 );
+    temp2 = temp1 & 0x0f;
+    bit_div2x = bit_div2x_map[temp2];
+    //temp1 = OV5648_read_i2c(0x3106);
+    Sensor_IsiRegReadIss(  pSensorCtx, 0x3106, &temp1 );
+    temp2 = (temp1>>2) & 0x03;
+    sclk_div = sclk_div_map[temp2];
+    sysclk = VCO * 2/ sdiv0 / pll_rdiv / bit_div2x / sclk_div;
+
+    return sysclk;
  }
 
 /*****************************************************************************/
 /**
- *          OV13850_SetupOutputWindow
+ *          Sensor_SetupOutputWindow
  *
  * @brief   Setup of the image sensor considering the given configuration.
  *
- * @param   handle      OV13850 sensor instance handle
+ * @param   handle      Sensor instance handle
  * @param   pConfig     pointer to sensor configuration structure
  *
  * @return  Return the result of the function call.
@@ -780,10 +845,12 @@ int OV13850_get_PCLK( OV13850_Context_t *pOV13850Ctx, int XVCLK)
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_SetupOutputWindow
+static RESULT Sensor_SetupOutputWindowInternal
 (
-    OV13850_Context_t        *pOV13850Ctx,
-    const IsiSensorConfig_t *pConfig
+    Sensor_Context_t        *pSensorCtx,
+    const IsiSensorConfig_t *pConfig,
+    bool_t set2Sensor,
+    bool_t res_no_chg
 )
 {
     RESULT result     = RET_SUCCESS;
@@ -792,122 +859,171 @@ static RESULT OV13850_SetupOutputWindow
     float    rVtPixClkFreq      = 0.0f;
     int xclk = 24000000;
 
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (enter)---pConfig->Resolution:%x\n", __FUNCTION__,pConfig->Resolution);
 
-	if(pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
+	if(pSensorCtx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
 	    /* resolution */
 	    switch ( pConfig->Resolution )
 	    {
-	        case ISI_RES_2112_1568P15:
+	        case ISI_RES_1296_972P15:
 	        {
-			  	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_onelane_resolution_2112_1568)) != RET_SUCCESS){
+			  	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pSensorCtx, Sensor_g_onelane_resolution_1296_972)) != RET_SUCCESS){
 					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set one lane ISI_RES_2112_1568 \n", __FUNCTION__ );
+					TRACE( Sensor_ERROR, "%s: failed to set two lane ISI_RES_2112_1568 \n", __FUNCTION__ );
 	            }
 
-	            usLineLengthPck = 0x12c0;
-	            usFrameLengthLines = 0x0680;
-				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 640;
+	            usLineLengthPck = 0x0b00;
+	            usFrameLengthLines = 0x03e0;
+				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 640;
 	            break;
 	            
 	        }
 	        
-	        case ISI_RES_4224_3136P4:
+	        case ISI_RES_2592_1944P7:
 	        {
-	         	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_onelane_resolution_4224_3136)) != RET_SUCCESS){
+	         	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pSensorCtx, Sensor_g_onelane_resolution_2592_1944)) != RET_SUCCESS){
 					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set one lane ISI_RES_4208_3120 \n", __FUNCTION__ );
+					TRACE( Sensor_ERROR, "%s: failed to set two lane ISI_RES_4208_3120 \n", __FUNCTION__ );
 	            }
 
-	            usLineLengthPck = 0x12c0;
-	            usFrameLengthLines = 0x0d00;
-				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 640;
+	            usLineLengthPck = 0x0b00;
+	            usFrameLengthLines = 0x07c0;
+				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 640;
 	            break;
 	            
 	        }
 
 	        default:
 	        {
-	            TRACE( OV13850_ERROR, "%s: one lane Resolution not supported\n", __FUNCTION__ );
+	            TRACE( Sensor_ERROR, "%s: one lane Resolution not supported\n", __FUNCTION__ );
 	            return ( RET_NOTSUPP );
 	        }
 	    }
 		
 	}
-	else if(pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
+	else if(pSensorCtx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
 	    /* resolution */
 	    switch ( pConfig->Resolution )
 	    {
-	        case ISI_RES_2112_1568P30:
+			
+			case ISI_RES_1296_972P30:
+			case ISI_RES_1296_972P25:
+			case ISI_RES_1296_972P20:
+			case ISI_RES_1296_972P15:
+			case ISI_RES_1296_972P10:
 	        {
-			  	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_twolane_resolution_2112_1568)) != RET_SUCCESS){
-					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set two lane ISI_RES_2112_1568 \n", __FUNCTION__ );
-	            }
-
-	            usLineLengthPck = 0x12c0;
-	            usFrameLengthLines = 0x0680;
-				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 600;
+				//TRACE( Sensor_ERROR, "%s (enter)\n pConfig->Resolution:%d\n set2Sensor:%d\n res_no_chg:%d", 
+				//__FUNCTION__,pConfig->Resolution,set2Sensor,res_no_chg);
+				if (set2Sensor == BOOL_TRUE) {
+					if (res_no_chg == BOOL_FALSE) {
+						if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pSensorCtx, Sensor_g_twolane_resolution_1296_972)) != RET_SUCCESS){
+							result = RET_FAILURE;
+							TRACE( Sensor_ERROR, "%s: failed to set two lane ISI_RES_1296_972 \n", __FUNCTION__ );
+			            }
+					}
+				if (pConfig->Resolution == ISI_RES_1296_972P30) {                        
+                        result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_1296x972P30_twolane_fpschg);
+                    }else if (pConfig->Resolution == ISI_RES_1296_972P25) {
+                        result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_1296x972P25_twolane_fpschg);
+                    }else if (pConfig->Resolution == ISI_RES_1296_972P20) {
+                        result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_1296x972P20_twolane_fpschg);
+                    }else if (pConfig->Resolution == ISI_RES_1296_972P15) {
+                        result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_1296x972P15_twolane_fpschg);
+                    }else if (pConfig->Resolution == ISI_RES_1296_972P10) {
+                        result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_1296x972P10_twolane_fpschg);
+                    } 
+        		
+				}	
+	            usLineLengthPck = 0x0b00;
+				if (pConfig->Resolution == ISI_RES_1296_972P30) {
+	            	usFrameLengthLines = 0x03e0;
+				}else if(pConfig->Resolution == ISI_RES_1296_972P25) {
+	            	usFrameLengthLines = 0x04a6; //hkw
+				}else if(pConfig->Resolution == ISI_RES_1296_972P20) {
+	            	usFrameLengthLines = 0x05d0; //hkw
+				}else if(pConfig->Resolution == ISI_RES_1296_972P15) {
+	            	usFrameLengthLines = 0x07c0; //hkw
+				}else if(pConfig->Resolution == ISI_RES_1296_972P10) {
+	            	usFrameLengthLines = 0xba0; //hkw
+				}
+				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 420;
 	            break;
 	            
 	        }
-	        
-	        case ISI_RES_4224_3136P7:
+			
+	        case ISI_RES_2592_1944P7:
+	        case ISI_RES_2592_1944P15:
 	        {
-	         	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_twolane_resolution_4224_3136)) != RET_SUCCESS){
-					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set two lane ISI_RES_4208_3120 \n", __FUNCTION__ );
-	            }
-
-	            usLineLengthPck = 0x12c0;
-	            usFrameLengthLines = 0x0d00;
-				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 600;
+				//TRACE( Sensor_ERROR, "%s (enter222)\n pConfig->Resolution:%d\n set2Sensor:%d\n res_no_chg:%d", 
+				//__FUNCTION__,pConfig->Resolution,set2Sensor,res_no_chg);
+				if (set2Sensor == BOOL_TRUE) {
+				//if(1){
+					if (res_no_chg == BOOL_FALSE) {
+						if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pSensorCtx, Sensor_g_twolane_resolution_2592_1944)) != RET_SUCCESS){
+							result = RET_FAILURE;
+							TRACE( Sensor_ERROR, "%s: failed to set two lane ISI_RES_4208_3120 \n", __FUNCTION__ );
+			            }
+					}
+				if (pConfig->Resolution == ISI_RES_2592_1944P15) {
+						result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_2592x1944P15_twolane_fpschg);
+                    } else if (pConfig->Resolution == ISI_RES_2592_1944P7) {
+                    	TRACE( Sensor_ERROR, "%s: ------ISI_RES_2592_1944P7----- \n", __FUNCTION__ );
+                        result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_2592x1944P7_twolane_fpschg);
+                    } 
+				}
+	            usLineLengthPck = 0x0b00;
+				if (pConfig->Resolution == ISI_RES_2592_1944P15) {
+	            	usFrameLengthLines = 0x07c0; //hkw
+				}else if(pConfig->Resolution == ISI_RES_2592_1944P7) {
+	            	usFrameLengthLines = 0x0f80; //hkw
+				}
+				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 420;
 	            break;
 	            
 	        }
 
 	        default:
 	        {
-	            TRACE( OV13850_ERROR, "%s: two lane Resolution not supported\n", __FUNCTION__ );
+	            TRACE( Sensor_ERROR, "%s: two lane Resolution not supported\n", __FUNCTION__ );
 	            return ( RET_NOTSUPP );
 	        }
 	    }
 		
 	}
-	else if(pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_FOUR_LANE){
+	else if(pSensorCtx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_FOUR_LANE){
 	    switch ( pConfig->Resolution )
 	    {
-	        case ISI_RES_2112_1568P30:
+	        case ISI_RES_1296_972P30:
 	        {
-	            if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_fourlane_resolution_2112_1568)) != RET_SUCCESS){
+	            if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pSensorCtx, Sensor_g_twolane_resolution_1296_972)) != RET_SUCCESS){
 					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set four lane ISI_RES_2112_1568 \n", __FUNCTION__ );
+					TRACE( Sensor_ERROR, "%s: failed to set four lane ISI_RES_2112_1568 \n", __FUNCTION__ );
 	            }
 
-	            usLineLengthPck = 0x2580;
-	            usFrameLengthLines = 0x0680;
-				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 640;
+	            usLineLengthPck = 0x0b00;
+	            usFrameLengthLines = 0x03e0;
+				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 640;
 	            break;
 	            
 	        }
 	        
-	        case ISI_RES_4224_3136P15:
+	        case ISI_RES_2592_1944P15:
 	        {
-	            if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_fourlane_resolution_4224_3136)) != RET_SUCCESS){
+	            if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pSensorCtx, Sensor_g_twolane_resolution_2592_1944)) != RET_SUCCESS){
 					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set four lane ISI_RES_4208_3120 \n", __FUNCTION__ );
+					TRACE( Sensor_ERROR, "%s: failed to set four lane ISI_RES_4208_3120 \n", __FUNCTION__ );
 	            }
 	         
-	            usLineLengthPck = 0x2580;
-	            usFrameLengthLines = 0x0d00;
-				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 640;
+	            usLineLengthPck = 0x0b00;
+	            usFrameLengthLines = 0x07c0;
+				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 640;
 	            break;
 	            
 	        }
 
 	        default:
 	        {
-	            TRACE( OV13850_ERROR, "%s: four lane Resolution not supported\n", __FUNCTION__ );
+	            TRACE( Sensor_ERROR, "%s: four lane Resolution not supported\n", __FUNCTION__ );
 	            return ( RET_NOTSUPP );
 	        }
 	    }
@@ -915,14 +1031,19 @@ static RESULT OV13850_SetupOutputWindow
 	}
 
 	// store frame timing for later use in AEC module
-	rVtPixClkFreq = OV13850_get_PCLK(pOV13850Ctx, xclk);    
-    pOV13850Ctx->VtPixClkFreq     = rVtPixClkFreq;
-    pOV13850Ctx->LineLengthPck    = usLineLengthPck;
-    pOV13850Ctx->FrameLengthLines = usFrameLengthLines;	
-
+	rVtPixClkFreq = Sensor_get_PCLK(pSensorCtx, xclk);    
+    pSensorCtx->VtPixClkFreq     = rVtPixClkFreq;
+    pSensorCtx->LineLengthPck    = usLineLengthPck;
+    pSensorCtx->FrameLengthLines = usFrameLengthLines;	
+	pSensorCtx->AecMaxIntegrationTime = ( ((float)(pSensorCtx->FrameLengthLines - 4)) * ((float)pSensorCtx->LineLengthPck) ) / pSensorCtx->VtPixClkFreq;
 	//have to reset mipi freq here,zyc
 
-    TRACE( OV13850_INFO, "%s  resolution(0x%x) freq(%f)(exit)\n", __FUNCTION__, pConfig->Resolution,rVtPixClkFreq);
+    TRACE( Sensor_INFO, "%s AecMaxIntegrationTime:%f(****************exit): Resolution %dx%d@%dfps  MIPI %dlanes  res_no_chg: %d   rVtPixClkFreq: %f\n", __FUNCTION__,
+    					pSensorCtx->AecMaxIntegrationTime,
+                        ISI_RES_W_GET(pConfig->Resolution),ISI_RES_H_GET(pConfig->Resolution),
+                        ISI_FPS_GET(pConfig->Resolution),
+                        pSensorCtx->IsiSensorMipiInfo.ucMipiLanes,
+                        res_no_chg,rVtPixClkFreq);
 
     return ( result );
 }
@@ -932,11 +1053,11 @@ static RESULT OV13850_SetupOutputWindow
 
 /*****************************************************************************/
 /**
- *          OV13850_SetupImageControl
+ *          Sensor_SetupImageControl
  *
  * @brief   Sets the image control functions (BLC, AGC, AWB, AEC, DPCC ...)
  *
- * @param   handle      OV13850 sensor instance handle
+ * @param   handle      Sensor instance handle
  * @param   pConfig     pointer to sensor configuration structure
  *
  * @return  Return the result of the function call.
@@ -944,9 +1065,9 @@ static RESULT OV13850_SetupOutputWindow
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV13850_SetupImageControl
+RESULT Sensor_SetupImageControl
 (
-    OV13850_Context_t        *pOV13850Ctx,
+    Sensor_Context_t        *pSensorCtx,
     const IsiSensorConfig_t *pConfig
 )
 {
@@ -954,7 +1075,7 @@ RESULT OV13850_SetupImageControl
 
     uint32_t RegValue = 0U;
 
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (enter)\n", __FUNCTION__);
 
     switch ( pConfig->Bls )      /* only ISI_BLS_OFF supported, no configuration needed */
     {
@@ -965,7 +1086,7 @@ RESULT OV13850_SetupImageControl
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s: Black level not supported\n", __FUNCTION__ );
+            TRACE( Sensor_ERROR, "%s: Black level not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }
@@ -976,8 +1097,8 @@ RESULT OV13850_SetupImageControl
         case ISI_BLC_OFF:
         {
             /* turn off black level correction (clear bit 0) */
-            //result = OV13850_IsiRegReadIss(  pOV13850Ctx, OV13850_BLC_CTRL00, &RegValue );
-            //result = OV13850_IsiRegWriteIss( pOV13850Ctx, OV13850_BLC_CTRL00, RegValue & 0x7F);
+            //result = Sensor_IsiRegReadIss(  pSensorCtx, Sensor_BLC_CTRL00, &RegValue );
+            //result = Sensor_IsiRegWriteIss( pSensorCtx, Sensor_BLC_CTRL00, RegValue & 0x7F);
             break;
         }
 
@@ -985,14 +1106,14 @@ RESULT OV13850_SetupImageControl
         {
             /* turn on black level correction (set bit 0)
              * (0x331E[7] is assumed to be already setup to 'auto' by static configration) */
-            //result = OV13850_IsiRegReadIss(  pOV13850Ctx, OV13850_BLC_CTRL00, &RegValue );
-            //result = OV13850_IsiRegWriteIss( pOV13850Ctx, OV13850_BLC_CTRL00, RegValue | 0x80 );
+            //result = Sensor_IsiRegReadIss(  pSensorCtx, Sensor_BLC_CTRL00, &RegValue );
+            //result = Sensor_IsiRegWriteIss( pSensorCtx, Sensor_BLC_CTRL00, RegValue | 0x80 );
             break;
         }
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s: BLC not supported\n", __FUNCTION__ );
+            TRACE( Sensor_ERROR, "%s: BLC not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }
@@ -1003,14 +1124,14 @@ RESULT OV13850_SetupImageControl
         case ISI_AGC_OFF:
         {
             // manual gain (appropriate for AEC with Marvin)
-            //result = OV13850_IsiRegReadIss(  pOV13850Ctx, OV13850_AEC_MANUAL, &RegValue );
-            //result = OV13850_IsiRegWriteIss( pOV13850Ctx, OV13850_AEC_MANUAL, RegValue | 0x02 );
+            //result = Sensor_IsiRegReadIss(  pSensorCtx, Sensor_AEC_MANUAL, &RegValue );
+            //result = Sensor_IsiRegWriteIss( pSensorCtx, Sensor_AEC_MANUAL, RegValue | 0x02 );
             break;
         }
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s: AGC not supported\n", __FUNCTION__ );
+            TRACE( Sensor_ERROR, "%s: AGC not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }
@@ -1020,14 +1141,14 @@ RESULT OV13850_SetupImageControl
     {
         case ISI_AWB_OFF:
         {
-            //result = OV13850_IsiRegReadIss(  pOV13850Ctx, OV13850_ISP_CTRL01, &RegValue );
-            //result = OV13850_IsiRegWriteIss( pOV13850Ctx, OV13850_ISP_CTRL01, RegValue | 0x01 );
+            //result = Sensor_IsiRegReadIss(  pSensorCtx, Sensor_ISP_CTRL01, &RegValue );
+            //result = Sensor_IsiRegWriteIss( pSensorCtx, Sensor_ISP_CTRL01, RegValue | 0x01 );
             break;
         }
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s: AWB not supported\n", __FUNCTION__ );
+            TRACE( Sensor_ERROR, "%s: AWB not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }
@@ -1036,14 +1157,14 @@ RESULT OV13850_SetupImageControl
     {
         case ISI_AEC_OFF:
         {
-            //result = OV13850_IsiRegReadIss(  pOV13850Ctx, OV13850_AEC_MANUAL, &RegValue );
-            //result = OV13850_IsiRegWriteIss( pOV13850Ctx, OV13850_AEC_MANUAL, RegValue | 0x01 );
+            //result = Sensor_IsiRegReadIss(  pSensorCtx, Sensor_AEC_MANUAL, &RegValue );
+            //result = Sensor_IsiRegWriteIss( pSensorCtx, Sensor_AEC_MANUAL, RegValue | 0x01 );
             break;
         }
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s: AEC not supported\n", __FUNCTION__ );
+            TRACE( Sensor_ERROR, "%s: AEC not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }
@@ -1054,35 +1175,53 @@ RESULT OV13850_SetupImageControl
         case ISI_DPCC_OFF:
         {
             // disable white and black pixel cancellation (clear bit 6 and 7)
-            //result = OV13850_IsiRegReadIss( pOV13850Ctx, OV13850_ISP_CTRL00, &RegValue );
+            //result = Sensor_IsiRegReadIss( pSensorCtx, Sensor_ISP_CTRL00, &RegValue );
             //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-            //result = OV13850_IsiRegWriteIss( pOV13850Ctx, OV13850_ISP_CTRL00, (RegValue &0x7c) );
+            //result = Sensor_IsiRegWriteIss( pSensorCtx, Sensor_ISP_CTRL00, (RegValue &0x7c) );
             //RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
             break;
         }
 
         default:
         {
-            TRACE( OV13850_ERROR, "%s: DPCC not supported\n", __FUNCTION__ );
+            TRACE( Sensor_ERROR, "%s: DPCC not supported\n", __FUNCTION__ );
             return ( RET_NOTSUPP );
         }
     }// I have not update this commented part yet, as I did not find DPCC setting in the current 8810 driver of Trillian board. - SRJ
 
     return ( result );
 }
+static RESULT Sensor_SetupOutputWindow
+(
+    Sensor_Context_t        *pSensorCtx,
+    const IsiSensorConfig_t *pConfig    
+)
+{
+    bool_t res_no_chg;
+
+    if ((ISI_RES_W_GET(pConfig->Resolution)==ISI_RES_W_GET(pSensorCtx->Config.Resolution)) && 
+        (ISI_RES_W_GET(pConfig->Resolution)==ISI_RES_W_GET(pSensorCtx->Config.Resolution))) {
+        res_no_chg = BOOL_TRUE;
+        
+    } else {
+        res_no_chg = BOOL_FALSE;
+    }
+
+    return Sensor_SetupOutputWindowInternal(pSensorCtx,pConfig,BOOL_TRUE, BOOL_FALSE);
+}
 
 
 /*****************************************************************************/
 /**
- *          OV13850_AecSetModeParameters
+ *          Sensor_AecSetModeParameters
  *
- * @brief   This function fills in the correct parameters in OV13850-Instances
+ * @brief   This function fills in the correct parameters in Sensor-Instances
  *          according to AEC mode selection in IsiSensorConfig_t.
  *
  * @note    It is assumed that IsiSetupOutputWindow has been called before
  *          to fill in correct values in instance structure.
  *
- * @param   handle      OV13850 context
+ * @param   handle      Sensor context
  * @param   pConfig     pointer to sensor configuration structure
  *
  * @return  Return the result of the function call.
@@ -1090,19 +1229,21 @@ RESULT OV13850_SetupImageControl
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_AecSetModeParameters
+static RESULT Sensor_AecSetModeParameters
 (
-    OV13850_Context_t       *pOV13850Ctx,
+    Sensor_Context_t       *pSensorCtx,
     const IsiSensorConfig_t *pConfig
 )
 {
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s%s (enter)\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"");
+    //TRACE( Sensor_INFO, "%s%s (enter)\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"");
+    TRACE( Sensor_INFO, "%s%s (enter)  Res: 0x%x  0x%x\n", __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"",
+        pSensorCtx->Config.Resolution, pConfig->Resolution);
 
-    if ( (pOV13850Ctx->VtPixClkFreq == 0.0f) )
+    if ( (pSensorCtx->VtPixClkFreq == 0.0f) )
     {
-        TRACE( OV13850_ERROR, "%s%s: Division by zero!\n", __FUNCTION__  );
+        TRACE( Sensor_ERROR, "%s%s: Division by zero!\n", __FUNCTION__  );
         return ( RET_OUTOFRANGE );
     }
 
@@ -1110,24 +1251,30 @@ static RESULT OV13850_AecSetModeParameters
     //exposed way too dark from time to time)
     // (formula is usually MaxIntTime = (CoarseMax * LineLength + FineMax) / Clk
     //                     MinIntTime = (CoarseMin * LineLength + FineMin) / Clk )
-    pOV13850Ctx->AecMaxIntegrationTime = ( ((float)(pOV13850Ctx->FrameLengthLines - 4)) * ((float)pOV13850Ctx->LineLengthPck) ) / pOV13850Ctx->VtPixClkFreq;
-    pOV13850Ctx->AecMinIntegrationTime = 0.0001f;    
+    pSensorCtx->AecMaxIntegrationTime = ( ((float)(pSensorCtx->FrameLengthLines - 4)) * ((float)pSensorCtx->LineLengthPck) ) / pSensorCtx->VtPixClkFreq;
+    pSensorCtx->AecMinIntegrationTime = 0.0001f;    
 
-    pOV13850Ctx->AecMaxGain = OV13850_MAX_GAIN_AEC;
-    pOV13850Ctx->AecMinGain = 1.0f; //as of sensor datasheet 32/(32-6)
+    pSensorCtx->AecMaxGain = Sensor_MAX_GAIN_AEC;
+    pSensorCtx->AecMinGain = 1.0f; //as of sensor datasheet 32/(32-6)
 
     //_smallest_ increment the sensor/driver can handle (e.g. used for sliders in the application)
-    pOV13850Ctx->AecIntegrationTimeIncrement = ((float)pOV13850Ctx->LineLengthPck) / pOV13850Ctx->VtPixClkFreq;
-    pOV13850Ctx->AecGainIncrement = OV13850_MIN_GAIN_STEP;
+    pSensorCtx->AecIntegrationTimeIncrement = ((float)pSensorCtx->LineLengthPck) / pSensorCtx->VtPixClkFreq;
+    pSensorCtx->AecGainIncrement = Sensor_MIN_GAIN_STEP;
 
     //reflects the state of the sensor registers, must equal default settings
-    pOV13850Ctx->AecCurGain               = pOV13850Ctx->AecMinGain;
-    pOV13850Ctx->AecCurIntegrationTime    = 0.0f;
-    pOV13850Ctx->OldCoarseIntegrationTime = 0;
-    pOV13850Ctx->OldFineIntegrationTime   = 0;
-    //pOV13850Ctx->GroupHold                = true; //must be true (for unknown reason) to correctly set gain the first time
+    pSensorCtx->AecCurGain               = pSensorCtx->AecMinGain;
+    pSensorCtx->AecCurIntegrationTime    = 0.0f;
+    pSensorCtx->OldCoarseIntegrationTime = 0;
+    pSensorCtx->OldFineIntegrationTime   = 0;
+    //pSensorCtx->GroupHold                = true; //must be true (for unknown reason) to correctly set gain the first time
 
-    TRACE( OV13850_INFO, "%s%s (exit)\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"");
+    TRACE( Sensor_INFO, "%s%s (exit)\n pSensorCtx->AecMaxIntegrationTime:%f\n pSensorCtx->FrameLengthLines:%d\n pSensorCtx->LineLengthPck:%d\n pSensorCtx->VtPixClkFreq:%f\n",
+    __FUNCTION__, pSensorCtx->isAfpsRun?"(AFPS)":"",
+    pSensorCtx->AecMaxIntegrationTime,
+    pSensorCtx->FrameLengthLines,
+    pSensorCtx->LineLengthPck,
+    pSensorCtx->VtPixClkFreq
+    );
 
     return ( result );
 }
@@ -1135,11 +1282,11 @@ static RESULT OV13850_AecSetModeParameters
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiSetupSensorIss
+ *          Sensor_IsiSetupSensorIss
  *
  * @brief   Setup of the image sensor considering the given configuration.
  *
- * @param   handle      OV13850 sensor instance handle
+ * @param   handle      Sensor instance handle
  * @param   pConfig     pointer to sensor configuration structure
  *
  * @return  Return the result of the function call.
@@ -1147,41 +1294,41 @@ static RESULT OV13850_AecSetModeParameters
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiSetupSensorIss
+static RESULT Sensor_IsiSetupSensorIss
 (
     IsiSensorHandle_t       handle,
     const IsiSensorConfig_t *pConfig
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t RegValue = 0;
 
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
     if ( pConfig == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid configuration (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid configuration (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_NULL_POINTER );
     }
 
-    if ( pOV13850Ctx->Streaming != BOOL_FALSE )
+    if ( pSensorCtx->Streaming != BOOL_FALSE )
     {
         return RET_WRONG_STATE;
     }
 
-    MEMCPY( &pOV13850Ctx->Config, pConfig, sizeof( IsiSensorConfig_t ) );
+    MEMCPY( &pSensorCtx->Config, pConfig, sizeof( IsiSensorConfig_t ) );
 
     /* 1.) SW reset of image sensor (via I2C register interface)  be careful, bits 6..0 are reserved, reset bit is not sticky */
-    result = OV13850_IsiRegWriteIss ( pOV13850Ctx, OV13850_SOFTWARE_RST, 0x01U );
+    result = Sensor_IsiRegWriteIss ( pSensorCtx, Sensor_SOFTWARE_RST, 0x01U );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
     osSleep( 10 );
@@ -1190,22 +1337,22 @@ static RESULT OV13850_IsiSetupSensorIss
     // (this seems not to be necessary, however Omnivision is doing it in their
     // reference settings, simply overwrite upper bits since setup takes care
     // of 'em later on anyway)
-    result = OV13850_IsiRegWriteIss( pOV13850Ctx, OV13850_MODE_SELECT, 0x00 );
+    result = Sensor_IsiRegWriteIss( pSensorCtx, Sensor_MODE_SELECT, 0x00 );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV13850_ERROR, "%s: Can't write OV13850 Image System Register (disable streaming failed)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Can't write Sensor Image System Register (disable streaming failed)\n", __FUNCTION__ );
         return ( result );
     }
     
     /* 2.) write default values derived from datasheet and evaluation kit (static setup altered by dynamic setup further below) */
-	if(pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
-		result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_aRegDescription_onelane);
+	if(pSensorCtx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
+		result = IsiRegDefaultsApply( pSensorCtx, Sensor_g_aRegDescription_onelane);
 	}
-	else if(pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_FOUR_LANE){
-        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_aRegDescription_fourlane);
+	else if(pSensorCtx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_FOUR_LANE){
+        result = IsiRegDefaultsApply( pSensorCtx, Sensor_g_aRegDescription_fourlane);
     }
-	else if(pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
-        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_aRegDescription_twolane);
+	else if(pSensorCtx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
+        result = IsiRegDefaultsApply( pSensorCtx, Sensor_g_aRegDescription_twolane);
 	}
     
     if ( result != RET_SUCCESS )
@@ -1219,7 +1366,7 @@ static RESULT OV13850_IsiSetupSensorIss
 
     /* 3.) verify default values to make sure everything has been written correctly as expected */
 	#if 0
-	result = IsiRegDefaultsVerify( pOV13850Ctx, OV13850_g_aRegDescription );
+	result = IsiRegDefaultsVerify( pSensorCtx, Sensor_g_aRegDescription );
     if ( result != RET_SUCCESS )
     {
         return ( result );
@@ -1227,40 +1374,40 @@ static RESULT OV13850_IsiSetupSensorIss
 	#endif
 
     /* 4.) setup output format (RAW10|RAW12) */
-    result = OV13850_SetupOutputFormat( pOV13850Ctx, pConfig );
+    result = Sensor_SetupOutputFormat( pSensorCtx, pConfig );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV13850_ERROR, "%s: SetupOutputFormat failed.\n", __FUNCTION__);
+        TRACE( Sensor_ERROR, "%s: SetupOutputFormat failed.\n", __FUNCTION__);
         return ( result );
     }
 
     /* 5.) setup output window */
-    result = OV13850_SetupOutputWindow( pOV13850Ctx, pConfig );
+    result = Sensor_SetupOutputWindow( pSensorCtx, pConfig );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV13850_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
+        TRACE( Sensor_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
         return ( result );
     }
 
-    result = OV13850_SetupImageControl( pOV13850Ctx, pConfig );
+    result = Sensor_SetupImageControl( pSensorCtx, pConfig );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV13850_ERROR, "%s: SetupImageControl failed.\n", __FUNCTION__);
+        TRACE( Sensor_ERROR, "%s: SetupImageControl failed.\n", __FUNCTION__);
         return ( result );
     }
 
-    result = OV13850_AecSetModeParameters( pOV13850Ctx, pConfig );
+    result = Sensor_AecSetModeParameters( pSensorCtx, pConfig );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV13850_ERROR, "%s: AecSetModeParameters failed.\n", __FUNCTION__);
+        TRACE( Sensor_ERROR, "%s: AecSetModeParameters failed.\n", __FUNCTION__);
         return ( result );
     }
     if (result == RET_SUCCESS)
     {
-        pOV13850Ctx->Configured = BOOL_TRUE;
+        pSensorCtx->Configured = BOOL_TRUE;
     }
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -1269,7 +1416,7 @@ static RESULT OV13850_IsiSetupSensorIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiChangeSensorResolutionIss
+ *          Sensor_IsiChangeSensorResolutionIss
  *
  * @brief   Change image sensor resolution while keeping all other static settings.
  *          Dynamic settings like current gain & integration time are kept as
@@ -1289,20 +1436,22 @@ static RESULT OV13850_IsiSetupSensorIss
  * @retval  RET_OUTOFRANGE
  *
  *****************************************************************************/
-static RESULT OV13850_IsiChangeSensorResolutionIss
+static RESULT Sensor_IsiChangeSensorResolutionIss
 (
     IsiSensorHandle_t   handle,
     uint32_t            Resolution,
     uint8_t             *pNumberOfFramesToSkip
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+    //TRACE( Sensor_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( Sensor_ERROR, "%s (enter)  Resolution: %dx%d@%dfps\n", __FUNCTION__,
+        ISI_RES_W_GET(Resolution),ISI_RES_H_GET(Resolution), ISI_FPS_GET(Resolution));
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -1312,7 +1461,7 @@ static RESULT OV13850_IsiChangeSensorResolutionIss
         return ( RET_NULL_POINTER );
     }
 
-    if ( (pOV13850Ctx->Configured != BOOL_TRUE) || (pOV13850Ctx->Streaming != BOOL_FALSE) )
+    if ( (pSensorCtx->Configured != BOOL_TRUE) )
     {
         return RET_WRONG_STATE;
     }
@@ -1320,50 +1469,65 @@ static RESULT OV13850_IsiChangeSensorResolutionIss
     IsiSensorCaps_t Caps;
     Caps.Index = 0;
     Caps.Resolution = 0;
-    while (OV13850_IsiGetCapsIss( handle, &Caps) == RET_SUCCESS) {
+    while (Sensor_IsiGetCapsIss( handle, &Caps) == RET_SUCCESS) {
         if (Resolution == Caps.Resolution) {            
             break;
         }
         Caps.Index++;
     }
 
-    if ( (Resolution & Caps.Resolution) == 0 )
-    {
+     if (Resolution != Caps.Resolution) {
         return RET_OUTOFRANGE;
     }
-
-    if ( Resolution == pOV13850Ctx->Config.Resolution )
+	//TRACE( Sensor_ERROR, "%s (11111111enter)  \n", __FUNCTION__);
+    if ( Resolution == pSensorCtx->Config.Resolution )
     {
         // well, no need to worry
         *pNumberOfFramesToSkip = 0;
+		TRACE( Sensor_ERROR, "%s (Resolution:%d;pSensorCtx->Config.Resolution:%d)  \n", __FUNCTION__,Resolution,pSensorCtx->Config.Resolution);
     }
     else
     {
         // change resolution
         char *szResName = NULL;
+
+		bool_t res_no_chg;
+		//TRACE( Sensor_ERROR, "%s (2222222222enter)  \n", __FUNCTION__);
+        if (!((ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pSensorCtx->Config.Resolution)) && 
+            (ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pSensorCtx->Config.Resolution))) ) {
+
+            if (pSensorCtx->Streaming != BOOL_FALSE) {
+                TRACE( Sensor_ERROR, "%s: Sensor is streaming, Change resolution is not allow\n",__FUNCTION__);
+                return RET_WRONG_STATE;
+            }
+            res_no_chg = BOOL_FALSE;
+        } else {
+            res_no_chg = BOOL_TRUE;
+        }
+		//TRACE( Sensor_ERROR, "%s (333333333enter)  \n", __FUNCTION__);
         result = IsiGetResolutionName( Resolution, &szResName );
-        TRACE( OV13850_INFO, "%s: NewRes=0x%08x (%s)\n", __FUNCTION__, Resolution, szResName);
+        TRACE( Sensor_INFO, "%s: NewRes=0x%08x (%s)\n", __FUNCTION__, Resolution, szResName);
 
         // update resolution in copy of config in context
-        pOV13850Ctx->Config.Resolution = Resolution;
+        pSensorCtx->Config.Resolution = Resolution;
 
         // tell sensor about that
-        result = OV13850_SetupOutputWindow( pOV13850Ctx, &pOV13850Ctx->Config );
+        result = Sensor_SetupOutputWindowInternal( pSensorCtx, &pSensorCtx->Config, BOOL_TRUE, res_no_chg );
         if ( result != RET_SUCCESS )
         {
-            TRACE( OV13850_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
+            TRACE( Sensor_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
             return ( result );
         }
 
         // remember old exposure values
-        float OldGain = pOV13850Ctx->AecCurGain;
-        float OldIntegrationTime = pOV13850Ctx->AecCurIntegrationTime;
+        float OldGain = pSensorCtx->AecCurGain;
+        float OldIntegrationTime = pSensorCtx->AecCurIntegrationTime;
 
         // update limits & stuff (reset current & old settings)
-        result = OV13850_AecSetModeParameters( pOV13850Ctx, &pOV13850Ctx->Config );
+        result = Sensor_AecSetModeParameters( pSensorCtx, &pSensorCtx->Config );
         if ( result != RET_SUCCESS )
         {
-            TRACE( OV13850_ERROR, "%s: AecSetModeParameters failed.\n", __FUNCTION__);
+            TRACE( Sensor_ERROR, "%s: AecSetModeParameters failed.\n", __FUNCTION__);
             return ( result );
         }
 
@@ -1371,18 +1535,19 @@ static RESULT OV13850_IsiChangeSensorResolutionIss
         uint8_t NumberOfFramesToSkip;
         float   DummySetGain;
         float   DummySetIntegrationTime;
-        result = OV13850_IsiExposureControlIss( handle, OldGain, OldIntegrationTime, &NumberOfFramesToSkip, &DummySetGain, &DummySetIntegrationTime );
+        result = Sensor_IsiExposureControlIss( handle, OldGain, OldIntegrationTime, &NumberOfFramesToSkip, &DummySetGain, &DummySetIntegrationTime );
         if ( result != RET_SUCCESS )
         {
-            TRACE( OV13850_ERROR, "%s: OV13850_IsiExposureControlIss failed.\n", __FUNCTION__);
+            TRACE( Sensor_ERROR, "%s: Sensor_IsiExposureControlIss failed.\n", __FUNCTION__);
             return ( result );
         }
 
         // return number of frames that aren't exposed correctly
         *pNumberOfFramesToSkip = NumberOfFramesToSkip + 1;
+        //	*pNumberOfFramesToSkip = 0;
     }
 
-    TRACE( OV13850_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (exit)  result: 0x%x\n", __FUNCTION__, result);
 
     return ( result );
 }
@@ -1391,7 +1556,7 @@ static RESULT OV13850_IsiChangeSensorResolutionIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiSensorSetStreamingIss
+ *          Sensor_IsiSensorSetStreamingIss
  *
  * @brief   Enables/disables streaming of sensor data, if possible.
  *
@@ -1404,7 +1569,7 @@ static RESULT OV13850_IsiChangeSensorResolutionIss
  * @retval  RET_WRONG_STATE
  *
  *****************************************************************************/
-static RESULT OV13850_IsiSensorSetStreamingIss
+static RESULT Sensor_IsiSensorSetStreamingIss
 (
     IsiSensorHandle_t   handle,
     bool_t              on
@@ -1413,18 +1578,18 @@ static RESULT OV13850_IsiSensorSetStreamingIss
     uint32_t RegValue = 0;
 	uint32_t RegValue2 = 0;
 
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (enter)  on = %d\n", __FUNCTION__,on);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    if ( (pOV13850Ctx->Configured != BOOL_TRUE) || (pOV13850Ctx->Streaming == on) )
+    if ( (pSensorCtx->Configured != BOOL_TRUE) || (pSensorCtx->Streaming == on) )
     {
         return RET_WRONG_STATE;
     }
@@ -1432,29 +1597,29 @@ static RESULT OV13850_IsiSensorSetStreamingIss
     if (on == BOOL_TRUE)
     {
         /* enable streaming */
-        result = OV13850_IsiRegReadIss ( pOV13850Ctx, OV13850_MODE_SELECT, &RegValue);
+        result = Sensor_IsiRegReadIss ( pSensorCtx, Sensor_MODE_SELECT, &RegValue);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV13850_IsiRegWriteIss ( pOV13850Ctx, OV13850_MODE_SELECT, (RegValue | 0x01U) );
+        result = Sensor_IsiRegWriteIss ( pSensorCtx, Sensor_MODE_SELECT, (RegValue | 0x01U) );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 		
     }
     else
     {   
         /* disable streaming */
-        result = OV13850_IsiRegReadIss ( pOV13850Ctx, OV13850_MODE_SELECT, &RegValue);
+        result = Sensor_IsiRegReadIss ( pSensorCtx, Sensor_MODE_SELECT, &RegValue);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV13850_IsiRegWriteIss ( pOV13850Ctx, OV13850_MODE_SELECT, (RegValue & ~0x01U) );
+        result = Sensor_IsiRegWriteIss ( pSensorCtx, Sensor_MODE_SELECT, (RegValue & ~0x01U) );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-        TRACE(OV13850_ERROR," STREAM OFF ++++++++++++++");
+        TRACE(Sensor_ERROR," STREAM OFF ++++++++++++++");
     }
 
     if (result == RET_SUCCESS)
     {
-        pOV13850Ctx->Streaming = on;
+        pSensorCtx->Streaming = on;
     }
 
-    TRACE( OV13850_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -1463,11 +1628,11 @@ static RESULT OV13850_IsiSensorSetStreamingIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiSensorSetPowerIss
+ *          Sensor_IsiSensorSetPowerIss
  *
  * @brief   Performs the power-up/power-down sequence of the camera, if possible.
  *
- * @param   handle      OV13850 sensor instance handle
+ * @param   handle      Sensor instance handle
  * @param   on          new power state (BOOL_TRUE=on, BOOL_FALSE=off)
  *
  * @return  Return the result of the function call.
@@ -1475,55 +1640,55 @@ static RESULT OV13850_IsiSensorSetStreamingIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiSensorSetPowerIss
+static RESULT Sensor_IsiSensorSetPowerIss
 (
     IsiSensorHandle_t   handle,
     bool_t              on
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    pOV13850Ctx->Configured = BOOL_FALSE;
-    pOV13850Ctx->Streaming  = BOOL_FALSE;
+    pSensorCtx->Configured = BOOL_FALSE;
+    pSensorCtx->Streaming  = BOOL_FALSE;
 
-    result = HalSetPower( pOV13850Ctx->IsiCtx.HalHandle, pOV13850Ctx->IsiCtx.HalDevID, false );
+    result = HalSetPower( pSensorCtx->IsiCtx.HalHandle, pSensorCtx->IsiCtx.HalDevID, false );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-    result = HalSetReset( pOV13850Ctx->IsiCtx.HalHandle, pOV13850Ctx->IsiCtx.HalDevID, true );
+    result = HalSetReset( pSensorCtx->IsiCtx.HalHandle, pSensorCtx->IsiCtx.HalDevID, true );
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
     if (on == BOOL_TRUE)
     {
-        result = HalSetPower( pOV13850Ctx->IsiCtx.HalHandle, pOV13850Ctx->IsiCtx.HalDevID, true );
+        result = HalSetPower( pSensorCtx->IsiCtx.HalHandle, pSensorCtx->IsiCtx.HalDevID, true );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
         osSleep( 10 );
 
-        result = HalSetReset( pOV13850Ctx->IsiCtx.HalHandle, pOV13850Ctx->IsiCtx.HalDevID, false );
+        result = HalSetReset( pSensorCtx->IsiCtx.HalHandle, pSensorCtx->IsiCtx.HalDevID, false );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
         osSleep( 10 );
 
-        result = HalSetReset( pOV13850Ctx->IsiCtx.HalHandle, pOV13850Ctx->IsiCtx.HalDevID, true );
+        result = HalSetReset( pSensorCtx->IsiCtx.HalHandle, pSensorCtx->IsiCtx.HalDevID, true );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
         osSleep( 10 );
 
-        result = HalSetReset( pOV13850Ctx->IsiCtx.HalHandle, pOV13850Ctx->IsiCtx.HalDevID, false );
+        result = HalSetReset( pSensorCtx->IsiCtx.HalHandle, pSensorCtx->IsiCtx.HalDevID, false );
 
         osSleep( 50 );
     }
 
-    TRACE( OV13850_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -1532,18 +1697,18 @@ static RESULT OV13850_IsiSensorSetPowerIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiCheckSensorConnectionIss
+ *          Sensor_IsiCheckSensorConnectionIss
  *
  * @brief   Checks the I2C-Connection to sensor by reading sensor revision id.
  *
- * @param   handle      OV13850 sensor instance handle
+ * @param   handle      Sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiCheckSensorConnectionIss
+static RESULT Sensor_IsiCheckSensorConnectionIss
 (
     IsiSensorHandle_t   handle
 )
@@ -1553,25 +1718,26 @@ static RESULT OV13850_IsiCheckSensorConnectionIss
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (enter)\n", __FUNCTION__);
 
     if ( handle == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    RevId = OV13850_CHIP_ID_HIGH_BYTE_DEFAULT;
-    RevId = (RevId << 8U) | (OV13850_CHIP_ID_LOW_BYTE_DEFAULT);
+    RevId = Sensor_CHIP_ID_HIGH_BYTE_DEFAULT;
+    RevId = (RevId << 8U) | (Sensor_CHIP_ID_LOW_BYTE_DEFAULT);
 
-    result = OV13850_IsiGetSensorRevisionIss( handle, &value );
+    result = Sensor_IsiGetSensorRevisionIss( handle, &value );
+
     if ( (result != RET_SUCCESS) || (RevId != value) )
     {
-        TRACE( OV13850_ERROR, "%s RevId = 0x%08x, value = 0x%08x \n", __FUNCTION__, RevId, value );
+        TRACE( Sensor_ERROR, "%s RevId = 0x%08x, value = 0x%08x \n", __FUNCTION__, RevId, value );
         return ( RET_FAILURE );
     }
 
 
-    TRACE( OV13850_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -1580,7 +1746,7 @@ static RESULT OV13850_IsiCheckSensorConnectionIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetSensorRevisionIss
+ *          Sensor_IsiGetSensorRevisionIss
  *
  * @brief   reads the sensor revision register and returns this value
  *
@@ -1593,7 +1759,7 @@ static RESULT OV13850_IsiCheckSensorConnectionIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetSensorRevisionIss
+static RESULT Sensor_IsiGetSensorRevisionIss
 (
     IsiSensorHandle_t   handle,
     uint32_t            *p_value
@@ -1604,7 +1770,7 @@ static RESULT OV13850_IsiGetSensorRevisionIss
     uint32_t data;
 	uint32_t vcm_pos = MAX_LOG;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( handle == NULL )
     {
@@ -1617,12 +1783,12 @@ static RESULT OV13850_IsiGetSensorRevisionIss
     }
 
     *p_value = 0U;
-    result = OV13850_IsiRegReadIss ( handle, OV13850_CHIP_ID_HIGH_BYTE, &data );
+    result = Sensor_IsiRegReadIss ( handle, Sensor_CHIP_ID_HIGH_BYTE, &data );
     *p_value = ( (data & 0xFF) << 8U );
-    result = OV13850_IsiRegReadIss ( handle, OV13850_CHIP_ID_LOW_BYTE, &data );
+    result = Sensor_IsiRegReadIss ( handle, Sensor_CHIP_ID_LOW_BYTE, &data );
     *p_value |= ( (data & 0xFF) );
 
-    TRACE( OV13850_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -1631,7 +1797,7 @@ static RESULT OV13850_IsiGetSensorRevisionIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiRegReadIss
+ *          Sensor_IsiRegReadIss
  *
  * @brief   grants user read access to the camera register
  *
@@ -1645,7 +1811,7 @@ static RESULT OV13850_IsiGetSensorRevisionIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiRegReadIss
+static RESULT Sensor_IsiRegReadIss
 (
     IsiSensorHandle_t   handle,
     const uint32_t      address,
@@ -1654,7 +1820,7 @@ static RESULT OV13850_IsiRegReadIss
 {
     RESULT result = RET_SUCCESS;
 
-  //  TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+  //  TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( handle == NULL )
     {
@@ -1667,18 +1833,18 @@ static RESULT OV13850_IsiRegReadIss
     }
     else
     {
-        uint8_t NrOfBytes = IsiGetNrDatBytesIss( address, OV13850_g_aRegDescription_twolane);
+        uint8_t NrOfBytes = IsiGetNrDatBytesIss( address, Sensor_g_aRegDescription_twolane);
         if ( !NrOfBytes )
         {
             NrOfBytes = 1;
         }
- //       TRACE( OV13850_REG_DEBUG, "%s (IsiGetNrDatBytesIss %d 0x%08x)\n", __FUNCTION__, NrOfBytes, address);
+ //       TRACE( Sensor_REG_DEBUG, "%s (IsiGetNrDatBytesIss %d 0x%08x)\n", __FUNCTION__, NrOfBytes, address);
 
         *p_value = 0;
         result = IsiI2cReadSensorRegister( handle, address, (uint8_t *)p_value, NrOfBytes, BOOL_TRUE );
     }
 
-  //  TRACE( OV13850_ERROR, "%s (exit: 0x%08x 0x%08x)\n", __FUNCTION__, address, *p_value);
+  //  TRACE( Sensor_ERROR, "%s (exit: 0x%08x 0x%08x)\n", __FUNCTION__, address, *p_value);
 
     return ( result );
 }
@@ -1687,7 +1853,7 @@ static RESULT OV13850_IsiRegReadIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiRegWriteIss
+ *          Sensor_IsiRegWriteIss
  *
  * @brief   grants user write access to the camera register
  *
@@ -1700,7 +1866,7 @@ static RESULT OV13850_IsiRegReadIss
  * @retval  RET_WRONG_HANDLE
  *
  *****************************************************************************/
-static RESULT OV13850_IsiRegWriteIss
+static RESULT Sensor_IsiRegWriteIss
 (
     IsiSensorHandle_t   handle,
     const uint32_t      address,
@@ -1711,23 +1877,23 @@ static RESULT OV13850_IsiRegWriteIss
 
     uint8_t NrOfBytes;
 
-  //  TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+  //  TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( handle == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    NrOfBytes = IsiGetNrDatBytesIss( address, OV13850_g_aRegDescription_twolane);
+    NrOfBytes = IsiGetNrDatBytesIss( address, Sensor_g_aRegDescription_twolane);
     if ( !NrOfBytes )
     {
         NrOfBytes = 1;
     }
-//    TRACE( OV13850_REG_DEBUG, "%s (IsiGetNrDatBytesIss %d 0x%08x 0x%08x)\n", __FUNCTION__, NrOfBytes, address, value);
+//    TRACE( Sensor_REG_DEBUG, "%s (IsiGetNrDatBytesIss %d 0x%08x 0x%08x)\n", __FUNCTION__, NrOfBytes, address, value);
 
     result = IsiI2cWriteSensorRegister( handle, address, (uint8_t *)(&value), NrOfBytes, BOOL_TRUE );
 
-//    TRACE( OV13850_ERROR, "%s (exit: 0x%08x 0x%08x)\n", __FUNCTION__, address, value);
+//    TRACE( Sensor_ERROR, "%s (exit: 0x%08x 0x%08x)\n", __FUNCTION__, address, value);
 
     return ( result );
 }
@@ -1736,12 +1902,12 @@ static RESULT OV13850_IsiRegWriteIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetGainLimitsIss
+ *          Sensor_IsiGetGainLimitsIss
  *
  * @brief   Returns the exposure minimal and maximal values of an
- *          OV13850 instance
+ *          Sensor instance
  *
- * @param   handle       OV13850 sensor instance handle
+ * @param   handle       Sensor instance handle
  * @param   pMinExposure Pointer to a variable receiving minimal exposure value
  * @param   pMaxExposure Pointer to a variable receiving maximal exposure value
  *
@@ -1750,37 +1916,37 @@ static RESULT OV13850_IsiRegWriteIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetGainLimitsIss
+static RESULT Sensor_IsiGetGainLimitsIss
 (
     IsiSensorHandle_t   handle,
     float               *pMinGain,
     float               *pMaxGain
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t RegValue = 0;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
     if ( (pMinGain == NULL) || (pMaxGain == NULL) )
     {
-        TRACE( OV13850_ERROR, "%s: NULL pointer received!!\n" );
+        TRACE( Sensor_ERROR, "%s: NULL pointer received!!\n" );
         return ( RET_NULL_POINTER );
     }
 
-    *pMinGain = pOV13850Ctx->AecMinGain;
-    *pMaxGain = pOV13850Ctx->AecMaxGain;
+    *pMinGain = pSensorCtx->AecMinGain;
+    *pMaxGain = pSensorCtx->AecMaxGain;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: pMinGain:%f,pMaxGain:%f(exit)\n", __FUNCTION__,pSensorCtx->AecMinGain,pSensorCtx->AecMaxGain);
 
     return ( result );
 }
@@ -1789,12 +1955,12 @@ static RESULT OV13850_IsiGetGainLimitsIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetIntegrationTimeLimitsIss
+ *          Sensor_IsiGetIntegrationTimeLimitsIss
  *
  * @brief   Returns the minimal and maximal integration time values of an
- *          OV13850 instance
+ *          Sensor instance
  *
- * @param   handle       OV13850 sensor instance handle
+ * @param   handle       Sensor instance handle
  * @param   pMinExposure Pointer to a variable receiving minimal exposure value
  * @param   pMaxExposure Pointer to a variable receiving maximal exposure value
  *
@@ -1803,37 +1969,37 @@ static RESULT OV13850_IsiGetGainLimitsIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetIntegrationTimeLimitsIss
+static RESULT Sensor_IsiGetIntegrationTimeLimitsIss
 (
     IsiSensorHandle_t   handle,
     float               *pMinIntegrationTime,
     float               *pMaxIntegrationTime
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t RegValue = 0;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (------oyyf enter) \n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
     if ( (pMinIntegrationTime == NULL) || (pMaxIntegrationTime == NULL) )
     {
-        TRACE( OV13850_ERROR, "%s: NULL pointer received!!\n" );
+        TRACE( Sensor_ERROR, "%s: NULL pointer received!!\n" );
         return ( RET_NULL_POINTER );
     }
 
-    *pMinIntegrationTime = pOV13850Ctx->AecMinIntegrationTime;
-    *pMaxIntegrationTime = pOV13850Ctx->AecMaxIntegrationTime;
+    *pMinIntegrationTime = pSensorCtx->AecMinIntegrationTime;
+    *pMaxIntegrationTime = pSensorCtx->AecMaxIntegrationTime;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (------oyyf exit) (\n", __FUNCTION__);
 
     return ( result );
 }
@@ -1841,11 +2007,11 @@ static RESULT OV13850_IsiGetIntegrationTimeLimitsIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetGainIss
+ *          Sensor_IsiGetGainIss
  *
  * @brief   Reads gain values from the image sensor module.
  *
- * @param   handle                  OV13850 sensor instance handle
+ * @param   handle                  Sensor instance handle
  * @param   pSetGain                set gain
  *
  * @return  Return the result of the function call.
@@ -1853,21 +2019,21 @@ static RESULT OV13850_IsiGetIntegrationTimeLimitsIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV13850_IsiGetGainIss
+RESULT Sensor_IsiGetGainIss
 (
     IsiSensorHandle_t   handle,
     float               *pSetGain
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -1876,9 +2042,9 @@ RESULT OV13850_IsiGetGainIss
         return ( RET_NULL_POINTER );
     }
 
-    *pSetGain = pOV13850Ctx->AecCurGain;
+    *pSetGain = pSensorCtx->AecCurGain;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -1887,11 +2053,11 @@ RESULT OV13850_IsiGetGainIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetGainIncrementIss
+ *          Sensor_IsiGetGainIncrementIss
  *
  * @brief   Get smallest possible gain increment.
  *
- * @param   handle                  OV13850 sensor instance handle
+ * @param   handle                  Sensor instance handle
  * @param   pIncr                   increment
  *
  * @return  Return the result of the function call.
@@ -1899,21 +2065,21 @@ RESULT OV13850_IsiGetGainIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV13850_IsiGetGainIncrementIss
+RESULT Sensor_IsiGetGainIncrementIss
 (
     IsiSensorHandle_t   handle,
     float               *pIncr
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -1923,9 +2089,9 @@ RESULT OV13850_IsiGetGainIncrementIss
     }
 
     //_smallest_ increment the sensor/driver can handle (e.g. used for sliders in the application)
-    *pIncr = pOV13850Ctx->AecGainIncrement;
+    *pIncr = pSensorCtx->AecGainIncrement;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -1934,12 +2100,12 @@ RESULT OV13850_IsiGetGainIncrementIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiSetGainIss
+ *          Sensor_IsiSetGainIss
  *
  * @brief   Writes gain values to the image sensor module.
  *          Updates current gain and exposure in sensor struct/state.
  *
- * @param   handle                  OV13850 sensor instance handle
+ * @param   handle                  Sensor instance handle
  * @param   NewGain                 gain to be set
  * @param   pSetGain                set gain
  *
@@ -1951,57 +2117,58 @@ RESULT OV13850_IsiGetGainIncrementIss
  * @retval  RET_FAILURE
  *
  *****************************************************************************/
-RESULT OV13850_IsiSetGainIss
+RESULT Sensor_IsiSetGainIss
 (
     IsiSensorHandle_t   handle,
     float               NewGain,
     float               *pSetGain
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint16_t usGain = 0;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
     if ( pSetGain == NULL)
     {
-        TRACE( OV13850_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_NULL_POINTER );
     }
 
   
-    if( NewGain < pOV13850Ctx->AecMinGain ) NewGain = pOV13850Ctx->AecMinGain;
-    if( NewGain > pOV13850Ctx->AecMaxGain ) NewGain = pOV13850Ctx->AecMaxGain;
+    if( NewGain < pSensorCtx->AecMinGain ) NewGain = pSensorCtx->AecMinGain;
+    if( NewGain > pSensorCtx->AecMaxGain ) NewGain = pSensorCtx->AecMaxGain;
 
     usGain = (uint16_t)(NewGain * 16.0f+0.5);
 
     // write new gain into sensor registers, do not write if nothing has changed
-    if( (usGain != pOV13850Ctx->OldGain) )
+    //if( (usGain != pSensorCtx->OldGain) )
+    if(1)
     {
-        result = OV13850_IsiRegWriteIss( pOV13850Ctx, 0x350a, (usGain>>8)&0x03);
+        result = Sensor_IsiRegWriteIss( pSensorCtx, 0x350a, (usGain>>8)&0x03);
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV13850_IsiRegWriteIss( pOV13850Ctx, 0x350b, (usGain&0xff));
+        result = Sensor_IsiRegWriteIss( pSensorCtx, 0x350b, (usGain&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-        pOV13850Ctx->OldGain = usGain;
+        pSensorCtx->OldGain = usGain;
     }
 
     //calculate gain actually set
-    pOV13850Ctx->AecCurGain = ( (float)usGain ) / 16.0f;
+    pSensorCtx->AecCurGain = ( (float)usGain ) / 16.0f;
 
     //return current state
-    *pSetGain = pOV13850Ctx->AecCurGain;
+    *pSetGain = pSensorCtx->AecCurGain;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: setgain mubiao(%f) shiji(%f)\n", __FUNCTION__, NewGain, *pSetGain);
 
     return ( result );
 }
@@ -2010,11 +2177,11 @@ RESULT OV13850_IsiSetGainIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetIntegrationTimeIss
+ *          Sensor_IsiGetIntegrationTimeIss
  *
  * @brief   Reads integration time values from the image sensor module.
  *
- * @param   handle                  OV13850 sensor instance handle
+ * @param   handle                  Sensor instance handle
  * @param   pSetIntegrationTime     set integration time
  *
  * @return  Return the result of the function call.
@@ -2022,21 +2189,21 @@ RESULT OV13850_IsiSetGainIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV13850_IsiGetIntegrationTimeIss
+RESULT Sensor_IsiGetIntegrationTimeIss
 (
     IsiSensorHandle_t   handle,
     float               *pSetIntegrationTime
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2045,9 +2212,9 @@ RESULT OV13850_IsiGetIntegrationTimeIss
         return ( RET_NULL_POINTER );
     }
 
-    *pSetIntegrationTime = pOV13850Ctx->AecCurIntegrationTime;
+    *pSetIntegrationTime = pSensorCtx->AecCurIntegrationTime;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2056,11 +2223,11 @@ RESULT OV13850_IsiGetIntegrationTimeIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetIntegrationTimeIncrementIss
+ *          Sensor_IsiGetIntegrationTimeIncrementIss
  *
  * @brief   Get smallest possible integration time increment.
  *
- * @param   handle                  OV13850 sensor instance handle
+ * @param   handle                  Sensor instance handle
  * @param   pIncr                   increment
  *
  * @return  Return the result of the function call.
@@ -2068,21 +2235,21 @@ RESULT OV13850_IsiGetIntegrationTimeIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV13850_IsiGetIntegrationTimeIncrementIss
+RESULT Sensor_IsiGetIntegrationTimeIncrementIss
 (
     IsiSensorHandle_t   handle,
     float               *pIncr
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (-------oyyf)(enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2092,9 +2259,9 @@ RESULT OV13850_IsiGetIntegrationTimeIncrementIss
     }
 
     //_smallest_ increment the sensor/driver can handle (e.g. used for sliders in the application)
-    *pIncr = pOV13850Ctx->AecIntegrationTimeIncrement;
+    *pIncr = pSensorCtx->AecIntegrationTimeIncrement;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (------oyyf)(exit) pSensorCtx->AecIntegrationTimeIncrement(%f)\n", __FUNCTION__,pSensorCtx->AecIntegrationTimeIncrement);
 
     return ( result );
 }
@@ -2103,13 +2270,13 @@ RESULT OV13850_IsiGetIntegrationTimeIncrementIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiSetIntegrationTimeIss
+ *          Sensor_IsiSetIntegrationTimeIss
  *
  * @brief   Writes gain and integration time values to the image sensor module.
  *          Updates current integration time and exposure in sensor
  *          struct/state.
  *
- * @param   handle                  OV13850 sensor instance handle
+ * @param   handle                  Sensor instance handle
  * @param   NewIntegrationTime      integration time to be set
  * @param   pSetIntegrationTime     set integration time
  * @param   pNumberOfFramesToSkip   number of frames to skip until AE is
@@ -2124,7 +2291,7 @@ RESULT OV13850_IsiGetIntegrationTimeIncrementIss
  * @retval  RET_DIVISION_BY_ZERO
  *
  *****************************************************************************/
-RESULT OV13850_IsiSetIntegrationTimeIss
+RESULT Sensor_IsiSetIntegrationTimeIss
 (
     IsiSensorHandle_t   handle,
     float               NewIntegrationTime,
@@ -2132,34 +2299,40 @@ RESULT OV13850_IsiSetIntegrationTimeIss
     uint8_t             *pNumberOfFramesToSkip
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t CoarseIntegrationTime = 0;
-    //uint32_t FineIntegrationTime   = 0; //not supported by OV13850
-
+    //uint32_t FineIntegrationTime   = 0; //not supported by Sensor
+	uint32_t result_intertime= 0;
     float ShutterWidthPck = 0.0f; //shutter width in pixel clock periods
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter) NewIntegrationTime: %f (min: %f   max: %f)\n", __FUNCTION__,
+        NewIntegrationTime,
+        pSensorCtx->AecMinIntegrationTime,
+        pSensorCtx->AecMaxIntegrationTime);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
     if ( (pSetIntegrationTime == NULL) || (pNumberOfFramesToSkip == NULL) )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_NULL_POINTER );
     }
 
     //maximum and minimum integration time is limited by the sensor, if this limit is not
     //considered, the exposure control loop needs lots of time to return to a new state
     //so limit to allowed range
-    if ( NewIntegrationTime > pOV13850Ctx->AecMaxIntegrationTime ) NewIntegrationTime = pOV13850Ctx->AecMaxIntegrationTime;
-    if ( NewIntegrationTime < pOV13850Ctx->AecMinIntegrationTime ) NewIntegrationTime = pOV13850Ctx->AecMinIntegrationTime;
+
+	//hkw
+	//if ( NewIntegrationTime > 0.15 ) NewIntegrationTime = 0.15;
+   if ( NewIntegrationTime > pSensorCtx->AecMaxIntegrationTime ) NewIntegrationTime = pSensorCtx->AecMaxIntegrationTime;
+    if ( NewIntegrationTime < pSensorCtx->AecMinIntegrationTime ) NewIntegrationTime = pSensorCtx->AecMinIntegrationTime;
 
     //the actual integration time is given by
     //integration_time = ( coarse_integration_time * line_length_pck + fine_integration_time ) / vt_pix_clk_freq
@@ -2167,38 +2340,38 @@ RESULT OV13850_IsiSetIntegrationTimeIss
     //coarse_integration_time = (int)( integration_time * vt_pix_clk_freq  / line_length_pck )
     //fine_integration_time   = integration_time * vt_pix_clk_freq - coarse_integration_time * line_length_pck
     //
-    //fine integration is not supported by OV13850
+    //fine integration is not supported by Sensor
     //=>
     //coarse_integration_time = (int)( integration_time * vt_pix_clk_freq  / line_length_pck + 0.5 )
 
-    ShutterWidthPck = NewIntegrationTime * ( (float)pOV13850Ctx->VtPixClkFreq );
+    ShutterWidthPck = NewIntegrationTime * ( (float)pSensorCtx->VtPixClkFreq );
 
     // avoid division by zero
-    if ( pOV13850Ctx->LineLengthPck == 0 )
+    if ( pSensorCtx->LineLengthPck == 0 )
     {
-        TRACE( OV13850_ERROR, "%s: Division by zero!\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Division by zero!\n", __FUNCTION__ );
         return ( RET_DIVISION_BY_ZERO );
     }
 
     //calculate the integer part of the integration time in units of line length
     //calculate the fractional part of the integration time in units of pixel clocks
-    //CoarseIntegrationTime = (uint32_t)( ShutterWidthPck / ((float)pOV13850Ctx->LineLengthPck) );
-    //FineIntegrationTime   = ( (uint32_t)ShutterWidthPck ) - ( CoarseIntegrationTime * pOV13850Ctx->LineLengthPck );
-    CoarseIntegrationTime = (uint32_t)( ShutterWidthPck / ((float)pOV13850Ctx->LineLengthPck) + 0.5f );
+    //CoarseIntegrationTime = (uint32_t)( ShutterWidthPck / ((float)pSensorCtx->LineLengthPck) );
+    //FineIntegrationTime   = ( (uint32_t)ShutterWidthPck ) - ( CoarseIntegrationTime * pSensorCtx->LineLengthPck );
+    CoarseIntegrationTime = (uint32_t)( ShutterWidthPck / ((float)pSensorCtx->LineLengthPck) + 0.5f );
 
     // write new integration time into sensor registers
     // do not write if nothing has changed
-    if( CoarseIntegrationTime != pOV13850Ctx->OldCoarseIntegrationTime )
+    if( CoarseIntegrationTime != pSensorCtx->OldCoarseIntegrationTime )
     {
-        result = OV13850_IsiRegWriteIss( pOV13850Ctx, 0x3500, (CoarseIntegrationTime & 0x0000F000U) >> 12U );
+        result = Sensor_IsiRegWriteIss( pSensorCtx, 0x3500, (CoarseIntegrationTime & 0x0000F000U) >> 12U );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV13850_IsiRegWriteIss( pOV13850Ctx, 0x3501, (CoarseIntegrationTime & 0x00000FF0U) >> 4U );
+        result = Sensor_IsiRegWriteIss( pSensorCtx, 0x3501, (CoarseIntegrationTime & 0x00000FF0U) >> 4U );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = OV13850_IsiRegWriteIss( pOV13850Ctx, 0x3502, (CoarseIntegrationTime & 0x0000000FU) << 4U );
+        result = Sensor_IsiRegWriteIss( pSensorCtx, 0x3502, (CoarseIntegrationTime & 0x0000000FU) << 4U );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
 
-        pOV13850Ctx->OldCoarseIntegrationTime = CoarseIntegrationTime;   // remember current integration time
+        pSensorCtx->OldCoarseIntegrationTime = CoarseIntegrationTime;   // remember current integration time
         *pNumberOfFramesToSkip = 1U; //skip 1 frame
     }
     else
@@ -2206,24 +2379,33 @@ RESULT OV13850_IsiSetIntegrationTimeIss
         *pNumberOfFramesToSkip = 0U; //no frame skip
     }
 
-    //if( FineIntegrationTime != pOV13850Ctx->OldFineIntegrationTime )
+    //if( FineIntegrationTime != pSensorCtx->OldFineIntegrationTime )
     //{
-    //    result = OV13850_IsiRegWriteIss( pOV13850Ctx, ... , FineIntegrationTime );
+    //    result = Sensor_IsiRegWriteIss( pSensorCtx, ... , FineIntegrationTime );
     //    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-    //    pOV13850Ctx->OldFineIntegrationTime = FineIntegrationTime; //remember current integration time
+    //    pSensorCtx->OldFineIntegrationTime = FineIntegrationTime; //remember current integration time
     //    *pNumberOfFramesToSkip = 1U; //skip 1 frame
     //}
 
     //calculate integration time actually set
-    //pOV13850Ctx->AecCurIntegrationTime = ( ((float)CoarseIntegrationTime) * ((float)pOV13850Ctx->LineLengthPck) + ((float)FineIntegrationTime) ) / pOV13850Ctx->VtPixClkFreq;
-    pOV13850Ctx->AecCurIntegrationTime = ((float)CoarseIntegrationTime) * ((float)pOV13850Ctx->LineLengthPck) / pOV13850Ctx->VtPixClkFreq;
+    //pSensorCtx->AecCurIntegrationTime = ( ((float)CoarseIntegrationTime) * ((float)pSensorCtx->LineLengthPck) + ((float)FineIntegrationTime) ) / pSensorCtx->VtPixClkFreq;
+    pSensorCtx->AecCurIntegrationTime = ((float)CoarseIntegrationTime) * ((float)pSensorCtx->LineLengthPck) / pSensorCtx->VtPixClkFreq;
 
     //return current state
-    *pSetIntegrationTime = pOV13850Ctx->AecCurIntegrationTime;
+    *pSetIntegrationTime = pSensorCtx->AecCurIntegrationTime;
 
-   // TRACE( OV13850_ERROR, "%s: SetTi=%f NewTi=%f\n", __FUNCTION__, *pSetIntegrationTime,NewIntegrationTime);
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
-
+   // TRACE( Sensor_ERROR, "%s: SetTi=%f NewTi=%f\n", __FUNCTION__, *pSetIntegrationTime,NewIntegrationTime);
+    TRACE( Sensor_INFO, "%s: (exit) settime mubiao(%f) shiji(%f)\n", __FUNCTION__, NewIntegrationTime,*pSetIntegrationTime);
+	TRACE( Sensor_DEBUG, "%s:\n"
+         "pSensorCtx->VtPixClkFreq:%f pSensorCtx->LineLengthPck:%x \n"
+         "SetTi=%f    NewTi=%f  CoarseIntegrationTime=%x\n"
+         "result_intertime = %x\n H:%x\n M:%x\n L:%x\n", __FUNCTION__, 
+         pSensorCtx->VtPixClkFreq,pSensorCtx->LineLengthPck,
+         *pSetIntegrationTime,NewIntegrationTime,CoarseIntegrationTime,
+         result_intertime,
+         (CoarseIntegrationTime & 0x0000F000U) >> 12U ,
+         (CoarseIntegrationTime & 0x00000FF0U) >> 4U,
+         (CoarseIntegrationTime & 0x0000000FU) << 4U);
     return ( result );
 }
 
@@ -2232,13 +2414,13 @@ RESULT OV13850_IsiSetIntegrationTimeIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiExposureControlIss
+ *          Sensor_IsiExposureControlIss
  *
  * @brief   Camera hardware dependent part of the exposure control loop.
  *          Calculates appropriate register settings from the new exposure
  *          values and writes them to the image sensor module.
  *
- * @param   handle                  OV13850 sensor instance handle
+ * @param   handle                  Sensor instance handle
  * @param   NewGain                 newly calculated gain to be set
  * @param   NewIntegrationTime      newly calculated integration time to be set
  * @param   pNumberOfFramesToSkip   number of frames to skip until AE is
@@ -2253,7 +2435,7 @@ RESULT OV13850_IsiSetIntegrationTimeIss
  * @retval  RET_DIVISION_BY_ZERO
  *
  *****************************************************************************/
-RESULT OV13850_IsiExposureControlIss
+RESULT Sensor_IsiExposureControlIss
 (
     IsiSensorHandle_t   handle,
     float               NewGain,
@@ -2263,15 +2445,15 @@ RESULT OV13850_IsiExposureControlIss
     float               *pSetIntegrationTime
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_DEBUG, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_DEBUG, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2279,18 +2461,18 @@ RESULT OV13850_IsiExposureControlIss
             || (pSetGain == NULL)
             || (pSetIntegrationTime == NULL) )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid parameter (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_NULL_POINTER );
     }
 
-    TRACE( OV13850_DEBUG, "%s: g=%f, Ti=%f\n", __FUNCTION__, NewGain, NewIntegrationTime );
+    TRACE( Sensor_DEBUG, "%s: g=%f, Ti=%f\n", __FUNCTION__, NewGain, NewIntegrationTime );
 
 
-    result = OV13850_IsiSetIntegrationTimeIss( handle, NewIntegrationTime, pSetIntegrationTime, pNumberOfFramesToSkip );
-    result = OV13850_IsiSetGainIss( handle, NewGain, pSetGain );
+    result = Sensor_IsiSetIntegrationTimeIss( handle, NewIntegrationTime, pSetIntegrationTime, pNumberOfFramesToSkip );
+    result = Sensor_IsiSetGainIss( handle, NewGain, pSetGain );
 
-    TRACE( OV13850_DEBUG, "%s: set: g=%f, Ti=%f, skip=%d\n", __FUNCTION__, *pSetGain, *pSetIntegrationTime, *pNumberOfFramesToSkip );
-    TRACE( OV13850_DEBUG, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_DEBUG, "%s: set: g=%f, Ti=%f, skip=%d\n", __FUNCTION__, *pSetGain, *pSetIntegrationTime, *pNumberOfFramesToSkip );
+    TRACE( Sensor_DEBUG, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2299,35 +2481,35 @@ RESULT OV13850_IsiExposureControlIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetCurrentExposureIss
+ *          Sensor_IsiGetCurrentExposureIss
  *
  * @brief   Returns the currently adjusted AE values
  *
- * @param   handle                  OV13850 sensor instance handle
+ * @param   handle                  Sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV13850_IsiGetCurrentExposureIss
+RESULT Sensor_IsiGetCurrentExposureIss
 (
     IsiSensorHandle_t   handle,
     float               *pSetGain,
     float               *pSetIntegrationTime
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t RegValue = 0;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2336,10 +2518,10 @@ RESULT OV13850_IsiGetCurrentExposureIss
         return ( RET_NULL_POINTER );
     }
 
-    *pSetGain            = pOV13850Ctx->AecCurGain;
-    *pSetIntegrationTime = pOV13850Ctx->AecCurIntegrationTime;
+    *pSetGain            = pSensorCtx->AecCurGain;
+    *pSetIntegrationTime = pSensorCtx->AecCurIntegrationTime;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2348,7 +2530,7 @@ RESULT OV13850_IsiGetCurrentExposureIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetResolutionIss
+ *          Sensor_IsiGetResolutionIss
  *
  * @brief   Reads integration time values from the image sensor module.
  *
@@ -2361,21 +2543,21 @@ RESULT OV13850_IsiGetCurrentExposureIss
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV13850_IsiGetResolutionIss
+RESULT Sensor_IsiGetResolutionIss
 (
     IsiSensorHandle_t   handle,
     uint32_t            *pSetResolution
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2384,9 +2566,9 @@ RESULT OV13850_IsiGetResolutionIss
         return ( RET_NULL_POINTER );
     }
 
-    *pSetResolution = pOV13850Ctx->Config.Resolution;
+    *pSetResolution = pSensorCtx->Config.Resolution;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2395,11 +2577,11 @@ RESULT OV13850_IsiGetResolutionIss
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetAfpsInfoHelperIss
+ *          Sensor_IsiGetAfpsInfoHelperIss
  *
  * @brief   Calc AFPS sub resolution settings for the given resolution
  *
- * @param   pOV13850Ctx             OV13850 sensor instance (dummy!) context
+ * @param   pSensorCtx             Sensor instance (dummy!) context
  * @param   Resolution              Any supported resolution to query AFPS params for
  * @param   pAfpsInfo               Reference of AFPS info structure to write the results to
  * @param   AfpsStageIdx            Index of current AFPS stage to use
@@ -2408,8 +2590,8 @@ RESULT OV13850_IsiGetResolutionIss
  * @retval  RET_SUCCESS
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetAfpsInfoHelperIss(
-    OV13850_Context_t   *pOV13850Ctx,
+static RESULT Sensor_IsiGetAfpsInfoHelperIss(
+    Sensor_Context_t   *pSensorCtx,
     uint32_t            Resolution,
     IsiAfpsInfo_t*      pAfpsInfo,
     uint32_t            AfpsStageIdx
@@ -2417,52 +2599,52 @@ static RESULT OV13850_IsiGetAfpsInfoHelperIss(
 {
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (-----------oyyf enter) pAfpsInfo->AecMaxIntTime(%f) pSensorCtx->AecMaxIntegrationTime(%f)\n", __FUNCTION__, pAfpsInfo->AecMaxIntTime,pSensorCtx->AecMaxIntegrationTime);
 
-    DCT_ASSERT(pOV13850Ctx != NULL);
+    DCT_ASSERT(pSensorCtx != NULL);
     DCT_ASSERT(pAfpsInfo != NULL);
     DCT_ASSERT(AfpsStageIdx <= ISI_NUM_AFPS_STAGES);
 
     // update resolution in copy of config in context
-    pOV13850Ctx->Config.Resolution = Resolution;
+    pSensorCtx->Config.Resolution = Resolution;
 
     // tell sensor about that
-    result = OV13850_SetupOutputWindow( pOV13850Ctx, &pOV13850Ctx->Config );
+    result = Sensor_SetupOutputWindowInternal( pSensorCtx, &pSensorCtx->Config,BOOL_FALSE,BOOL_FALSE );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV13850_ERROR, "%s: SetupOutputWindow failed for resolution ID %08x.\n", __FUNCTION__, Resolution);
+        TRACE( Sensor_ERROR, "%s: SetupOutputWindow failed for resolution ID %08x.\n", __FUNCTION__, Resolution);
         return ( result );
     }
 
     // update limits & stuff (reset current & old settings)
-    result = OV13850_AecSetModeParameters( pOV13850Ctx, &pOV13850Ctx->Config );
+    result = Sensor_AecSetModeParameters( pSensorCtx, &pSensorCtx->Config );
     if ( result != RET_SUCCESS )
     {
-        TRACE( OV13850_ERROR, "%s: AecSetModeParameters failed for resolution ID %08x.\n", __FUNCTION__, Resolution);
+        TRACE( Sensor_ERROR, "%s: AecSetModeParameters failed for resolution ID %08x.\n", __FUNCTION__, Resolution);
         return ( result );
     }
 
     // take over params
     pAfpsInfo->Stage[AfpsStageIdx].Resolution = Resolution;
-    pAfpsInfo->Stage[AfpsStageIdx].MaxIntTime = pOV13850Ctx->AecMaxIntegrationTime;
-    pAfpsInfo->AecMinGain           = pOV13850Ctx->AecMinGain;
-    pAfpsInfo->AecMaxGain           = pOV13850Ctx->AecMaxGain;
-    pAfpsInfo->AecMinIntTime        = pOV13850Ctx->AecMinIntegrationTime;
-    pAfpsInfo->AecMaxIntTime        = pOV13850Ctx->AecMaxIntegrationTime;
+    pAfpsInfo->Stage[AfpsStageIdx].MaxIntTime = pSensorCtx->AecMaxIntegrationTime;
+    pAfpsInfo->AecMinGain           = pSensorCtx->AecMinGain;
+    pAfpsInfo->AecMaxGain           = pSensorCtx->AecMaxGain;
+    pAfpsInfo->AecMinIntTime        = pSensorCtx->AecMinIntegrationTime;
+    pAfpsInfo->AecMaxIntTime        = pSensorCtx->AecMaxIntegrationTime;
     pAfpsInfo->AecSlowestResolution = Resolution;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (-----------oyyf exit) pAfpsInfo->AecMaxIntTime(%f) pSensorCtx->AecMaxIntegrationTime(%f)\n", __FUNCTION__, pAfpsInfo->AecMaxIntTime,pSensorCtx->AecMaxIntegrationTime);
 
     return ( result );
 }
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetAfpsInfoIss
+ *          Sensor_IsiGetAfpsInfoIss
  *
  * @brief   Returns the possible AFPS sub resolution settings for the given resolution series
  *
- * @param   handle                  OV13850 sensor instance handle
+ * @param   handle                  Sensor instance handle
  * @param   Resolution              Any resolution within the AFPS group to query;
  *                                  0 (zero) to use the currently configured resolution
  * @param   pAfpsInfo               Reference of AFPS info structure to store the results
@@ -2474,23 +2656,23 @@ static RESULT OV13850_IsiGetAfpsInfoHelperIss(
  * @retval  RET_NOTSUPP
  *
  *****************************************************************************/
-RESULT OV13850_IsiGetAfpsInfoIss(
+RESULT Sensor_IsiGetAfpsInfoIss(
     IsiSensorHandle_t   handle,
     uint32_t            Resolution,
     IsiAfpsInfo_t*      pAfpsInfo
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
     uint32_t RegValue = 0;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-        TRACE( OV13850_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
         return ( RET_WRONG_HANDLE );
     }
 
@@ -2502,33 +2684,33 @@ RESULT OV13850_IsiGetAfpsInfoIss(
     // use currently configured resolution?
     if (Resolution == 0)
     {
-        Resolution = pOV13850Ctx->Config.Resolution;
+        Resolution = pSensorCtx->Config.Resolution;
     }
 
     // prepare index
     uint32_t idx = 0;
 
     // set current resolution data in info struct
-    pAfpsInfo->CurrResolution = pOV13850Ctx->Config.Resolution;
-    pAfpsInfo->CurrMinIntTime = pOV13850Ctx->AecMinIntegrationTime;
-    pAfpsInfo->CurrMaxIntTime = pOV13850Ctx->AecMaxIntegrationTime;
+    pAfpsInfo->CurrResolution = pSensorCtx->Config.Resolution;
+    pAfpsInfo->CurrMinIntTime = pSensorCtx->AecMinIntegrationTime;
+    pAfpsInfo->CurrMaxIntTime = pSensorCtx->AecMaxIntegrationTime;
+	TRACE( Sensor_INFO, "#%s: (-----------oyyf) pAfpsInfo->AecMaxIntTime(%f) pSensorCtx->AecMaxIntegrationTime(%f)\n", __FUNCTION__, pAfpsInfo->AecMaxIntTime,pSensorCtx->AecMaxIntegrationTime);
 
     // allocate dummy context used for Afps parameter calculation as a copy of current context
-    OV13850_Context_t *pDummyCtx = (OV13850_Context_t*) malloc( sizeof(OV13850_Context_t) );
+    Sensor_Context_t *pDummyCtx = (Sensor_Context_t*) malloc( sizeof(Sensor_Context_t) );
     if ( pDummyCtx == NULL )
     {
-        TRACE( OV13850_ERROR,  "%s: Can't allocate dummy ov14825 context\n",  __FUNCTION__ );
+        TRACE( Sensor_ERROR,  "%s: Can't allocate dummy ov14825 context\n",  __FUNCTION__ );
         return ( RET_OUTOFMEM );
     }
-    *pDummyCtx = *pOV13850Ctx;
+    *pDummyCtx = *pSensorCtx;
 
     // set AFPS mode in dummy context
     pDummyCtx->isAfpsRun = BOOL_TRUE;
 
 #define AFPSCHECKANDADD(_res_) \
-    if ( (pOV13850Ctx->Config.AfpsResolutions & (_res_)) != 0 ) \
     { \
-        RESULT lres = OV13850_IsiGetAfpsInfoHelperIss( pDummyCtx, _res_, pAfpsInfo, idx ); \
+        RESULT lres = Sensor_IsiGetAfpsInfoHelperIss( pDummyCtx, _res_, pAfpsInfo, idx ); \
         if ( lres == RET_SUCCESS ) \
         { \
             ++idx; \
@@ -2540,31 +2722,72 @@ RESULT OV13850_IsiGetAfpsInfoIss(
     }
 
     // check which AFPS series is requested and build its params list for the enabled AFPS resolutions
-    switch(Resolution)
-    {
-        default:
-            TRACE( OV13850_DEBUG,  "%s: Resolution %08x not supported by AFPS\n",  __FUNCTION__, Resolution );
-            result = RET_NOTSUPP;
-            break;
+	switch (pSensorCtx->IsiSensorMipiInfo.ucMipiLanes)
+		{
+			case SUPPORT_MIPI_ONE_LANE:
+			{
+	
+				break;
+			}
+	
+			case SUPPORT_MIPI_TWO_LANE:
+			{
 
-        #if 0
-        // 1080p15 series in ascending integration time order (most probably the same as descending frame rate order)
-        case ISI_RES_TV1080P15:
-        case ISI_RES_TV1080P10:
-        case ISI_RES_TV1080P5:
-            AFPSCHECKANDADD( ISI_RES_TV1080P15 );
-            AFPSCHECKANDADD( ISI_RES_TV1080P10 );
-            AFPSCHECKANDADD( ISI_RES_TV1080P5  );
+				switch(Resolution)
+			    {
+			        default:
+			            TRACE( Sensor_ERROR,  "%s: Resolution %08x not supported by AFPS\n",  __FUNCTION__, Resolution );
+			            result = RET_NOTSUPP;
+			            break;
+					case ISI_RES_1296_972P30:
+					case ISI_RES_1296_972P25:
+					case ISI_RES_1296_972P20:
+					case ISI_RES_1296_972P15:
+					case ISI_RES_1296_972P10:
+						//TRACE( Sensor_ERROR, "%s: (99999exit)\n", __FUNCTION__);
+						AFPSCHECKANDADD( ISI_RES_1296_972P30);
+						AFPSCHECKANDADD( ISI_RES_1296_972P25);
+						AFPSCHECKANDADD( ISI_RES_1296_972P20);
+						AFPSCHECKANDADD( ISI_RES_1296_972P15);
+						AFPSCHECKANDADD( ISI_RES_1296_972P10);
+						break;
+					case ISI_RES_2592_1944P15:
+					case ISI_RES_2592_1944P7:
+						//TRACE( Sensor_ERROR, "%s: (88888exit)\n", __FUNCTION__);
+						AFPSCHECKANDADD( ISI_RES_2592_1944P15);
+						AFPSCHECKANDADD( ISI_RES_2592_1944P7);
+						break;
+						// check next series here...
+			        #if 0
+			        // 1080p15 series in ascending integration time order (most probably the same as descending frame rate order)
+			        case ISI_RES_TV1080P15:
+			        case ISI_RES_TV1080P10:
+			        case ISI_RES_TV1080P5:
+			            AFPSCHECKANDADD( ISI_RES_TV1080P15 );
+			            AFPSCHECKANDADD( ISI_RES_TV1080P10 );
+			            AFPSCHECKANDADD( ISI_RES_TV1080P5  );
+			            break;
+			        #endif
+				}
             break;
-        #endif
-
-        // check next series here...
-    }
+        	}
+			case SUPPORT_MIPI_FOUR_LANE:
+			{
+	
+				break;
+			}
+			default:
+            TRACE( Sensor_ERROR,  "%s: pSensorCtx->IsiSensorMipiInfo.ucMipiLanes(0x%x) is invalidate!\n", 
+                __FUNCTION__, pSensorCtx->IsiSensorMipiInfo.ucMipiLanes );
+            result = RET_FAILURE;
+            break;
+			        
+	}
 
     // release dummy context again
     free(pDummyCtx);
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2573,11 +2796,11 @@ RESULT OV13850_IsiGetAfpsInfoIss(
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetCalibKFactor
+ *          Sensor_IsiGetCalibKFactor
  *
- * @brief   Returns the OV13850 specific K-Factor
+ * @brief   Returns the Sensor specific K-Factor
  *
- * @param   handle       OV13850 sensor instance handle
+ * @param   handle       Sensor instance handle
  * @param   pIsiKFactor  Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -2586,19 +2809,19 @@ RESULT OV13850_IsiGetAfpsInfoIss(
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetCalibKFactor
+static RESULT Sensor_IsiGetCalibKFactor
 (
     IsiSensorHandle_t   handle,
     Isi1x1FloatMatrix_t **pIsiKFactor
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -2608,9 +2831,9 @@ static RESULT OV13850_IsiGetCalibKFactor
         return ( RET_NULL_POINTER );
     }
 
-    //*pIsiKFactor = (Isi1x1FloatMatrix_t *)&OV13850_KFactor;
+    //*pIsiKFactor = (Isi1x1FloatMatrix_t *)&Sensor_KFactor;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2618,11 +2841,11 @@ static RESULT OV13850_IsiGetCalibKFactor
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetCalibPcaMatrix
+ *          Sensor_IsiGetCalibPcaMatrix
  *
- * @brief   Returns the OV13850 specific PCA-Matrix
+ * @brief   Returns the Sensor specific PCA-Matrix
  *
- * @param   handle          OV13850 sensor instance handle
+ * @param   handle          Sensor instance handle
  * @param   pIsiPcaMatrix   Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -2631,19 +2854,19 @@ static RESULT OV13850_IsiGetCalibKFactor
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetCalibPcaMatrix
+static RESULT Sensor_IsiGetCalibPcaMatrix
 (
     IsiSensorHandle_t   handle,
     Isi3x2FloatMatrix_t **pIsiPcaMatrix
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -2653,9 +2876,9 @@ static RESULT OV13850_IsiGetCalibPcaMatrix
         return ( RET_NULL_POINTER );
     }
 
-    //*pIsiPcaMatrix = (Isi3x2FloatMatrix_t *)&OV13850_PCAMatrix;
+    //*pIsiPcaMatrix = (Isi3x2FloatMatrix_t *)&Sensor_PCAMatrix;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2664,11 +2887,11 @@ static RESULT OV13850_IsiGetCalibPcaMatrix
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetCalibSvdMeanValue
+ *          Sensor_IsiGetCalibSvdMeanValue
  *
  * @brief   Returns the sensor specific SvdMean-Vector
  *
- * @param   handle              OV13850 sensor instance handle
+ * @param   handle              Sensor instance handle
  * @param   pIsiSvdMeanValue    Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -2677,7 +2900,7 @@ static RESULT OV13850_IsiGetCalibPcaMatrix
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetCalibSvdMeanValue
+static RESULT Sensor_IsiGetCalibSvdMeanValue
 (
     IsiSensorHandle_t   handle,
     Isi3x1FloatMatrix_t **pIsiSvdMeanValue
@@ -2687,7 +2910,7 @@ static RESULT OV13850_IsiGetCalibSvdMeanValue
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pSensorCtx == NULL )
     {
@@ -2699,9 +2922,9 @@ static RESULT OV13850_IsiGetCalibSvdMeanValue
         return ( RET_NULL_POINTER );
     }
 
-    //*pIsiSvdMeanValue = (Isi3x1FloatMatrix_t *)&OV13850_SVDMeanValue;
+    //*pIsiSvdMeanValue = (Isi3x1FloatMatrix_t *)&Sensor_SVDMeanValue;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2710,12 +2933,12 @@ static RESULT OV13850_IsiGetCalibSvdMeanValue
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetCalibSvdMeanValue
+ *          Sensor_IsiGetCalibSvdMeanValue
  *
  * @brief   Returns a pointer to the sensor specific centerline, a straight
  *          line in Hesse normal form in Rg/Bg colorspace
  *
- * @param   handle              OV13850 sensor instance handle
+ * @param   handle              Sensor instance handle
  * @param   pIsiSvdMeanValue    Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -2724,7 +2947,7 @@ static RESULT OV13850_IsiGetCalibSvdMeanValue
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetCalibCenterLine
+static RESULT Sensor_IsiGetCalibCenterLine
 (
     IsiSensorHandle_t   handle,
     IsiLine_t           **ptIsiCenterLine
@@ -2734,7 +2957,7 @@ static RESULT OV13850_IsiGetCalibCenterLine
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pSensorCtx == NULL )
     {
@@ -2746,9 +2969,9 @@ static RESULT OV13850_IsiGetCalibCenterLine
         return ( RET_NULL_POINTER );
     }
 
-    //*ptIsiCenterLine = (IsiLine_t*)&OV13850_CenterLine;
+    //*ptIsiCenterLine = (IsiLine_t*)&Sensor_CenterLine;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2757,12 +2980,12 @@ static RESULT OV13850_IsiGetCalibCenterLine
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetCalibClipParam
+ *          Sensor_IsiGetCalibClipParam
  *
  * @brief   Returns a pointer to the sensor specific arrays for Rg/Bg color
  *          space clipping
  *
- * @param   handle              OV13850 sensor instance handle
+ * @param   handle              Sensor instance handle
  * @param   pIsiSvdMeanValue    Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -2771,7 +2994,7 @@ static RESULT OV13850_IsiGetCalibCenterLine
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetCalibClipParam
+static RESULT Sensor_IsiGetCalibClipParam
 (
     IsiSensorHandle_t   handle,
     IsiAwbClipParm_t    **pIsiClipParam
@@ -2781,7 +3004,7 @@ static RESULT OV13850_IsiGetCalibClipParam
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pSensorCtx == NULL )
     {
@@ -2793,9 +3016,9 @@ static RESULT OV13850_IsiGetCalibClipParam
         return ( RET_NULL_POINTER );
     }
 
-    //*pIsiClipParam = (IsiAwbClipParm_t *)&OV13850_AwbClipParm;
+    //*pIsiClipParam = (IsiAwbClipParm_t *)&Sensor_AwbClipParm;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2804,12 +3027,12 @@ static RESULT OV13850_IsiGetCalibClipParam
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetCalibGlobalFadeParam
+ *          Sensor_IsiGetCalibGlobalFadeParam
  *
  * @brief   Returns a pointer to the sensor specific arrays for AWB out of
  *          range handling
  *
- * @param   handle              OV13850 sensor instance handle
+ * @param   handle              Sensor instance handle
  * @param   pIsiSvdMeanValue    Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -2818,7 +3041,7 @@ static RESULT OV13850_IsiGetCalibClipParam
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetCalibGlobalFadeParam
+static RESULT Sensor_IsiGetCalibGlobalFadeParam
 (
     IsiSensorHandle_t       handle,
     IsiAwbGlobalFadeParm_t  **ptIsiGlobalFadeParam
@@ -2828,7 +3051,7 @@ static RESULT OV13850_IsiGetCalibGlobalFadeParam
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pSensorCtx == NULL )
     {
@@ -2840,9 +3063,9 @@ static RESULT OV13850_IsiGetCalibGlobalFadeParam
         return ( RET_NULL_POINTER );
     }
 
-    //*ptIsiGlobalFadeParam = (IsiAwbGlobalFadeParm_t *)&OV13850_AwbGlobalFadeParm;
+    //*ptIsiGlobalFadeParam = (IsiAwbGlobalFadeParm_t *)&Sensor_AwbGlobalFadeParm;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2851,12 +3074,12 @@ static RESULT OV13850_IsiGetCalibGlobalFadeParam
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetCalibFadeParam
+ *          Sensor_IsiGetCalibFadeParam
  *
  * @brief   Returns a pointer to the sensor specific arrays for near white
  *          pixel parameter calculations
  *
- * @param   handle              OV13850 sensor instance handle
+ * @param   handle              Sensor instance handle
  * @param   pIsiSvdMeanValue    Pointer to Pointer receiving the memory address
  *
  * @return  Return the result of the function call.
@@ -2865,7 +3088,7 @@ static RESULT OV13850_IsiGetCalibGlobalFadeParam
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetCalibFadeParam
+static RESULT Sensor_IsiGetCalibFadeParam
 (
     IsiSensorHandle_t   handle,
     IsiAwbFade2Parm_t   **ptIsiFadeParam
@@ -2875,7 +3098,7 @@ static RESULT OV13850_IsiGetCalibFadeParam
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pSensorCtx == NULL )
     {
@@ -2887,16 +3110,16 @@ static RESULT OV13850_IsiGetCalibFadeParam
         return ( RET_NULL_POINTER );
     }
 
-    //*ptIsiFadeParam = (IsiAwbFade2Parm_t *)&OV13850_AwbFade2Parm;
+    //*ptIsiFadeParam = (IsiAwbFade2Parm_t *)&Sensor_AwbFade2Parm;
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetIlluProfile
+ *          Sensor_IsiGetIlluProfile
  *
  * @brief   Returns a pointer to illumination profile idetified by CieProfile
  *          bitmask
@@ -2911,20 +3134,20 @@ static RESULT OV13850_IsiGetCalibFadeParam
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetIlluProfile
+static RESULT Sensor_IsiGetIlluProfile
 (
     IsiSensorHandle_t   handle,
     const uint32_t      CieProfile,
     IsiIlluProfile_t    **ptIsiIlluProfile
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -2941,11 +3164,11 @@ static RESULT OV13850_IsiGetIlluProfile
         *ptIsiIlluProfile = NULL;
 
         /* check if we've a default profile */
-        for ( i=0U; i<OV13850_ISIILLUPROFILES_DEFAULT; i++ )
+        for ( i=0U; i<Sensor_ISIILLUPROFILES_DEFAULT; i++ )
         {
-            if ( OV13850_IlluProfileDefault[i].id == CieProfile )
+            if ( Sensor_IlluProfileDefault[i].id == CieProfile )
             {
-                *ptIsiIlluProfile = &OV13850_IlluProfileDefault[i];
+                *ptIsiIlluProfile = &Sensor_IlluProfileDefault[i];
                 break;
             }
         }
@@ -2954,7 +3177,7 @@ static RESULT OV13850_IsiGetIlluProfile
 		#endif
     }
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -2963,7 +3186,7 @@ static RESULT OV13850_IsiGetIlluProfile
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetLscMatrixTable
+ *          Sensor_IsiGetLscMatrixTable
  *
  * @brief   Returns a pointer to illumination profile idetified by CieProfile
  *          bitmask
@@ -2978,20 +3201,20 @@ static RESULT OV13850_IsiGetIlluProfile
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiGetLscMatrixTable
+static RESULT Sensor_IsiGetLscMatrixTable
 (
     IsiSensorHandle_t   handle,
     const uint32_t      CieProfile,
     IsiLscMatrixTable_t **pLscMatrixTable
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -3010,19 +3233,19 @@ static RESULT OV13850_IsiGetLscMatrixTable
         {
             case ISI_CIEPROF_A:
             {
-                if ( ( pOV13850Ctx->Config.Resolution == ISI_RES_TV1080P30 ))
+                if ( ( pSensorCtx->Config.Resolution == ISI_RES_TV1080P30 ))
                 {
-                    *pLscMatrixTable = &OV13850_LscMatrixTable_CIE_A_1920x1080;
+                    *pLscMatrixTable = &Sensor_LscMatrixTable_CIE_A_1920x1080;
                 }
                 #if 0
-                else if ( pOV13850Ctx->Config.Resolution == ISI_RES_4416_3312 )
+                else if ( pSensorCtx->Config.Resolution == ISI_RES_4416_3312 )
                 {
-                    *pLscMatrixTable = &OV13850_LscMatrixTable_CIE_A_4416x3312;
+                    *pLscMatrixTable = &Sensor_LscMatrixTable_CIE_A_4416x3312;
                 }
                 #endif
                 else
                 {
-                    TRACE( OV13850_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
+                    TRACE( Sensor_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
                     *pLscMatrixTable = NULL;
                 }
 
@@ -3031,19 +3254,19 @@ static RESULT OV13850_IsiGetLscMatrixTable
 
             case ISI_CIEPROF_F2:
             {
-                if ( ( pOV13850Ctx->Config.Resolution == ISI_RES_TV1080P30 ) )
+                if ( ( pSensorCtx->Config.Resolution == ISI_RES_TV1080P30 ) )
                 {
-                    *pLscMatrixTable = &OV13850_LscMatrixTable_CIE_F2_1920x1080;
+                    *pLscMatrixTable = &Sensor_LscMatrixTable_CIE_F2_1920x1080;
                 }
                 #if 0
-                else if ( pOV13850Ctx->Config.Resolution == ISI_RES_4416_3312 )
+                else if ( pSensorCtx->Config.Resolution == ISI_RES_4416_3312 )
                 {
-                    *pLscMatrixTable = &OV13850_LscMatrixTable_CIE_F2_4416x3312;
+                    *pLscMatrixTable = &Sensor_LscMatrixTable_CIE_F2_4416x3312;
                 }
                 #endif
                 else
                 {
-                    TRACE( OV13850_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
+                    TRACE( Sensor_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
                     *pLscMatrixTable = NULL;
                 }
 
@@ -3052,19 +3275,19 @@ static RESULT OV13850_IsiGetLscMatrixTable
 
             case ISI_CIEPROF_D50:
             {
-                if ( ( pOV13850Ctx->Config.Resolution == ISI_RES_TV1080P30 ))
+                if ( ( pSensorCtx->Config.Resolution == ISI_RES_TV1080P30 ))
                 {
-                    *pLscMatrixTable = &OV13850_LscMatrixTable_CIE_D50_1920x1080;
+                    *pLscMatrixTable = &Sensor_LscMatrixTable_CIE_D50_1920x1080;
                 }
                 #if 0
-                else if ( pOV13850Ctx->Config.Resolution == ISI_RES_4416_3312 )
+                else if ( pSensorCtx->Config.Resolution == ISI_RES_4416_3312 )
                 {
-                    *pLscMatrixTable = &OV13850_LscMatrixTable_CIE_D50_4416x3312;
+                    *pLscMatrixTable = &Sensor_LscMatrixTable_CIE_D50_4416x3312;
                 }
                 #endif
                 else
                 {
-                    TRACE( OV13850_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
+                    TRACE( Sensor_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
                     *pLscMatrixTable = NULL;
                 }
 
@@ -3074,19 +3297,19 @@ static RESULT OV13850_IsiGetLscMatrixTable
             case ISI_CIEPROF_D65:
             case ISI_CIEPROF_D75:
             {
-                if ( ( pOV13850Ctx->Config.Resolution == ISI_RES_TV1080P30 ) )
+                if ( ( pSensorCtx->Config.Resolution == ISI_RES_TV1080P30 ) )
                 {
-                    *pLscMatrixTable = &OV13850_LscMatrixTable_CIE_D65_1920x1080;
+                    *pLscMatrixTable = &Sensor_LscMatrixTable_CIE_D65_1920x1080;
                 }
                 #if 0
-                else if ( pOV13850Ctx->Config.Resolution == ISI_RES_4416_3312 )
+                else if ( pSensorCtx->Config.Resolution == ISI_RES_4416_3312 )
                 {
-                    *pLscMatrixTable = &OV13850_LscMatrixTable_CIE_D65_4416x3312;
+                    *pLscMatrixTable = &Sensor_LscMatrixTable_CIE_D65_4416x3312;
                 }
                 #endif
                 else
                 {
-                    TRACE( OV13850_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
+                    TRACE( Sensor_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
                     *pLscMatrixTable = NULL;
                 }
 
@@ -3095,19 +3318,19 @@ static RESULT OV13850_IsiGetLscMatrixTable
 
             case ISI_CIEPROF_F11:
             {
-                if ( ( pOV13850Ctx->Config.Resolution == ISI_RES_TV1080P30 ))
+                if ( ( pSensorCtx->Config.Resolution == ISI_RES_TV1080P30 ))
                 {
-                    *pLscMatrixTable = &OV13850_LscMatrixTable_CIE_F11_1920x1080;
+                    *pLscMatrixTable = &Sensor_LscMatrixTable_CIE_F11_1920x1080;
                 }
                 #if 0
-                else if ( pOV13850Ctx->Config.Resolution == ISI_RES_4416_3312 )
+                else if ( pSensorCtx->Config.Resolution == ISI_RES_4416_3312 )
                 {
-                    *pLscMatrixTable = &OV13850_LscMatrixTable_CIE_F11_4416x3312;
+                    *pLscMatrixTable = &Sensor_LscMatrixTable_CIE_F11_4416x3312;
                 }
                 #endif
                 else
                 {
-                    TRACE( OV13850_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
+                    TRACE( Sensor_ERROR, "%s: Resolution (%08x) not supported\n", __FUNCTION__, CieProfile );
                     *pLscMatrixTable = NULL;
                 }
 
@@ -3116,7 +3339,7 @@ static RESULT OV13850_IsiGetLscMatrixTable
 
             default:
             {
-                TRACE( OV13850_ERROR, "%s: Illumination not supported\n", __FUNCTION__ );
+                TRACE( Sensor_ERROR, "%s: Illumination not supported\n", __FUNCTION__ );
                 *pLscMatrixTable = NULL;
                 break;
             }
@@ -3126,7 +3349,7 @@ static RESULT OV13850_IsiGetLscMatrixTable
 		#endif
     }
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
@@ -3134,11 +3357,11 @@ static RESULT OV13850_IsiGetLscMatrixTable
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiMdiInitMotoDriveMds
+ *          Sensor_IsiMdiInitMotoDriveMds
  *
  * @brief   General initialisation tasks like I/O initialisation.
  *
- * @param   handle              OV13850 sensor instance handle
+ * @param   handle              Sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
@@ -3146,24 +3369,26 @@ static RESULT OV13850_IsiGetLscMatrixTable
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiMdiInitMotoDriveMds
+static RESULT Sensor_IsiMdiInitMotoDriveMds
 (
     IsiSensorHandle_t   handle
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    #if 1
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
-
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
+    #endif
+    
     return ( result );
 }
 
@@ -3171,11 +3396,11 @@ static RESULT OV13850_IsiMdiInitMotoDriveMds
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiMdiSetupMotoDrive
+ *          Sensor_IsiMdiSetupMotoDrive
  *
  * @brief   Setup of the MotoDrive and return possible max step.
  *
- * @param   handle          OV13850 sensor instance handle
+ * @param   handle          Sensor instance handle
  *          pMaxStep        pointer to variable to receive the maximum
  *                          possible focus step
  *
@@ -3185,19 +3410,20 @@ static RESULT OV13850_IsiMdiInitMotoDriveMds
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiMdiSetupMotoDrive
+static RESULT Sensor_IsiMdiSetupMotoDrive
 (
     IsiSensorHandle_t   handle,
     uint32_t            *pMaxStep
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 	uint32_t vcm_movefull_t;
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    #if 1
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -3206,24 +3432,22 @@ static RESULT OV13850_IsiMdiSetupMotoDrive
     {
         return ( RET_NULL_POINTER );
     }
-    /* ddl@rock-chips.com: v0.3.0 */
-    if (pOV13850Ctx->VcmInfo.StepMode <= 7) {
-        vcm_movefull_t = 52*(1<<(pOV13850Ctx->VcmInfo.StepMode-1));
-    } else if ((pOV13850Ctx->VcmInfo.StepMode>=9) && (pOV13850Ctx->VcmInfo.StepMode<=15)) {
-        vcm_movefull_t = 2*(1<<(pOV13850Ctx->VcmInfo.StepMode-9));
-    } else {
-        TRACE( OV13850_ERROR, "%s: pOV8825Ctx->VcmInfo.StepMode: %d is invalidate!\n",__FUNCTION__, pOV13850Ctx->VcmInfo.StepMode);
-        DCT_ASSERT(0);
+
+    if ((pSensorCtx->VcmInfo.StepMode & 0x0c) != 0) {
+ 	    vcm_movefull_t = 64* (1<<(pSensorCtx->VcmInfo.StepMode & 0x03)) *1024/((1 << (((pSensorCtx->VcmInfo.StepMode & 0x0c)>>2)-1))*1000);
+    }else{
+ 	    vcm_movefull_t =64*1023/1000;
+        TRACE( Sensor_ERROR, "%s: (---NO SRC---)\n", __FUNCTION__);
     }
+ 
+	  *pMaxStep = (MAX_LOG|(vcm_movefull_t<<16));
+   // *pMaxStep = MAX_LOG;
 
-    *pMaxStep = (MAX_LOG|(vcm_movefull_t<<16));
+    result = Sensor_IsiMdiFocusSet( handle, MAX_LOG );
 
-//    *pMaxStep = MAX_LOG;
-
-    result = OV13850_IsiMdiFocusSet( handle, MAX_LOG );
-
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
-
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
+    #endif
+    
     return ( result );
 }
 
@@ -3231,11 +3455,11 @@ static RESULT OV13850_IsiMdiSetupMotoDrive
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiMdiFocusSet
+ *          Sensor_IsiMdiFocusSet
  *
  * @brief   Drives the lens system to a certain focus point.
  *
- * @param   handle          OV13850 sensor instance handle
+ * @param   handle          Sensor instance handle
  *          AbsStep         absolute focus point to apply
  *
  * @return  Return the result of the function call.
@@ -3244,60 +3468,65 @@ static RESULT OV13850_IsiMdiSetupMotoDrive
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiMdiFocusSet
+static RESULT Sensor_IsiMdiFocusSet
 (
     IsiSensorHandle_t   handle,
     const uint32_t      Position
 )
 {
-	OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+	Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
+    
+    #if 1
     uint32_t nPosition;
     uint8_t  data[2] = { 0, 0 };
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-    	TRACE( OV13850_ERROR, "%s: pOV13850Ctx IS NULL\n", __FUNCTION__);
+    	TRACE( Sensor_ERROR, "%s: pSensorCtx IS NULL\n", __FUNCTION__);
         return ( RET_WRONG_HANDLE );
     }
 
     /* map 64 to 0 -> infinity */
     //nPosition = ( Position >= MAX_LOG ) ? 0 : ( MAX_REG - (Position * 16U) );
 	if( Position > MAX_LOG ){
-		TRACE( OV13850_ERROR, "%s: pOV13850Ctx Position (%d) max_position(%d)\n", __FUNCTION__,Position, MAX_LOG);
+		TRACE( Sensor_ERROR, "%s: pSensorCtx Position (%d) max_position(%d)\n", __FUNCTION__,Position, MAX_LOG);
 		//Position = MAX_LOG;
 	}
 	/* ddl@rock-chips.com: v0.3.0 */
     if ( Position >= MAX_LOG )
-        nPosition = pOV13850Ctx->VcmInfo.StartCurrent;
+        nPosition = pSensorCtx->VcmInfo.StartCurrent;
     else 
-        nPosition = pOV13850Ctx->VcmInfo.StartCurrent + (pOV13850Ctx->VcmInfo.Step*(MAX_LOG-Position));
+        nPosition = pSensorCtx->VcmInfo.StartCurrent + (pSensorCtx->VcmInfo.Step*(MAX_LOG-Position));
     /* ddl@rock-chips.com: v0.6.0 */
     if (nPosition > MAX_VCMDRV_REG)  
         nPosition = MAX_VCMDRV_REG;
-
-    TRACE( OV13850_DEBUG, "%s: focus set position_reg_value(%d) position(%d) \n", __FUNCTION__, nPosition, Position);
+    
+    TRACE( Sensor_DEBUG, "%s: focus set position_reg_value(%d) position(%d) \n", __FUNCTION__, nPosition, Position);
 
     data[0] = (uint8_t)(0x00U | (( nPosition & 0x3F0U ) >> 4U));                 // PD,  1, D9..D4, see AD5820 datasheet
-    data[1] = (uint8_t)( ((nPosition & 0x0FU) << 4U) | MDI_SLEW_RATE_CTRL );    // D3..D0, S3..S0
+    //data[1] = (uint8_t)( ((nPosition & 0x0FU) << 4U) | MDI_SLEW_RATE_CTRL );    // D3..D0, S3..S0
+	data[1] = (uint8_t)( ((nPosition & 0x0FU) << 4U) | pSensorCtx->VcmInfo.StepMode );
 
-    TRACE( OV13850_DEBUG, "%s: value = %d, 0x%02x 0x%02x af_addr(0x%x) bus(%d)\n", __FUNCTION__, nPosition, data[0], data[1],pOV13850Ctx->IsiCtx.SlaveAfAddress,pOV13850Ctx->IsiCtx.I2cAfBusNum );
+    TRACE( Sensor_DEBUG, "%s: value = %d, 0x%02x 0x%02x af_addr(0x%x) bus(%d)\n", __FUNCTION__, nPosition, data[0], data[1],pSensorCtx->IsiCtx.SlaveAfAddress,pSensorCtx->IsiCtx.I2cAfBusNum );
 
-    result = HalWriteI2CMem( pOV13850Ctx->IsiCtx.HalHandle,
-                             pOV13850Ctx->IsiCtx.I2cAfBusNum,
-                             pOV13850Ctx->IsiCtx.SlaveAfAddress,
+    result = HalWriteI2CMem( pSensorCtx->IsiCtx.HalHandle,
+                             pSensorCtx->IsiCtx.I2cAfBusNum,
+                             pSensorCtx->IsiCtx.SlaveAfAddress,
                              0,
-                             pOV13850Ctx->IsiCtx.NrOfAfAddressBytes,
+                             pSensorCtx->IsiCtx.NrOfAfAddressBytes,
                              data,
                              2U );
 	RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
+    #endif
+    
     return ( result );
 }
 
@@ -3305,11 +3534,11 @@ static RESULT OV13850_IsiMdiFocusSet
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiMdiFocusGet
+ *          Sensor_IsiMdiFocusGet
  *
  * @brief   Retrieves the currently applied focus point.
  *
- * @param   handle          OV13850 sensor instance handle
+ * @param   handle          Sensor instance handle
  *          pAbsStep        pointer to a variable to receive the current
  *                          focus point
  *
@@ -3319,21 +3548,21 @@ static RESULT OV13850_IsiMdiFocusSet
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiMdiFocusGet
+static RESULT Sensor_IsiMdiFocusGet
 (
     IsiSensorHandle_t   handle,
     uint32_t            *pAbsStep
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
     uint8_t  data[2] = { 0, 0 };
 
+    #if 1
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
-
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -3343,17 +3572,17 @@ static RESULT OV13850_IsiMdiFocusGet
         return ( RET_NULL_POINTER );
     }
 
-    result = HalReadI2CMem( pOV13850Ctx->IsiCtx.HalHandle,
-                            pOV13850Ctx->IsiCtx.I2cAfBusNum,
-                            pOV13850Ctx->IsiCtx.SlaveAfAddress,
+    result = HalReadI2CMem( pSensorCtx->IsiCtx.HalHandle,
+                            pSensorCtx->IsiCtx.I2cAfBusNum,
+                            pSensorCtx->IsiCtx.SlaveAfAddress,
                             0,
-                            pOV13850Ctx->IsiCtx.NrOfAfAddressBytes,
+                            pSensorCtx->IsiCtx.NrOfAfAddressBytes,
                             data,
                             2U );
 
     RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
-    TRACE( OV13850_DEBUG, "%s: value = 0x%02x 0x%02x\n", __FUNCTION__, data[0], data[1] );
+    TRACE( Sensor_DEBUG, "%s: value = 0x%02x 0x%02x\n", __FUNCTION__, data[0], data[1] );
 
     /* Data[0] = PD,  1, D9..D4, see AD5820 datasheet */
     /* Data[1] = D3..D0, S3..S0 */
@@ -3374,13 +3603,13 @@ static RESULT OV13850_IsiMdiFocusGet
 
 
     /* map 0 to 64 -> infinity */   /* ddl@rock-chips.com: v0.3.0 */
-    if( *pAbsStep <= pOV13850Ctx->VcmInfo.StartCurrent)
+    if( *pAbsStep <= pSensorCtx->VcmInfo.StartCurrent)
     {
         *pAbsStep = MAX_LOG;
     }
-    else if((*pAbsStep>pOV13850Ctx->VcmInfo.StartCurrent) && (*pAbsStep<=pOV13850Ctx->VcmInfo.RatedCurrent))
+    else if((*pAbsStep>pSensorCtx->VcmInfo.StartCurrent) && (*pAbsStep<=pSensorCtx->VcmInfo.RatedCurrent))
     {
-        *pAbsStep = (pOV13850Ctx->VcmInfo.RatedCurrent - *pAbsStep ) / pOV13850Ctx->VcmInfo.Step;
+        *pAbsStep = (pSensorCtx->VcmInfo.RatedCurrent - *pAbsStep ) / pSensorCtx->VcmInfo.Step;
     }
 	else
 	{
@@ -3388,9 +3617,9 @@ static RESULT OV13850_IsiMdiFocusGet
 	}
 	
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
-
+    #endif
     return ( result );
 }
 
@@ -3398,11 +3627,11 @@ static RESULT OV13850_IsiMdiFocusGet
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiMdiFocusCalibrate
+ *          Sensor_IsiMdiFocusCalibrate
  *
  * @brief   Triggers a forced calibration of the focus hardware.
  *
- * @param   handle          OV13850 sensor instance handle
+ * @param   handle          Sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
@@ -3410,24 +3639,26 @@ static RESULT OV13850_IsiMdiFocusGet
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_IsiMdiFocusCalibrate
+static RESULT Sensor_IsiMdiFocusCalibrate
 (
     IsiSensorHandle_t   handle
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    #if 1
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
-
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
+    #endif
+    
     return ( result );
 }
 
@@ -3435,11 +3666,11 @@ static RESULT OV13850_IsiMdiFocusCalibrate
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiActivateTestPattern
+ *          Sensor_IsiActivateTestPattern
  *
  * @brief   Triggers a forced calibration of the focus hardware.
  *
- * @param   handle          OV13850 sensor instance handle
+ * @param   handle          Sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
@@ -3447,21 +3678,22 @@ static RESULT OV13850_IsiMdiFocusCalibrate
  * @retval  RET_NULL_POINTER
  *
  ******************************************************************************/
-static RESULT OV13850_IsiActivateTestPattern
+static RESULT Sensor_IsiActivateTestPattern
 (
     IsiSensorHandle_t   handle,
     const bool_t        enable
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
+    #if 0
     uint32_t ulRegValue = 0UL;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -3469,29 +3701,30 @@ static RESULT OV13850_IsiActivateTestPattern
     if ( BOOL_TRUE == enable )
     {
         /* enable test-pattern */
-        result = OV13850_IsiRegReadIss( pOV13850Ctx, 0x5e00, &ulRegValue );
+        result = Sensor_IsiRegReadIss( pSensorCtx, 0x5e00, &ulRegValue );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
         ulRegValue |= ( 0x80U );
 
-        result = OV13850_IsiRegWriteIss( pOV13850Ctx, 0x5e00, ulRegValue );
+        result = Sensor_IsiRegWriteIss( pSensorCtx, 0x5e00, ulRegValue );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
     }
     else
     {
         /* disable test-pattern */
-        result = OV13850_IsiRegReadIss( pOV13850Ctx, 0x5e00, &ulRegValue );
+        result = Sensor_IsiRegReadIss( pSensorCtx, 0x5e00, &ulRegValue );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
         ulRegValue &= ~( 0x80 );
 
-        result = OV13850_IsiRegWriteIss( pOV13850Ctx, 0x5e00, ulRegValue );
+        result = Sensor_IsiRegWriteIss( pSensorCtx, 0x5e00, ulRegValue );
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
     }
 
-     pOV13850Ctx->TestPattern = enable;
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+     pSensorCtx->TestPattern = enable;
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
+    #endif
     return ( result );
 }
 
@@ -3499,11 +3732,11 @@ static RESULT OV13850_IsiActivateTestPattern
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetSensorMipiInfoIss
+ *          Sensor_IsiGetSensorMipiInfoIss
  *
  * @brief   Triggers a forced calibration of the focus hardware.
  *
- * @param   handle          OV13850 sensor instance handle
+ * @param   handle          Sensor instance handle
  *
  * @return  Return the result of the function call.
  * @retval  RET_SUCCESS
@@ -3511,19 +3744,19 @@ static RESULT OV13850_IsiActivateTestPattern
  * @retval  RET_NULL_POINTER
  *
  ******************************************************************************/
-static RESULT OV13850_IsiGetSensorMipiInfoIss
+static RESULT Sensor_IsiGetSensorMipiInfoIss
 (
     IsiSensorHandle_t   handle,
     IsiSensorMipiInfo   *ptIsiSensorMipiInfo
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );
     }
@@ -3534,37 +3767,37 @@ static RESULT OV13850_IsiGetSensorMipiInfoIss
         return ( result );
     }
 
-    ptIsiSensorMipiInfo->ucMipiLanes = pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes;
-    ptIsiSensorMipiInfo->ulMipiFreq= pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq;
-    ptIsiSensorMipiInfo->sensorHalDevID = pOV13850Ctx->IsiSensorMipiInfo.sensorHalDevID;
+    ptIsiSensorMipiInfo->ucMipiLanes = pSensorCtx->IsiSensorMipiInfo.ucMipiLanes;
+    ptIsiSensorMipiInfo->ulMipiFreq= pSensorCtx->IsiSensorMipiInfo.ulMipiFreq;
+    ptIsiSensorMipiInfo->sensorHalDevID = pSensorCtx->IsiSensorMipiInfo.sensorHalDevID;
 
 
-    TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );
 }
 
-static RESULT OV13850_IsiGetSensorIsiVersion
+static RESULT Sensor_IsiGetSensorIsiVersion
 (  IsiSensorHandle_t   handle,
    unsigned int*     pVersion
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-    	TRACE( OV13850_ERROR, "%s: pOV13850Ctx IS NULL\n", __FUNCTION__);
+    	TRACE( Sensor_ERROR, "%s: pSensorCtx IS NULL\n", __FUNCTION__);
         return ( RET_WRONG_HANDLE );
     }
 
 	if(pVersion == NULL)
 	{
-		TRACE( OV13850_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+		TRACE( Sensor_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
         return ( RET_WRONG_HANDLE );
 	}
 
@@ -3572,38 +3805,38 @@ static RESULT OV13850_IsiGetSensorIsiVersion
 	return result;
 }
 
-static RESULT OV13850_IsiGetSensorTuningXmlVersion
+static RESULT Sensor_IsiGetSensorTuningXmlVersion
 (  IsiSensorHandle_t   handle,
    char**     pTuningXmlVersion
 )
 {
-    OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
 
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
-    if ( pOV13850Ctx == NULL )
+    if ( pSensorCtx == NULL )
     {
-    	TRACE( OV13850_ERROR, "%s: pOV13850Ctx IS NULL\n", __FUNCTION__);
+    	TRACE( Sensor_ERROR, "%s: pSensorCtx IS NULL\n", __FUNCTION__);
         return ( RET_WRONG_HANDLE );
     }
 
 	if(pTuningXmlVersion == NULL)
 	{
-		TRACE( OV13850_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
+		TRACE( Sensor_ERROR, "%s: pVersion IS NULL\n", __FUNCTION__);
         return ( RET_WRONG_HANDLE );
 	}
 
-	*pTuningXmlVersion = OV13850_NEWEST_TUNING_XML;
+	*pTuningXmlVersion = Sensor_NEWEST_TUNING_XML;
 	return result;
 }
 
 
 /*****************************************************************************/
 /**
- *          OV13850_IsiGetSensorIss
+ *          Sensor_IsiGetSensorIss
  *
  * @brief   fills in the correct pointers for the sensor description struct
  *
@@ -3614,83 +3847,83 @@ static RESULT OV13850_IsiGetSensorTuningXmlVersion
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-RESULT OV13850_IsiGetSensorIss
+RESULT Sensor_IsiGetSensorIss
 (
     IsiSensor_t *pIsiSensor
 )
 {
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s: (enter)\n", __FUNCTION__);
 
     if ( pIsiSensor != NULL )
     {
-        pIsiSensor->pszName                             = OV13850_g_acName;
-        pIsiSensor->pRegisterTable                      = OV13850_g_aRegDescription_twolane;
-        pIsiSensor->pIsiSensorCaps                      = &OV13850_g_IsiSensorDefaultConfig;
-		pIsiSensor->pIsiGetSensorIsiVer					= OV13850_IsiGetSensorIsiVersion;//oyyf
-		pIsiSensor->pIsiGetSensorTuningXmlVersion		= OV13850_IsiGetSensorTuningXmlVersion;//oyyf
-        pIsiSensor->pIsiCreateSensorIss                 = OV13850_IsiCreateSensorIss;
-        pIsiSensor->pIsiReleaseSensorIss                = OV13850_IsiReleaseSensorIss;
-        pIsiSensor->pIsiGetCapsIss                      = OV13850_IsiGetCapsIss;
-        pIsiSensor->pIsiSetupSensorIss                  = OV13850_IsiSetupSensorIss;
-        pIsiSensor->pIsiChangeSensorResolutionIss       = OV13850_IsiChangeSensorResolutionIss;
-        pIsiSensor->pIsiSensorSetStreamingIss           = OV13850_IsiSensorSetStreamingIss;
-        pIsiSensor->pIsiSensorSetPowerIss               = OV13850_IsiSensorSetPowerIss;
-        pIsiSensor->pIsiCheckSensorConnectionIss        = OV13850_IsiCheckSensorConnectionIss;
-        pIsiSensor->pIsiGetSensorRevisionIss            = OV13850_IsiGetSensorRevisionIss;
-        pIsiSensor->pIsiRegisterReadIss                 = OV13850_IsiRegReadIss;
-        pIsiSensor->pIsiRegisterWriteIss                = OV13850_IsiRegWriteIss;
+        pIsiSensor->pszName                             = Sensor_g_acName;
+        pIsiSensor->pRegisterTable                      = Sensor_g_aRegDescription_twolane;
+        pIsiSensor->pIsiSensorCaps                      = &Sensor_g_IsiSensorDefaultConfig;
+		pIsiSensor->pIsiGetSensorIsiVer					= Sensor_IsiGetSensorIsiVersion;//oyyf
+		pIsiSensor->pIsiGetSensorTuningXmlVersion		= Sensor_IsiGetSensorTuningXmlVersion;//oyyf
+        pIsiSensor->pIsiCreateSensorIss                 = Sensor_IsiCreateSensorIss;
+        pIsiSensor->pIsiReleaseSensorIss                = Sensor_IsiReleaseSensorIss;
+        pIsiSensor->pIsiGetCapsIss                      = Sensor_IsiGetCapsIss;
+        pIsiSensor->pIsiSetupSensorIss                  = Sensor_IsiSetupSensorIss;
+        pIsiSensor->pIsiChangeSensorResolutionIss       = Sensor_IsiChangeSensorResolutionIss;
+        pIsiSensor->pIsiSensorSetStreamingIss           = Sensor_IsiSensorSetStreamingIss;
+        pIsiSensor->pIsiSensorSetPowerIss               = Sensor_IsiSensorSetPowerIss;
+        pIsiSensor->pIsiCheckSensorConnectionIss        = Sensor_IsiCheckSensorConnectionIss;
+        pIsiSensor->pIsiGetSensorRevisionIss            = Sensor_IsiGetSensorRevisionIss;
+        pIsiSensor->pIsiRegisterReadIss                 = Sensor_IsiRegReadIss;
+        pIsiSensor->pIsiRegisterWriteIss                = Sensor_IsiRegWriteIss;
 
         /* AEC functions */
-        pIsiSensor->pIsiExposureControlIss              = OV13850_IsiExposureControlIss;
-        pIsiSensor->pIsiGetGainLimitsIss                = OV13850_IsiGetGainLimitsIss;
-        pIsiSensor->pIsiGetIntegrationTimeLimitsIss     = OV13850_IsiGetIntegrationTimeLimitsIss;
-        pIsiSensor->pIsiGetCurrentExposureIss           = OV13850_IsiGetCurrentExposureIss;
-        pIsiSensor->pIsiGetGainIss                      = OV13850_IsiGetGainIss;
-        pIsiSensor->pIsiGetGainIncrementIss             = OV13850_IsiGetGainIncrementIss;
-        pIsiSensor->pIsiSetGainIss                      = OV13850_IsiSetGainIss;
-        pIsiSensor->pIsiGetIntegrationTimeIss           = OV13850_IsiGetIntegrationTimeIss;
-        pIsiSensor->pIsiGetIntegrationTimeIncrementIss  = OV13850_IsiGetIntegrationTimeIncrementIss;
-        pIsiSensor->pIsiSetIntegrationTimeIss           = OV13850_IsiSetIntegrationTimeIss;
-        pIsiSensor->pIsiGetResolutionIss                = OV13850_IsiGetResolutionIss;
-        pIsiSensor->pIsiGetAfpsInfoIss                  = OV13850_IsiGetAfpsInfoIss;
+        pIsiSensor->pIsiExposureControlIss              = Sensor_IsiExposureControlIss;
+        pIsiSensor->pIsiGetGainLimitsIss                = Sensor_IsiGetGainLimitsIss;
+        pIsiSensor->pIsiGetIntegrationTimeLimitsIss     = Sensor_IsiGetIntegrationTimeLimitsIss;
+        pIsiSensor->pIsiGetCurrentExposureIss           = Sensor_IsiGetCurrentExposureIss;
+        pIsiSensor->pIsiGetGainIss                      = Sensor_IsiGetGainIss;
+        pIsiSensor->pIsiGetGainIncrementIss             = Sensor_IsiGetGainIncrementIss;
+        pIsiSensor->pIsiSetGainIss                      = Sensor_IsiSetGainIss;
+        pIsiSensor->pIsiGetIntegrationTimeIss           = Sensor_IsiGetIntegrationTimeIss;
+        pIsiSensor->pIsiGetIntegrationTimeIncrementIss  = Sensor_IsiGetIntegrationTimeIncrementIss;
+        pIsiSensor->pIsiSetIntegrationTimeIss           = Sensor_IsiSetIntegrationTimeIss;
+        pIsiSensor->pIsiGetResolutionIss                = Sensor_IsiGetResolutionIss;
+        pIsiSensor->pIsiGetAfpsInfoIss                  = Sensor_IsiGetAfpsInfoIss;
 
         /* AWB specific functions */
-        pIsiSensor->pIsiGetCalibKFactor                 = OV13850_IsiGetCalibKFactor;
-        pIsiSensor->pIsiGetCalibPcaMatrix               = OV13850_IsiGetCalibPcaMatrix;
-        pIsiSensor->pIsiGetCalibSvdMeanValue            = OV13850_IsiGetCalibSvdMeanValue;
-        pIsiSensor->pIsiGetCalibCenterLine              = OV13850_IsiGetCalibCenterLine;
-        pIsiSensor->pIsiGetCalibClipParam               = OV13850_IsiGetCalibClipParam;
-        pIsiSensor->pIsiGetCalibGlobalFadeParam         = OV13850_IsiGetCalibGlobalFadeParam;
-        pIsiSensor->pIsiGetCalibFadeParam               = OV13850_IsiGetCalibFadeParam;
-        pIsiSensor->pIsiGetIlluProfile                  = OV13850_IsiGetIlluProfile;
-        pIsiSensor->pIsiGetLscMatrixTable               = OV13850_IsiGetLscMatrixTable;
+        pIsiSensor->pIsiGetCalibKFactor                 = Sensor_IsiGetCalibKFactor;
+        pIsiSensor->pIsiGetCalibPcaMatrix               = Sensor_IsiGetCalibPcaMatrix;
+        pIsiSensor->pIsiGetCalibSvdMeanValue            = Sensor_IsiGetCalibSvdMeanValue;
+        pIsiSensor->pIsiGetCalibCenterLine              = Sensor_IsiGetCalibCenterLine;
+        pIsiSensor->pIsiGetCalibClipParam               = Sensor_IsiGetCalibClipParam;
+        pIsiSensor->pIsiGetCalibGlobalFadeParam         = Sensor_IsiGetCalibGlobalFadeParam;
+        pIsiSensor->pIsiGetCalibFadeParam               = Sensor_IsiGetCalibFadeParam;
+        pIsiSensor->pIsiGetIlluProfile                  = Sensor_IsiGetIlluProfile;
+        pIsiSensor->pIsiGetLscMatrixTable               = Sensor_IsiGetLscMatrixTable;
 
         /* AF functions */
-        pIsiSensor->pIsiMdiInitMotoDriveMds             = OV13850_IsiMdiInitMotoDriveMds;
-        pIsiSensor->pIsiMdiSetupMotoDrive               = OV13850_IsiMdiSetupMotoDrive;
-        pIsiSensor->pIsiMdiFocusSet                     = OV13850_IsiMdiFocusSet;
-        pIsiSensor->pIsiMdiFocusGet                     = OV13850_IsiMdiFocusGet;
-        pIsiSensor->pIsiMdiFocusCalibrate               = OV13850_IsiMdiFocusCalibrate;
+        pIsiSensor->pIsiMdiInitMotoDriveMds             = Sensor_IsiMdiInitMotoDriveMds;
+        pIsiSensor->pIsiMdiSetupMotoDrive               = Sensor_IsiMdiSetupMotoDrive;
+        pIsiSensor->pIsiMdiFocusSet                     = Sensor_IsiMdiFocusSet;
+        pIsiSensor->pIsiMdiFocusGet                     = Sensor_IsiMdiFocusGet;
+        pIsiSensor->pIsiMdiFocusCalibrate               = Sensor_IsiMdiFocusCalibrate;
 
         /* MIPI */
-        pIsiSensor->pIsiGetSensorMipiInfoIss            = OV13850_IsiGetSensorMipiInfoIss;
+        pIsiSensor->pIsiGetSensorMipiInfoIss            = Sensor_IsiGetSensorMipiInfoIss;
 
         /* Testpattern */
-        pIsiSensor->pIsiActivateTestPattern             = OV13850_IsiActivateTestPattern;
+        pIsiSensor->pIsiActivateTestPattern             = Sensor_IsiActivateTestPattern;
     }
     else
     {
         result = RET_NULL_POINTER;
     }
 
-    TRACE( OV13850_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( Sensor_INFO, "%s (exit)\n", __FUNCTION__);
 
     return ( result );
 }
 
-static RESULT OV13850_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
+static RESULT Sensor_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
 {
     sensor_i2c_info_t* pSensorI2cInfo;
 
@@ -3698,15 +3931,15 @@ static RESULT OV13850_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
 
     if ( pSensorI2cInfo == NULL )
     {
-        TRACE( OV13850_ERROR,  "%s: Can't allocate ov14825 context\n",  __FUNCTION__ );
+        TRACE( Sensor_ERROR,  "%s: Can't allocate ov14825 context\n",  __FUNCTION__ );
         return ( RET_OUTOFMEM );
     }
     MEMSET( pSensorI2cInfo, 0, sizeof( sensor_i2c_info_t ) );
 
     
-    pSensorI2cInfo->i2c_addr = OV13850_SLAVE_ADDR;
-    pSensorI2cInfo->i2c_addr2 = OV13850_SLAVE_ADDR2;
-    pSensorI2cInfo->soft_reg_addr = OV13850_SOFTWARE_RST;
+    pSensorI2cInfo->i2c_addr = Sensor_SLAVE_ADDR;
+    pSensorI2cInfo->i2c_addr2 = Sensor_SLAVE_ADDR2;
+    pSensorI2cInfo->soft_reg_addr = Sensor_SOFTWARE_RST;
     pSensorI2cInfo->soft_reg_value = 0x01;
     pSensorI2cInfo->reg_size = 2;
     pSensorI2cInfo->value_size = 1;
@@ -3721,7 +3954,7 @@ static RESULT OV13850_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
             ListInit(&pSensorI2cInfo->lane_res[i]);
             if (g_suppoted_mipi_lanenum_type & lanes) {
                 Caps.Index = 0;            
-                while(OV13850_IsiGetCapsIssInternal(&Caps,lanes)==RET_SUCCESS) {
+                while(Sensor_IsiGetCapsIssInternal(&Caps,lanes)==RET_SUCCESS) {
                     pCaps = malloc(sizeof(sensor_caps_t));
                     if (pCaps != NULL) {
                         memcpy(&pCaps->caps,&Caps,sizeof(IsiSensorCaps_t));
@@ -3742,8 +3975,8 @@ static RESULT OV13850_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
         return RET_OUTOFMEM;
     }
     MEMSET( pChipIDInfo_H, 0, sizeof(*pChipIDInfo_H) );    
-    pChipIDInfo_H->chipid_reg_addr = OV13850_CHIP_ID_HIGH_BYTE;  
-    pChipIDInfo_H->chipid_reg_value = OV13850_CHIP_ID_HIGH_BYTE_DEFAULT;
+    pChipIDInfo_H->chipid_reg_addr = Sensor_CHIP_ID_HIGH_BYTE;  
+    pChipIDInfo_H->chipid_reg_value = Sensor_CHIP_ID_HIGH_BYTE_DEFAULT;
     ListPrepareItem( pChipIDInfo_H );
     ListAddTail( &pSensorI2cInfo->chipid_info, pChipIDInfo_H );
 
@@ -3753,8 +3986,8 @@ static RESULT OV13850_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
         return RET_OUTOFMEM;
     }
     MEMSET( pChipIDInfo_L, 0, sizeof(*pChipIDInfo_L) ); 
-    pChipIDInfo_L->chipid_reg_addr = OV13850_CHIP_ID_LOW_BYTE;
-    pChipIDInfo_L->chipid_reg_value = OV13850_CHIP_ID_LOW_BYTE_DEFAULT;
+    pChipIDInfo_L->chipid_reg_addr = Sensor_CHIP_ID_LOW_BYTE;
+    pChipIDInfo_L->chipid_reg_value = Sensor_CHIP_ID_LOW_BYTE_DEFAULT;
     ListPrepareItem( pChipIDInfo_L );
     ListAddTail( &pSensorI2cInfo->chipid_info, pChipIDInfo_L );
 
@@ -3777,7 +4010,7 @@ static RESULT OV13850_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
 IsiCamDrvConfig_t IsiCamDrvConfig =
 {
     0,
-    OV13850_IsiGetSensorIss,
+    Sensor_IsiGetSensorIss,
     {
         0,                      /**< IsiSensor_t.pszName */
         0,                      /**< IsiSensor_t.pRegisterTable */
@@ -3831,7 +4064,7 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
 
         0,                      /**< IsiSensor_t.pIsiActivateTestPattern */
     },
-    OV13850_IsiGetSensorI2cInfo,
+    Sensor_IsiGetSensorI2cInfo,
 };
 
 

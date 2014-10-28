@@ -48,8 +48,8 @@ extern "C"
 #endif
 
 #define CAMERIC_ALIGN_SIZE          ALIGN_SIZE_1K
-//#define CAMERIC_MI_ALIGN			ALIGN_UP_1K
-#define CAMERIC_MI_ALIGN        //zyc modify,for yuv420sp
+/* ddl@rock-chips.com: v1.2.0 */
+#define CAMERIC_MI_ALIGN(addr)		( ALIGN_UP(addr, (ctx->pMiContext->c_burstlength*8)) )
 
 /*****************************************************************************/
 /**

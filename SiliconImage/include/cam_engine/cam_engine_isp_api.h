@@ -872,6 +872,12 @@ void CamEngineSetIsSocSensor
     bool isSoc
 );
 
+void CamEngineSetBufferSize
+(
+    CamEngineHandle_t   hCamEngine,
+    uint32_t bufNum,
+    uint32_t bufSize
+);
 
 #ifdef __cplusplus
 }

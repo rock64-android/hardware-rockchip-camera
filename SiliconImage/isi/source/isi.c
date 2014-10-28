@@ -2189,15 +2189,25 @@ RESULT IsiGetResolutionParam
         case ISI_RES_2592_1944P30:
             
         case ISI_RES_1296_972P7:
+        case ISI_RES_1296_972P10:			
         case ISI_RES_1296_972P15:
+		case ISI_RES_1296_972P20:
+		case ISI_RES_1296_972P25:
         case ISI_RES_1296_972P30:
             
         case ISI_RES_3264_2448P7:
+        case ISI_RES_3264_2448P10:
         case ISI_RES_3264_2448P15:
+        case ISI_RES_3264_2448P20:
+        case ISI_RES_3264_2448P25:
         case ISI_RES_3264_2448P30:
             
+        case ISI_RES_1632_1224P5:                      
         case ISI_RES_1632_1224P7:
+        case ISI_RES_1632_1224P10:
         case ISI_RES_1632_1224P15:
+        case ISI_RES_1632_1224P20:
+        case ISI_RES_1632_1224P25:
         case ISI_RES_1632_1224P30:
         
         case ISI_RES_4416_3312P7:
@@ -2212,6 +2222,7 @@ RESULT IsiGetResolutionParam
         case ISI_RES_1600_1200P15:
         case ISI_RES_1600_1200P30:
         
+		case ISI_RES_4224_3136P4:
         case ISI_RES_4224_3136P7:
         case ISI_RES_4224_3136P15:
         case ISI_RES_4224_3136P30:

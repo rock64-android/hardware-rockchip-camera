@@ -79,6 +79,11 @@ typedef struct CamerIcAfmMeasuringResult_s
     uint32_t    PixelCntA;
     uint32_t    PixelCntB;
     uint32_t    PixelCntC;
+
+    CamerIcWindow_t   WindowA;      /* ddl@rock-chips.com: v1.6.0 */
+    CamerIcWindow_t   WindowB;
+    CamerIcWindow_t   WindowC;
+    
 } CamerIcAfmMeasuringResult_t;
 
 
@@ -228,8 +233,28 @@ extern RESULT CamerIcIspAfmSetThreshold
     CamerIcDrvHandle_t  handle,
     const uint32_t      threshold
 );
-
-
+/*****************************************************************************/
+/**
+ * @brief   This function get the position and size of a a given measuring
+ *          window in the CamerIC ISP AFM module.
+ *
+ * @param   handle              CamerIc driver handle
+ * @param   WdwId               window identifier (@see CamerIcIspAfmWindowId_e)
+ * @param   pWindow             position of measuring window
+ *  
+ *
+ * @return                      Return the result of the function call.
+ * @retval  RET_SUCCESS         Configuration successfully applied
+ * @retval  RET_INVALID_PARM    invalid window identifier
+ * @retval  RET_WRONG_HANDLE    handle is invalid
+ *
+ *****************************************************************************/
+RESULT CamerIcIspAfmGetMeasuringWindow
+(
+    CamerIcDrvHandle_t              handle,
+    const CamerIcIspAfmWindowId_t   WdwId,
+    CamerIcWindow_t                 *pWindow
+);
 
 /*****************************************************************************/
 /**

@@ -400,8 +400,7 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 #if defined(TARGET_RK312x)
 		if(mirror){
 			return arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, (isDstNV21 ? V4L2_PIX_FMT_NV21:V4L2_PIX_FMT_NV12), 
-												src, (char *)dst,src_width, src_height,dst_width, dst_height,
-												true,zoom_val);
+			src, (char *)dst,src_width, src_height,dst_width, dst_height,true,zoom_val);
 		}
 #endif
 

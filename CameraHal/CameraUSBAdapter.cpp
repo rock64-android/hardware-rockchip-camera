@@ -904,7 +904,7 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
     #endif
     if( frame->frame_fmt == V4L2_PIX_FMT_MJPEG){
     	   char *srcbuf = frame->vir_addr;
-    	   if((srcbuf[0] == 0xff) && (srcbuf[1] == 0xd8) && (srcbuf[2] == 0xff) && (srcbuf[3] == 0xe0)){
+    	   if((srcbuf[0] == 0xff) && (srcbuf[1] == 0xd8) && (srcbuf[2] == 0xff)){
         //decoder to NV12
         VPU_FRAME outbuf; 
         unsigned int output_len;
@@ -944,8 +944,7 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
     frame->phy_addr = phy_addr;
     frame->vir_addr = mPreviewBufProvider->getBufVirAddr(frame->frame_index);
     frame->zoom_value = mZoomVal;
-    //do zoom here?
-
+	
 	int w,h;
 	w = frame->frame_width;
 	h = frame->frame_height;

@@ -65,10 +65,14 @@ extern "C"
 *   1) support for isi v0.6.0
 *v0.a.0
 *   1). support for isi v0.7.0
+*v0.b.0
+*   1). support mutil framerate and Afps;
+*v0.c.0
+*   1)  Skip frames when resolution change in OV8858_IsiChangeSensorResolutionIss;
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(0, 0x0a, 0) 
+#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(0, 0x0c, 0) 
 
 /*****************************************************************************
  * System control registers

@@ -63,7 +63,7 @@ void DisplayAdapter::notifyNewFrame(FramInfo_s* frame)
     mDisplayLock.lock();
     //send a frame to display
     if(mDisplayRuning == STA_DISPLAY_RUNNING){
-        Message msg;
+        Message_cam msg;
         msg.command = CMD_DISPLAY_FRAME;
         msg.arg1 = NULL;
         msg.arg2 = (void*)frame;
@@ -82,7 +82,7 @@ void DisplayAdapter::notifyNewFrame(FramInfo_s* frame)
 int DisplayAdapter::startDisplay(int width, int height)
 {
     int err = NO_ERROR;
-    Message msg;
+    Message_cam msg;
     Semaphore sem;
     LOG_FUNCTION_NAME
     mDisplayLock.lock();
@@ -112,7 +112,7 @@ cameraDisplayThreadStart_end:
 int DisplayAdapter::stopDisplay()
 {
     int err = NO_ERROR;
-    Message msg;
+    Message_cam msg;
     Semaphore sem;
     LOG_FUNCTION_NAME
     mDisplayLock.lock();
@@ -140,7 +140,7 @@ cameraDisplayThreadPause_end:
 int DisplayAdapter::pauseDisplay()
 {
     int err = NO_ERROR;
-    Message msg;
+    Message_cam msg;
     Semaphore sem;
     mDisplayLock.lock();
     LOG_FUNCTION_NAME
@@ -548,8 +548,6 @@ extern "C" void arm_yuyv_to_nv12_soc_ex(int src_w, int src_h,char *srcbuf, char 
 
 }
 
-
-
 void DisplayAdapter::displayThread()
 {
     int err,stride,i,queue_cnt;
@@ -557,7 +555,7 @@ void DisplayAdapter::displayThread()
     buffer_handle_t *hnd = NULL; 
     NATIVE_HANDLE_TYPE *phnd;
     GraphicBufferMapper& mapper = GraphicBufferMapper::get();
-    Message msg;
+    Message_cam msg;
     void *y_uv[3];
     int frame_used_flag = -1;
     Rect bounds;

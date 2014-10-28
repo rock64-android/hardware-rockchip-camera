@@ -21,8 +21,18 @@ using namespace android;
 * 	2: add fov fov_h fov_v
 *v.0.0x07.0
 *	1: change fov_h fov_v format from int to float
+*v.0.0x08.0
+*	1: add face detection config
+*v.0.0x09.0
+*     1:add interpolation resolution config.
+*v.0.0x0a.0
+*     1:add color proc module config.
+*v.0.0x0b.0
+*     1:add gamma out module config.
+*v.0.0x0c.0
+*     1:add sensor lens config.
 */
-#define ConfigBoardXmlVersion KERNEL_VERSION(0, 7, 0x00) 
+#define ConfigBoardXmlVersion KERNEL_VERSION(0, 0xc, 0x00) 
 
 #define UVC_CAM_NAME "UVC Camera"
 #define SOC_CAM_NAME "SOC Camera"//yzm
@@ -123,6 +133,7 @@ struct rk_sensor_info{
     ~rk_sensor_info(){};
     
     char mSensorName[CAMSYS_NAME_LEN];
+    char mLensName[CAMSYS_NAME_LEN];
     char mCamsysDevPath[CAMSYS_NAME_LEN];
     char mSensorDriver[16];
     
@@ -247,6 +258,25 @@ struct rk_sence_config{
     unsigned int mDefault;
 };
 
+struct rk_cproc_config{
+    rk_cproc_config():mSupported(false),mContrast(1.0),mSaturation(1.0),mHue(0),mBrightness(0){};
+    ~rk_cproc_config(){};
+
+    bool mSupported;
+    float mContrast;
+    float mSaturation;
+    float mHue;
+    int mBrightness;
+};
+
+struct rk_gamma_out_config{
+    rk_gamma_out_config():mSupported(false),mGamma(1.0),mOffSet(0){};
+    ~rk_gamma_out_config(){};
+    bool mSupported;
+    float mGamma;
+    int mOffSet;
+};
+
 struct rk_effect_config{
     rk_effect_config():mEffectSupport(0),mDefault(0){};
     ~rk_effect_config(){};
@@ -298,6 +328,15 @@ struct rk_DV_info{
     int mAddMask;
 };
 
+struct rk_face_detect_info{
+    rk_face_detect_info()
+            :mFaceDetectSupport(0),
+            mFaceMaxNum(1){};
+    ~rk_face_detect_info();
+    int mFaceDetectSupport;
+    int mFaceMaxNum;
+            
+};
 
 struct rk_camera_softinfo_config{
     rk_camera_softinfo_config()
@@ -306,7 +345,8 @@ struct rk_camera_softinfo_config{
                     mContinue_snapshot_config(0),
                     mPreviewWidth(800),
                     mPreviewHeight(600),
-                    mHDRConfig(0){};
+                    mHDRConfig(0),
+                    mInterpolationRes(0){};
     ~rk_camera_softinfo_config(){};               
                     
                     
@@ -316,6 +356,9 @@ struct rk_camera_softinfo_config{
     rk_anti_banding_config mAntiBandingConfig;
     rk_focus_config mFocusConfig;
     rk_flash_config mFlashConfig;
+    rk_face_detect_info mFaceDetctConfig;
+    rk_cproc_config mCprocConfig;
+    rk_gamma_out_config mGammaOutConfig;
     
     int mZSLConfig;
     int mZoomConfig;
@@ -323,6 +366,8 @@ struct rk_camera_softinfo_config{
     int mPreviewWidth;
     int mPreviewHeight;
     int mHDRConfig;
+    int mInterpolationRes;
+    
     
     Vector<rk_DV_info*> mDV_vector;
 };

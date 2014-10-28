@@ -702,6 +702,7 @@ static RESULT OV5640_SetupOutputWindow
 
                 TRACE( OV5640_INFO, "%s: success to set  ISI_RES_SVGAP30 \n", __FUNCTION__ );
             }
+            break;
        }
         /*case ISI_RES_1600_1200:
         {

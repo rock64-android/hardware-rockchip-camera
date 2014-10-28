@@ -836,7 +836,7 @@ RESULT CamCalibDbGetDpccProfileByResolution
 RESULT CamCalibDbGetSensorXmlVersion
 (
 	CamCalibDbHandle_t          hCamCalibDb,
-	char (*pVersion)[50]
+	char (*pVersion)[64]
 );
 
 RESULT CamCalibDbGetAecPoint

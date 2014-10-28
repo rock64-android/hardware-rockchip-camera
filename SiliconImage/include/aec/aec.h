@@ -179,6 +179,18 @@ typedef struct AecConfig_s
 } AecConfig_t;
 
 
+/*****************************************************************************/
+/**
+ * AecSetMeanLumaGridWeights
+ *
+ 
+ *
+ *****************************************************************************/
+RESULT AecSetMeanLumaGridWeights
+(
+    AecHandle_t handle,
+    const unsigned char  *pWeights
+);
 
 /*****************************************************************************/
 /**

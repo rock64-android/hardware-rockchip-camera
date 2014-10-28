@@ -51,6 +51,17 @@ namespace android {
 
 *********************/
 
+static void gsensor_orientation_cb(uint32_t orientation, uint32_t tilt, void* cookie){
+    if(cookie){
+        int cam_orien = 0, face = 0;
+        CameraHal* pCameraHal = static_cast<CameraHal*> (cookie);
+        cam_orien = gCamInfos[pCameraHal->getCameraId()].pcam_total_info->mHardInfo.mSensorInfo.mOrientation;
+        face = gCamInfos[pCameraHal->getCameraId()].pcam_total_info->mHardInfo.mSensorInfo.mFacing;
+        pCameraHal->mEventNotifier->onOrientationChanged(orientation,cam_orien,face);
+
+    }
+};
+
 CameraHal::CameraHal(int cameraId)
           :commandThreadCommandQ("commandCmdQ")
 {
@@ -72,9 +83,6 @@ CameraHal::CameraHal(int cameraId)
     mCamFd = -1;
     mCommandRunning = -1;
 	mCameraStatus = 0;
-    
-    mDisplayAdapter = new DisplayAdapter();
-    mEventNotifier = new AppMsgNotifier();
 
     #if (CONFIG_CAMERA_MEM == CAMERA_MEM_ION)
         mCamMemManager = new IonMemManager();
@@ -139,11 +147,15 @@ CameraHal::CameraHal(int cameraId)
             mCameraAdapter->setImageAllFov(false);
 	    }
     }
+
+    mDisplayAdapter = new DisplayAdapter();
+    mEventNotifier = new AppMsgNotifier(mCameraAdapter);
+    
+    mCameraAdapter->setEventNotifierRef(*mEventNotifier);
     mCameraAdapter->initialize();
     updateParameters(mParameters);
     mCameraAdapter->setPreviewBufProvider(mPreviewBuf);
     mCameraAdapter->setDisplayAdapterRef(*mDisplayAdapter);
-    mCameraAdapter->setEventNotifierRef(*mEventNotifier);
     
 
     mDisplayAdapter->setFrameProvider(mCameraAdapter);
@@ -183,6 +195,20 @@ CameraHal::CameraHal(int cameraId)
     dataCbFrontMirror = false;
 #endif 
 	mEventNotifier->setDatacbFrontMirrorFlipState(dataCbFrontMirror,dataCbFrontFlip);
+
+      // register for sensor events
+    mSensorListener = new SensorListener();
+    if (mSensorListener.get()) {
+        if (mSensorListener->initialize() == NO_ERROR) {
+            mSensorListener->setCallbacks(gsensor_orientation_cb, this);
+            mSensorListener->enableSensor(SensorListener::SENSOR_ORIENTATION);
+        } else {
+            LOGE("Error initializing SensorListener. not fatal, continuing");
+            mSensorListener.clear();
+            mSensorListener = NULL;
+        }
+    }  
+
     
 	LOG_FUNCTION_NAME_EXIT
 
@@ -203,6 +229,12 @@ void CameraHal::updateParameters(CameraParameters & tmpPara)
 CameraHal::~CameraHal()
 {
 	LOG_FUNCTION_NAME
+    if (mSensorListener.get()) {
+        mSensorListener->disableSensor(SensorListener::SENSOR_ORIENTATION);
+        mSensorListener.clear();
+        mSensorListener = NULL;
+    }
+    
     if(mDisplayAdapter){
         delete mDisplayAdapter;
         mDisplayAdapter = NULL;
@@ -236,7 +268,7 @@ CameraHal::~CameraHal()
         mCamMemManager =NULL;
     }
 	if(mCommandThread != NULL){
-        Message msg;  
+        Message_cam msg;  
         Semaphore sem;
         msg.command = CMD_EXIT;
         sem.Create();
@@ -266,7 +298,7 @@ void CameraHal::release()
 int CameraHal::setPreviewWindow(struct preview_stream_ops *window)
 {
     LOG_FUNCTION_NAME  
-    Message msg;  
+    Message_cam msg;  
     Semaphore sem;
     Mutex::Autolock lock(mLock);
     if ((mCommandThread != NULL)) {
@@ -290,7 +322,7 @@ int CameraHal::setPreviewWindow(struct preview_stream_ops *window)
 int CameraHal::startPreview()
 {
     LOG_FUNCTION_NAME
-    Message msg;    
+    Message_cam msg;    
     Mutex::Autolock lock(mLock);
     if ((mCommandThread != NULL)) {
         msg.command = CMD_PREVIEW_START;
@@ -308,7 +340,7 @@ int CameraHal::startPreview()
 void CameraHal::stopPreview()
 {
     LOG_FUNCTION_NAME  
-    Message msg; 
+    Message_cam msg; 
     Semaphore sem;
     Mutex::Autolock lock(mLock);
     if ((mCommandThread != NULL)) {
@@ -336,7 +368,7 @@ void CameraHal::setCallbacks(camera_notify_callback notify_cb,
 {
     LOG_FUNCTION_NAME  
     Mutex::Autolock lock(mLock);
-    mEventNotifier->setCallbacks(notify_cb, data_cb,data_cb_timestamp,get_memory,user);
+    mEventNotifier->setCallbacks(notify_cb, data_cb,data_cb_timestamp,get_memory,user,&mLock);
     LOG_FUNCTION_NAME_EXIT
 }
 
@@ -372,7 +404,7 @@ int CameraHal::msgTypeEnabled(int32_t msgType)
 int CameraHal::autoFocus()
 {
     LOG_FUNCTION_NAME
-    Message msg; 
+    Message_cam msg; 
     Semaphore sem;
     Mutex::Autolock lock(mLock);
     
@@ -395,7 +427,7 @@ int CameraHal::autoFocus()
 int CameraHal::cancelAutoFocus()
 {
     LOG_FUNCTION_NAME
-    Message msg; 
+    Message_cam msg; 
     Semaphore sem;
     Mutex::Autolock lock(mLock);
     if ((mCommandThread != NULL)) {
@@ -482,7 +514,7 @@ void CameraHal::releaseRecordingFrame(const void *opaque)
 int CameraHal::takePicture()
 {
     LOG_FUNCTION_NAME  
-    Message msg;    
+    Message_cam msg;    
     Semaphore sem;
     Mutex::Autolock lock(mLock);
     if ((mCommandThread != NULL)) {
@@ -507,7 +539,7 @@ int CameraHal::takePicture()
 int CameraHal::cancelPicture()
 {
     LOG_FUNCTION_NAME  
-    Message msg;    
+    Message_cam msg;    
     Semaphore sem;
     Mutex::Autolock lock(mLock);
     if ((mCommandThread != NULL)) {
@@ -547,7 +579,7 @@ int CameraHal::setParameters(const CameraParameters &params_set)
 
     }
 
-    Message msg;    
+    Message_cam msg;    
     Semaphore sem;
     Mutex::Autolock lock(mLock);
     if ((mCommandThread != NULL)) {
@@ -582,7 +614,7 @@ int CameraHal::setParametersUnlock(const CameraParameters &params_set)
 
     }
 
-    Message msg;    
+    Message_cam msg;    
     Semaphore sem;
     if ((mCommandThread != NULL)) {
         msg.command = CMD_SET_PARAMETERS;
@@ -623,13 +655,33 @@ void CameraHal::putParameters(char *parms)
 int CameraHal::sendCommand(int32_t cmd, int32_t arg1, int32_t arg2)
 {
     LOG_FUNCTION_NAME
-    int ret = 0;
+    int ret = 0,drv_w,drv_h;
     Mutex::Autolock lock(mLock);
 
     if(cmd == CAMERA_CMD_START_FACE_DETECTION){
         const char* szFace = mParameters.get(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW);
-        if(!szFace || ( szFace && (strtol(szFace,0,0) == 0)))
+        if(!szFace || ( szFace && (strtol(szFace,0,0) == 0))){
             ret = BAD_VALUE;
+            return ret;
+        }
+        LOGD("sendCommand start face detection ");
+        enableMsgType(CAMERA_MSG_PREVIEW_METADATA);
+        Message_cam msg;    
+        if ((mCommandThread != NULL)) {
+            msg.command = CMD_START_FACE_DETECTION;
+            msg.arg1 = (void*)(NULL);
+            commandThreadCommandQ.put(&msg);
+        }
+    }else if(cmd == CAMERA_CMD_STOP_FACE_DETECTION){
+        const char* szFace = mParameters.get(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW);
+        if(!szFace || ( szFace && (strtol(szFace,0,0) == 0))){
+            ret = BAD_VALUE;
+            return ret;
+        }
+        disableMsgType(CAMERA_MSG_PREVIEW_METADATA);
+
+        mEventNotifier->stopFaceDection();
+        LOGD("sendCommand stop face detection ");
     }
     return ret;
 }
@@ -663,6 +715,12 @@ int CameraHal::getCameraFd()
     Mutex::Autolock lock(mLock);
     
     return mCameraAdapter->getCameraFd();  
+}
+
+int CameraHal::getCameraId()
+{
+    
+    return mCamId;  
 }
 
 
@@ -742,7 +800,7 @@ int CameraHal::fillPicturInfo(picture_info_s& picinfo)
 }
 void CameraHal::commandThread()
 {
-    Message msg;
+    Message_cam msg;
     bool  shouldLive = true;
     bool has_message;
     int err = 0,tmp_arg1;
@@ -796,6 +854,8 @@ get_command:
                         err=mCameraAdapter->startPreview(app_previw_w,app_preview_h,drv_w, drv_h, 0, false);
                         if(mEventNotifier->msgEnabled(CAMERA_MSG_PREVIEW_FRAME))
                             mEventNotifier->startReceiveFrame();
+                        if(mEventNotifier->msgEnabled(CAMERA_MSG_PREVIEW_METADATA))
+                            mEventNotifier->startFaceDection(drv_w,drv_h);
 						if(err != 0)
 							goto PREVIEW_START_OUT;
                     }
@@ -950,7 +1010,9 @@ get_command:
                         err=mDisplayAdapter->pauseDisplay();
 						if(err != -1)
 							setCamStatus(STA_DISPLAY_PAUSE, 1);
-
+                        //stop eventnotify
+                        mEventNotifier->stopReceiveFrame();
+                        
 						err =mCameraAdapter->stopPreview();
 						if(err != 0)
 							goto CMD_CONTINUOS_PICTURE_OUT;
@@ -961,6 +1023,7 @@ get_command:
                         err=mCameraAdapter->startPreview(picture_w,picture_h,drv_w, drv_h, 0, true);
 						if(err != 0)
 							goto CMD_CONTINUOS_PICTURE_OUT;
+
                         if(pic_num > 1)
                         {
                             mParameters.getPreviewSize(&app_previw_w,&app_preview_h);
@@ -1011,7 +1074,11 @@ get_command:
                     ((Semaphore*)(msg.arg1))->Signal();
                 break;
             }
-            
+            case CMD_START_FACE_DETECTION:
+            LOGD("%s(%d): receive CMD_AF_CANCEL", __FUNCTION__,__LINE__);
+            if(mCameraAdapter->getCurPreviewState(&drv_w,&drv_h) > 0)
+                mEventNotifier->startFaceDection(drv_w,drv_h);
+                break;
             case CMD_EXIT:
             {
                 LOGD("%s(%d): receive CMD_EXIT", __FUNCTION__,__LINE__);

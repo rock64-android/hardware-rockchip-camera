@@ -43,6 +43,9 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
     if (strcmp(name, "SensorName")==0) {
         strncpy(pSensorInfo->mSensorName, atts[1], strlen(atts[1]));
         ALOGD("%s(%d): SensorName(%s)\n", __FUNCTION__, __LINE__, pSensorInfo->mSensorName);
+    } else if (strcmp(name, "SensorLens")==0) {
+        strncpy(pSensorInfo->mLensName, atts[1], strlen(atts[1]));
+        ALOGD("%s(%d): lensName(%s)\n", __FUNCTION__, __LINE__, pSensorInfo->mLensName);
     } else if (strcmp(name, "SensorDevID")==0) {
         ALOGD("%s(%d): SensorDevID(%s)\n", __FUNCTION__, __LINE__, atts[1]);
         if(strcmp("CAMSYS_DEVID_SENSOR_1A", atts[1])==0){
@@ -709,18 +712,26 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
             (ConfigBoardXmlVersion&0xff0000)>>16,
             (ConfigBoardXmlVersion&0xff00)>>8,
             ConfigBoardXmlVersion&0xff);
+	}
+    /* ddl@rock-chips.com: v1.3.0 */
 		if(pCamInfoProfiles->mBoardXmlVersion != ConfigBoardXmlVersion){
-			ALOGE("this two version isn't match!!!\n");	
-            DCT_ASSERT(0);
+		ALOGE("cam_board.xml version(v%d.%d.%d) != xml parser version(v%d.%d.%d)\n",
+          (pCamInfoProfiles->mBoardXmlVersion&0xff0000)>>16,
+          (pCamInfoProfiles->mBoardXmlVersion&0xff00)>>8,
+          pCamInfoProfiles->mBoardXmlVersion&0xff,
+          (ConfigBoardXmlVersion&0xff0000)>>16,
+          (ConfigBoardXmlVersion&0xff00)>>8,
+          ConfigBoardXmlVersion&0xff);
+        return;
 		}
 
-        ALOGD("\n\n");
-	}else if(strcmp(name,"CamDevie")==0){
+    if(strcmp(name,"CamDevie")==0){
 	    rk_cam_total_info* pNewCamInfo = new rk_cam_total_info();
 	    if(pNewCamInfo){	        
             pCamInfoProfiles->mCurDevice= pNewCamInfo;
             pCamInfoProfiles->mDevieVector.add(pNewCamInfo);
             pNewCamInfo->mDeviceIndex = (pCamInfoProfiles->mDevieVector.size()) - 1;
+            memset(pNewCamInfo->mHardInfo.mSensorInfo.mLensName,0,CAMSYS_NAME_LEN);
 	    }else{
             ALOGE("%s(%d): Warnimg camdevice malloc fail! \n", __FUNCTION__,__LINE__);
 	    }
@@ -752,6 +763,24 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
         support = atoi(atts[1]);
         pCamInfo->mSoftInfo.mZoomConfig= support;
         ALOGD("%s(%d): zoom(%d)! \n", __FUNCTION__,__LINE__,support);
+    } else if (strstr(name,"Cproc")){
+        pCamInfo->mSoftInfo.mCprocConfig.mSupported = (atoi(atts[1]) == 1) ? true:false;
+        pCamInfo->mSoftInfo.mCprocConfig.mContrast = atof(atts[3]);
+        pCamInfo->mSoftInfo.mCprocConfig.mSaturation = atof(atts[5]);
+        pCamInfo->mSoftInfo.mCprocConfig.mHue= atof(atts[7]);
+        pCamInfo->mSoftInfo.mCprocConfig.mBrightness = atoi(atts[9]);
+        ALOGD("%s(%d): cproc support %d(contrast:%f,saturation:%f,hue:%f,brightness:%d)! \n", 
+                __FUNCTION__,__LINE__,atoi(atts[1]),atof(atts[3]),atof(atts[5]),atof(atts[7]),atoi(atts[9]));
+    } else if (strstr(name,"Gammaout")){
+        pCamInfo->mSoftInfo.mGammaOutConfig.mSupported = (atoi(atts[1]) == 1) ? true:false;
+        pCamInfo->mSoftInfo.mGammaOutConfig.mGamma= atof(atts[3]);
+        pCamInfo->mSoftInfo.mGammaOutConfig.mOffSet= atoi(atts[5]);
+        ALOGD("%s(%d): Gammaout support %d(mGamma:%f,mOffSet:%d)! \n", __FUNCTION__,__LINE__,atoi(atts[1]),atof(atts[3]),atoi(atts[5]));
+    } else if (strstr(name,"FaceDetect")){
+        support = atoi(atts[1]);
+        pCamInfo->mSoftInfo.mFaceDetctConfig.mFaceDetectSupport = support;
+        pCamInfo->mSoftInfo.mFaceDetctConfig.mFaceMaxNum = atoi(atts[3]);
+        ALOGD("%s(%d): face detect config(%d),max face num is (%d)! \n", __FUNCTION__,__LINE__,support,atoi(atts[3]));
     } else if (strstr(name,"PreviewSize")){
         pCamInfo->mSoftInfo.mPreviewWidth = atoi(atts[1]);
         pCamInfo->mSoftInfo.mPreviewHeight = atoi(atts[3]);
@@ -762,7 +791,12 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
         support = atoi(atts[1]);
         pCamInfo->mSoftInfo.mContinue_snapshot_config = support;
         ALOGD("%s(%d): Continue_SnapShot(%d)! \n", __FUNCTION__,__LINE__,support);
-    }    
+    }else if(strstr(name,"InterpolationRes")){
+    	pCamInfo->mSoftInfo.mInterpolationRes = atoi(atts[1]);
+		ALOGD("%s(%d): InterpolationRes(%d)! \n", __FUNCTION__,__LINE__,pCamInfo->mSoftInfo.mInterpolationRes);
+    }  
+
+    return;
 }
 
 camera_board_profiles* camera_board_profiles::createInstance()
@@ -817,9 +851,10 @@ exit:
     size_t nCamDev2 = profiles->mDevieVector.size();
     ALOGD("number of camdevice (%d)\n", nCamDev2);
     
+    if (nCamDev2>0) {
     size_t nDVnum2 = profiles->mCurDevice->mSoftInfo.mDV_vector.size();
     ALOGD("now DV size(%d)\n", nDVnum2);
-
+    }
     return profiles;
 
 }
@@ -845,7 +880,10 @@ bool camera_board_profiles::LoadALLCalibrationData(camera_board_profiles* profil
             
             CalibDb *pcalidb = &(profiles->mDevieVector[i]->mLoadSensorInfo.calidb);
             memset(filename, 0x00, 50);
+            if(strlen(pSensorInfo->mLensName) == 0)
             sprintf(filename, "%s.xml", pSensorInfo->mSensorName);
+            else
+                sprintf(filename, "%s_lens_%s.xml", pSensorInfo->mSensorName,pSensorInfo->mLensName);
             bool res = pcalidb->CreateCalibDb(filename);
             if(res){
                 ALOGD("load %s success\n", filename);
@@ -939,7 +977,11 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         {
         	if(pIsiCamDrvConfig->IsiSensor.pIsiSensorCaps->SensorOutputMode == ISI_SENSOR_OUTPUT_MODE_RAW){
 	            CalibDb *pcalidb = &(pCamInfo->mLoadSensorInfo.calidb);
+                if(strlen(pSensorInfo->mLensName) == 0)
 	            sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName);
+                else
+	                sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s_lens_%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName,pSensorInfo->mLensName);
+                LOGD("sensor xml file name : %s lens name %s",pLoadSensorInfo->mSensorXmlFile,pSensorInfo->mLensName);
 	            bool res = pcalidb->CreateCalibDb(pLoadSensorInfo->mSensorXmlFile);	           	
 			    if(res){	                
 	                pCamInfo->mIsConnect = 1;
@@ -1000,7 +1042,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 
     memset(&extdev,0x00, sizeof(camsys_devio_name_t));
     pCamInfo->mLoadSensorInfo.mCamsysFd = camsys_fd;
-    
+
+    strlcpy((char*)extdev.dev_name,  (char*)pSensorInfo->mSensorName, sizeof(extdev.dev_name));
     extdev.dev_id = pSensorInfo->mCamDevid;
     strlcpy((char*)extdev.avdd.name, (char*)pSensorInfo->mAvdd.name,sizeof(extdev.avdd.name));
     //strlcpy((char*)extdev.avdd.name, pSensorInfo->mAvdd.name,2);
@@ -1087,8 +1130,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 	}
 	
     regist_ret = ioctl(camsys_fd, CAMSYS_REGISTER_DEVIO, &extdev);
-    if (regist_ret<0) {
-        ALOGD("CAMSYS_REGISTER_DEVIO failed\n");
+    if (regist_ret<0) {        
+        ALOGE("CAMSYS_REGISTER_DEVIO failed\n");
         ret = RK_RET_DEVICEERR;
         goto regist_err;
     }

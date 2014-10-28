@@ -350,6 +350,7 @@ typedef struct CamEngineBestSensorResReq_s
     uint32_t request_w;
     uint32_t request_h;
     uint32_t request_fps;
+    float    request_exp_t;   
     bool_t   request_fullfov;
     bool_t   requset_aspect;
     uint32_t resolution;

@@ -10,11 +10,14 @@ namespace android {
 static char ExifMaker[32];
 static char ExifModel[32];
 static char ExifSelfDefine[512];
-
-AppMsgNotifier::AppMsgNotifier()
-               :encProcessThreadCommandQ("pictureEncThreadQ"),
+#define FACEDETECT_INIT_BIAS (-20)
+#define FACEDETECT_BIAS_INERVAL (5)
+#define FACEDETECT_FRAME_INTERVAL (2)
+/* ddl@rock-chips.com: v1.0xb.0 */
+AppMsgNotifier::AppMsgNotifier(CameraAdapter *camAdp)
+               :mCamAdp(camAdp),
+               encProcessThreadCommandQ("pictureEncThreadQ"),
                 eventThreadCommandQ("eventThreadQ")
-
 {
     LOG_FUNCTION_NAME
 	if (create_vpu_memory_pool_allocator(&pool, 10, 200*200*2) < 0) {
@@ -45,6 +48,16 @@ AppMsgNotifier::AppMsgNotifier()
     mPreviewDataH = 0;
     mPicSize =0;
     mPicture = NULL;
+    mCurOrintation = 0;
+    mFaceDetecInit = false;
+    mFaceDetecW = 0;
+    mFaceDetectH = 0;
+    mFaceFrameNum = 0;
+    mCurBiasAngle = FACEDETECT_INIT_BIAS;
+    mFaceContext = NULL;
+    mRecPrevCbDataEn = true;
+    mRecMetaDataEn = true;
+    memset(&mFaceDetectorFun,0,sizeof(struct face_detector_func_s));
     int i ;
     //request mVideoBufs
 	for (i=0; i<CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++) {
@@ -53,16 +66,18 @@ AppMsgNotifier::AppMsgNotifier()
     
     //create thread 
     mCameraAppMsgThread = new CameraAppMsgThread(this);
-    mCameraAppMsgThread->run("AppMsgThread",ANDROID_PRIORITY_DISPLAY);
+    mCameraAppMsgThread->run("CamHalAppEventThread",ANDROID_PRIORITY_DISPLAY);
     mEncProcessThread = new EncProcessThread(this);
-    mEncProcessThread->run("EncProcessThread",ANDROID_PRIORITY_NORMAL);
+    mEncProcessThread->run("CamHalAppEncThread",ANDROID_PRIORITY_NORMAL);
+    mFaceDetThread = new CameraAppFaceDetThread(this);
+    mFaceDetThread->run("CamHalAppFaceThread",ANDROID_PRIORITY_NORMAL);
     LOG_FUNCTION_NAME_EXIT
 }
 AppMsgNotifier::~AppMsgNotifier()
 {
     LOG_FUNCTION_NAME
     //stop thread
-    Message msg;
+    Message_cam msg;
     Semaphore sem,sem1;
     if(mCameraAppMsgThread != NULL){
         msg.command = CameraAppMsgThread::CMD_EVENT_EXIT;
@@ -86,6 +101,17 @@ AppMsgNotifier::~AppMsgNotifier()
         }
         mEncProcessThread->requestExitAndWait();
         mEncProcessThread.clear();
+    }
+    if(mFaceDetThread != NULL){
+        msg.command = CameraAppFaceDetThread::CMD_FACEDET_EXIT;
+        sem1.Create();
+        msg.arg1 = (void*)(&sem1);
+        faceDetThreadCommandQ.put(&msg);
+        if(msg.arg1){
+            sem1.Wait();
+        }
+        mFaceDetThread->requestExitAndWait();
+        mFaceDetThread.clear();
     }
 
     int i = 0;
@@ -113,19 +139,159 @@ AppMsgNotifier::~AppMsgNotifier()
 		release_vpu_memory_pool_allocator(pool);
 		pool = NULL;
 	}
+
+    deInitializeFaceDetec();
     LOG_FUNCTION_NAME_EXIT
+}
+
+int AppMsgNotifier::startFaceDection(int width,int height)
+{
+    int ret = 0;
+    Mutex::Autolock lock(mFaceDecLock);
+    if(!(mRunningState & STA_RECEIVE_FACEDEC_FRAME)){
+        if((ret = initializeFaceDetec(width, height)) == 0){
+        	mRunningState |= STA_RECEIVE_FACEDEC_FRAME;
+            mFaceFrameNum = 0;
+            LOG1("start face detection !!");
+        }
+        mRecMetaDataEn = true;
+    }
+    return ret;
+}
+
+void AppMsgNotifier::stopFaceDection()
+{
+    Message_cam msg;
+    Semaphore sem;
+   LOG_FUNCTION_NAME
+
+    {
+        Mutex::Autolock lock(mFaceDecLock);
+        mRecMetaDataEn = false;
+        mRunningState &= ~STA_RECEIVE_FACEDEC_FRAME;
+    }
+    //send msg to stop recording
+    msg.command = CameraAppFaceDetThread::CMD_FACEDET_PAUSE;
+    sem.Create();
+    msg.arg1 = (void*)(&sem);
+    faceDetThreadCommandQ.put(&msg);
+    if(msg.arg1){
+        sem.Wait();
+    }
+    LOG1("stop face detection !!");
+
+    LOG_FUNCTION_NAME_EXIT
+}
+int AppMsgNotifier::initializeFaceDetec(int width,int height){
+
+    if(!mFaceDetecInit){
+        //load face detection lib 
+        mFaceDetectorFun.mLibFaceDetectLibHandle = dlopen("libFFTEm.so", RTLD_NOW);    
+        if (mFaceDetectorFun.mLibFaceDetectLibHandle == NULL) {
+            LOGE("%s(%d): open libFFTEm.so fail",__FUNCTION__,__LINE__);
+            return -1;
+        } else {
+            mFaceDetectorFun.mFaceDectStartFunc = (FaceDetector_start_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_start"); 
+            mFaceDetectorFun.mFaceDectStopFunc = (FaceDetector_stop_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_stop"); 
+            mFaceDetectorFun.mFaceDectFindFaceFun = (FaceDetector_findFaces_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_findFaces"); 
+            mFaceDetectorFun.mFaceDetector_initizlize_func = (FaceDetector_initizlize_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_initizlize");
+            mFaceDetectorFun.mFaceDetector_destory_func = (FaceDetector_destory_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_destory");
+            mFaceContext = (*mFaceDetectorFun.mFaceDetector_initizlize_func)(DETECTOR_OPENCL, 15.0f , 1);
+            if(mFaceContext){
+                (*mFaceDetectorFun.mFaceDectStartFunc)(mFaceContext,width, height, IMAGE_YUV420SP);
+                mFaceDetecInit = true;
+            }else{
+                dlclose(mFaceDetectorFun.mLibFaceDetectLibHandle); 
+                LOGE("%s(%d): open libface init fail",__FUNCTION__,__LINE__);
+                return -1;
+            }
+        }
+    }else if((mFaceDetecW != width) || (mFaceDetectH != height)){
+        (*mFaceDetectorFun.mFaceDectStopFunc)(mFaceContext);
+        (*mFaceDetectorFun.mFaceDectStartFunc)(mFaceContext,width, height, IMAGE_YUV420SP);
+    }
+    mFaceDetecW = width;
+    mFaceDetectH = height;
+    return 0;
+}
+
+void AppMsgNotifier::deInitializeFaceDetec(){
+    if(mFaceDetecInit){
+        (*mFaceDetectorFun.mFaceDectStopFunc)(mFaceContext);
+        (*mFaceDetectorFun.mFaceDetector_destory_func)(mFaceContext);
+        dlclose(mFaceDetectorFun.mLibFaceDetectLibHandle); 
+        mFaceDetecInit = false;
+    }
+}
+void AppMsgNotifier::onOrientationChanged(uint32_t new_orien,int cam_orien,int face)
+{
+    Mutex::Autolock lock(mFaceDecLock);
+    int result,tmp_ori;
+
+    //correct source orientation by clockwise
+#if 1
+    new_orien = 360 - new_orien;
+
+    if (face == CAMERA_FACING_FRONT) {
+        result = (cam_orien + new_orien) % 360;
+        result = (360 - result) % 360;  // compensate the mirror
+    } else {  // back-facing
+        result = (cam_orien - new_orien + 360) % 360;
+    }  
+ #else
+    result = (cam_orien - new_orien + 360) % 360;
+ #endif
+
+    //face detection is counter clocwise
+    tmp_ori = (4 - result / 90 ) % 4;
+    if(mCurOrintation != tmp_ori){
+        mFaceFrameNum = 0;
+        mCurOrintation = tmp_ori;
+        mCurBiasAngle = FACEDETECT_INIT_BIAS;
+    }
+        
+    LOG2("%s:face:%d,new_orien:%d,cam_orien %d,new orientattion : %d",__FUNCTION__,face,new_orien,cam_orien,mCurOrintation);
+}
+
+bool AppMsgNotifier::isNeedSendToFaceDetect()
+{
+    Mutex::Autolock lock(mFaceDecLock);
+   if((mRecMetaDataEn) && (mRunningState & STA_RECEIVE_FACEDEC_FRAME))
+        return true;
+    else{
+        LOG2("%s%d:needn't to send this frame to this face detection",__FUNCTION__,__LINE__);
+
+        return false;
+    }
+}
+void AppMsgNotifier::notifyNewFaceDecFrame(FramInfo_s* frame)
+{
+    //send to app msg thread
+    Message_cam msg;
+    Mutex::Autolock lock(mFaceDecLock);
+   if((mRecMetaDataEn) && (mRunningState & STA_RECEIVE_FACEDEC_FRAME)) {
+        msg.command = CameraAppFaceDetThread::CMD_FACEDET_FACE_DETECT ;
+        msg.arg2 = (void*)(frame);
+        msg.arg3 = (void*)(frame->used_flag);
+        LOG2("%s(%d):notify new frame,index(%d)",__FUNCTION__,__LINE__,frame->frame_index);
+        faceDetThreadCommandQ.put(&msg);
+   }else
+        mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
 }
 
 void AppMsgNotifier::setPictureRawBufProvider(BufferProvider* bufprovider)
 {
     mRawBufferProvider = bufprovider;
+	#if (JPEG_BUFFER_DYNAMIC == 0)
     mRawBufferProvider->createBuffer(1, 0xd00000, RAWBUFFER);
-
+	#endif
  }
 void AppMsgNotifier::setPictureJpegBufProvider(BufferProvider* bufprovider)
 {
     mJpegBufferProvider = bufprovider;
+	#if (JPEG_BUFFER_DYNAMIC == 0)
     mJpegBufferProvider->createBuffer(1, 0x700000,JPEGBUFFER);
+	#endif
 }
 void AppMsgNotifier::setFrameProvider(FrameProvider * framepro)
 {
@@ -156,14 +322,21 @@ int AppMsgNotifier::takePicture(picture_info_s picinfo)
 }
 int AppMsgNotifier::flushPicture()
 {
-    Message msg;
+    Message_cam msg;
     Semaphore sem;
    LOG_FUNCTION_NAME
     {
+        int trytimes = 0;
+        while((mRunningState&STA_RECEIVE_PIC_FRAME) && (trytimes++ < 50)){
+    	    usleep(30*1000);//sleep 30 ms 
+        }
+        if(trytimes == 50){
 	    Mutex::Autolock lock(mPictureLock); 
 
 	    //mReceivePictureFrame = false;
 		mRunningState &= ~STA_RECEIVE_PIC_FRAME;
+            LOGE("%s:cancel picture maybe failed !!! ",__FUNCTION__);
+        }
     }
 
     //send a msg to cancel pic
@@ -180,13 +353,14 @@ int AppMsgNotifier::flushPicture()
 
 int AppMsgNotifier::pausePreviewCBFrameProcess()
 {
-    Message msg;
+    Message_cam msg;
     Semaphore sem;
    LOG_FUNCTION_NAME
+    if(mRunningState &STA_RECEIVE_PREVIEWCB_FRAME){
     {
 	    Mutex::Autolock lock(mDataCbLock); 
 
-	    //mReceivePictureFrame = false;
+	    mRecPrevCbDataEn = false;
 		mRunningState &= ~STA_RECEIVE_PREVIEWCB_FRAME;
     }
 
@@ -197,6 +371,7 @@ int AppMsgNotifier::pausePreviewCBFrameProcess()
     eventThreadCommandQ.put(&msg);
     if(msg.arg1){
         sem.Wait();
+    }
     }
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -254,7 +429,7 @@ int AppMsgNotifier::startRecording(int w,int h)
 }
 int AppMsgNotifier::stopRecording()
 {
-    Message msg;
+    Message_cam msg;
     Semaphore sem;
    LOG_FUNCTION_NAME
 
@@ -327,7 +502,7 @@ int AppMsgNotifier::enableMsgType(int32_t msgtype)
         Mutex::Autolock lock(mDataCbLock);
         mMsgTypeEnabled |= msgtype;
 		mRunningState |= STA_RECEIVE_PREVIEWCB_FRAME;
-		//LOGE("%s(%d): this video buffer is invaildate",__FUNCTION__,__LINE__);
+		LOG1("enable msg CAMERA_MSG_PREVIEW_FRAME");
     }else
         mMsgTypeEnabled |= msgtype;
     LOG_FUNCTION_NAME_EXIT
@@ -361,6 +536,10 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
                 LOG1("%s%d: release mDataCbLock",__FUNCTION__,__LINE__);
 
             }
+    }else if(msgtype & (CAMERA_MSG_PREVIEW_METADATA)){
+        Mutex::Autolock lock(mFaceDecLock);
+        mMsgTypeEnabled &= ~msgtype;
+        mRunningState &= ~STA_RECEIVE_FACEDEC_FRAME;
     }
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -369,7 +548,8 @@ void AppMsgNotifier::setCallbacks(camera_notify_callback notify_cb,
         camera_data_callback data_cb,
         camera_data_timestamp_callback data_cb_timestamp,
         camera_request_memory get_memory,
-        void *user)
+        void *user,
+        Mutex *mainthread_lock)
 {
     LOG_FUNCTION_NAME
     mNotifyCb = notify_cb;
@@ -377,6 +557,7 @@ void AppMsgNotifier::setCallbacks(camera_notify_callback notify_cb,
     mDataCbTimestamp = data_cb_timestamp;
     mRequestMemory = get_memory;
     mCallbackCookie = user;
+    mMainThreadLockRef = mainthread_lock;
     LOG_FUNCTION_NAME_EXIT
 }
 void AppMsgNotifier::notifyCbMsg(int msg,int ret)
@@ -388,9 +569,9 @@ void AppMsgNotifier::notifyCbMsg(int msg,int ret)
 bool AppMsgNotifier::isNeedSendToDataCB()
 {
     Mutex::Autolock lock(mDataCbLock);
-    if(mRunningState & STA_RECEIVE_PREVIEWCB_FRAME)
-        return ((mMsgTypeEnabled & CAMERA_MSG_PREVIEW_FRAME) &&(mDataCb));
-    else
+    if(mRunningState & STA_RECEIVE_PREVIEWCB_FRAME){
+        return ((mRecPrevCbDataEn) && (mMsgTypeEnabled & CAMERA_MSG_PREVIEW_FRAME) &&(mDataCb));
+    }else
         return false;
 }
 
@@ -399,7 +580,7 @@ void AppMsgNotifier::notifyNewPicFrame(FramInfo_s* frame)
     //send to enc thread;
    // encProcessThreadCommandQ
                //send a msg to disable preview frame cb
-    Message msg;
+    Message_cam msg;
     Mutex::Autolock lock(mPictureLock); 
     mPictureInfo.num--;
     msg.command = EncProcessThread::CMD_ENCPROCESS_SNAPSHOT;
@@ -410,9 +591,9 @@ void AppMsgNotifier::notifyNewPicFrame(FramInfo_s* frame)
 void AppMsgNotifier::notifyNewPreviewCbFrame(FramInfo_s* frame)
 {
     //send to app msg thread
-    Message msg;
+    Message_cam msg;
     Mutex::Autolock lock(mDataCbLock);
-    if(mRunningState & STA_RECEIVE_PREVIEWCB_FRAME){
+    if((mRecPrevCbDataEn) &&(mRunningState & STA_RECEIVE_PREVIEWCB_FRAME)){
         msg.command = CameraAppMsgThread::CMD_EVENT_PREVIEW_DATA_CB;
         msg.arg2 = (void*)(frame);
         msg.arg3 = (void*)(frame->used_flag);
@@ -424,7 +605,7 @@ void AppMsgNotifier::notifyNewPreviewCbFrame(FramInfo_s* frame)
 void AppMsgNotifier::notifyNewVideoFrame(FramInfo_s* frame)
 {
     //send to app msg thread
-    Message msg;
+    Message_cam msg;
     Mutex::Autolock lock(mRecordingLock);
    if(mRunningState & STA_RECORD_RUNNING){
         msg.command = CameraAppMsgThread::CMD_EVENT_VIDEO_ENCING ;
@@ -604,7 +785,7 @@ int AppMsgNotifier::Jpegfillexifinfo(RkExifInfo *exifInfo,picture_info_s &params
 	exifInfo->DigitalZoomRatio.denom = params.w;
 	exifInfo->SceneCaptureType = 0x01;	 
 	
-	sprintf(ExifSelfDefine,"XMLVersion=%s   Rg_Proj=%0.5f   s=%0.5f   s_max1=%0.5f  s_max2=%0.5f   Bg1=%0.5f   Rg1=%0.5f   Bg2=%0.5f   Rg2=%0.5f   "
+	snprintf(ExifSelfDefine,sizeof(ExifSelfDefine)-1,"XMLVersion=%s   Rg_Proj=%0.5f   s=%0.5f   s_max1=%0.5f  s_max2=%0.5f   Bg1=%0.5f   Rg1=%0.5f   Bg2=%0.5f   Rg2=%0.5f   "
     "colortemperature=%s   ExpPriorIn=%0.2f   ExpPriorOut=%0.2f    region=%d   ",params.cameraparam.XMLVersion,params.cameraparam.f_RgProj,\
     params.cameraparam.f_s,params.cameraparam.f_s_Max1,params.cameraparam.f_s_Max2,params.cameraparam.f_Bg1,params.cameraparam.f_Rg1,params.cameraparam.f_Bg2,\
     params.cameraparam.f_Rg2,params.cameraparam.illuName[params.cameraparam.illuIdx],params.cameraparam.expPriorIn,params.cameraparam.expPriorOut,\
@@ -614,12 +795,12 @@ int AppMsgNotifier::Jpegfillexifinfo(RkExifInfo *exifInfo,picture_info_s &params
 	char str[64];
 	for(i=0; i<params.cameraparam.count; i++)
 	{
-		sprintf(str, "illuName[%d]=%s   ",i,params.cameraparam.illuName[i]);
-		strcat(ExifSelfDefine, str);
-		sprintf(str, "likehood[%d]=%0.2f   ",i,params.cameraparam.likehood[i]);
-		strcat(ExifSelfDefine, str);	
-		sprintf(str, "wight[%d]=%0.2f   ",i,params.cameraparam.wight[i]);
-		strcat(ExifSelfDefine, str);	
+		snprintf(str,sizeof(str)-1, "illuName[%d]=%s   ",i,params.cameraparam.illuName[i]);
+		strncat(ExifSelfDefine, str, sizeof(ExifSelfDefine)-strlen(ExifSelfDefine)-1);
+		snprintf(str,sizeof(str)-1, "likehood[%d]=%0.2f   ",i,params.cameraparam.likehood[i]);
+		strncat(ExifSelfDefine, str, sizeof(ExifSelfDefine)-strlen(ExifSelfDefine)-1);	
+		snprintf(str,sizeof(str)-1, "wight[%d]=%0.2f   ",i,params.cameraparam.wight[i]);
+		strncat(ExifSelfDefine, str, sizeof(ExifSelfDefine)-strlen(ExifSelfDefine)-1);	
 	}
 	exifInfo->makernote = ExifSelfDefine;
 	exifInfo->makernotechars = strlen(ExifSelfDefine)+1;
@@ -805,7 +986,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	}
 
     jpegbuf_size = 0x700000; //pictureSize;
-    #if 0
+    #if (JPEG_BUFFER_DYNAMIC == 1)
     //create raw & jpeg buffer
     ret = mRawBufferProvider->createBuffer(1, pictureSize, RAWBUFFER);
     if(ret < 0){
@@ -996,8 +1177,10 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	}
 captureEncProcessPicture_exit: 
  //destroy raw and jpeg buffer
-//    mRawBufferProvider->freeBuffer();
-//    mJpegBufferProvider->freeBuffer();
+ #if (JPEG_BUFFER_DYNAMIC == 1)
+    mRawBufferProvider->freeBuffer();
+    mJpegBufferProvider->freeBuffer();
+ #endif
 	if(err < 0) {
 		LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
 		if (mNotifyCb && (mMsgTypeEnabled & CAMERA_MSG_ERROR)) {						
@@ -1015,32 +1198,32 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
     if ((mMsgTypeEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
         //compute request mem size
         int tempMemSize = 0;
+        int tempMemSize_crop = 0;
         //request bufer
         camera_memory_t* tmpPreviewMemory = NULL;
+        camera_memory_t* tmpNV12To420pMemory = NULL;
+        bool isYUV420p = false;
 
         if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_RGB565) == 0) {
             tempMemSize = mPreviewDataW*mPreviewDataH*2;        
+            tempMemSize_crop = mPreviewDataW*mPreviewDataH*2;        
         } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
             tempMemSize = mPreviewDataW*mPreviewDataH*3/2;        
+            tempMemSize_crop = mPreviewDataW*mPreviewDataH*3/2;        
         } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
             tempMemSize = mPreviewDataW*mPreviewDataH*2;        
+            tempMemSize_crop = mPreviewDataW*mPreviewDataH*2;        
         } else if(strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0){ 
             tempMemSize = ((mPreviewDataW+15)&0xfffffff0)*mPreviewDataH
                         +((mPreviewDataW/2+15)&0xfffffff0)*mPreviewDataH;    
+            tempMemSize_crop = mPreviewDataW*mPreviewDataH*3/2;
+            isYUV420p = true;		
         }else {
             LOGE("%s(%d): pixel format %s is unknow!",__FUNCTION__,__LINE__,mPreviewDataFmt);        
         }
         mDataCbLock.unlock();
-	    tmpPreviewMemory = mRequestMemory(-1, tempMemSize, 1, NULL);
+        tmpPreviewMemory = mRequestMemory(-1, tempMemSize_crop, 1, NULL);
         if (tmpPreviewMemory) {
-            //fill the tmpPreviewMemory
-			if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0) {
-				cameraFormatConvert(V4L2_PIX_FMT_NV12,0,mPreviewDataFmt,
-						(char*)frame->vir_addr,(char*)tmpPreviewMemory->data,0,0,tempMemSize,
-						frame->frame_width, frame->frame_height,frame->frame_width,
-						//frame->frame_width,frame->frame_height,frame->frame_width,false);
-					mPreviewDataW,mPreviewDataH,mPreviewDataW,mDataCbFrontMirror);
-			}else {
 #if 0
 				//QQ voip need NV21
 				arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
@@ -1048,17 +1231,38 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 #else
 				rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 						(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
-						mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,true);
+					mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p);
 #endif
 				//arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
+			
+			if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0) {
+				tmpNV12To420pMemory = mRequestMemory(-1, tempMemSize, 1, NULL);
+				if(tmpNV12To420pMemory){
+					cameraFormatConvert(V4L2_PIX_FMT_NV12,0,mPreviewDataFmt,
+						(char*)tmpPreviewMemory->data,(char*)tmpNV12To420pMemory->data,0,0,tempMemSize,
+						mPreviewDataW,mPreviewDataH,mPreviewDataW,
+						//frame->frame_width,frame->frame_height,frame->frame_width,false);
+						mPreviewDataW,mPreviewDataH,mPreviewDataW,mDataCbFrontMirror);
+					tmpPreviewMemory->release(tmpPreviewMemory);
+					tmpPreviewMemory = tmpNV12To420pMemory;
+				} else {
+					LOGE("%s(%d): mPreviewMemory create failed",__FUNCTION__,__LINE__);
 			}
-			if(mDataCbFrontFlip) {
-				LOG1("----------------need  flip -------------------");
-				YuvData_Mirror_Flip(V4L2_PIX_FMT_NV12, (char*) tmpPreviewMemory->data,
-						(char*)frame->vir_addr,mPreviewDataW, mPreviewDataH);
 			}
+           if(mDataCbFrontFlip) {
+               LOG1("----------------need  flip -------------------");
+               YuvData_Mirror_Flip(V4L2_PIX_FMT_NV12, (char*) tmpPreviewMemory->data,
+                               (char*)frame->vir_addr,mPreviewDataW, mPreviewDataH);
+            }			
 			//callback
-            mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
+			/* ddl@rock-chips.com:  v1.0x1b.0 */
+			if (mMainThreadLockRef->tryLock() == NO_ERROR) {
+            	mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
+                mMainThreadLockRef->unlock();
+			} else {
+                LOGD("Try lock mMainThreadLockRef failed, mDataCb cancel!!");
+			}
+
             //release buffer
             tmpPreviewMemory->release(tmpPreviewMemory);
 		} else {
@@ -1110,11 +1314,109 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 	
     return ret;
 }
+
+int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
+{
+    int num = 0;
+    //Mutex::Autolock lock(mFaceDecLock);
+    if(mMsgTypeEnabled & CAMERA_MSG_PREVIEW_METADATA){
+        if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
+            struct RectFace *faces = NULL;
+            int i = 0,hasSmileFace = 0;
+            nsecs_t last = systemTime(SYSTEM_TIME_MONOTONIC);
+            if(!mFaceDetecInit)
+                return -1;
+            (*mFaceDetectorFun.mFaceDectFindFaceFun)(mFaceContext,(void*)frame->vir_addr, mCurOrintation,mCurBiasAngle,0, &hasSmileFace, &faces, &num);
+            nsecs_t now = systemTime(SYSTEM_TIME_MONOTONIC);
+
+            nsecs_t diff = now - last;
+            LOG2("FaceDetection mCurBiasAngle %0.0f,facenum: %d, use time: %lldms\n", mCurBiasAngle,num, ns2ms(diff));
+
+            if(num > 0){
+                num = 1 ;//just report one face to app
+                camera_frame_metadata_t tmpMetadata;
+                tmpMetadata.number_of_faces = num;
+                camera_face_t* pFace = (camera_face_t*)malloc(sizeof(camera_face_t)*num);
+                tmpMetadata.faces = pFace;
+                int tmpX,tmpY,tmpW,tempH;
+                tmpX = faces[i].x;
+                tmpY = faces[i].y;
+                tmpW = faces[i].width;
+                tempH = faces[i].height;
+                for(i = 0;i < num;i++){
+                    switch(mCurOrintation){
+                        case 1://90 degree
+                            tmpY += tempH;
+                            faces[i].x = frame->frame_width - tmpY;
+                            faces[i].y = tmpX;
+                            faces[i].width = tempH;
+                            faces[i].height = tmpW;
+                            break;
+                        case 2://180 degree
+                            tmpX += tmpW;
+                            tmpY += tempH;
+                            faces[i].x = frame->frame_width - tmpX;
+                            faces[i].y = frame->frame_height - tmpY;
+                            break;
+                        case 3://270 degree
+                            tmpX += tmpW;
+                            faces[i].x = tmpY ;
+                            faces[i].y = frame->frame_height - tmpX;
+                            faces[i].width = tempH;
+                            faces[i].height = tmpW;
+                            break;
+                        default:
+                            break;
+                    }
+                    LOG2("facerect[%d]: (%d, %d, %d, %d)\n", i, faces[i].x, faces[i].y, faces[i].width, faces[i].height);
+                    //map to face rect
+                    int virWidtHig = 2000 * frame->zoom_value / 100;
+                    
+                    pFace[i].rect[0] = faces[i].x * virWidtHig/frame->frame_width - (virWidtHig/2);
+                    pFace[i].rect[1] = faces[i].y * virWidtHig/frame->frame_height - (virWidtHig/2);
+                    pFace[i].rect[2] = pFace[i].rect[0] + (faces[i].width)*virWidtHig/frame->frame_width;
+                    pFace[i].rect[3] = pFace[i].rect[1] + (faces[i].height)*virWidtHig/frame->frame_height;
+                    
+                    pFace[i].score = (hasSmileFace > 0)? 100:60;
+                    pFace[i].id =   0;
+
+                    LOG2("pFace RECT (%d,%d,%d,%d)",pFace[i].rect[0],pFace[i].rect[1],pFace[i].rect[2],pFace[i].rect[3]);
+                }
+                {
+                    Mutex::Autolock lock(mFaceDecLock);
+                    if(mMsgTypeEnabled & CAMERA_MSG_PREVIEW_METADATA){
+                        mDataCb(CAMERA_MSG_PREVIEW_METADATA, NULL,0,&tmpMetadata,mCallbackCookie); 
+                    }
+                }
+                /* ddl@rock-chips.com: v1.0xb.0 */
+                mCamAdp->faceNotify(faces, &num);
+                
+                free(pFace);
+            }else{
+                camera_frame_metadata_t tmpMetadata;
+                tmpMetadata.number_of_faces = 0;
+                tmpMetadata.faces = NULL;
+                {
+                    Mutex::Autolock lock(mFaceDecLock);
+                    if(mMsgTypeEnabled & CAMERA_MSG_PREVIEW_METADATA){
+                        mDataCb(CAMERA_MSG_PREVIEW_METADATA, NULL,0,&tmpMetadata,mCallbackCookie); 
+                    }
+                }
+
+                num = 0;
+                mCamAdp->faceNotify(NULL, &num);
+            }
+        }
+    }
+    return num;
+}
+
 void AppMsgNotifier::stopReceiveFrame()
 {
     //pause event and enc thread
     flushPicture();
     pausePreviewCBFrameProcess();
+    stopFaceDection();
     //disable messeage receive
 }
 
@@ -1122,7 +1424,7 @@ void AppMsgNotifier::startReceiveFrame()
 {
     Mutex::Autolock lock(mDataCbLock); 
 
-    //mReceivePictureFrame = false;
+    mRecPrevCbDataEn = true;
 	mRunningState |= STA_RECEIVE_PREVIEWCB_FRAME;
 }
 void AppMsgNotifier::dump()
@@ -1144,7 +1446,7 @@ picture_info_s&  AppMsgNotifier::getPictureInfoRef()
 void AppMsgNotifier::encProcessThread()
 {
 		bool loop = true;
-		Message msg;
+		Message_cam msg;
 		int err = 0;
         int frame_used_flag = -1;
 	
@@ -1186,7 +1488,7 @@ void AppMsgNotifier::encProcessThread()
 				case EncProcessThread::CMD_ENCPROCESS_PAUSE:
 
 				{
-            		Message filter_msg;
+            		Message_cam filter_msg;
                     while(!encProcessThreadCommandQ.isEmpty()){
                         encProcessThreadCommandQ.get(&filter_msg);
                         if(filter_msg.command == EncProcessThread::CMD_ENCPROCESS_SNAPSHOT){
@@ -1220,10 +1522,87 @@ void AppMsgNotifier::encProcessThread()
 		return;
 }
 
+void AppMsgNotifier::faceDetectThread()
+{
+	bool loop = true;
+	Message_cam msg;
+    FramInfo_s *frame = NULL;
+    int frame_used_flag = -1;
+    bool face_detected = 0;
+	LOG_FUNCTION_NAME
+	while (loop) {
+        memset(&msg,0,sizeof(msg));
+		faceDetThreadCommandQ.get(&msg);
+		switch (msg.command)
+		{
+          case CameraAppFaceDetThread::CMD_FACEDET_FACE_DETECT:
+                frame_used_flag = (int)msg.arg3;
+				frame = (FramInfo_s*)msg.arg2;				
+                LOG2("%s(%d):get new frame , index(%d),useflag(%d)",__FUNCTION__,__LINE__,frame->frame_index,frame_used_flag);
+        		mFaceDecLock.lock();
+                if(mFaceFrameNum++ % FACEDETECT_FRAME_INTERVAL == 0){
+            		mFaceDecLock.unlock();
+                    if((processFaceDetect(frame) > 0)){
+                        face_detected = true;
+                    }else
+                        face_detected = false;
+            		mFaceDecLock.lock();
+                    if(!face_detected){
+                        mCurBiasAngle = (mCurBiasAngle + FACEDETECT_BIAS_INERVAL);
+                        if(mCurBiasAngle - (-FACEDETECT_INIT_BIAS) > 0.0001){
+                            mCurBiasAngle = FACEDETECT_INIT_BIAS;
+                        }
+                    }
+            		mFaceDecLock.unlock();
+                    
+                }else
+            		mFaceDecLock.unlock();
+                //return frame
+                mFrameProvider->returnFrame(frame->frame_index,frame_used_flag);
+                break;
+          case CameraAppFaceDetThread::CMD_FACEDET_PAUSE:
+				{
+            		Message_cam filter_msg;
+                    LOG1("%s(%d),receive CameraAppFaceDetThread::CMD_FACEDET_PAUSE",__FUNCTION__,__LINE__);
+                    while(!faceDetThreadCommandQ.isEmpty()){
+                        if(faceDetThreadCommandQ.get(&filter_msg,10) == 0){
+
+                            if((filter_msg.command != CameraAppFaceDetThread::CMD_FACEDET_EXIT)
+                                && (filter_msg.command != CameraAppFaceDetThread::CMD_FACEDET_PAUSE)) {
+            					FramInfo_s *frame = (FramInfo_s*)filter_msg.arg2;
+                                mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
+                            }
+                        }else{
+                            //may cause mem leak,fix me .
+                            //if msg is CMD_EVENT_PREVIEW_DATA_CB ,CMD_EVENT_VIDEO_ENCING,CMD_EVENT_FACE_DETECT,
+                            //and reading msg erro,then lead to frame not returned correctly
+                        }
+                    }
+                    if(msg.arg1)
+						((Semaphore*)(msg.arg1))->Signal();
+					//wake up waiter					
+					break; 
+				}
+          case CameraAppFaceDetThread::CMD_FACEDET_EXIT:
+                {
+        		loop = false;
+                if(msg.arg1)
+                    ((Semaphore*)(msg.arg1))->Signal();
+                break;
+                }
+          default:
+                break;
+		}
+    }
+	LOG_FUNCTION_NAME_EXIT
+    return;
+
+}
+
 void AppMsgNotifier::eventThread()
 {
 	bool loop = true;
-	Message msg;
+	Message_cam msg;
 	int index,err = 0;
     FramInfo_s *frame = NULL;
     int frame_used_flag = -1;
@@ -1251,14 +1630,20 @@ void AppMsgNotifier::eventThread()
                 break;
           case CameraAppMsgThread::CMD_EVENT_PAUSE:
 				{
-            		Message filter_msg;
+            		Message_cam filter_msg;
                     LOG1("%s(%d),receive CameraAppMsgThread::CMD_EVENT_PAUSE",__FUNCTION__,__LINE__);
                     while(!eventThreadCommandQ.isEmpty()){
-                        encProcessThreadCommandQ.get(&filter_msg);
-                        if((filter_msg.command == CameraAppMsgThread::CMD_EVENT_PREVIEW_DATA_CB)
-                            ||(filter_msg.command == CameraAppMsgThread::CMD_EVENT_VIDEO_ENCING)){
-        					FramInfo_s *frame = (FramInfo_s*)msg.arg2;
-                            mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
+                        if(eventThreadCommandQ.get(&filter_msg,10) == 0){
+
+                            if((filter_msg.command != CameraAppMsgThread::CMD_EVENT_EXIT)
+                                && (filter_msg.command != CameraAppMsgThread::CMD_EVENT_PAUSE)) {
+            					FramInfo_s *frame = (FramInfo_s*)filter_msg.arg2;
+                                mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
+                            }
+                        }else{
+                            //may cause mem leak,fix me .
+                            //if msg is CMD_EVENT_PREVIEW_DATA_CB ,CMD_EVENT_VIDEO_ENCING,CMD_EVENT_FACE_DETECT,
+                            //and reading msg erro,then lead to frame not returned correctly
                         }
                     }
                     if(msg.arg1)

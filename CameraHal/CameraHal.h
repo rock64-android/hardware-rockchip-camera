@@ -60,6 +60,9 @@
 
 #include "vpu_global.h"
 #include "vpu_mem_pool.h"
+#include "SensorListener.h"
+#include "FaceDetector.h"
+
 
 /* 
 *NOTE: 
@@ -329,8 +332,10 @@ namespace android {
       1) uvc support 16bit unaligned resolution.
       2) uvc operation in camera_get_number_of_cameras func exist bug, fixed it.
       3) filter frames for isp soc camera.
+*v1.0.f:
+      1) merge from 69 server develope branch.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0xe)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0xf)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -356,7 +361,8 @@ namespace android {
 #define CONFIG_CAMERA_PREVIEW_BUF_CNT 4
 #define CONFIG_CAMERA_DISPLAY_BUF_CNT		4
 #define CONFIG_CAMERA_VIDEO_BUF_CNT 4
-#define CONFIG_CAMERA_VIDEOENC_BUF_CNT		4
+#define CONFIG_CAMERA_VIDEOENC_BUF_CNT		3
+#define CONFIG_CAMERA_ISP_BUF_REQ_CNT		4
 
 #define CONFIG_CAMERA_UVC_MJPEG_SUPPORT 1
 #define CONFIG_CAMERA_UVC_MANEXP 1
@@ -369,6 +375,8 @@ namespace android {
 #define CONFIG_CAMERA_FRONT_PREVIEW_FPS_MAX    40000        //30fps
 #define CONFIG_CAMERA_BACK_PREVIEW_FPS_MIN     3000        
 #define CONFIG_CAMERA_BACK_PREVIEW_FPS_MAX     40000
+
+#define CONFIG_CAMERA_SCALE_CROP_ISP           0
 
 #define CAMERAHAL_VERSION_PROPERTY_KEY                  "sys_graphic.cam_hal.ver"
 #define CAMERAHAL_CAMSYS_VERSION_PROPERTY_KEY           "sys_graphic.cam_drv_camsys.ver"
@@ -400,6 +408,7 @@ namespace android {
 #define VIDEO_ENC_BUFFER            0x151800 
 #define FILTER_FRAME_NUMBER (3)
 #define IOMMU_ENABLED   (1)
+#define JPEG_BUFFER_DYNAMIC		(1)
 
 #define V4L2_BUFFER_MAX             32
 #define V4L2_BUFFER_MMAP_MAX        16
@@ -560,6 +569,7 @@ public:
 	virtual void getCameraParamInfo(cameraparam_info_s &paraminfo);
 	virtual bool getFlashStatus();
     virtual int selectPreferedDrvSize(int *width,int * height,bool is_capture){ return 0;}
+    virtual int faceNotify(struct RectFace* faces, int* num);
 protected:
     //talk to driver
     virtual int cameraCreate(int cameraId);
@@ -896,7 +906,7 @@ typedef struct cameraparam_info{
 	char  illuName[32][20];
 	int   count;
 
-	char XMLVersion[50];
+	char XMLVersion[64];
 }cameraparam_info_s;
 
 //takepicture used
@@ -936,6 +946,23 @@ struct CamCaptureInfo_s
     int output_vir_addr;
     int output_buflen;
 };
+
+typedef void (*FaceDetector_start_func)(void *context,int width, int height, int format);
+typedef void (*FaceDetector_stop_func)(void *context);
+typedef int (*FaceDetector_findFaces_func)(void *context,void* src, int orientation, float angle, int isDrawRect, int *smileMode,struct RectFace** faces, int* num);
+typedef void* (*FaceDetector_initizlize_func)(int type, float threshold, int smileMode);
+typedef void (*FaceDetector_destory_func)(void *context);
+typedef int (*FaceDector_nofity_func)(struct RectFace* faces, int* num);
+
+struct face_detector_func_s{
+    void* mLibFaceDetectLibHandle;
+    FaceDetector_start_func  mFaceDectStartFunc;
+    FaceDetector_stop_func   mFaceDectStopFunc;
+    FaceDetector_findFaces_func mFaceDectFindFaceFun;
+    FaceDetector_initizlize_func mFaceDetector_initizlize_func;
+    FaceDetector_destory_func    mFaceDetector_destory_func;
+};
+
 /**************************************
 EventNotifier   负责处理msg 的回调，拍照或者录影时也作为帧数据的消费者。
 **************************************/
@@ -974,6 +1001,7 @@ private:
 		STA_RECORD_RUNNING				= 0x4000,
 		STA_RECEIVE_PIC_FRAME				= 0x8000,
 		STA_RECEIVE_PREVIEWCB_FRAME         = 0x10000,
+		STA_RECEIVE_FACEDEC_FRAME         = 0x20000,
 	};
 	
     //处理preview data cb及video enc
@@ -994,6 +1022,28 @@ private:
 	
 		virtual bool threadLoop() {
 			mAppMsgNotifier->eventThread();
+	
+			return false;
+		}
+    };
+
+    //处理 face detection
+    class CameraAppFaceDetThread :public Thread
+    {
+    public:
+        enum FACEDET_THREAD_CMD{
+            CMD_FACEDET_FACE_DETECT,
+            CMD_FACEDET_PAUSE,
+            CMD_FACEDET_EXIT
+        };
+	protected:
+		AppMsgNotifier* mAppMsgNotifier;
+	public:
+		CameraAppFaceDetThread(AppMsgNotifier* hw)
+			: Thread(false),mAppMsgNotifier(hw) { }
+	
+		virtual bool threadLoop() {
+			mAppMsgNotifier->faceDetectThread();
 	
 			return false;
 		}
@@ -1022,7 +1072,7 @@ private:
 
 	friend class EncProcessThread;
 public:
-    AppMsgNotifier();
+    AppMsgNotifier(CameraAdapter *camAdp);
     ~AppMsgNotifier();
 
     void setPictureRawBufProvider(BufferProvider* bufprovider);
@@ -1039,6 +1089,12 @@ public:
     int msgEnabled(int32_t msg_type);
     void notifyCbMsg(int msg,int ret);
     
+    int startFaceDection(int width,int height);
+    void stopFaceDection();
+    void onOrientationChanged(uint32_t new_orien,int cam_orien,int face);
+    bool isNeedSendToFaceDetect();
+    void notifyNewFaceDecFrame(FramInfo_s* frame);
+
     bool isNeedSendToVideo();
     bool isNeedSendToPicture();
     bool isNeedSendToDataCB();
@@ -1052,7 +1108,8 @@ public:
             camera_data_callback data_cb,
             camera_data_timestamp_callback data_cb_timestamp,
             camera_request_memory get_memory,
-            void *user);
+            void *user,
+            Mutex *mainthread_lock);
     void setFrameProvider(FrameProvider * framepro);
     int  setPreviewDataCbRes(int w,int h, const char *fmt);
     
@@ -1066,16 +1123,21 @@ private:
 
    void encProcessThread();
    void eventThread();
+   void faceDetectThread();
 
 	int captureEncProcessPicture(FramInfo_s* frame);
     int processPreviewDataCb(FramInfo_s* frame);
     int processVideoCb(FramInfo_s* frame);
+    int processFaceDetect(FramInfo_s* frame);
     
     int copyAndSendRawImage(void *raw_image, int size);
     int copyAndSendCompressedImage(void *compressed_image, int size);
     int Jpegfillexifinfo(RkExifInfo *exifInfo,picture_info_s &params);
     int Jpegfillgpsinfo(RkGPSInfo *gpsInfo,picture_info_s &params);
-    
+    int initializeFaceDetec(int width,int height);
+    void deInitializeFaceDetec();
+
+    CameraAdapter *mCamAdp;
     int32_t mMsgTypeEnabled;
     
     picture_info_s mPictureInfo;
@@ -1089,10 +1151,24 @@ private:
     int mRecordH;
 
     Mutex mDataCbLock;
+    Mutex mFaceDecLock;
+    Mutex *mMainThreadLockRef;
+    int mCurOrintation;
+    float mCurBiasAngle;
+    int mFaceDetecW;
+    int mFaceDetectH;
+    int32_t mFaceFrameNum;
+    bool mFaceDetecInit;
+    void* mFaceContext;
 
+    //applied to this situation: msgtype CAMERA_MSG_PREVIEW_FRAME is enabled
+    //but hal status isn't allowed to send this msg,
+    bool mRecPrevCbDataEn;
+    bool mRecMetaDataEn;
 
     sp<CameraAppMsgThread> mCameraAppMsgThread;
     sp<EncProcessThread> mEncProcessThread;
+    sp<CameraAppFaceDetThread> mFaceDetThread;
     BufferProvider* mRawBufferProvider;
     BufferProvider* mJpegBufferProvider;
     BufferProvider* mVideoBufferProvider;
@@ -1106,6 +1182,7 @@ private:
 
     MessageQueue encProcessThreadCommandQ;
     MessageQueue eventThreadCommandQ;
+    MessageQueue faceDetThreadCommandQ;
 
     camera_memory_t* mVideoBufs[CONFIG_CAMERA_VIDEO_BUF_CNT];
 
@@ -1117,6 +1194,8 @@ private:
     bool mDataCbFrontFlip;
     int mPicSize;
     camera_memory_t* mPicture;
+    face_detector_func_s mFaceDetectorFun;
+    FaceDector_nofity_func mFaceDectNotify;
 };
 
 
@@ -1318,6 +1397,7 @@ public:
     virtual ~CameraHal();    
 
     int getCameraFd();
+    int  getCameraId();
 	bool isNeedToDisableCaptureMsg();
 
 public:
@@ -1349,6 +1429,7 @@ private:
 
         CMD_SET_PREVIEW_WINDOW,
         CMD_SET_PARAMETERS,
+        CMD_START_FACE_DETECTION,
         CMD_EXIT,
 
     };
@@ -1434,6 +1515,7 @@ private:
    int mCamFd;
    unsigned int mCameraStatus;
    int mCamId;
+   sp<SensorListener> mSensorListener;
 };
 
 }

@@ -187,6 +187,12 @@ typedef struct CamEngineAfEvtQue_s
     osQueue                queue;
 } CamEngineAfEvtQue_t;
 
+typedef enum CamEngineAecHistMeasureMode_e
+{
+    AverageMetering = 0,
+    CentreWeightMetering = 1
+} CamEngineAecHistMeasureMode_t;
+
 /*****************************************************************************/
 /**
  * @brief   This functions starts the Auto-White-Balance.
@@ -454,8 +460,27 @@ RESULT CamEngineAecGetObjectRegion
     CamEngineHandle_t        hCamEngine,
     CamEngineAecMeanLuma_t   *pObjectRegion
 );
-
-
+/******************************************************************************
+ * CamEngineAecGetMeasuringWindow()
+ *****************************************************************************/
+RESULT CamEngineAecGetMeasuringWindow
+(
+    CamEngineHandle_t               hCamEngine,
+    CamEngineWindow_t               *pWindow,
+    CamEngineWindow_t               *pGrid
+);
+/******************************************************************************
+ * CamEngineAecSetMeasuringWindow()
+ *****************************************************************************/
+RESULT CamEngineAecHistSetMeasureWinAndMode
+(   
+    CamEngineHandle_t               hCamEngine,
+    int16_t                  x,
+    int16_t                  y,
+    uint16_t                  width,
+    uint16_t                  height,
+    CamEngineAecHistMeasureMode_t mode
+);
 
 /*****************************************************************************/
 /**
@@ -583,6 +608,28 @@ RESULT CamEngineAfReset
     CamEngineHandle_t                    hCamEngine,
     const CamEngineAfSearchAlgorithm_t   searchAgoritm
 );
+
+/******************************************************************************
+ * CamEngineAfGetMeasuringWindow()
+ *****************************************************************************/
+RESULT CamEngineAfGetMeasuringWindow
+(
+    CamEngineHandle_t               hCamEngine,
+    CamEngineWindow_t               *pWindow
+);
+
+/******************************************************************************
+ * CamEngineAfSetMeasuringWindow()
+ *****************************************************************************/
+RESULT CamEngineAfSetMeasuringWindow
+(   
+    CamEngineHandle_t               hCamEngine,
+    int16_t                  x,
+    int16_t                  y,
+    uint16_t                  width,
+    uint16_t                  height
+);
+
 /*****************************************************************************/
 /**
  * @brief   This function starts the Adaptive-DPF-Control.

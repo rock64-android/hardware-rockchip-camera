@@ -47,6 +47,7 @@ public:
     virtual status_t autoFocus();
     virtual status_t cancelAutoFocus();
     virtual int getCurPreviewState(int *drv_w,int *drv_h);
+    virtual int selectPreferedDrvSize(int *width,int * height,bool is_capture);
     void AfpsResChangeCb();
     virtual void bufferCb( MediaBuffer_t* pMediaBuffer );
 
@@ -55,6 +56,8 @@ public:
 	virtual void dump(int cameraId);
     virtual void getCameraParamInfo(cameraparam_info_s &paraminfo);
 	virtual bool getFlashStatus();
+	virtual void getSensorMaxRes(unsigned int &max_w, unsigned int &max_h);
+	virtual int faceNotify(struct RectFace* faces, int* num);
 private:
     //talk to driver
     virtual int cameraCreate(int cameraId);
@@ -96,7 +99,7 @@ protected:
     std::string mSensorDriverFile[3];
     int mSensorItfCur;
     bool mFlashStatus;
-
+	CtxCbResChange_t mCtxCbResChange;
     bool mAfChk;
     class CameraAfThread :public Thread
     {

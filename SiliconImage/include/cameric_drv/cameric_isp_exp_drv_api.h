@@ -234,7 +234,15 @@ extern RESULT CamerIcIspExpSetMeasuringMode
 );
 
 
-
+/******************************************************************************
+ * CamerIcIspExpGetMeasuringWindow()
+ *****************************************************************************/
+RESULT CamerIcIspExpGetMeasuringWindow
+(
+    CamerIcDrvHandle_t  handle,
+    CamerIcWindow_t    *pWindow,
+    CamerIcWindow_t   *pGrid
+);
 /*****************************************************************************/
 /**
  * @brief   This function sets the position and size of a the measurement

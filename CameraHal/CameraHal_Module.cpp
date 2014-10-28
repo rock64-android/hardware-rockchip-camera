@@ -821,6 +821,7 @@ int camera_get_number_of_cameras(void)
 					pNewCamInfo->mSoftInfo.mSenceConfig.mSenceSupport= 0;
 					pNewCamInfo->mSoftInfo.mSenceConfig.mDefault = 0;
 					pNewCamInfo->mSoftInfo.mZSLConfig = 0;
+					pNewCamInfo->mSoftInfo.mInterpolationRes = 0;
 					//profiles->AddConnectUVCSensorToVector(pNewCamInfo, profiles);
 
 					CameraHal_SupportFmt[0] = V4L2_PIX_FMT_NV12;

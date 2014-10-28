@@ -17,7 +17,9 @@ namespace android{
  *****************************************************************************/
 void CameraIspAdapter_AfpsResChangeCb( void *ctx )
 {
-    CameraIspAdapter *mainwindow = (CameraIspAdapter*)ctx;
+	CtxCbResChange_t *pctx = (CtxCbResChange_t *)ctx;
+
+    CameraIspAdapter *mainwindow = (CameraIspAdapter*)(pctx->pIspAdapter);
 
     if (mainwindow)
     {
@@ -65,6 +67,8 @@ CameraIspAdapter::CameraIspAdapter(int cameraId)
     mVideoEncFrameLeak = 0;
     mPreviewCBFrameLeak = 0;
     mPicEncFrameLeak = 0;
+	mCtxCbResChange.res = 0;
+	mCtxCbResChange.pIspAdapter =NULL;
 	LOG_FUNCTION_NAME_EXIT
 }
 CameraIspAdapter::~CameraIspAdapter()
@@ -106,7 +110,8 @@ int CameraIspAdapter::cameraCreate(int cameraId)
 	}
 
     isp_halpara.mipi_lanes = mipiLaneNum;
-    m_camDevice = new CamDevice( HalHolder::handle(dev_filename,&isp_halpara), CameraIspAdapter_AfpsResChangeCb, (void*)this ,NULL, mipiLaneNum);
+	mCtxCbResChange.pIspAdapter = (void*)this;
+    m_camDevice = new CamDevice( HalHolder::handle(dev_filename,&isp_halpara), CameraIspAdapter_AfpsResChangeCb, (void*)&mCtxCbResChange ,NULL, mipiLaneNum);
 	
 	//load sensor
     loadSensor( cameraId);
@@ -124,8 +129,10 @@ int CameraIspAdapter::cameraCreate(int cameraId)
         mAfListenerThread = new CameraAfThread(this);
         mAfListenerThread->run("CamAfLisThread",ANDROID_PRIORITY_NORMAL);
 
+        if (mISPTunningRun == false) {
         m_camDevice->resetAf(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
         m_camDevice->registerAfEvtQue(&mAfListenerQue);
+        }
     }
 
     LOG_FUNCTION_NAME_EXIT
@@ -170,6 +177,7 @@ int CameraIspAdapter::cameraDestroy()
 void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h,int zoom_val)
 {
     CamEngineWindow_t dcWin;
+	unsigned int max_w = 0,max_h = 0, bufNum = 0, bufSize = 0;
 	//when cts FOV ,don't crop
     if((!mImgAllFovReq)&&((width_sensor*10/height_sensor) != (preview_w*10/preview_h))){
         int ratio = ((width_sensor*10/preview_w) >= (height_sensor*10/preview_h))?(height_sensor*10/preview_h):(width_sensor*10/preview_w);
@@ -199,26 +207,35 @@ void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int previ
     }
 #endif
 
+	getSensorMaxRes(max_w,max_h);
    if(mISPOutputFmt == ISP_OUT_YUV422_INTERLEAVED){
         m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
                                 CAMERIC_MI_DATAMODE_YUV422,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)true);
+		bufSize = max_w*max_h*2;
+		bufNum = CONFIG_CAMERA_ISP_BUF_REQ_CNT;
         LOGD("isp out put format is YUV422 interleaved.");
     }else if(mISPOutputFmt == ISP_OUT_YUV422_SEMI){
         m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
                                  CAMERIC_MI_DATAMODE_YUV422,CAMERIC_MI_DATASTORAGE_SEMIPLANAR,(bool_t)true);
+		bufSize = max_w*max_h*2;
+		bufNum = CONFIG_CAMERA_ISP_BUF_REQ_CNT;
         LOGD("isp out put format is YUV422 semi.");
     }else if(mISPOutputFmt == ISP_OUT_YUV420SP){
         m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
                                  CAMERIC_MI_DATAMODE_YUV420,CAMERIC_MI_DATASTORAGE_SEMIPLANAR,(bool_t)true);
+		bufSize = max_w*max_h*3/2;
+		bufNum = CONFIG_CAMERA_ISP_BUF_REQ_CNT;		
         LOGD("isp out put format is YUV420SP.");
     }else if(mISPOutputFmt == ISP_OUT_RAW12){
         m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
                                 CAMERIC_MI_DATAMODE_RAW12,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)false);
+		bufSize = max_w*max_h*2;
+		bufNum = CONFIG_CAMERA_ISP_BUF_REQ_CNT;
         LOGD("isp out put format is RAW12.");
     }else{
         LOGE("%s:isp don't support this format %d now",__func__,mISPOutputFmt);
     }
-
+	m_camDevice->setIspBufferInfo(bufNum, bufSize);
     LOG1("Sensor output: %dx%d --(%d,%d,%d,%d)--> User request: %dx%d",width_sensor,height_sensor,
         dcWin.hOffset,dcWin.vOffset,dcWin.width,dcWin.height,preview_w,preview_h);
 
@@ -231,6 +248,7 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
 	bool avail = false;
     bool enable_flash = false;
     bool low_illumin = false;
+    bool is_video = false;
     
 	
     if ( ( !m_camDevice->hasSensor() ) &&
@@ -245,6 +263,9 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         mISPOutputFmt = fmt;
         cameraCreate(mCamId);
     }
+
+    is_video = (((preview_w == 1920) && (preview_h == 1080)) || 
+                ((preview_w == 1280) && (preview_h == 720)));
 
     //must to get illum befor resolution changed
     if (is_capture) {
@@ -267,7 +288,17 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
 
         resReq.request_w = preview_w;
         resReq.request_h = preview_h;
-        resReq.request_fps = (is_capture)?0:15;
+        if (m_camDevice->getIntegrationTime(resReq.request_exp_t) == false) {
+            resReq.request_exp_t = 0.0;
+        }
+        if (is_video) {
+            resReq.request_fps = 20;
+        } else if (is_capture) {
+            resReq.request_fps = 0;            
+        } else { 
+            resReq.request_fps = 10; 
+            resReq.request_exp_t *= 0.6;
+        }
         resReq.requset_aspect = (bool_t)false;        
         resReq.request_fullfov = (bool_t)mImgAllFovReq;
         
@@ -278,14 +309,24 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         //stop streaming
         if(-1 == stop())
 			goto startPreview_end;
+        /* ddl@rock-chips.com: v0.0x15.0 */
+        if ( is_video ) {
+            enableAfps(false);
+        } else {
+            enableAfps(true);
+        }
 
         //need to change sensor resolution ?
-        if((width_sensor != mCamDrvWidth) || (height_sensor != mCamDrvHeight)){
+        //if((width_sensor != mCamDrvWidth) || (height_sensor != mCamDrvHeight)){
             m_camDevice->changeResolution(resReq.resolution,false);
-        }
+        //}
         //reset dcWin,output width(data path)
         //get dcWin
+        #if CONFIG_CAMERA_SCALE_CROP_ISP
         setupPreview(width_sensor,height_sensor,preview_w,preview_h,mZoomVal);
+        #else
+        setupPreview(width_sensor,height_sensor,width_sensor,height_sensor,mZoomVal);
+        #endif
 		
         m_camDevice->getPathConfig(CHAIN_MASTER,CAM_ENGINE_PATH_MAIN,mainPathConfig);
         m_camDevice->getPathConfig(CHAIN_MASTER,CAM_ENGINE_PATH_SELF,selfPathConfig);
@@ -429,45 +470,58 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isR
     }
 
 
-    if (params_set.getInt(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS) == 1) {
-        //parse zone,
-        int lx,ty,rx,dy,areas_num;
-        uint w;
-        const char* zoneStr = params_set.get(CameraParameters::KEY_FOCUS_AREAS);
-        const char *zone = zoneStr;
+    {/* ddl@rock-chips.com: v1.5.0 */
+        if (params_set.get(CameraParameters::KEY_MAX_NUM_METERING_AREAS) != NULL) {
+            if (params_set.getInt(CameraParameters::KEY_MAX_NUM_METERING_AREAS) >= 1) {
+                int hOff,vOff,w,h,weight;
+                CamEngineWindow_t aeWin;
+    			const char* zoneStr = params_set.get(CameraParameters::KEY_METERING_AREAS);
+    	    	if (zoneStr) {   
+                    LOG1("meter zoneStr %s",zoneStr);
+        	        hOff = strtol(zoneStr+1,0,0);
+        	        zoneStr = strstr(zoneStr,",");
+        	        vOff = strtol(zoneStr+1,0,0);
+        		    zoneStr = strstr(zoneStr+1,",");
+        	        w = strtol(zoneStr+1,0,0);                    
+                    zoneStr = strstr(zoneStr+1,",");
+        	        h = strtol(zoneStr+1,0,0);
+                    zoneStr = strstr(zoneStr+1,",");
+                    weight = strtol(zoneStr+1,0,0);
+                    if(strstr(zoneStr+1,"(")){
+                        //more than one zone
+                        return BAD_VALUE;
+                    }
+                    
+                    w -= hOff;
+                    h -= vOff;
+                    if((w == 0) && (h == 0) && (hOff == 0) && (weight == 0)){
+                        hOff = 0;
+                        vOff = 0;
+                        w = 0;
+                        h = 0;
+                    }else if ( ((hOff<-1000) || (hOff>1000)) ||
+                         ((vOff<-1000) || (vOff>1000)) ||
+                         ((w<=0) || (w>2000)) ||
+                         ((h<=0) || (h>2000)) ||
+                         ((weight < 1) || (weight > 1000))) {
+                        hOff = 0;
+                        vOff = 0;
+                        w = 0;
+                        h = 0;
+                        return BAD_VALUE;
+                    } 
 
-        if (zoneStr) {
-            areas_num = 0;
-            for (w=0; w<strlen(zoneStr); w++) {
-                if (*zone++ == '(')
-                    areas_num++;                
+                    //ddl@rock-chips.com v1.0x1d.0
+                    //if (hOff || vOff || w || h){                           
+                        m_camDevice->setAecHistMeasureWinAndMode(hOff,vOff,w,h,AverageMetering);
+                    //}
+    	    	}
+
             }
 
-            if (areas_num > 1) {
-                LOGE("Focus areas number(%d) is invalidate", areas_num);
-                return BAD_VALUE;
-            }          
-                     
-            lx = strtol(zoneStr+1,0,0);           //get lx 
-            char* tys = strstr(zoneStr,",");     //get ty
-            ty = strtol(tys+1,0,0);            
-            char* rxs = strstr(tys+1,",");       //get rx
-            rx = strtol(rxs+1,0,0);            
-            char* dys = strstr(rxs+1,",");       //get dy
-            dy = strtol(dys+1,0,0);
-            char* ws = strstr(dys+1,",");
-            w = strtol(ws+1,0,0);
-            
-            if ((!lx && !ty && !rx && !dy && !w) == false ) {            
-                if ((lx < -1000) || (ty < -1000) || (rx>1000) || (dy>1000)
-                    || (w<1) || (w>1000) || (lx>=rx) || (ty>=dy)) {                    
-
-                    LOGE("Focus areas(%s) is invalidate",zoneStr);
-                    return  BAD_VALUE;
-                }
-            }
         }
-	}
+
+    }
 
 
     {
@@ -515,6 +569,46 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isR
                         params_set.get(CameraParameters::KEY_FOCUS_AREAS));
                 } else if (strcmp(mParameters.get(CameraParameters::KEY_FOCUS_AREAS),params_set.get(CameraParameters::KEY_FOCUS_AREAS))) {
                     mAfChk = true;
+
+        	    	int hOff,vOff,w,h,weight;
+        			const char* zoneStr = params_set.get(CameraParameters::KEY_FOCUS_AREAS);
+        	    	if (zoneStr) {  
+                        LOG1("focus zoneStr %s",zoneStr);
+            	        vOff = strtol(zoneStr+1,0,0);
+            	        zoneStr = strstr(zoneStr,",");
+            	        hOff = strtol(zoneStr+1,0,0);
+            		    zoneStr = strstr(zoneStr+1,",");
+            	        w = strtol(zoneStr+1,0,0);                    
+                        zoneStr = strstr(zoneStr+1,",");
+            	        h = strtol(zoneStr+1,0,0);
+                        zoneStr = strstr(zoneStr+1,",");
+                        weight = strtol(zoneStr+1,0,0);
+
+                        if(strstr(zoneStr+1,"(")){
+                            //more than one zone
+                            return BAD_VALUE;
+                        }
+                        w -= vOff;
+                        h -= hOff;                    
+                        
+                        if((w == 0) && (h == 0) && (hOff == 0) && (weight == 0)){
+                            hOff = 0;
+                            vOff = 0;
+                            w = 0;
+                            h = 0;
+                        }else if ( ((hOff<-1000) || (hOff>1000)) ||
+                         ((vOff<-1000) || (vOff>1000)) ||
+                         ((w<=0) || (w>2000)) ||
+                         ((h<=0) || (h>2000)) ||
+                         ((weight < 1) || (weight > 1000))) {
+                        LOGE("%s: %s , afWin(%d,%d,%d,%d)is invalidate!",
+                            CameraParameters::KEY_FOCUS_AREAS,
+                            params_set.get(CameraParameters::KEY_FOCUS_AREAS),
+                            hOff,vOff,w,h);
+                        return BAD_VALUE;
+                        }
+        	    	}
+                    
                     LOG1("Focus areas is change(%s -> %s), Must af again!!",
                         mParameters.get(CameraParameters::KEY_FOCUS_AREAS),
                         params_set.get(CameraParameters::KEY_FOCUS_AREAS));
@@ -687,7 +781,26 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         memset(string,0x00,sizeof(string));
         sprintf(string,"%dx%d",max_w,max_h);
         parameterString = string;        
+		int interpolationRes = pCamInfo->mSoftInfo.mInterpolationRes;
+		if(interpolationRes){			
+	        if (max_w*10/max_h == 40/3) {          //  4:3 Sensor
+				if (interpolationRes >= 8000000) {
+	                if ((max_w != 3264)&&(max_h != 2448))
+	                    parameterString.append(",3264x2448");
+	                parameterString.append(",2592x1944,2048x1536,1600x1200");
+	            }else if (interpolationRes >= 5000000) {
+	                parameterString.append(",2592x1944,2048x1536,1600x1200");
+	            }else if (interpolationRes >= 3000000) {
+	                parameterString.append(",2048x1536,1600x1200,1024x768");
+	            } else if (interpolationRes >= 2000000) {
+	                parameterString.append(",1600x1200,1024x768");
+	            } else if (interpolationRes >= 1000000) {
+	                parameterString.append(",1024x768");
+	            }
+	        } else if (max_w*10/max_h == 160/9) {   // 16:9 Sensor
 
+	        }
+		}else{
         if (max_w*10/max_h == 40/3) {          //  4:3 Sensor
             if (pixels > 12800000) {
                 if ((max_w != 4128)&&(max_h != 3096))
@@ -707,7 +820,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         } else if (max_w*10/max_h == 160/9) {   // 16:9 Sensor
 
         }
-
+		}
         parameterString.append(",640x480,352x288,320x240,176x144");        
         params.set(CameraParameters::KEY_PICTURE_SIZE, string);
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, parameterString.string());
@@ -906,8 +1019,12 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     params.set(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH, parameterString.string());
     parameterString = "128";
     params.set(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT, parameterString.string()); 
-//	params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"0");
-//	params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_SW,"0");
+    if(pCamInfo->mSoftInfo.mFaceDetctConfig.mFaceDetectSupport > 0){
+        memset(string,0x00,sizeof(string));    
+    	sprintf(string,"%d",pCamInfo->mSoftInfo.mFaceDetctConfig.mFaceMaxNum);
+    	params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,string);
+    }else
+    	params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"0");
     params.set(CameraParameters::KEY_RECORDING_HINT,"false");
     params.set(CameraParameters::KEY_VIDEO_STABILIZATION_SUPPORTED,"false");
     params.set(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED,"true");
@@ -923,11 +1040,15 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "2");
         params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "-2");
         params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, "1");
+
+        params.set(CameraParameters::KEY_MAX_NUM_METERING_AREAS,"1");
     } else {
         params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, "0");
         params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "0");
         params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "0");
         params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, "0");
+
+        params.set(CameraParameters::KEY_MAX_NUM_METERING_AREAS,"0");
     }
 	
 
@@ -1182,7 +1303,8 @@ int CameraIspAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 status_t CameraIspAdapter::autoFocus()
 {
     bool shot = false,err_af = false;
-
+    CamEngineWindow_t afWin;
+    
     if (strcmp(mParameters.get(CameraParameters::KEY_FOCUS_MODE), CameraParameters::FOCUS_MODE_AUTO) == 0) {
         if (mAfChk == false) {
             LOG1("Focus mode is Auto and areas not change, CheckAfShot!");
@@ -1204,6 +1326,41 @@ status_t CameraIspAdapter::autoFocus()
     if (shot == true) {
         LOG1("Single auto focus must be trigger");
         m_camDevice->stopAf();  /* ddl@rock-chips.com: v0.d.0 */
+        /* ddl@rock-chips.com: v1.5.0 */
+        if (mParameters.get(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS) != NULL) {
+            if (mParameters.getInt(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS) > 0) {
+    	    	int hOff,vOff,w,h;
+    			const char* zoneStr = mParameters.get(CameraParameters::KEY_FOCUS_AREAS);
+    	    	if (zoneStr) {        			
+        	        hOff = strtol(zoneStr+1,0,0);
+        	        zoneStr = strstr(zoneStr,",");
+        	        vOff = strtol(zoneStr+1,0,0);
+        		    zoneStr = strstr(zoneStr+1,",");
+        	        w = strtol(zoneStr+1,0,0);                    
+                    zoneStr = strstr(zoneStr+1,",");
+        	        h = strtol(zoneStr+1,0,0);
+
+                    w -= hOff;
+                    h -= vOff;                    
+                    
+                    if ( ((hOff<-1000) || (hOff>1000)) ||
+                         ((vOff<-1000) || (vOff>1000)) ||
+                         ((w<=0) || (w>2000)) ||
+                         ((h<=0) || (h>2000)) ) {
+                        LOGE("%s: %s , afWin(%d,%d,%d,%d)is invalidate!",
+                            CameraParameters::KEY_FOCUS_AREAS,
+                            mParameters.get(CameraParameters::KEY_FOCUS_AREAS),
+                            hOff,vOff,w,h);                            
+                        vOff = 0;
+                        hOff = 0;
+                        w = 0;
+                        h = 0;
+                    }
+                    m_camDevice->setAfMeasureWindow(hOff,vOff,w,h);
+    	    	}
+            }
+        }
+        
         err_af = m_camDevice->startAfOneShot(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
     	if ( err_af == false ){
     		TRACE_E("Trigger a single auto focus failed!");  
@@ -1401,12 +1558,58 @@ bool CameraIspAdapter::connectCamera(){
     {
         LOGE("connectCamera failed!");
     }
+
+    {
+    	rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
+
+        CamEngineCprocConfig_t cproc_config = {
+            CAM_ENGINE_CPROC_CHROM_RANGE_OUT_BT601,//CAM_ENGINE_CPROC_CHROM_RANGE_OUT_FULL_RANGE,
+            CAM_ENGINE_CPROC_LUM_RANGE_OUT_FULL_RANGE,//CAM_ENGINE_CPROC_LUM_RANGE_OUT_BT601,//,
+            CAM_ENGINE_CPROC_LUM_RANGE_IN_FULL_RANGE,//CAM_ENGINE_CPROC_LUM_RANGE_IN_BT601,//,
+            1.1,  //contrast 0-1.992
+            0,      //brightness -128 - 127
+            1.0,      //saturation 0-1.992
+            0,      //hue   -90 - 87.188
+        };
+        if(pCamInfo->mSoftInfo.mCprocConfig.mSupported == true){
+            cproc_config.contrast = pCamInfo->mSoftInfo.mCprocConfig.mContrast;
+            cproc_config.saturation= pCamInfo->mSoftInfo.mCprocConfig.mSaturation;
+            cproc_config.hue= pCamInfo->mSoftInfo.mCprocConfig.mHue;
+            cproc_config.brightness= pCamInfo->mSoftInfo.mCprocConfig.mBrightness;
+            m_camDevice->cProcEnable( &cproc_config);
+        }
+    }
+    {
+    	rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
+        int tmp_gamma = 0;
+        float gamma = pCamInfo->mSoftInfo.mGammaOutConfig.mGamma,maxval = 1024;
+        int offset = pCamInfo->mSoftInfo.mGammaOutConfig.mOffSet;
+
+        CamEngineGammaOutCurve_t gamma_curve = {
+            CAM_ENGINE_GAMMAOUT_XSCALE_EQU,
+            {0}
+        };
+        
+        for(int i = 0;i < (CAMERIC_ISP_GAMMA_CURVE_SIZE);i++){
+            tmp_gamma = (int)((pow((64*i/maxval),gamma))*1024)+offset;
+            tmp_gamma = (tmp_gamma > 1023)?1023:tmp_gamma;
+            tmp_gamma = (tmp_gamma < 0)?0:tmp_gamma;
+            gamma_curve.GammaY[i] = (uint16_t)(tmp_gamma);
+            TRACE_D(1,"gamma_curve.GammaY[%d]:%d ",i,gamma_curve.GammaY[i]);
+        }
+        if(pCamInfo->mSoftInfo.mGammaOutConfig.mSupported == true){
+            m_camDevice->gamCorrectEnable();
+            m_camDevice->gamCorrectSetCurve(gamma_curve);
+        }
+    }
     return result;
 }
 
 void CameraIspAdapter::disconnectCamera()
 {
     unsigned int maxFocus, minFocus;
+
+    if (mISPTunningRun == false) {
     
     m_camDevice->stopAf();  /* ddl@rock-chips.com: v0.d.1 */
     
@@ -1415,6 +1618,18 @@ void CameraIspAdapter::disconnectCamera()
         usleep(100000);
     } else {
         LOGE("getFocusLimits failed!");
+        }
+    }
+
+	rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
+    if(pCamInfo->mSoftInfo.mCprocConfig.mSupported == true){
+        bool running = false;
+        CamEngineCprocConfig_t cproc_config;
+        if((m_camDevice->state() == CamEngineItf::Running) ||
+            (m_camDevice->state() == CamEngineItf::Idle))
+            m_camDevice->cProcStatus( running, cproc_config );
+        if(running)
+            m_camDevice->cProcDisable();
     }
     
     m_camDevice->disconnectCamera();
@@ -1550,7 +1765,7 @@ int CameraIspAdapter::adapterReturnFrame(int index,int cmd){
                         mPreviewCBFrameLeak--;
                         break;
                     default:
-                        LOGE("not the valid used_flag %d",tmpFrame->used_flag);
+                        LOG1("not the valid used_flag %d",tmpFrame->used_flag);
                 }
                 //remove item
                 mFrameInfoArray.removeItem((void*)tmpFrame);
@@ -1573,10 +1788,33 @@ int CameraIspAdapter::getCurPreviewState(int *drv_w,int *drv_h)
     return mPreviewRunning;
 }
 
+int CameraIspAdapter::selectPreferedDrvSize(int *width,int * height,bool is_capture)
+{
+
+    return 0;
+}
+
+static void debugShowFPS()
+{
+    static int mFrameCount = 0;
+    static int mLastFrameCount = 0;
+    static nsecs_t mLastFpsTime = 0;
+    static float mFps = 0;
+    mFrameCount++;
+    if (!(mFrameCount & 0x1F)) {
+        nsecs_t now = systemTime();
+        nsecs_t diff = now - mLastFpsTime;
+        mFps = ((mFrameCount - mLastFrameCount) * float(s2ns(1))) / diff;
+        mLastFpsTime = now;
+        mLastFrameCount = mFrameCount;
+        LOGD("Camera %d Frames, %2.3f FPS", mFrameCount, mFps);
+    }
+    // XXX: mFPS has the value we want
+}
 void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 {
     static int writeoneframe = 0;
-    uint32_t y_addr = 0,uv_addr = 0;
+    uint32_t y_addr = 0,uv_addr = 0,y_size;
     void* y_addr_vir = NULL,*uv_addr_vir = NULL ;
     int width = 0,height = 0;
     int fmt = 0;
@@ -1587,6 +1825,8 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     // get & check buffer meta data
     PicBufMetaData_t *pPicBufMetaData = (PicBufMetaData_t *)(pMediaBuffer->pMetaData);
     HalHandle_t  tmpHandle = m_camDevice->getHalHandle();
+
+    //debugShowFPS();
     
     //
     if(pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr420 || pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr422){        
@@ -1609,7 +1849,13 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 HalGetMemoryMapFd(tmpHandle, y_addr,&phy_addr);
             else
                 phy_addr = y_addr;
-
+            
+            /* ddl@rock-chips.com:  v1.3.0 */
+            y_size = pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicWidthPixel*pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicHeightPixel;
+            if (uv_addr > (y_addr+y_size)) {
+                memcpy((void*)((int)y_addr_vir+y_size),uv_addr_vir, y_size/2);
+            }
+            
         }else if(pPicBufMetaData->Layout == PIC_BUF_LAYOUT_COMBINED){
             y_addr = (uint32_t)(pPicBufMetaData->Data.YCbCr.combined.pBuffer );
             width = pPicBufMetaData->Data.YCbCr.combined.PicWidthPixel>>1;
@@ -1654,7 +1900,9 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 				LOG1("awb test fps(%d) awb stable(%d)\n", preview_frame_inval, awb_ret);
 				goto end;
 			}
-		}			 
+		}else{
+			goto end;
+		}
   	}
 
 
@@ -1679,13 +1927,41 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
             Mutex::Autolock lock(mFrameArrayLock);
             mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
         }
-        Message msg;
+        Message_cam msg;
         msg.command = ISP_TUNNING_CMD_PROCESS_FRAME;
         msg.arg2 = (void*)(tmpFrame);
         msg.arg3 = (void*)(tmpFrame->used_flag);
         mISPTunningQ->put(&msg);
 
     }else{
+        //need to send face detection ?
+    	if(mRefEventNotifier->isNeedSendToFaceDetect()){  
+    	    MediaBufLockBuffer( pMediaBuffer );
+    		//new frames
+    		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+    		if(!tmpFrame){
+    			MediaBufUnlockBuffer( pMediaBuffer );
+    			return;
+          }
+          //add to vector
+          tmpFrame->frame_index = (int)tmpFrame; 
+          tmpFrame->phy_addr = (int)phy_addr;
+          tmpFrame->frame_width = width;
+          tmpFrame->frame_height= height;
+          tmpFrame->vir_addr = (int)y_addr_vir;
+          tmpFrame->frame_fmt = fmt;
+    	  
+          tmpFrame->used_flag = 4;
+
+          tmpFrame->zoom_value = mZoomVal;
+        
+          {
+            Mutex::Autolock lock(mFrameArrayLock);
+            mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+
+          }
+          mRefEventNotifier->notifyNewFaceDecFrame(tmpFrame);
+        }
     	//need to display ?
         if(mRefDisplayAdapter->isNeedSendToDisplay()) {  
             MediaBufLockBuffer( pMediaBuffer );
@@ -1710,9 +1986,8 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 #else
             if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ) {
                 tmpFrame->zoom_value = mZoomVal;
-            } else {
-                tmpFrame->zoom_value = 100;
-            }
+          }else
+             tmpFrame->zoom_value = 100;
 #endif
 
             {
@@ -1846,7 +2121,7 @@ end:
 
 void CameraIspAdapter::dump(int cameraId)
 {
-    Message msg;
+    Message_cam msg;
 	rk_cam_total_info *pCamInfo = gCamInfos[cameraId].pcam_total_info;
 	m_camDevice->checkVersion(pCamInfo);
 
@@ -2043,6 +2318,23 @@ bool CameraIspAdapter::getFlashStatus()
 {
 	return mFlashStatus;
 }
+
+void CameraIspAdapter::getSensorMaxRes(unsigned int &max_w, unsigned int &max_h)
+{
+	IsiSensorCaps_t pCaps;		
+	pCaps.Index = 0;
+	max_w = 0;
+	max_h = 0;
+	while (m_camDevice->getSensorCaps(pCaps) == true) {
+		if (ISI_RES_W_GET(pCaps.Resolution)>max_w)
+			max_w = ISI_RES_W_GET(pCaps.Resolution);
+		if (ISI_RES_H_GET(pCaps.Resolution)>max_h)
+			max_h = ISI_RES_H_GET(pCaps.Resolution);
+		pCaps.Index++;
+	};
+
+}
+
 void CameraIspAdapter::setMwb(const char *white_balance)
 {
 	uint32_t illu_index = 1;
@@ -2092,6 +2384,7 @@ void CameraIspAdapter::setMwb(const char *white_balance)
 
 void CameraIspAdapter::setMe(const char *exposure)
 {
+    #if 0
     if (m_camDevice->isSOCSensor() == true)   /* ddl@rock-chips.com : v0.0x39.0 */ 
         return;
     
@@ -2110,12 +2403,13 @@ void CameraIspAdapter::setMe(const char *exposure)
 		m_camDevice->setAeClmTolerance(manExpConfig.clmtolerance*0.8);
 		m_camDevice->setAePoint(manExpConfig.plus_level_2);
 	}
+    #endif
 }
 
 int CameraIspAdapter::ispTunningThread(void)
 {
     bool bExit = false;
-    Message msg;
+    Message_cam msg;
     int curFmt = 0,curPreW = 0,curPreH =0;
     float gain,setgain,mingain,maxgain,gainstep,time,settime,mintime,maxtime,timestep;
     ispTuneTaskInfo_s* curTuneTask = NULL;
@@ -2170,6 +2464,7 @@ PROCESS_CMD:
                 m_camDevice->lscDisable();
                 m_camDevice->cacDisable();
                 m_camDevice->wdrDisable();
+                m_camDevice->gamCorrectDisable();
                 m_camDevice->stopAf();
 
                 if(curTuneTask->mDpccEnable == true) 
@@ -2419,6 +2714,60 @@ PROCESS_CMD:
     }
     return 0;
  }
+/* ddl@rock-chips.com: v1.0xb.0 */
+int CameraIspAdapter::faceNotify(struct RectFace* faces, int* num)
+{
+    CamEngineWindow_t curWin,curGrid;
+    unsigned int cur_size, face_size,diff;
+    short int x,y;
+    unsigned short int width,height;
+    bool setWin;
+    
+    if (*num == 1) {
+        // AF
+        {
+            m_camDevice->getAfMeasureWindow(&curWin);
+            
+            cur_size = curWin.width*curWin.height;
+            face_size = faces[0].width*faces[0].height;
+            cur_size = cur_size*10/face_size;
+            if ((cur_size>13) || (cur_size<7)) {
+                setWin = true;
+            } else {
+                setWin = false;
+            }
+
+            if (setWin == false) {
+                diff = abs(curWin.hOffset - faces[0].x)*10/curWin.width;
+                if (diff >= 5) {
+                    setWin = true;
+                }
+
+                diff = abs(curWin.vOffset - faces[0].y)*10/curWin.height;
+                if  (diff >= 5) {
+                    setWin = true;
+                }
+            }
+
+            if (setWin == true) {
+                x = faces[0].x*2000/mCamPreviewW - 1000;
+                y = faces[0].y*2000/mCamPreviewH - 1000;
+                width = faces[0].width*2000/mCamPreviewW;
+                height = faces[0].height*2000/mCamPreviewH;
+                
+                LOG1("faceWin: (%d, %d, %d, %d) ---> afWin: (%d, %d, %d, %d)",
+                    faces[0].x, faces[0].y, faces[0].width, faces[0].height,
+                    curWin.hOffset, curWin.vOffset,curWin.width,curWin.height);
+                
+                m_camDevice->setAfMeasureWindow(x,y,width,height);
+            }
+        }
+    } else if (*num == 0) {
+        m_camDevice->setAfMeasureWindow(0,0,0,0);
+        m_camDevice->setAecHistMeasureWinAndMode(0,0,0,0,CentreWeightMetering);
+    }
+
+    return 0;
 
 }
-
+}

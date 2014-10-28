@@ -18,6 +18,7 @@ CameraIspSOCAdapter::~CameraIspSOCAdapter()
 
 void CameraIspSOCAdapter::setupPreview(int width_sensor,int height_sensor,int preview_w,int preview_h,int zoom_value)
 {
+	unsigned int max_w = 0,max_h = 0, bufNum = 0, bufSize = 0;
     CamEngineWindow_t dcWin;
     dcWin.width = width_sensor*2;
     dcWin.height = height_sensor;
@@ -40,6 +41,10 @@ void CameraIspSOCAdapter::setupPreview(int width_sensor,int height_sensor,int pr
 
     m_camDevice->previewSetup_ex( dcWin, width_sensor*2, height_sensor,
                             CAMERIC_MI_DATAMODE_RAW12,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)false);
+	getSensorMaxRes(max_w,max_h);
+	bufSize = max_w*max_h*2*2;
+	bufNum = CONFIG_CAMERA_ISP_BUF_REQ_CNT; 
+	m_camDevice->setIspBufferInfo(bufNum, bufSize);
 }
 
 //for soc camera test
@@ -219,12 +224,35 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     {
         MediaBufLockBuffer( (MediaBuffer_t*)pMediaBuffer->pNext );
     }
-	if(preview_frame_inval > 0){
-		preview_frame_inval--;
-		LOGD("frame_inval:%d\n",preview_frame_inval);
-		return;	
-	}	
 #if 1
+    //need to send face detection ?
+	if(mRefEventNotifier->isNeedSendToFaceDetect()){  
+	    MediaBufLockBuffer( pMediaBuffer );
+		//new frames
+		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+		if(!tmpFrame){
+			MediaBufUnlockBuffer( pMediaBuffer );
+			return;
+      }
+      //add to vector
+      tmpFrame->frame_index = (int)tmpFrame; 
+      tmpFrame->phy_addr = (int)phy_addr;
+      tmpFrame->frame_width = width;
+      tmpFrame->frame_height= height;
+      tmpFrame->vir_addr = (int)y_addr_vir;
+      tmpFrame->frame_fmt = fmt;
+	  
+      tmpFrame->used_flag = 4;
+
+      tmpFrame->zoom_value = mZoomVal;
+    
+      {
+        Mutex::Autolock lock(mFrameArrayLock);
+        mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+
+      }
+      mRefEventNotifier->notifyNewFaceDecFrame(tmpFrame);
+    }
 	//need to display ?
 	if(mRefDisplayAdapter->isNeedSendToDisplay()){  
 	    MediaBufLockBuffer( pMediaBuffer );

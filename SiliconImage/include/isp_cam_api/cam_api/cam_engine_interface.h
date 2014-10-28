@@ -143,10 +143,53 @@
 *          1) fix isi.h version macro is error, switch to v0.7.0
 *v1.0.0:
 *          1) Reuse buffer if the buffer haven't been fill image data instead of drop it;
+*v1.1.0:
+*          1) calibdb modify to parse tab and space error
+*v1.2.0:
+*          1) fix mi CbCr buffer address must align which is define by c_burstlength;
+*v1.3.0:
+*          1) calibdb modify to parse NiYang xml,and add log  
+*v1.4.0:
+*          1) add setAecMeasureWindow/setAfMeasureWindow/getAfMeasureWindow api;
+*v1.5.0:
+*          1) fix continues af may be trigger when machine is moving; Continues af must be triggered after many frames 
+*              sharpness diffrence is < 0.02.
+*v1.6.0:
+*          1) support detect measure window is changed or not in continue af; Trige af if it is changed;
+*v1.7.0:
+*          1) add setIspBufferInfo api to set isp buffer num and size;
+*v1.8.0:
+*          1) ae and histogram support AverageMeter and CenterWeightMeter; touch ae used AverageMeter, preview ae used CenterWeightMeter;
+*          2) AfProcessFrame run after check AecSetted when receive CAMERIC_ISP_EVENT_AFM;
+*v1.9.0:
+*          1) support change framerate in CamEngineItf::changeResolution;
+*v1.0xa.0:
+*          1) Change vcm position to MaxFocus when af failed;
+*          2) AF is failed when sharpness < 300;
+*          3) AF fine search is not run, fix it;
+*          4) AF messure window <= 200x200 for measure result will overflow;
+*v1.0x0b.0:
+*          1) record cwf and d65 ill index, because d65 may be switch to cwf in awb for lens;
+*          2) Check sharpness < 300 , and change vcm position to MaxFocus when tracking;
+*v1.0x0c.0:
+*          1) add support request_res_exp in getPreferedSensorRes;
+*v1.0x0d.0:
+*          1) getSensorXmlVersion func may cause array bound exceeded,fixed it.
+*v1.0x0e.0:
+*          1) request_res_exp -> request_exp_t in getPreferedSensorRes;
+*v1.0x0f.0:
+*          1) add ISI_RES_1296_972P10/ISI_RES_1296_972P20/ISI_RES_1296_972P25 in mapcaps.cpp.
+*v1.0x10.0:
+*          1) Check sharpness < 500 , and change vcm position to MaxFocus when tracking;
+*          2) Change weight for CenterWeightMeter ae and histom;
+*v1.0x10.1:
+*          1) fix for MonkeyTest.
+*v1.0x11.0:
+*          1) Change vcm position to MaxFocus when af failed, this operate in AfSearching end;
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x11, 0)
 
 
 class CamEngineItf;
@@ -156,6 +199,11 @@ typedef struct CamEngVer_s {
     unsigned int libisp_ver;
     unsigned int isi_ver;
 } CamEngVer_t;
+
+typedef struct CtxCbResChange_s {
+	void *pIspAdapter;
+	uint32_t res;
+}CtxCbResChange_t;
 
 class CamEngineVersionItf
 {
@@ -224,11 +272,12 @@ public:
 	//zyl add
 	void getAwbGainInfo(float *f_RgProj, float *f_s, float *f_s_Max1, float *f_s_Max2, float *f_Bg1, float *f_Rg1, float *f_Bg2, float *f_Rg2);
 	void getIlluEstInfo(float *ExpPriorIn, float *ExpPriorOut, char (*name)[20], float likehood[], float wight[], int *curIdx, int *region, int *count);
-	bool getSensorXmlVersion(char (*pVersion)[50]);
+	bool getSensorXmlVersion(char (*pVersion)[64]);
 	bool getInitAePoint(float *point);
 	bool setAePoint(float point);
 	float getAecClmTolerance() const;
 	bool setAeClmTolerance(float clmtolerance);
+	bool setIspBufferInfo(unsigned int bufNum, unsigned int bufSize);
 	//oyyf add
 	void getIspVersion(unsigned int* version);
 	//oyyf add
@@ -355,6 +404,8 @@ public:
     bool getAecHistogram( CamEngineAecHistBins_t &histogram ) const;
     bool getAecLuminance( CamEngineAecMeanLuma_t &luma ) const;
     bool getAecObjectRegion( CamEngineAecMeanLuma_t &objectRegion ) const;
+    bool getAecMeasureWindow( CamEngineWindow_t *measureWin, CamEngineWindow_t *grid );
+    bool setAecHistMeasureWinAndMode( int16_t x,int16_t y,uint16_t width,uint16_t height,CamEngineAecHistMeasureMode_t mode );
 
     // auto focus functions
     bool isAfAvailable( bool &available );
@@ -365,6 +416,8 @@ public:
     bool getAfStatus( bool &enabled, CamEngineAfSearchAlgorithm_t &seachAlgorithm, float *sharpness );
     bool checkAfShot( bool *shot );  /* ddl@rock-chips.com */
     bool registerAfEvtQue( CamEngineAfEvtQue_t *evtQue );   /* ddl@rock-chips.com */
+    bool getAfMeasureWindow( CamEngineWindow_t *measureWin );
+    bool setAfMeasureWindow( int16_t x,int16_t y,uint16_t width,uint16_t height );
 
     // flash   ddl@rock-chips.com
     bool configureFlash( CamEngineFlashCfg_t *cfgFsh );
