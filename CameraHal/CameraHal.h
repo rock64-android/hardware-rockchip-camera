@@ -287,55 +287,136 @@ namespace android {
 *     1) enum sensor resolution and check for DV media_profiles.xml in CheckSensorSupportDV;
 *v0.0x3b.0:
 *     1) include box commit which usb adapter modify for initDefaultParameters
-*v0.0x3b.1:
-	  1) support rk312x preview and picture taken .
-*v0.0x3b.2:
-	  1) pre_scaling_mode must be set when using rga to do yuv tranform
 *v1.0.0:
-*v1.0.1:
-	  1) 312x support iommu
-	  2) xml file is produced auto
-*v1.0.2:
-	  1) fix uvc preview erro, caused by wrong MjpegDecoder phy addr.	
-*v1.0.3:
-      1) fix uvc pic taken erro, caused by wrong phy addr(should use fd).
-*v1.0.4:
-      1) mMjpegDecoder didn't deinit ,this will cause mem leak,fix it
-*v1.0.5:
-	  1) mMjpegDecoder.deInit in func CameraAdapter::cameraDestroy maybe called 
-		when mMjpegDecoder havn't been initialized,fix it.
-*v1.0.6:
-	  1) some variable of class soc adapter havn't been initialized ,fix it.
-*v1.0.7:
+*     1) fix media buffer may be lost when restart preview, because is only pause and start display; 
+*v1.1.0:
+*     1) add face detection feature
+*v1.2.0:
+*     1) merge source code frome mid,include following version:
+		*v0.0x3b.1:
+			  1) support rk312x preview and picture taken .
+		*v0.0x3b.2:
+			  1) pre_scaling_mode must be set when using rga to do yuv tranform
+		*v1.0.1:
+			  1) 312x support iommu
+			  2) xml file is produced auto
+*v1.3.0:
+*     1) isp output uv may be isn't after y data closely for buffer address align, so must copy uv data;
+*     2) Don't panic when cam_board.xml and parser version check failed !
+*v1.4.0:
+*     1) isptuning add gammadisable
+*v1.5.0:
+*     1) add support TAE and TAF;
+*v1.6.0:
+*     1)uvc support 16 bit unaligned resolution.
+*     2)invalide auto,infinity,macro focus function for uvc.
+*v1.7.0:
+*     1) deadlock may happen between processFaceDetect with autofocu or takepic, fix it;
+         related commit refer to cameraservice.
+*v1.8.0:
+*     1) facedection cause framrate of preview decreased, fix it.
+*v1.9.0:
+*     1) register sensor device CAMSYS_REGISTER_DEVIO must check return value, may be this device id has been registered;
+*v1.a.0:
+*     1) facedection support bias face detect.
+*v1.0xb.0:
+*     1) Continue focus measure window from face region when face has been dected;
+*v1.0xc.0:
+*     1) register sensor device must transfer sensor name to driver, driver check this device is registed or not;
+*v1.0xd.0:
+*     1) optimize camera's memory, dynamic calculate the max buffer size that sensor need.
+*     2) support interpolation resolution and can config in cam_board.xml.
+*v1.0xe.0:
+*     1) AE and AF measure window return center after TAE and TAF;
+*
+*v1.0xf.0:
+*     1) support smile face detection.
+*     2) fix deadlock happend between takepic and preview data callback. 
+         related commit refer to cameraservice.
+      3) CTS all passed.
+*v1.0x10.0:
+      1) selectPreferedDrvSize of isp get wrong size in last commit,fix it.
+*v1.0x11.0:
 	  1) modify for rga output format suport NV21.
-*v1.0.8:
-	  1) VIDIOC_QBUF operation in func getFrame MUST be protected by mCamDriverStreamLock
-		to ensure VIDIOC_QBUF sync with VIDIOC_STREAMOFF 
-*v1.0.9:
-      1) fix 312x rga issues.
-      2) disable cif soc sensor DV resolution 800x600(VPU IOMMU pagefault occured when
-         snapshot during recording)
-*v1.0.a:
-      1) video buffer should be aligned to 16.
-*v1.0.b:
-      1) add flip for weixin and MiTalk.
-*v1.0.c:
-      1) fix uvc exposure bug.
-      2) uvc capture may crash in librk_on2.so, fix it.
-      3) filter not mjpeg data when uvc output format is mjpeg.
-      4) invalide auto,infinity,macro focus function for uvc.
-*v1.0.d:
-      1) has something wrong with rga of rk312x mirror operation,fix it by yzm.
-      2) correct illuminant name "Horizon" to "HORIZON".
-      3) fix flashlight bug in mode 2.
-*v1.0.e:
-      1) uvc support 16bit unaligned resolution.
-      2) uvc operation in camera_get_number_of_cameras func exist bug, fixed it.
-      3) filter frames for isp soc camera.
-*v1.0.f:
-      1) merge from 69 server develope branch.
+*v1.0x12.0:
+*     1) invalidate ME for auto framerate
+*v1.0x13.0:
+*     1) has something wrong with rga of rk312x mirror operation,fix it by yzm.
+*     2) correct illuminant name "Horizon" to "HORIZON".
+*     3) fix flashlight bug in mode 2.  
+*v1.0x14.0:
+*     1) set contrast to improve quality.
+*v1.0x15.0:
+*     1) fix cancel pic error like this : takepic,then cancel pic quickly,enc thread havn't get frame at that thim.
+*     2) fix scan QR code error in wechat.
+*v1.0x16.0:
+*     1) 720p and 1080p framerate fix for video record;
+*     2) the preview resolution and framerate don't change after take picture;
+*v1.0x17.0:
+*     1) fix cts verify format test bugs(yv12);
+*v1.0x18.0:
+*     1) select capture resolution must check exposure time for preview solution; for Libisp v1.c.0
+*v1.0x19.0:
+*     1) the way of getting sensor xml version may cause array bound exceeded,fixed it.
+*v1.0x1a.0:
+*     1) select ressolution must check exposure time for capture, 
+*        check  fps for video,
+*        check  fps and exposure time(*0.5) for dc preview;
+*        for Libisp v1.0x0d.0;
+*v1.0x1b.0:
+*     1) Call mDataCb must trylock mainthread mutex, if trylock failed, this frame cancel. This operation is for deadlock;
+*v1.0x1c.0:
+*     1) support gamma out
+*v1.0x1d.0:
+*     1) fix ae cannot return centeral mesuremode after TAE when facedetect is disable;
+*v1.0x1e.0:
+*     1) add sensor lens config in cam_board.xml,lens name MUST be configed correctly according your hardware info.
+*v1.0x1f.0:
+*     1) Disable isp scale crop by CONFIG_CAMERA_SCALE_CROP_ISP for 1080p Sawtooth;
+ *v1.0x20.0:
+*     1) merge source code frome mid, version 1.0.0xe.
+*v1.0x21.0:
+*     1) merge source code frome mid,include following version:
+		*v1.0.2:
+			  1) fix uvc preview erro, caused by wrong MjpegDecoder phy addr.	
+		*v1.0.3:
+		      1) fix uvc pic taken erro, caused by wrong phy addr(should use fd).
+		*v1.0.4:
+		      1) mMjpegDecoder didn't deinit ,this will cause mem leak,fix it
+		*v1.0.5:
+			  1) mMjpegDecoder.deInit in func CameraAdapter::cameraDestroy maybe called 
+				when mMjpegDecoder havn't been initialized,fix it.
+		*v1.0.6:
+			  1) some variable of class soc adapter havn't been initialized ,fix it.
+		*v1.0.7:
+			  1) modify for rga output format suport NV21.
+		*v1.0.8:
+			  1) VIDIOC_QBUF operation in func getFrame MUST be protected by mCamDriverStreamLock
+				to ensure VIDIOC_QBUF sync with VIDIOC_STREAMOFF 
+		*v1.0.9:
+		      1) fix 312x rga issues.
+		      2) disable cif soc sensor DV resolution 800x600(VPU IOMMU pagefault occured when
+		         snapshot during recording)
+		*v1.0.a:
+		      1) video buffer should be aligned to 16.
+		*v1.0.b:
+		      1) add flip for weixin and MiTalk.
+		*v1.0.c:
+		      1) fix uvc exposure bug.
+		      2) uvc capture may crash in librk_on2.so, fix it.
+		      3) filter not mjpeg data when uvc output format is mjpeg.
+		      4) invalide auto,infinity,macro focus function for uvc.
+		*v1.0.d:
+		      1) has something wrong with rga of rk312x mirror operation,fix it by yzm.
+		      2) correct illuminant name "Horizon" to "HORIZON".
+		      3) fix flashlight bug in mode 2.
+		*v1.0.e:
+		      1) uvc support 16bit unaligned resolution.
+		      2) uvc operation in camera_get_number_of_cameras func exist bug, fixed it.
+		      3) filter frames for isp soc camera.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0, 0xf)
+
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x21, 0)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

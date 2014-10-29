@@ -2384,7 +2384,7 @@ void CameraIspAdapter::setMwb(const char *white_balance)
 
 void CameraIspAdapter::setMe(const char *exposure)
 {
-    #if 0
+    #if 1
     if (m_camDevice->isSOCSensor() == true)   /* ddl@rock-chips.com : v0.0x39.0 */ 
         return;
     
