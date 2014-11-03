@@ -277,6 +277,10 @@ int CameraAdapter::getCameraFd()
 {
     return mCamFd;
 }
+int CameraAdapter::flashcontrol()
+{
+    return 0;
+}
 
 //talk to driver
 //open camera

@@ -414,9 +414,11 @@ namespace android {
 		      1) uvc support 16bit unaligned resolution.
 		      2) uvc operation in camera_get_number_of_cameras func exist bug, fixed it.
 		      3) filter frames for isp soc camera.
+*v1.0x21.1:
+*     1) support V4L2 flash control of soc camera when picure size is the same as preview size.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x21, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x21, 1)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -651,6 +653,9 @@ public:
 	virtual bool getFlashStatus();
     virtual int selectPreferedDrvSize(int *width,int * height,bool is_capture){ return 0;}
     virtual int faceNotify(struct RectFace* faces, int* num);
+	
+    virtual int flashcontrol();
+	 
 protected:
     //talk to driver
     virtual int cameraCreate(int cameraId);
@@ -773,7 +778,7 @@ public:
     virtual void initDefaultParameters(int camFd);
     virtual int cameraAutoFocus(bool auto_trig_only);
     virtual int selectPreferedDrvSize(int *width,int * height,bool is_capture);
-    
+    virtual int flashcontrol();
 private:   
     static unsigned int mFrameSizesEnumTable[][2];
     

@@ -1183,4 +1183,31 @@ cameraAutoFocus_end:
     return err;
 }
 
+int CameraSOCAdapter::flashcontrol()
+{
+	int err;
+	struct v4l2_queryctrl flashMode;
+	flashMode.id = V4L2_CID_FLASH;
+	if (!ioctl(mCamFd, VIDIOC_QUERYCTRL, &flashMode)) {
+		struct v4l2_ext_control extCtrInfo;
+		struct v4l2_ext_controls extCtrInfos;
+		extCtrInfo.id = V4L2_CID_FLASH;
+		extCtrInfo.value = 0xfefe5a5a;
+		extCtrInfos.ctrl_class = V4L2_CTRL_CLASS_CAMERA;
+		extCtrInfos.count = 1;
+		extCtrInfos.controls = &extCtrInfo;
+		
+		err = ioctl(mCamFd, VIDIOC_S_EXT_CTRLS, &extCtrInfos);
+		if ( err < 0 ){
+			LOGD ("%s(%d): Set flash failed",__FUNCTION__,__LINE__);			
+		}
+		else {
+			LOGE ("%s(%d): Set flash succeed",__FUNCTION__,__LINE__);
+		}
+	}
+
+	return 0;
+}
+
+
 }

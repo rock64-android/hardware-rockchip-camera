@@ -1034,6 +1034,10 @@ get_command:
 								goto CMD_CONTINUOS_PICTURE_OUT;
                     	}
                     }
+					else if((prefered_w == drv_w) && (prefered_h == drv_h)){
+						/*for soc caemra flash control when preview size == picture size*/
+						err = mCameraAdapter->flashcontrol();
+					}
                         
                 }else{
                     //selet a proper preview size.
