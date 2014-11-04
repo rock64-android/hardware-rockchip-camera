@@ -16,8 +16,10 @@
 *   1). support for isi v0.5.0
 *v0.4.0
 *   1). support for isi v0.7.0
+*v0.5.0
+*   1). fix cts verify green screen
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 4, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 5, 0) 
 
 #ifdef __cplusplus
 extern "C"

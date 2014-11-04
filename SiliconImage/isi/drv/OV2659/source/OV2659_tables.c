@@ -531,7 +531,7 @@ const IsiRegDescription_t OV2659_g_1600x1200[] =
 	#if P977
 	{0x0100, 0x00,"",eReadWrite},
 	
-	{0x3406, 0x01,"",eReadWrite}, 	//awb lst bit[1] manual awb peak
+	{0x3406, 0x00,"",eReadWrite}, 	//awb lst bit[1] manual awb peak
     {0x3503, 0x00,"",eReadWrite},
 	 	
     {0x5066, 0x1e,"",eReadWrite},
