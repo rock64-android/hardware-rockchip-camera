@@ -31,7 +31,6 @@ CameraAdapter::CameraAdapter(int cameraId):mPreviewRunning(0),
     CameraHal_SupportFmt[3] = V4L2_PIX_FMT_RGB565;
     CameraHal_SupportFmt[4] = 0x00;
     CameraHal_SupportFmt[5] = 0x00;
-
    LOG_FUNCTION_NAME_EXIT   
 }
 
@@ -267,7 +266,7 @@ status_t CameraAdapter::autoFocus()
 {
 	
 	mAutoFocusCond.signal();
-	return 0;
+    return 0;
 }
 status_t CameraAdapter::cancelAutoFocus()
 {
@@ -647,9 +646,9 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
         LOG2("%s:filter frame %d",__FUNCTION__,mPreviewFrameIndex);
     	mCamDriverStreamLock.lock();
 		if(mCamDriverStream)
-	    	ioctl(mCamFd, VIDIOC_QBUF, &cfilledbuffer1);
+        ioctl(mCamFd, VIDIOC_QBUF, &cfilledbuffer1);
         mCamDriverStreamLock.unlock();
-		goto FILTER_FRAMES; 
+        goto FILTER_FRAMES; 
     }
     // fill frame info:w,h,phy,vir
     mPreviewFrameInfos[cfilledbuffer1.index].frame_fmt=  mCamDriverPreviewFmt;

@@ -15,7 +15,7 @@ namespace android{
 /******************************************************************************
  * MainWindow_AfpsResChangeCb
  *****************************************************************************/
-void CameraIspAdapter_AfpsResChangeCb( void *ctx )
+void CameraIspAdapter_AfpsResChangeCb( void *ctx)
 {
 	CtxCbResChange_t *pctx = (CtxCbResChange_t *)ctx;
 
@@ -130,8 +130,8 @@ int CameraIspAdapter::cameraCreate(int cameraId)
         mAfListenerThread->run("CamAfLisThread",ANDROID_PRIORITY_NORMAL);
 
         if (mISPTunningRun == false) {
-        m_camDevice->resetAf(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
-        m_camDevice->registerAfEvtQue(&mAfListenerQue);
+            m_camDevice->resetAf(CAM_ENGINE_AUTOFOCUS_SEARCH_ALGORITHM_ADAPTIVE_RANGE);
+            m_camDevice->registerAfEvtQue(&mAfListenerQue);
         }
     }
 
@@ -208,7 +208,7 @@ void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int previ
 #endif
 
 	getSensorMaxRes(max_w,max_h);
-   if(mISPOutputFmt == ISP_OUT_YUV422_INTERLEAVED){
+    if(mISPOutputFmt == ISP_OUT_YUV422_INTERLEAVED){
         m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
                                 CAMERIC_MI_DATAMODE_YUV422,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)true);
 		bufSize = max_w*max_h*2;
@@ -271,7 +271,7 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
     if (is_capture) {
         enable_flash = isNeedToEnableFlash();
 
-        m_camDevice->lockAec(true);/* ddl@rock-chips.com: v0.0x32.0 */
+        m_camDevice->lock3a((Lock_awb|Lock_aec|Lock_af)); 
     }
     low_illumin = isLowIllumin();
 
@@ -284,32 +284,32 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         int width_sensor = 0,height_sensor = 0;
         uint32_t resMask;
         CamEnginePathConfig_t mainPathConfig ,selfPathConfig;
-        CamEngineBestSensorResReq_t resReq;
-
+		CamEngineBestSensorResReq_t resReq;
+		
         resReq.request_w = preview_w;
         resReq.request_h = preview_h;
         if (m_camDevice->getIntegrationTime(resReq.request_exp_t) == false) {
             resReq.request_exp_t = 0.0;
         }
+        
         if (is_video) {
             resReq.request_fps = 20;
         } else if (is_capture) {
             resReq.request_fps = 0;            
         } else { 
             resReq.request_fps = 10; 
-            resReq.request_exp_t *= 0.6;
         }
         resReq.requset_aspect = (bool_t)false;        
-        resReq.request_fullfov = (bool_t)mImgAllFovReq;
-        
+        resReq.request_fullfov = (bool_t)mImgAllFovReq;        
         m_camDevice->getPreferedSensorRes(&resReq);
+        
         width_sensor = ISI_RES_W_GET(resReq.resolution);
         height_sensor = ISI_RES_H_GET(resReq.resolution);
 		
         //stop streaming
         if(-1 == stop())
 			goto startPreview_end;
-        /* ddl@rock-chips.com: v0.0x15.0 */
+        /* ddl@rock-chips.com: v1.0x16.0 */
         if ( is_video ) {
             enableAfps(false);
         } else {
@@ -325,7 +325,12 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         #if CONFIG_CAMERA_SCALE_CROP_ISP
         setupPreview(width_sensor,height_sensor,preview_w,preview_h,mZoomVal);
         #else
-        setupPreview(width_sensor,height_sensor,width_sensor,height_sensor,mZoomVal);
+        if ((preview_w == 1600) && (preview_h == 1200) && 
+            (width_sensor==1632) && (height_sensor == 1224) ) {
+            setupPreview(width_sensor,height_sensor,preview_w,preview_h,mZoomVal);
+        } else {
+            setupPreview(width_sensor,height_sensor,width_sensor,height_sensor,mZoomVal);
+        }
         #endif
 		
         m_camDevice->getPathConfig(CHAIN_MASTER,CAM_ENGINE_PATH_MAIN,mainPathConfig);
@@ -395,14 +400,13 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
             }
         }
 
-        m_camDevice->lockAec(false);/* ddl@rock-chips.com: v0.0x32.0 */
+        m_camDevice->unlock3a((Lock_awb|Lock_aec|Lock_af));
         
     } 
     flashControl(enable_flash);
 
     mPreviewRunning = 1;
 
-	
     LOG_FUNCTION_NAME_EXIT
     return 0;
 startPreview_end:
@@ -432,7 +436,7 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isR
 {
     int fps_min,fps_max;
     int framerate=0;
-
+    
     if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES), params_set.get(CameraParameters::KEY_PREVIEW_SIZE)) == NULL) {
         LOGE("PreviewSize(%s) not supported",params_set.get(CameraParameters::KEY_PREVIEW_SIZE));        
         return BAD_VALUE;
@@ -512,9 +516,11 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isR
                     } 
 
                     //ddl@rock-chips.com v1.0x1d.0
-                    //if (hOff || vOff || w || h){                           
+                    if (hOff || vOff || w || h){                           
                         m_camDevice->setAecHistMeasureWinAndMode(hOff,vOff,w,h,AverageMetering);
-                    //}
+                    } else {
+                        m_camDevice->setAecHistMeasureWinAndMode(hOff,vOff,w,h,CentreWeightMetering);
+                    }
     	    	}
 
             }
@@ -801,25 +807,25 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 
 	        }
 		}else{
-        if (max_w*10/max_h == 40/3) {          //  4:3 Sensor
-            if (pixels > 12800000) {
-                if ((max_w != 4128)&&(max_h != 3096))
-                    parameterString.append(",4128x3096");
-                parameterString.append(",3264x2448,2592x1944,1600x1200");
-            } else if (pixels > 7900000) {
-                if ((max_w != 3264)&&(max_h != 2448))
-                    parameterString.append(",3264x2448");
-                parameterString.append(",2592x1944,2048x1536,1600x1200");
-            } else if (pixels > 5000000) {
-                parameterString.append(",2048x1536,1600x1200,1024x768");
-            } else if (pixels > 3000000) {
-                parameterString.append(",1600x1200,1024x768");
-            } else if (pixels > 2000000) {
-                parameterString.append(",1024x768");
-            }
-        } else if (max_w*10/max_h == 160/9) {   // 16:9 Sensor
+            if (max_w*10/max_h == 40/3) {          //  4:3 Sensor
+                if (pixels > 12800000) {
+                    if ((max_w != 4128)&&(max_h != 3096))
+                        parameterString.append(",4128x3096");
+                    parameterString.append(",3264x2448,2592x1944,1600x1200");
+                } else if (pixels > 7900000) {
+                    if ((max_w != 3264)&&(max_h != 2448))
+                        parameterString.append(",3264x2448");
+                    parameterString.append(",2592x1944,2048x1536,1600x1200");
+                } else if (pixels > 5000000) {
+                    parameterString.append(",2048x1536,1600x1200,1024x768");
+                } else if (pixels > 3000000) {
+                    parameterString.append(",1600x1200,1024x768");
+                } else if (pixels > 2000000) {
+                    parameterString.append(",1024x768");
+                }
+            } else if (max_w*10/max_h == 160/9) {   // 16:9 Sensor
 
-        }
+            }
 		}
         parameterString.append(",640x480,352x288,320x240,176x144");        
         params.set(CameraParameters::KEY_PICTURE_SIZE, string);
@@ -1030,6 +1036,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     params.set(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED,"true");
     params.set(CameraParameters::KEY_AUTO_WHITEBALANCE_LOCK_SUPPORTED, "false");
     params.set(CameraParameters::KEY_AUTO_EXPOSURE_LOCK_SUPPORTED, "false");
+            
     //params.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_FIXED);
     //params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES,CameraParameters::FOCUS_MODE_FIXED);
 
@@ -1215,7 +1222,7 @@ int CameraIspAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 			//TODO
 		}
 	}
-
+    
     /*exposure setting*/
 	const char *exposure = params.get(CameraParameters::KEY_EXPOSURE_COMPENSATION);
     const char *mexposure = mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION);
@@ -1611,13 +1618,13 @@ void CameraIspAdapter::disconnectCamera()
 
     if (mISPTunningRun == false) {
     
-    m_camDevice->stopAf();  /* ddl@rock-chips.com: v0.d.1 */
-    
-    if (m_camDevice->getFocusLimits(minFocus, maxFocus) == true) {
-        m_camDevice->setFocus(maxFocus);
-        usleep(100000);
-    } else {
-        LOGE("getFocusLimits failed!");
+        m_camDevice->stopAf();  /* ddl@rock-chips.com: v0.d.1 */
+        
+        if (m_camDevice->getFocusLimits(minFocus, maxFocus) == true) {
+            m_camDevice->setFocus(maxFocus);
+            usleep(100000);
+        } else {
+            LOGE("getFocusLimits failed!");
         }
     }
 
@@ -1783,8 +1790,8 @@ int CameraIspAdapter::adapterReturnFrame(int index,int cmd){
 
 int CameraIspAdapter::getCurPreviewState(int *drv_w,int *drv_h)
 {
-	*drv_w = mCamPreviewW;
-	*drv_h = mCamPreviewH;
+    *drv_w = mCamPreviewW;
+    *drv_h = mCamPreviewH;
     return mPreviewRunning;
 }
 
@@ -1963,39 +1970,41 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
           mRefEventNotifier->notifyNewFaceDecFrame(tmpFrame);
         }
     	//need to display ?
-        if(mRefDisplayAdapter->isNeedSendToDisplay()) {  
-            MediaBufLockBuffer( pMediaBuffer );
-            //new frames
-            FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
-            if(!tmpFrame){
-            	MediaBufUnlockBuffer( pMediaBuffer );
-            	return;
-            }
-            //add to vector
-            tmpFrame->frame_index = (int)tmpFrame; 
-            tmpFrame->phy_addr = (int)phy_addr;
-            tmpFrame->frame_width = width;
-            tmpFrame->frame_height= height;
-            tmpFrame->vir_addr = (int)y_addr_vir;
-            tmpFrame->frame_fmt = fmt;
+    	if(mRefDisplayAdapter->isNeedSendToDisplay()){  
+    	    MediaBufLockBuffer( pMediaBuffer );
+    		//new frames
+    		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+    		if(!tmpFrame){
+    			MediaBufUnlockBuffer( pMediaBuffer );
+    			return;
+          }
+          //add to vector
+          tmpFrame->frame_index = (int)tmpFrame; 
+          tmpFrame->phy_addr = (int)phy_addr;
+          tmpFrame->frame_width = width;
+          tmpFrame->frame_height= height;
+          tmpFrame->vir_addr = (int)y_addr_vir;
+          tmpFrame->frame_fmt = fmt;
+    	  
+          tmpFrame->used_flag = 0;
 
-            tmpFrame->used_flag = 0;
-
-#if (USE_RGA_TODO_ZOOM == 1)  
-            tmpFrame->zoom_value = mZoomVal;
-#else
-            if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ) {
-                tmpFrame->zoom_value = mZoomVal;
+          #if (USE_RGA_TODO_ZOOM == 1)  
+             tmpFrame->zoom_value = mZoomVal;
+          #else
+          if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
+             tmpFrame->zoom_value = mZoomVal;
           }else
              tmpFrame->zoom_value = 100;
-#endif
+          #endif
+        
+          {
+            Mutex::Autolock lock(mFrameArrayLock);
+            mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+            mDispFrameLeak++;
 
-            {
-                Mutex::Autolock lock(mFrameArrayLock);
-                mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
-                mDispFrameLeak++;
-            }
-            mRefDisplayAdapter->notifyNewFrame(tmpFrame);
+          }
+          mRefDisplayAdapter->notifyNewFrame(tmpFrame);
+
         }
 
     	//video enc ?
@@ -2049,6 +2058,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 	MediaBufUnlockBuffer( pMediaBuffer );
                 	return;
                 }
+
                 //add to vector
                 tmpFrame->frame_index = (int)tmpFrame; 
                 tmpFrame->phy_addr = (int)phy_addr;

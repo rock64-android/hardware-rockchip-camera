@@ -186,10 +186,21 @@
 *          1) fix for MonkeyTest.
 *v1.0x11.0:
 *          1) Change vcm position to MaxFocus when af failed, this operate in AfSearching end;
+*v1.0x12.0:
+*    include  for ifive(hisense f415)
+*    v1.0x11.1:
+*          1) invalidate AfProcessFrame must check AecSettled;
+*          2) pAecCtx->AfpsCurrResolution obtain real resolution from sensor driver,because pAecCtx->AfpsCurrResolution
+*             may be error;
+*    1) add support 3a lock and unlock api;
+*v1.0x13.0
+*    include for ifive(hisense f415)
+*    v1.0x11.2:
+*          1) add g_pCamEngineCtx_lock for g_pCamEngineCtx;
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x11, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x13, 0)
 
 
 class CamEngineItf;
@@ -398,7 +409,8 @@ public:
     bool startAec();
     bool stopAec();
     bool resetAec();
-    bool lockAec( bool lock );  /* ddl@rock-chips.com: v0.0x29.0 */
+    bool lock3a( CamEngine3aLock_t lock );  /* ddl@rock-chips.com: v0.0x29.0 */
+    bool unlock3a( CamEngine3aLock_t unlock );
     bool configureAec( const CamEngineAecSemMode_t &mode, const float setPoint, const float clmTolerance, const float dampOver, const float dampUnder );
     bool getAecStatus( bool &enabled, CamEngineAecSemMode_t &mode, float &setPoint, float &clmTolerance, float &dampOver, float &dampUnder );
     bool getAecHistogram( CamEngineAecHistBins_t &histogram ) const;

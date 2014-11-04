@@ -331,10 +331,9 @@ int AppMsgNotifier::flushPicture()
     	    usleep(30*1000);//sleep 30 ms 
         }
         if(trytimes == 50){
-	    Mutex::Autolock lock(mPictureLock); 
-
-	    //mReceivePictureFrame = false;
-		mRunningState &= ~STA_RECEIVE_PIC_FRAME;
+            Mutex::Autolock lock(mPictureLock); 
+    	    //mReceivePictureFrame = false;
+    		mRunningState &= ~STA_RECEIVE_PIC_FRAME;
             LOGE("%s:cancel picture maybe failed !!! ",__FUNCTION__);
         }
     }
@@ -357,7 +356,7 @@ int AppMsgNotifier::pausePreviewCBFrameProcess()
     Semaphore sem;
    LOG_FUNCTION_NAME
     if(mRunningState &STA_RECEIVE_PREVIEWCB_FRAME){
-    {
+        {
 	    Mutex::Autolock lock(mDataCbLock); 
 
 	    mRecPrevCbDataEn = false;
@@ -371,7 +370,7 @@ int AppMsgNotifier::pausePreviewCBFrameProcess()
     eventThreadCommandQ.put(&msg);
     if(msg.arg1){
         sem.Wait();
-    }
+        }
     }
     LOG_FUNCTION_NAME_EXIT
     return 0;
@@ -400,7 +399,7 @@ int AppMsgNotifier::startRecording(int w,int h)
     //w,h align up to 16
     frame_size = PAGE_ALIGN(((w+15) & (~15))*((h+15) & (~15))*3/2);
 
-	//release video buffer
+    //release video buffer
     mVideoBufferProvider->freeBuffer();
     mVideoBufferProvider->createBuffer(CONFIG_CAMERA_VIDEOENC_BUF_CNT, frame_size, VIDEOENCBUFFER);
 
@@ -534,7 +533,6 @@ int AppMsgNotifier::disableMsgType(int32_t msgtype)
         		mRunningState &= ~STA_RECEIVE_PREVIEWCB_FRAME;
 
                 LOG1("%s%d: release mDataCbLock",__FUNCTION__,__LINE__);
-
             }
     }else if(msgtype & (CAMERA_MSG_PREVIEW_METADATA)){
         Mutex::Autolock lock(mFaceDecLock);
@@ -1194,7 +1192,7 @@ return ret;
 
 int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
     int ret = 0;
-	mDataCbLock.lock();
+    mDataCbLock.lock();
     if ((mMsgTypeEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
         //compute request mem size
         int tempMemSize = 0;
@@ -1225,15 +1223,15 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
         tmpPreviewMemory = mRequestMemory(-1, tempMemSize_crop, 1, NULL);
         if (tmpPreviewMemory) {
 #if 0
-				//QQ voip need NV21
-				arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
-						(char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
+			//QQ voip need NV21
+			arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
+					(char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
 #else
-				rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
-						(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
+			rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+					(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
 					mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p);
 #endif
-				//arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
+			//arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
 			
 			if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0) {
 				tmpNV12To420pMemory = mRequestMemory(-1, tempMemSize, 1, NULL);
@@ -1247,7 +1245,7 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 					tmpPreviewMemory = tmpNV12To420pMemory;
 				} else {
 					LOGE("%s(%d): mPreviewMemory create failed",__FUNCTION__,__LINE__);
-			}
+				}
 			}
            if(mDataCbFrontFlip) {
                LOG1("----------------need  flip -------------------");
@@ -1257,14 +1255,14 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 			//callback
 			/* ddl@rock-chips.com:  v1.0x1b.0 */
 			if (mMainThreadLockRef->tryLock() == NO_ERROR) {
-            	mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
+			    mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
                 mMainThreadLockRef->unlock();
 			} else {
                 LOGD("Try lock mMainThreadLockRef failed, mDataCb cancel!!");
 			}
 
-            //release buffer
-            tmpPreviewMemory->release(tmpPreviewMemory);
+			//release buffer
+			tmpPreviewMemory->release(tmpPreviewMemory);
 		} else {
 			LOGE("%s(%d): mPreviewMemory create failed",__FUNCTION__,__LINE__);
 		}
@@ -1272,7 +1270,7 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 		mDataCbLock.unlock();
 		LOG1("%s(%d): needn't to send preview datacb",__FUNCTION__,__LINE__);
 	}
-    return ret;
+	return ret;
 }
 int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
     int ret = 0,buf_phy = 0,buf_vir = 0,buf_index = -1;

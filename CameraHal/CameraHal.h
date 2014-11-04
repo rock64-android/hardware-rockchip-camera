@@ -416,9 +416,12 @@ namespace android {
 		      3) filter frames for isp soc camera.
 *v1.0x21.1:
 *     1) support V4L2 flash control of soc camera when picure size is the same as preview size.
+*v1.0x22.0:
+*    include following version for ifive(hisense f415)
+*    v1.0x1f.1:
+*       1) 1632x1224 -> 1600x1200 scale crop by isp, rga run error;
 */
-
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x21, 1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x22, 0)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

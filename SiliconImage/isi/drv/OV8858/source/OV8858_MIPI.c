@@ -362,9 +362,9 @@ static RESULT OV8858_IsiGetCapsIssInternal
     }
     else
     {
-        if(mipi_lanes == SUPPORT_MIPI_FOUR_LANE){            
+        if (mipi_lanes == SUPPORT_MIPI_FOUR_LANE) {            
             switch (pIsiSensorCaps->Index) 
-            {
+            {                
                 case 0:
                 {
                     pIsiSensorCaps->Resolution = ISI_RES_3264_2448P30;
@@ -925,6 +925,7 @@ static RESULT OV8858_SetupOutputWindowInternal
 	uint16_t usTimeVts;
     float    rVtPixClkFreq      = 0.0f;
     int xclk = 2400;
+    
 	TRACE( OV8858_INFO, "%s (enter)\n", __FUNCTION__);
 	
 	if(pOV8858Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
@@ -1640,7 +1641,7 @@ static RESULT OV8858_IsiChangeSensorResolutionIss
         result = IsiGetResolutionName( Resolution, &szResName );
         TRACE( OV8858_DEBUG, "%s: NewRes=0x%08x (%s)\n", __FUNCTION__, Resolution, szResName);
 
-        // update resolution in copy of config in context
+        // update resolution in copy of config in context        
         pOV8858Ctx->Config.Resolution = Resolution;
 
         // tell sensor about that

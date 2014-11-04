@@ -89,6 +89,8 @@ private:
     bool isNeedToEnableFlash();
 	void setMwb(const char *white_balance);
 	void setMe(const char *exposure);
+
+	
 protected:
     CamDevice       *m_camDevice;
     KeyedVector<void *, void *> mFrameInfoArray;

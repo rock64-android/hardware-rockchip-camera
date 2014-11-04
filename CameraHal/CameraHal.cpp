@@ -157,7 +157,6 @@ CameraHal::CameraHal(int cameraId)
     mCameraAdapter->setPreviewBufProvider(mPreviewBuf);
     mCameraAdapter->setDisplayAdapterRef(*mDisplayAdapter);
     
-
     mDisplayAdapter->setFrameProvider(mCameraAdapter);
     
     mEventNotifier->setPictureRawBufProvider(mRawBuf);
@@ -283,7 +282,7 @@ CameraHal::~CameraHal()
    		mCommandThread->requestExitAndWait();
     	mCommandThread.clear();
 	}
-    
+
     LOGD("CameraHal destory success");
     LOG_FUNCTION_NAME_EXIT
 }

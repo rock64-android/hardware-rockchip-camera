@@ -722,7 +722,6 @@ int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 	CameraParameters params = tmpparams;
 
     LOGD("set whitebalance");
-	
     /*white balance setting*/
     const char *white_balance = params.get(CameraParameters::KEY_WHITE_BALANCE);
 	const char *mwhite_balance = mParameters.get(CameraParameters::KEY_WHITE_BALANCE);
@@ -755,6 +754,7 @@ int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 		if((mZoomVal < mZoomMin) || (mZoomVal > mZoomMax))
 			return BAD_VALUE;
 	}
+
 
     LOGD("set color effect");
 
@@ -892,11 +892,11 @@ int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 	if (strstr(params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES),focusMode)) {
 		if ( !mfocusMode || strcmp(focusMode, mfocusMode) ) {
 			if(strcmp(focusMode,CameraParameters::FOCUS_MODE_FIXED)){
-				GetAFParameters(focusMode);
-	       		if(!cameraAutoFocus(isInit)){
-	        		params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
-	        		err = -1;
-	   			}
+			GetAFParameters(focusMode);
+       		if(!cameraAutoFocus(isInit)){
+        		params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
+        		err = -1;
+   			}
 			}
 		}
 	} else{
@@ -1137,6 +1137,7 @@ int CameraSOCAdapter::cameraAutoFocus(bool auto_trig_only)
     int err;
     struct v4l2_ext_control extCtrInfo;
 	struct v4l2_ext_controls extCtrInfos;
+    
     if (m_focus_mode == 0) {
     	LOGE("%s(%d): focus mode is not set",__FUNCTION__,__LINE__);
     	err = false;
@@ -1178,8 +1179,7 @@ int CameraSOCAdapter::cameraAutoFocus(bool auto_trig_only)
 	    LOG1("%s(%d): Set focus mode %d",__FUNCTION__,__LINE__, m_focus_mode);
         err = true;
 	}
-	
-cameraAutoFocus_end:	
+cameraAutoFocus_end:
     return err;
 }
 

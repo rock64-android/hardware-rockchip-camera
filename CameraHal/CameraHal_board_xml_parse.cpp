@@ -39,7 +39,6 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
 	rk_cam_total_info *pCamInfo = pCamInfoProfiles->mCurDevice;
     rk_sensor_info *pSensorInfo = &(pCamInfo->mHardInfo.mSensorInfo);
 	int result;    
-
     if (strcmp(name, "SensorName")==0) {
         strncpy(pSensorInfo->mSensorName, atts[1], strlen(atts[1]));
         ALOGD("%s(%d): SensorName(%s)\n", __FUNCTION__, __LINE__, pSensorInfo->mSensorName);
@@ -714,7 +713,7 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
             ConfigBoardXmlVersion&0xff);
 	}
     /* ddl@rock-chips.com: v1.3.0 */
-		if(pCamInfoProfiles->mBoardXmlVersion != ConfigBoardXmlVersion){
+    if(pCamInfoProfiles->mBoardXmlVersion != ConfigBoardXmlVersion) {
 		ALOGE("cam_board.xml version(v%d.%d.%d) != xml parser version(v%d.%d.%d)\n",
           (pCamInfoProfiles->mBoardXmlVersion&0xff0000)>>16,
           (pCamInfoProfiles->mBoardXmlVersion&0xff00)>>8,
@@ -723,7 +722,7 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
           (ConfigBoardXmlVersion&0xff00)>>8,
           ConfigBoardXmlVersion&0xff);
         return;
-		}
+	}
 
     if(strcmp(name,"CamDevie")==0){
 	    rk_cam_total_info* pNewCamInfo = new rk_cam_total_info();
@@ -850,10 +849,10 @@ exit:
 
     size_t nCamDev2 = profiles->mDevieVector.size();
     ALOGD("number of camdevice (%d)\n", nCamDev2);
-    
+
     if (nCamDev2>0) {
-    size_t nDVnum2 = profiles->mCurDevice->mSoftInfo.mDV_vector.size();
-    ALOGD("now DV size(%d)\n", nDVnum2);
+        size_t nDVnum2 = profiles->mCurDevice->mSoftInfo.mDV_vector.size();
+        ALOGD("now DV size(%d)\n", nDVnum2);
     }
     return profiles;
 
@@ -881,7 +880,7 @@ bool camera_board_profiles::LoadALLCalibrationData(camera_board_profiles* profil
             CalibDb *pcalidb = &(profiles->mDevieVector[i]->mLoadSensorInfo.calidb);
             memset(filename, 0x00, 50);
             if(strlen(pSensorInfo->mLensName) == 0)
-            sprintf(filename, "%s.xml", pSensorInfo->mSensorName);
+                sprintf(filename, "%s.xml", pSensorInfo->mSensorName);
             else
                 sprintf(filename, "%s_lens_%s.xml", pSensorInfo->mSensorName,pSensorInfo->mLensName);
             bool res = pcalidb->CreateCalibDb(filename);
@@ -978,7 +977,7 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         	if(pIsiCamDrvConfig->IsiSensor.pIsiSensorCaps->SensorOutputMode == ISI_SENSOR_OUTPUT_MODE_RAW){
 	            CalibDb *pcalidb = &(pCamInfo->mLoadSensorInfo.calidb);
                 if(strlen(pSensorInfo->mLensName) == 0)
-	            sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName);
+	                sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName);
                 else
 	                sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s_lens_%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName,pSensorInfo->mLensName);
                 LOGD("sensor xml file name : %s lens name %s",pLoadSensorInfo->mSensorXmlFile,pSensorInfo->mLensName);

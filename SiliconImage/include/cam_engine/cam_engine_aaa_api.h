@@ -193,6 +193,13 @@ typedef enum CamEngineAecHistMeasureMode_e
     CentreWeightMetering = 1
 } CamEngineAecHistMeasureMode_t;
 
+typedef enum CamEngine3aLock_e
+{
+    Lock_awb = 1,
+    Lock_aec = 2,
+    Lock_af = 4
+} CamEngine3aLock_t;
+
 /*****************************************************************************/
 /**
  * @brief   This functions starts the Auto-White-Balance.
@@ -255,14 +262,21 @@ RESULT CamEngineAwbReset
 );
 /* ddl@rock-chips.com: v0.0x29.0 */
 /******************************************************************************
- * CamEngineAecLock()
+ * CamEngine3aLock()
  *****************************************************************************/
-RESULT CamEngineAecLock
+RESULT CamEngine3aLock
 (
     CamEngineHandle_t hCamEngine,
-    bool_t            lock
+    CamEngine3aLock_t lock
 );
-
+/******************************************************************************
+ * CamEngine3aUnLock()
+ *****************************************************************************/
+RESULT CamEngine3aUnLock
+(
+    CamEngineHandle_t hCamEngine,
+    CamEngine3aLock_t unlock
+);
 /*****************************************************************************/
 /**
  * @brief   This functions returns the Auto-White-Balance status.

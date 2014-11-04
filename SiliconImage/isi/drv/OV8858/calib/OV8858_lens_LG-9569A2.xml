@@ -2,7 +2,7 @@
 <matfile>
    <header type="struct" size="[1 1]">
       <creation_date index="1" type="char" size="[1 11]">
-         18-7-2014
+         29-10-2014
       </creation_date>
       <creator index="1" type="char" size="[1 2]">
          oyyf-hkw
@@ -14,7 +14,7 @@
          CMK-CB0407-FV1
       </sample_name>
       <generator_version index="1" type="char" size="[1 4]">
-         v0.1.1
+         v0.2.0
       </generator_version>
       <resolution index="1" type="cell" size="[1 2]">
          <cell index="1" type="struct" size="[1 1]">
@@ -85,46 +85,46 @@
              0.3628393483613405  -0.8148710973068151  0.4520317489454747]
                </PCAMatrix>
                <CenterLine index="1" type="double" size="[1 3]">
-                  [-0.8278378447109627  -0.5609674704154494 -2.2143460057185149]
+                  [-0.8374799403915888  -0.5464680680897111 -2.1636960157433256]
                </CenterLine>
                <afRg2 index="1" type="double" size="[1 16]">
-                  [0.90282f,	0.96571f,	1.02859f,	1.09148f,	1.15436f,	1.21756f,	1.28073f,	1.33188f,	1.41714f,	1.48121f,	1.54120f,	1.59973f,	1.65849f,	1.72033f,	1.78321f,	1.84610f]
+                  [0.90718f,	0.96768f,	1.02918f,	1.07156f,	1.11212f,	1.14131f,	1.17282f,	1.19367f,	1.23914f,	1.28423f,	1.33334f,	1.37619f,	1.40876f,	1.44966f,	1.49327f,	1.55012f]
                </afRg2>
                <afMaxDist2 index="1" type="double" size="[1 16]">
-                  [0.00917f,	-0.00223f,	-0.01212f,	-0.02079f,	-0.02784f,	-0.00096f,	 0.12016f,	 0.19163f,	 0.17255f,	 0.12477f,	 0.05724f,	 0.03095f,	 0.01427f,	-0.00051f,	 0.01633f,	 0.05013f]
+                  [0.02107f,	0.02050f,	0.02554f,	0.01417f,	0.04421f,	0.10746f,	0.16793f,	0.22641f,	0.27021f,	0.28504f,	0.24602f,	0.18014f,	0.14125f,	0.10713f,	0.09920f,	0.10979f]
                </afMaxDist2>
                <afRg1 index="1" type="double" size="[1 16]">
-                  [0.90282f,	0.96571f,	1.02859f,	1.09148f,	1.15436f,	1.21725f,	1.28013f,	1.34302f,	1.40590f,	1.46879f,	1.53167f,	1.59456f,	1.65744f,	1.72033f,	1.78321f,	1.84610f]
+                  [0.90718f,	0.96105f,	1.01491f,	1.07105f,	1.11233f,	1.14528f,	1.18289f,	1.22417f,	1.26791f,	1.29853f,	1.33516f,	1.38367f,	1.42276f,	1.46637f,	1.50190f,	1.55519f]
                </afRg1>
                <afMaxDist1 index="1" type="double" size="[1 16]">
-                  [0.00083f,	 0.01223f,	 0.02212f,	 0.03079f,	 0.03784f,	 0.04339f,	 0.04718f,	 0.04905f,	 0.04890f,	 0.04657f,	 0.04177f,	 0.03429f,	 0.02407f,	 0.01051f,	-0.00633f,	-0.04013f]
+                  [-0.01107f,	 0.00042f,	 0.01064f,	 0.02446f,	 0.02961f,	 0.03953f,	 0.05500f,	 0.06015f,	 0.05842f,	 0.06556f,	 0.06515f,	 0.05932f,	 0.05204f,	 0.05996f,	 0.05334f,	 0.04341f]
                </afMaxDist1>
                <afGlobalFade2 index="1" type="double" size="[1 16]">
-                  [0.80000f,	0.87241f,	0.95413f,	1.01722f,	1.10759f,	1.15623f,	1.24293f,	1.36839f,	1.45465f,	1.52744f,	1.56501f,	1.61712f,	1.66888f,	1.74129f,	1.81369f,	1.88610f]
+                  [0.80000f,	0.86368f,	0.92735f,	0.99103f,	1.05654f,	1.10646f,	1.13344f,	1.20332f,	1.29422f,	1.37221f,	1.42094f,	1.50274f,	1.54855f,	1.63577f,	1.69372f,	1.75515f]
                </afGlobalFade2>
                <afGlobalGainDistance2 index="1" type="double" size="[1 16]">
-                  [0.12525f,	0.10999f,	0.09022f,	0.08451f,	0.09733f,	0.21626f,	0.36324f,	0.35977f,	0.28024f,	0.19231f,	0.14693f,	0.10373f,	0.08313f,	0.09966f,	0.12087f,	0.16525f]
+                  [0.14185f,	0.12599f,	0.11170f,	0.09867f,	0.13020f,	0.24227f,	0.31795f,	0.42089f,	0.41535f,	0.32713f,	0.25913f,	0.19088f,	0.17052f,	0.15466f,	0.15904f,	0.15440f]
                </afGlobalGainDistance2>
                <afGlobalFade1 index="1" type="double" size="[1 16]">
-                  [0.80000f,	0.87241f,	0.94481f,	1.01722f,	1.08963f,	1.16203f,	1.23444f,	1.30685f,	1.37925f,	1.45166f,	1.52407f,	1.59647f,	1.66888f,	1.74129f,	1.81369f,	1.88610f]
+                  [0.80000f,	0.86368f,	0.92735f,	0.99103f,	1.05471f,	1.11838f,	1.18206f,	1.24574f,	1.30941f,	1.37309f,	1.43677f,	1.50044f,	1.56412f,	1.62780f,	1.69147f,	1.75515f]
                </afGlobalFade1>
                <afGlobalGainDistance1 index="1" type="double" size="[1 16]">
-                  [0.07475f,	0.09001f,	0.10351f,	0.11549f,	0.12548f,	0.13365f,	0.13962f,	0.14320f,	0.14423f,	0.14244f,	0.13749f,	0.12902f,	0.11687f,	0.10034f,	0.07913f,	0.03475f]
+                  [0.05815f,	0.07401f,	0.08830f,	0.10133f,	0.11247f,	0.12195f,	0.12949f,	0.13476f,	0.13769f,	0.13792f,	0.13514f,	0.12893f,	0.11904f,	0.10465f,	0.08555f,	0.04560f]
                </afGlobalGainDistance1>
                <K_Factor index="1" type="double" size="[1 1]">
                   [ 4.5676]
                </K_Factor>
                <afFade2 index="1" type="double" size="[1 6]">
-                  [0.5 1.0842 1.5602 1.7598 1.9121 3.1]
+                  [0.8 0.9 1.1 1.3 1.5 1.6]
                </afFade2>
                <afCbMinRegionMax index="1" type="double" size="[1 6]">
-                  [114 114 105 95 95 90]
+                  [110 110 105 102 100 95]
                </afCbMinRegionMax>
                <afCrMinRegionMax index="1" type="double" size="[1 6]">
-                  [83 83 110 120 122 128]
+                  [105 105 110 115 120 120]
                </afCrMinRegionMax>
                <afMaxCSumRegionMax index="1" type="double" size="[1 6]">
-                  [28 27 18 16 9 9]
+                  [22 20 18 18 16 14]
                </afMaxCSumRegionMax>
                <afCbMinRegionMin index="1" type="double" size="[1 6]">
                   [123 123 123 123 123 120]
@@ -145,17 +145,32 @@
                   [ 0.05]
                </RegionSizeDec>
                <fRgProjIndoorMin index="1" type="double" size="[1 1]">
-                  [ 0.90282]
+                  [ 0.90718]
                </fRgProjIndoorMin>
                <fRgProjMax index="1" type="double" size="[1 1]">
-                  [1.8461]
+                  [1.55]
                </fRgProjMax>
                <fRgProjMaxSky index="1" type="double" size="[1 1]">
-                  [1.8861]
+                  [1.7552]
                </fRgProjMaxSky>
                <fRgProjOutdoorMin index="1" type="double" size="[1 1]">
-                  [ 1.4688]
+                  [1.37]
                </fRgProjOutdoorMin>
+               <fRgProjALimit index="1" type="double" size="[1 1]">
+                  [1.0]
+               </fRgProjALimit>
+               <fRgProjAWeight index="1" type="double" size="[1 1]">
+                  [ 0.7]
+               </fRgProjAWeight>
+               <fRgProjYellowLimit index="1" type="double" size="[1 1]">
+                  [ 1.12]
+               </fRgProjYellowLimit>
+               <fRgProjIllToCwf index="1" type="double" size="[1 1]">
+                  [ 0.17]
+               </fRgProjIllToCwf>
+               <fRgProjIllToCwfWeight index="1" type="double" size="[1 1]">
+                  [ 0.6]
+               </fRgProjIllToCwfWeight>
                <awb_clip_outdoor index="1" type="char" size="[1 3]">
                   D65
                </awb_clip_outdoor>
@@ -170,13 +185,13 @@
                      [ 0.1]
                   </DampFilterThreshold>
                   <DampingCoefMin index="1" type="double" size="[1 1]">
-                     [ 0.5]
+                     [ 0.7]
                   </DampingCoefMin>
                   <DampingCoefMax index="1" type="double" size="[1 1]">
-                     [ 0.7]
+                     [ 0.9]
                   </DampingCoefMax>
                   <DampingCoefInit index="1" type="double" size="[1 1]">
-                     [ 0.5]
+                     [ 0.7]
                   </DampingCoefInit>
                   <ExpPriorFilterSizeMax index="1" type="double" size="[1 1]">
                      [ 50]
@@ -189,7 +204,7 @@
                   </ExpPriorMiddle>
                </IIR>
             </cell>
-	            <cell index="2" type="struct" size="[1 1]">
+            <cell index="2" type="struct" size="[1 1]">
                <name index="1" type="char" size="[1 9]">
                   3264x2448
                </name>
@@ -204,46 +219,46 @@
              0.3628393483613405  -0.8148710973068151  0.4520317489454747]
                </PCAMatrix>
                <CenterLine index="1" type="double" size="[1 3]">
-                  [-0.8278378447109627  -0.5609674704154494 -2.2143460057185149]
+                  [-0.8374799403915888  -0.5464680680897111 -2.1636960157433256]
                </CenterLine>
                <afRg2 index="1" type="double" size="[1 16]">
-                  [0.90282f,	0.96571f,	1.02859f,	1.09148f,	1.15436f,	1.21756f,	1.28073f,	1.33188f,	1.41714f,	1.48121f,	1.54120f,	1.59973f,	1.65849f,	1.72033f,	1.78321f,	1.84610f]
+                  [0.90718f,	0.96768f,	1.02918f,	1.07156f,	1.11212f,	1.14131f,	1.17282f,	1.19367f,	1.23914f,	1.28423f,	1.33334f,	1.37619f,	1.40876f,	1.44966f,	1.49327f,	1.55012f]
                </afRg2>
                <afMaxDist2 index="1" type="double" size="[1 16]">
-                  [0.00917f,	-0.00223f,	-0.01212f,	-0.02079f,	-0.02784f,	-0.00096f,	 0.12016f,	 0.19163f,	 0.17255f,	 0.12477f,	 0.05724f,	 0.03095f,	 0.01427f,	-0.00051f,	 0.01633f,	 0.05013f]
+                  [0.02107f,	0.02050f,	0.02554f,	0.01417f,	0.04421f,	0.10746f,	0.16793f,	0.22641f,	0.27021f,	0.28504f,	0.24602f,	0.18014f,	0.14125f,	0.10713f,	0.09920f,	0.10979f]
                </afMaxDist2>
                <afRg1 index="1" type="double" size="[1 16]">
-                  [0.90282f,	0.96571f,	1.02859f,	1.09148f,	1.15436f,	1.21725f,	1.28013f,	1.34302f,	1.40590f,	1.46879f,	1.53167f,	1.59456f,	1.65744f,	1.72033f,	1.78321f,	1.84610f]
+                  [0.90718f,	0.96105f,	1.01491f,	1.07105f,	1.11233f,	1.14528f,	1.18289f,	1.22417f,	1.26791f,	1.29853f,	1.33516f,	1.38367f,	1.42276f,	1.46637f,	1.50190f,	1.55519f]
                </afRg1>
                <afMaxDist1 index="1" type="double" size="[1 16]">
-                  [0.00083f,	 0.01223f,	 0.02212f,	 0.03079f,	 0.03784f,	 0.04339f,	 0.04718f,	 0.04905f,	 0.04890f,	 0.04657f,	 0.04177f,	 0.03429f,	 0.02407f,	 0.01051f,	-0.00633f,	-0.04013f]
+                  [-0.01107f,	 0.00042f,	 0.01064f,	 0.02446f,	 0.02961f,	 0.03953f,	 0.05500f,	 0.06015f,	 0.05842f,	 0.06556f,	 0.06515f,	 0.05932f,	 0.05204f,	 0.05996f,	 0.05334f,	 0.04341f]
                </afMaxDist1>
                <afGlobalFade2 index="1" type="double" size="[1 16]">
-                  [0.80000f,	0.87241f,	0.95413f,	1.01722f,	1.10759f,	1.15623f,	1.24293f,	1.36839f,	1.45465f,	1.52744f,	1.56501f,	1.61712f,	1.66888f,	1.74129f,	1.81369f,	1.88610f]
+                  [0.80000f,	0.86368f,	0.92735f,	0.99103f,	1.05654f,	1.10646f,	1.13344f,	1.20332f,	1.29422f,	1.37221f,	1.42094f,	1.50274f,	1.54855f,	1.63577f,	1.69372f,	1.75515f]
                </afGlobalFade2>
                <afGlobalGainDistance2 index="1" type="double" size="[1 16]">
-                  [0.12525f,	0.10999f,	0.09022f,	0.08451f,	0.09733f,	0.21626f,	0.36324f,	0.35977f,	0.28024f,	0.19231f,	0.14693f,	0.10373f,	0.08313f,	0.09966f,	0.12087f,	0.16525f]
+                  [0.14185f,	0.12599f,	0.11170f,	0.09867f,	0.13020f,	0.24227f,	0.31795f,	0.42089f,	0.41535f,	0.32713f,	0.25913f,	0.19088f,	0.17052f,	0.15466f,	0.15904f,	0.15440f]
                </afGlobalGainDistance2>
                <afGlobalFade1 index="1" type="double" size="[1 16]">
-                  [0.80000f,	0.87241f,	0.94481f,	1.01722f,	1.08963f,	1.16203f,	1.23444f,	1.30685f,	1.37925f,	1.45166f,	1.52407f,	1.59647f,	1.66888f,	1.74129f,	1.81369f,	1.88610f]
+                  [0.80000f,	0.86368f,	0.92735f,	0.99103f,	1.05471f,	1.11838f,	1.18206f,	1.24574f,	1.30941f,	1.37309f,	1.43677f,	1.50044f,	1.56412f,	1.62780f,	1.69147f,	1.75515f]
                </afGlobalFade1>
                <afGlobalGainDistance1 index="1" type="double" size="[1 16]">
-                  [0.07475f,	0.09001f,	0.10351f,	0.11549f,	0.12548f,	0.13365f,	0.13962f,	0.14320f,	0.14423f,	0.14244f,	0.13749f,	0.12902f,	0.11687f,	0.10034f,	0.07913f,	0.03475f]
+                  [0.05815f,	0.07401f,	0.08830f,	0.10133f,	0.11247f,	0.12195f,	0.12949f,	0.13476f,	0.13769f,	0.13792f,	0.13514f,	0.12893f,	0.11904f,	0.10465f,	0.08555f,	0.04560f]
                </afGlobalGainDistance1>
                <K_Factor index="1" type="double" size="[1 1]">
                   [ 4.5676]
                </K_Factor>
                <afFade2 index="1" type="double" size="[1 6]">
-                  [0.5 1.0842 1.5602 1.7598 1.9121 3.1]
+                  [0.8 0.9 1.1 1.3 1.5 1.6]
                </afFade2>
                <afCbMinRegionMax index="1" type="double" size="[1 6]">
-                  [114 114 105 95 95 90]
+                  [110 110 105 102 100 95]
                </afCbMinRegionMax>
                <afCrMinRegionMax index="1" type="double" size="[1 6]">
-                  [83 83 110 120 122 128]
+                  [105 105 110 115 120 120]
                </afCrMinRegionMax>
                <afMaxCSumRegionMax index="1" type="double" size="[1 6]">
-                  [28 27 18 16 9 9]
+                  [22 20 18 18 16 14]
                </afMaxCSumRegionMax>
                <afCbMinRegionMin index="1" type="double" size="[1 6]">
                   [123 123 123 123 123 120]
@@ -264,17 +279,32 @@
                   [ 0.05]
                </RegionSizeDec>
                <fRgProjIndoorMin index="1" type="double" size="[1 1]">
-                  [ 0.90282]
+                  [ 0.90718]
                </fRgProjIndoorMin>
                <fRgProjMax index="1" type="double" size="[1 1]">
-                  [1.8461]
+                  [1.55]
                </fRgProjMax>
                <fRgProjMaxSky index="1" type="double" size="[1 1]">
-                  [1.8861]
+                  [1.7552]
                </fRgProjMaxSky>
                <fRgProjOutdoorMin index="1" type="double" size="[1 1]">
-                  [ 1.4688]
+                  [1.37]
                </fRgProjOutdoorMin>
+               <fRgProjALimit index="1" type="double" size="[1 1]">
+                  [1.0]
+               </fRgProjALimit>
+               <fRgProjAWeight index="1" type="double" size="[1 1]">
+                  [ 0.7]
+               </fRgProjAWeight>
+               <fRgProjYellowLimit index="1" type="double" size="[1 1]">
+                  [ 1.12]
+               </fRgProjYellowLimit>
+               <fRgProjIllToCwf index="1" type="double" size="[1 1]">
+                  [ 0.17]
+               </fRgProjIllToCwf>
+               <fRgProjIllToCwfWeight index="1" type="double" size="[1 1]">
+                  [ 0.6]
+               </fRgProjIllToCwfWeight>
                <awb_clip_outdoor index="1" type="char" size="[1 3]">
                   D65
                </awb_clip_outdoor>
@@ -289,13 +319,13 @@
                      [ 0.1]
                   </DampFilterThreshold>
                   <DampingCoefMin index="1" type="double" size="[1 1]">
-                     [ 0.5]
+                     [ 0.7]
                   </DampingCoefMin>
                   <DampingCoefMax index="1" type="double" size="[1 1]">
-                     [ 0.7]
+                     [ 0.9]
                   </DampingCoefMax>
                   <DampingCoefInit index="1" type="double" size="[1 1]">
-                     [ 0.5]
+                     [ 0.7]
                   </DampingCoefInit>
                   <ExpPriorFilterSizeMax index="1" type="double" size="[1 1]">
                      [ 50]
@@ -308,7 +338,6 @@
                   </ExpPriorMiddle>
                </IIR>
             </cell>
-
          </globals>
          <illumination index="1" type="cell" size="[1 4]">
             <cell index="1" type="struct" size="[1 1]">
@@ -320,16 +349,17 @@
                </doorType>
                <GMM index="1" type="struct" size="[1 1]">
                   <invCovMatrix index="1" type="double" size="[1 4]">
-                     [ 4371.05643f,  5013.61431f, 5013.61431f,  7939.67169f ]
+                     [4371.0564288346523000  5013.6143059031965000
+                   5013.6143059031965000  7939.6716936418461000]
                   </invCovMatrix>
                   <GaussianScalingFactor index="1" type="double" size="[1 1]">
-                     [492.31192f]
+                     [492.3119197088839800]
                   </GaussianScalingFactor>
                   <tau index="1" type="double" size="[1 2]">
-                     [0.85 0.9]
+                     [0.87 0.92]
                   </tau>
                   <GaussianMeanValue index="1" type="double" size="[1 2]">
-                     [-0.03286f,  -0.01773f ]
+                     [-0.0328630884252731  -0.0177260663310165]
                   </GaussianMeanValue>
                </GMM>
                <aLSC index="1" type="cell" size="[1 2]">
@@ -395,16 +425,17 @@
                </doorType>
                <GMM index="1" type="struct" size="[1 1]">
                   <invCovMatrix index="1" type="double" size="[1 4]">
-                     [429.84304f,  119.47511f,  119.47511f,  1768.24631f ]
+                     [429.8430378737645600  119.4751115799863200
+                   119.4751115799863200  1768.2463088396617000]
                   </invCovMatrix>
                   <GaussianScalingFactor index="1" type="double" size="[1 1]">
-                     [ 137.44520f]
+                     [137.4452047160141300]
                   </GaussianScalingFactor>
                   <tau index="1" type="double" size="[1 2]">
                      [1 1]
                   </tau>
                   <GaussianMeanValue index="1" type="double" size="[1 2]">
-                     [0.16071f,  -0.01773f ]
+                     [0.1607119506710701  -0.0177260663310164]
                   </GaussianMeanValue>
                </GMM>
                <aLSC index="1" type="cell" size="[1 2]">
@@ -470,16 +501,17 @@
                </doorType>
                <GMM index="1" type="struct" size="[1 1]">
                   <invCovMatrix index="1" type="double" size="[1 4]">
-                     [744.01985f,  287.69357f, 287.69357f,  2192.17612f]
+                     [744.0198522844385700  287.6935707648548800
+                   287.6935707648548800  2192.1761177633939000]
                   </invCovMatrix>
                   <GaussianScalingFactor index="1" type="double" size="[1 1]">
-                     [198.03474f]
+                     [198.0347350808873700]
                   </GaussianScalingFactor>
                   <tau index="1" type="double" size="[1 2]">
-                     [0.87 0.97]
+                     [0.85 0.92]
                   </tau>
                   <GaussianMeanValue index="1" type="double" size="[1 2]">
-                     [0.04699f,  -0.05349f]
+                     [0.0469858184565184  -0.0534879719855837]
                   </GaussianMeanValue>
                </GMM>
                <aLSC index="1" type="cell" size="[1 2]">
@@ -545,16 +577,17 @@
                </doorType>
                <GMM index="1" type="struct" size="[1 1]">
                   <invCovMatrix index="1" type="double" size="[1 4]">
-                     [656.22487f,  475.42660f,  475.42660f,  2073.83330f]
+                     [656.2248736766757700  475.4266048936960900
+                   475.4266048936960900  2073.8332953774402000]
                   </invCovMatrix>
                   <GaussianScalingFactor index="1" type="double" size="[1 1]">
-                     [169.54824f]
+                     [169.5482423621259900]
                   </GaussianScalingFactor>
                   <tau index="1" type="double" size="[1 2]">
-                     [0.85 0.95]
+                     [0.85 0.9]
                   </tau>
                   <GaussianMeanValue index="1" type="double" size="[1 2]">
-                     [0.04403f,  -0.02427f ]
+                     [0.0440318139643327  -0.0242749563780659]
                   </GaussianMeanValue>
                </GMM>
                <aLSC index="1" type="cell" size="[1 2]">
@@ -3632,13 +3665,13 @@
             [ 70]
          </SetPoint>
          <ClmTolerance index="1" type="double" size="[1 1]">
-            [ 8]
+            [ 10]
          </ClmTolerance>
          <DampOver index="1" type="double" size="[1 1]">
-            [ 0.2]
+            [ 0.5]
          </DampOver>
          <DampUnder index="1" type="double" size="[1 1]">
-            [ 0.3]
+            [ 0.8]
          </DampUnder>
          <DampOverVideo index="1" type="double" size="[1 1]">
             [ 0.7]

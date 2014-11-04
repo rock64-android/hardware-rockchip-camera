@@ -94,11 +94,11 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 	mCamDriverFrmHeightMax = 0;
     while ((ret = ioctl(mCamFd, VIDIOC_ENUM_FRAMESIZES, &fsize)) == 0) {
         if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {  
-			//if(fsize.discrete.width%16 || fsize.discrete.height%16)
-			//{
-			//	fsize.index++;
-			//	continue;
-			//}
+//			if(fsize.discrete.width%16 || fsize.discrete.height%16)
+//			{
+//				fsize.index++;
+//				continue;
+//			}
             memset(str_element,0x00,sizeof(str_element));
             if (parameterString.size() != 0) 
                 str_element[0]=',';
@@ -376,10 +376,10 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 
     parameterString = CameraParameters::FOCUS_MODE_FIXED;
     params.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_FIXED);
-#if 1
+	#if 1
 	params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES, CameraParameters::FOCUS_MODE_FIXED);
-	params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");  
-#else
+	params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
+	#else
     focus.id = V4L2_CID_FOCUS_AUTO;
     if (!ioctl(mCamFd, VIDIOC_QUERYCTRL, &focus)) {
         parameterString.append(",");
@@ -412,7 +412,7 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 	}else{
 	   params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
 	}
-#endif 
+	#endif
 	//hardware face detect settings
 	struct v4l2_queryctrl facedetect;
 	facedetect.id = V4L2_CID_FACEDETECT;
@@ -958,8 +958,10 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
 		}
 	}
 
+    //do zoom here?
     return ret;
     
 }
+
 
 }
