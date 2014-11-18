@@ -18,8 +18,10 @@
 *   1). support for isi v0.7.0
 *v0.5.0
 *   1). fix cts verify green screen
+*v0.6.0
+*   1). fix green screen bug caused by 1600x1200 regs setting. 
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 5, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 6, 0) 
 
 #ifdef __cplusplus
 extern "C"

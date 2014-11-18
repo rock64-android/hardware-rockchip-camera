@@ -587,7 +587,7 @@ const IsiRegDescription_t OV2659_g_1600x1200[] =
 	//frame rate clk
 	{0x3005, 0x24,"",eReadWrite},
 	{0x3004, 0x20,"",eReadWrite},
-	{0x4003, 0x88,"",eReadWrite},// awb peak
+	//{0x4003, 0x88,"",eReadWrite},// awb peak //zyl v0.6.0
 	{0x3a00, 0x3c,"",eReadWrite},
 	//wqs add
 	{0x0100, 0x01,"",eReadWrite},    
@@ -664,7 +664,7 @@ const IsiRegDescription_t OV2659_g_1600x1200[] =
 	{0x3a0b, 0x3e,"",eReadWrite},//7b 				
 	{0x3a0d, 0x13,"",eReadWrite},//0a 		
 
-	{0x4003, 0x88,"",eReadWrite},
+	//{0x4003, 0x88,"",eReadWrite}, //zyl v0.6.0
 	#endif
     {0x0000 ,0x00,"eTableEnd",eTableEnd}
 
