@@ -5,6 +5,8 @@ PRODUCT_PACKAGES += \
 	libisp_isi_drv_OV8825 \
 	libisp_isi_drv_OV8820 \
 	libisp_isi_drv_OV8858 \
+	libisp_isi_drv_OV5648 \
+	libisp_isi_drv_OV5640 \
 	libisp_isi_drv_OV13850 \
 	libisp_isi_drv_HM2057 \
 	libisp_isi_drv_SP2518 \
