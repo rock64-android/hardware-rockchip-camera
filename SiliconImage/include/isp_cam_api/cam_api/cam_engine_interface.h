@@ -197,10 +197,21 @@
 *    include for ifive(hisense f415)
 *    v1.0x11.2:
 *          1) add g_pCamEngineCtx_lock for g_pCamEngineCtx;
+*v1.0x14.0
+*          1) support ext flash
+*v1.0x15.0
+*    include for ifive(hisense f415)
+*    v1.0x11.3:
+*          1) pAecCtx->EcmT0fac(1.0 -> 13.0) for ISI_RES_2592_1944P7 and ISI_RES_3264_2448P7;
+*          2) AecReConfigure must call EcmExecuteDirect, no call EcmExecute;  
+*    v1.0x11.4:
+*          1) getPreferedSensorRes support max_exp_res/max_fps_res/max_res for different request resolution;
+*    v1.0x11.5:
+*          1) pAecCtx->EcmT0 define max integration time for 5M and 8M resolution;
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x13, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x15, 0)
 
 
 class CamEngineItf;

@@ -51,8 +51,8 @@ CREATE_TRACER( OV5640_REG_DEBUG, "OV5640: ", INFO, 0U );
 
 #define SOC_AF 1
 
-#define AF_Address     0x3022U
-#define AF_CMD         0x03U
+#define AF_Address    0x3022U
+#define AF_CMD        0x03U
 #define AF_IDLE        0x08U
 #define AF_ACK_Address 0x3023U
 #define AF_ACK_VALUE   0x01U
@@ -2652,6 +2652,19 @@ static RESULT OV5640_IsiMdiFocusSet
         return ( RET_WRONG_HANDLE );
     }
 
+    /* map 64 to 0 -> infinity */
+/*
+    result = HalWriteI2CMem( pOV5640Ctx->IsiCtx.HalHandle,
+                             pOV5640Ctx->IsiCtx.I2cAfBusNum,
+                             pOV5640Ctx->IsiCtx.SlaveAfAddress,
+                             0,
+                             pOV5640Ctx->IsiCtx.NrOfAfAddressBytes,
+                             data,
+                             2U );
+    RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
+*/
+
+	//osSleep(1000);
 	TRACE( OV5640_ERROR, "%s: Position:%d\n", __FUNCTION__,Position);
 	if(Position == 1) { 
 		result = HalWriteI2CMem_Rate( pOV5640Ctx->IsiCtx.HalHandle,
@@ -3097,6 +3110,7 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationChk>*/   //ddl@rock-chips.com 
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationSet>*/   //ddl@rock-chips.com
+        0,                      /**< IsiSensor_t.pIsiCheckOTPInfo>*/  //zyc 
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

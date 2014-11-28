@@ -414,14 +414,25 @@ namespace android {
 		      1) uvc support 16bit unaligned resolution.
 		      2) uvc operation in camera_get_number_of_cameras func exist bug, fixed it.
 		      3) filter frames for isp soc camera.
-*v1.0x21.1:
-*     1) support V4L2 flash control of soc camera when picure size is the same as preview size.
 *v1.0x22.0:
 *    include following version for ifive(hisense f415)
 *    v1.0x1f.1:
 *       1) 1632x1224 -> 1600x1200 scale crop by isp, rga run error;
+*v1.0x23.0:
+*       1) support ext flash
+*v1.0x24.0:
+*       1) support OTP
+*v1.0x25.0:
+*       1) select max exposure time for capture, it is suit for Libisp v1.0x15.0;
+*       2) disable lock af for capture;
+*       3) disable lsc only low light for flash;
+*v1.0x26.0:
+*   1) merge source code frome mid,include following version:
+*       v1.0x21.1:
+*          1) support V4L2 flash control of soc camera when picure size is the same as preview size.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x22, 0)
+
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x26, 0)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

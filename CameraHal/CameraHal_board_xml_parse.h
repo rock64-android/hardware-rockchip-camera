@@ -125,6 +125,7 @@ typedef enum sensor_interface_s{
 #define FOCUS_CONTINUOUS_VIDEO_BITPOS   (5)
 #define FOCUS_CONTINUOUS_PICTURE_BITPOS (6)
 
+
 struct rk_sensor_info{
     rk_sensor_info():
                 mCamDevid(0),
@@ -234,12 +235,13 @@ struct rk_flash_info{
 };
 
 struct rk_cam_hardware_info{
-    rk_cam_hardware_info(){};
+    rk_cam_hardware_info():mIsOTP(false){};
     ~rk_cam_hardware_info(){};
     
     rk_sensor_info mSensorInfo;
     rk_vcm_info mVcmInfo;
     rk_flash_info mFlashInfo;
+    bool    mIsOTP;
 };
 
 struct rk_white_balance_config{
@@ -464,6 +466,5 @@ public:
 	int mBoardXmlVersion;
 
 };
-
 
 #endif

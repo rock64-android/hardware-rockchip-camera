@@ -96,6 +96,22 @@ extern const IsiRegDescription_t OV13850_g_twolane_resolution_2112_1568[];
 extern const IsiRegDescription_t OV13850_g_aRegDescription_onelane[];
 extern const IsiRegDescription_t OV13850_g_onelane_resolution_4224_3136[];
 extern const IsiRegDescription_t OV13850_g_onelane_resolution_2112_1568[];
+extern const IsiRegDescription_t OV13850_g_2112x1568P30_twolane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_2112x1568P25_twolane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_2112x1568P20_twolane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_2112x1568P15_twolane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_2112x1568P10_twolane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_4224x3136P7_twolane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_4224x3136P4_twolane_fpschg[];
+
+extern const IsiRegDescription_t OV13850_g_2112x1568P30_fourlane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_2112x1568P25_fourlane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_2112x1568P20_fourlane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_2112x1568P15_fourlane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_2112x1568P10_fourlane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_4224x3136P15_fourlane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_4224x3136P7_fourlane_fpschg[];
+extern const IsiRegDescription_t OV13850_g_4224x3136P4_fourlane_fpschg[];
 
 
 const IsiSensorCaps_t OV13850_g_IsiSensorDefaultConfig;
@@ -367,7 +383,32 @@ static RESULT OV13850_IsiGetCapsIssInternal
                 }
                 case 1:
                 {
+                    pIsiSensorCaps->Resolution = ISI_RES_4224_3136P4;
+                    break;
+                }			
+                case 2:
+                {
                     pIsiSensorCaps->Resolution = ISI_RES_2112_1568P30;
+                    break;
+                }
+                case 3:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_2112_1568P25;
+                    break;
+                }
+                case 4:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_2112_1568P20;
+                    break;
+                }
+                case 5:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_2112_1568P15;
+                    break;
+                }
+                case 6:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_2112_1568P10;
                     break;
                 }
                 default:
@@ -387,7 +428,37 @@ static RESULT OV13850_IsiGetCapsIssInternal
                 }
                 case 1:
                 {
+                    pIsiSensorCaps->Resolution = ISI_RES_4224_3136P7;
+                    break;
+                }
+                case 2:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_4224_3136P4;
+                    break;
+                }				
+                case 3:
+                {
                     pIsiSensorCaps->Resolution = ISI_RES_2112_1568P30;
+                    break;
+                }
+                case 4:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_2112_1568P25;
+                    break;
+                }
+                case 5:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_2112_1568P20;
+                    break;
+                }
+                case 6:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_2112_1568P15;
+                    break;
+                }
+                case 7:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_2112_1568P10;
                     break;
                 }
                 default:
@@ -780,15 +851,19 @@ int OV13850_get_PCLK( OV13850_Context_t *pOV13850Ctx, int XVCLK)
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV13850_SetupOutputWindow
+static RESULT OV13850_SetupOutputWindowInternal
 (
     OV13850_Context_t        *pOV13850Ctx,
-    const IsiSensorConfig_t *pConfig
+    const IsiSensorConfig_t *pConfig,
+    bool_t set2Sensor,
+    bool_t res_no_chg
 )
 {
     RESULT result     = RET_SUCCESS;
     uint16_t usFrameLengthLines = 0;
     uint16_t usLineLengthPck    = 0;
+	uint16_t usTimeHts;
+	uint16_t usTimeVts;
     float    rVtPixClkFreq      = 0.0f;
     int xclk = 24000000;
 
@@ -800,13 +875,16 @@ static RESULT OV13850_SetupOutputWindow
 	    {
 	        case ISI_RES_2112_1568P15:
 	        {
-			  	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_onelane_resolution_2112_1568)) != RET_SUCCESS){
-					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set one lane ISI_RES_2112_1568 \n", __FUNCTION__ );
-	            }
-
-	            usLineLengthPck = 0x12c0;
-	            usFrameLengthLines = 0x0680;
+				if (set2Sensor == BOOL_TRUE) {
+				    TRACE( OV13850_DEBUG, "%s(%d): Resolution 2112x1568\n", __FUNCTION__,__LINE__ );
+    				result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_onelane_resolution_2112_1568);
+    				if ( result != RET_SUCCESS )
+    				{
+    					return ( result );
+    				}
+				}
+	            usTimeHts = 0x12c0;
+	            usTimeVts = 0x0680;
 				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 640;
 	            break;
 	            
@@ -816,11 +894,11 @@ static RESULT OV13850_SetupOutputWindow
 	        {
 	         	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_onelane_resolution_4224_3136)) != RET_SUCCESS){
 					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set one lane ISI_RES_4208_3120 \n", __FUNCTION__ );
+					TRACE( OV13850_ERROR, "%s: failed to set one lane OV13850_g_onelane_resolution_4224_3136 \n", __FUNCTION__ );
 	            }
 
-	            usLineLengthPck = 0x12c0;
-	            usFrameLengthLines = 0x0d00;
+	            usTimeHts = 0x12c0;
+	            usTimeVts = 0x0d00;
 				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 640;
 	            break;
 	            
@@ -839,28 +917,72 @@ static RESULT OV13850_SetupOutputWindow
 	    switch ( pConfig->Resolution )
 	    {
 	        case ISI_RES_2112_1568P30:
+	        case ISI_RES_2112_1568P25:
+	        case ISI_RES_2112_1568P20:
+	        case ISI_RES_2112_1568P15:
+	        case ISI_RES_2112_1568P10:				
 	        {
-			  	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_twolane_resolution_2112_1568)) != RET_SUCCESS){
-					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set two lane ISI_RES_2112_1568 \n", __FUNCTION__ );
-	            }
+				if (set2Sensor == BOOL_TRUE) {                    
+                    if (res_no_chg == BOOL_FALSE) {
+                        result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_twolane_resolution_2112_1568);
+                    }
+                    if (pConfig->Resolution == ISI_RES_2112_1568P30) {                        
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_2112x1568P30_twolane_fpschg);
+                    } else if (pConfig->Resolution == ISI_RES_2112_1568P25) {
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_2112x1568P25_twolane_fpschg);
+                    } else if (pConfig->Resolution == ISI_RES_2112_1568P20) {
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_2112x1568P20_twolane_fpschg);
+                    } else if (pConfig->Resolution == ISI_RES_2112_1568P15) {
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_2112x1568P15_twolane_fpschg);
+                    } else if (pConfig->Resolution == ISI_RES_2112_1568P10) {
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_2112x1568P10_twolane_fpschg);
+                    }					
+				}
+    			usTimeHts = 0x12c0; 
+                if (pConfig->Resolution == ISI_RES_2112_1568P30) {
+                    usTimeVts = 0x0680;
+                } else if (pConfig->Resolution == ISI_RES_2112_1568P25) {
+                    usTimeVts = 0x7cc;
+                } else if (pConfig->Resolution == ISI_RES_2112_1568P20) {
+                    usTimeVts = 0x9c0;
+                } else if (pConfig->Resolution == ISI_RES_2112_1568P15) {
+                    usTimeVts = 0xd00;
+                } else if (pConfig->Resolution == ISI_RES_2112_1568P10) {
+                    usTimeVts = 0x1380;
+                }
+                
+    		    /* sleep a while, that sensor can take over new default values */
+    		    osSleep( 10 );
 
-	            usLineLengthPck = 0x12c0;
-	            usFrameLengthLines = 0x0680;
 				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 600;
 	            break;
 	            
 	        }
 	        
 	        case ISI_RES_4224_3136P7:
+	        case ISI_RES_4224_3136P4:
 	        {
-	         	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_twolane_resolution_4224_3136)) != RET_SUCCESS){
-					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set two lane ISI_RES_4208_3120 \n", __FUNCTION__ );
-	            }
+                if (set2Sensor == BOOL_TRUE) {
+                    if (res_no_chg == BOOL_FALSE) {
+        			    result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_twolane_resolution_4224_3136);
+        		    }
 
-	            usLineLengthPck = 0x12c0;
-	            usFrameLengthLines = 0x0d00;
+                    if (pConfig->Resolution == ISI_RES_4224_3136P7) {                        
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_4224x3136P7_twolane_fpschg);
+                    } else if (pConfig->Resolution == ISI_RES_4224_3136P4) {
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_4224x3136P4_twolane_fpschg);
+                    }
+        		    
+        		}				
+    			usTimeHts = 0x12c0;                
+                if (pConfig->Resolution == ISI_RES_4224_3136P7) {                        
+                    usTimeVts = 0x0d00;
+                } else if (pConfig->Resolution == ISI_RES_4224_3136P4) {
+                    usTimeVts = 0x16c0;
+                }
+    		    /* sleep a while, that sensor can take over new default values */
+    		    osSleep( 10 );
+
 				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 600;
 	            break;
 	            
@@ -878,28 +1000,78 @@ static RESULT OV13850_SetupOutputWindow
 	    switch ( pConfig->Resolution )
 	    {
 	        case ISI_RES_2112_1568P30:
+	        case ISI_RES_2112_1568P25:
+	        case ISI_RES_2112_1568P20:
+	        case ISI_RES_2112_1568P15:
+	        case ISI_RES_2112_1568P10:	
 	        {
-	            if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_fourlane_resolution_2112_1568)) != RET_SUCCESS){
-					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set four lane ISI_RES_2112_1568 \n", __FUNCTION__ );
-	            }
+				if (set2Sensor == BOOL_TRUE) {                    
+                    if (res_no_chg == BOOL_FALSE) {
+                        result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_twolane_resolution_2112_1568);
+                    }
+                    if (pConfig->Resolution == ISI_RES_2112_1568P30) {                        
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_2112x1568P30_fourlane_fpschg);
+                    } else if (pConfig->Resolution == ISI_RES_2112_1568P25) {
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_2112x1568P25_fourlane_fpschg);
+                    } else if (pConfig->Resolution == ISI_RES_2112_1568P20) {
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_2112x1568P20_fourlane_fpschg);
+                    } else if (pConfig->Resolution == ISI_RES_2112_1568P15) {
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_2112x1568P15_fourlane_fpschg);
+                    } else if (pConfig->Resolution == ISI_RES_2112_1568P10) {
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_2112x1568P10_fourlane_fpschg);
+                    }					
+				}
+    			usTimeHts = 0x2580; 
+                if (pConfig->Resolution == ISI_RES_2112_1568P30) {
+                    usTimeVts = 0x0680;
+                } else if (pConfig->Resolution == ISI_RES_2112_1568P25) {
+                    usTimeVts = 0x7cc;
+                } else if (pConfig->Resolution == ISI_RES_2112_1568P20) {
+                    usTimeVts = 0x9c0;
+                } else if (pConfig->Resolution == ISI_RES_2112_1568P15) {
+                    usTimeVts = 0xd00;
+                } else if (pConfig->Resolution == ISI_RES_2112_1568P10) {
+                    usTimeVts = 0x1380;
+                }
+                
+    		    /* sleep a while, that sensor can take over new default values */
+    		    osSleep( 10 );
 
-	            usLineLengthPck = 0x2580;
-	            usFrameLengthLines = 0x0680;
 				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 640;
 	            break;
 	            
 	        }
 	        
 	        case ISI_RES_4224_3136P15:
+			case ISI_RES_4224_3136P7:
+			case ISI_RES_4224_3136P4:
+				
 	        {
-	            if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_fourlane_resolution_4224_3136)) != RET_SUCCESS){
-					result = RET_FAILURE;
-					TRACE( OV13850_ERROR, "%s: failed to set four lane ISI_RES_4208_3120 \n", __FUNCTION__ );
-	            }
-	         
-	            usLineLengthPck = 0x2580;
-	            usFrameLengthLines = 0x0d00;
+                if (set2Sensor == BOOL_TRUE) {
+                    if (res_no_chg == BOOL_FALSE) {
+        			    result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV13850Ctx, OV13850_g_twolane_resolution_4224_3136);
+        		    }
+
+                    if (pConfig->Resolution == ISI_RES_4224_3136P15) {                        
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_4224x3136P15_fourlane_fpschg);
+                    } else if (pConfig->Resolution == ISI_RES_4224_3136P7) {
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_4224x3136P7_fourlane_fpschg);
+                    }else if (pConfig->Resolution == ISI_RES_4224_3136P4) {
+                        result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_4224x3136P4_fourlane_fpschg);
+                    }
+        		}				
+    			usTimeHts = 0x2580;
+                if (pConfig->Resolution == ISI_RES_4224_3136P15) { 
+					usTimeVts = 0x0d00;
+            	}
+                else if (pConfig->Resolution == ISI_RES_4224_3136P7) {                        
+                    usTimeVts = 0x1bdb;
+                } else if (pConfig->Resolution == ISI_RES_4224_3136P4) {
+                    usTimeVts = 0x30c0;
+                }
+    		    /* sleep a while, that sensor can take over new default values */
+    		    osSleep( 10 );
+
 				pOV13850Ctx->IsiSensorMipiInfo.ulMipiFreq = 640;
 	            break;
 	            
@@ -914,6 +1086,11 @@ static RESULT OV13850_SetupOutputWindow
 
 	}
 
+/* 2.) write default values derived from datasheet and evaluation kit (static setup altered by dynamic setup further below) */
+
+	usLineLengthPck = usTimeHts;
+    usFrameLengthLines = usTimeVts;
+
 	// store frame timing for later use in AEC module
 	rVtPixClkFreq = OV13850_get_PCLK(pOV13850Ctx, xclk);    
     pOV13850Ctx->VtPixClkFreq     = rVtPixClkFreq;
@@ -922,11 +1099,33 @@ static RESULT OV13850_SetupOutputWindow
 
 	//have to reset mipi freq here,zyc
 
-    TRACE( OV13850_INFO, "%s  resolution(0x%x) freq(%f)(exit)\n", __FUNCTION__, pConfig->Resolution,rVtPixClkFreq);
+    TRACE( OV13850_INFO, "%s  (exit): Resolution %dx%d@%dfps  MIPI %dlanes  res_no_chg: %d   rVtPixClkFreq: %f\n", __FUNCTION__,
+                        ISI_RES_W_GET(pConfig->Resolution),ISI_RES_H_GET(pConfig->Resolution),
+                        ISI_FPS_GET(pConfig->Resolution),
+                        pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes,
+                        res_no_chg,rVtPixClkFreq);
 
     return ( result );
 }
 
+static RESULT OV13850_SetupOutputWindow
+(
+    OV13850_Context_t        *pOV13850Ctx,
+    const IsiSensorConfig_t *pConfig    
+)
+{
+    bool_t res_no_chg;
+
+    if ((ISI_RES_W_GET(pConfig->Resolution)==ISI_RES_W_GET(pOV13850Ctx->Config.Resolution)) && 
+        (ISI_RES_W_GET(pConfig->Resolution)==ISI_RES_W_GET(pOV13850Ctx->Config.Resolution))) {
+        res_no_chg = BOOL_TRUE;
+        
+    } else {
+        res_no_chg = BOOL_FALSE;
+    }
+
+    return OV13850_SetupOutputWindowInternal(pOV13850Ctx,pConfig,BOOL_TRUE, BOOL_FALSE);
+}
 
 
 
@@ -1098,7 +1297,8 @@ static RESULT OV13850_AecSetModeParameters
 {
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s%s (enter)\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"");
+       TRACE( OV13850_INFO, "%s%s (enter)  Res: 0x%x  0x%x\n", __FUNCTION__, pOV13850Ctx->isAfpsRun?"(AFPS)":"",
+        pOV13850Ctx->Config.Resolution, pConfig->Resolution);
 
     if ( (pOV13850Ctx->VtPixClkFreq == 0.0f) )
     {
@@ -1300,7 +1500,9 @@ static RESULT OV13850_IsiChangeSensorResolutionIss
 
     RESULT result = RET_SUCCESS;
 
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+    TRACE( OV13850_INFO, "%s (enter)  Resolution: %dx%d@%dfps\n", __FUNCTION__,
+        ISI_RES_W_GET(Resolution),ISI_RES_H_GET(Resolution), ISI_FPS_GET(Resolution));
+
 
     if ( pOV13850Ctx == NULL )
     {
@@ -1312,7 +1514,7 @@ static RESULT OV13850_IsiChangeSensorResolutionIss
         return ( RET_NULL_POINTER );
     }
 
-    if ( (pOV13850Ctx->Configured != BOOL_TRUE) || (pOV13850Ctx->Streaming != BOOL_FALSE) )
+    if ( (pOV13850Ctx->Configured != BOOL_TRUE))
     {
         return RET_WRONG_STATE;
     }
@@ -1341,6 +1543,21 @@ static RESULT OV13850_IsiChangeSensorResolutionIss
     {
         // change resolution
         char *szResName = NULL;
+
+        bool_t res_no_chg;
+
+        if (!((ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pOV13850Ctx->Config.Resolution)) && 
+            (ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pOV13850Ctx->Config.Resolution))) ) {
+
+            if (pOV13850Ctx->Streaming != BOOL_FALSE) {
+                TRACE( OV13850_ERROR, "%s: Sensor is streaming, Change resolution is not allow\n",__FUNCTION__);
+                return RET_WRONG_STATE;
+            }
+            res_no_chg = BOOL_FALSE;
+        } else {
+            res_no_chg = BOOL_TRUE;
+        }
+        		
         result = IsiGetResolutionName( Resolution, &szResName );
         TRACE( OV13850_INFO, "%s: NewRes=0x%08x (%s)\n", __FUNCTION__, Resolution, szResName);
 
@@ -1348,7 +1565,7 @@ static RESULT OV13850_IsiChangeSensorResolutionIss
         pOV13850Ctx->Config.Resolution = Resolution;
 
         // tell sensor about that
-        result = OV13850_SetupOutputWindow( pOV13850Ctx, &pOV13850Ctx->Config );
+        result = OV13850_SetupOutputWindowInternal( pOV13850Ctx, &pOV13850Ctx->Config,BOOL_TRUE, res_no_chg);
         if ( result != RET_SUCCESS )
         {
             TRACE( OV13850_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
@@ -1379,10 +1596,14 @@ static RESULT OV13850_IsiChangeSensorResolutionIss
         }
 
         // return number of frames that aren't exposed correctly
-        *pNumberOfFramesToSkip = NumberOfFramesToSkip + 1;
+        if (res_no_chg == BOOL_TRUE)
+            *pNumberOfFramesToSkip = 0;
+        else         
+        	*pNumberOfFramesToSkip = NumberOfFramesToSkip + 1;
     }
 
-    TRACE( OV13850_INFO, "%s (exit)\n", __FUNCTION__);
+    TRACE( OV13850_INFO, "%s (exit)  result: 0x%x   pNumberOfFramesToSkip: %d \n", __FUNCTION__, result,
+        *pNumberOfFramesToSkip);
 
     return ( result );
 }
@@ -1416,8 +1637,8 @@ static RESULT OV13850_IsiSensorSetStreamingIss
     OV13850_Context_t *pOV13850Ctx = (OV13850_Context_t *)handle;
 
     RESULT result = RET_SUCCESS;
-
-    TRACE( OV13850_INFO, "%s (enter)\n", __FUNCTION__);
+	
+    TRACE( OV13850_INFO, "%s (enter)  on = %d\n", __FUNCTION__,on);
 
     if ( pOV13850Ctx == NULL )
     {
@@ -2141,7 +2362,11 @@ RESULT OV13850_IsiSetIntegrationTimeIss
 
     float ShutterWidthPck = 0.0f; //shutter width in pixel clock periods
 
-    TRACE( OV13850_INFO, "%s: (enter)\n", __FUNCTION__);
+    TRACE( OV13850_INFO, "%s: (enter) NewIntegrationTime: %f (min: %f   max: %f)\n", __FUNCTION__,
+        NewIntegrationTime,
+        pOV13850Ctx->AecMinIntegrationTime,
+        pOV13850Ctx->AecMaxIntegrationTime);
+
 
     if ( pOV13850Ctx == NULL )
     {
@@ -2427,7 +2652,7 @@ static RESULT OV13850_IsiGetAfpsInfoHelperIss(
     pOV13850Ctx->Config.Resolution = Resolution;
 
     // tell sensor about that
-    result = OV13850_SetupOutputWindow( pOV13850Ctx, &pOV13850Ctx->Config );
+    result = OV13850_SetupOutputWindowInternal( pOV13850Ctx, &pOV13850Ctx->Config,BOOL_FALSE,BOOL_FALSE );
     if ( result != RET_SUCCESS )
     {
         TRACE( OV13850_ERROR, "%s: SetupOutputWindow failed for resolution ID %08x.\n", __FUNCTION__, Resolution);
@@ -2526,7 +2751,6 @@ RESULT OV13850_IsiGetAfpsInfoIss(
     pDummyCtx->isAfpsRun = BOOL_TRUE;
 
 #define AFPSCHECKANDADD(_res_) \
-    if ( (pOV13850Ctx->Config.AfpsResolutions & (_res_)) != 0 ) \
     { \
         RESULT lres = OV13850_IsiGetAfpsInfoHelperIss( pDummyCtx, _res_, pAfpsInfo, idx ); \
         if ( lres == RET_SUCCESS ) \
@@ -2540,26 +2764,81 @@ RESULT OV13850_IsiGetAfpsInfoIss(
     }
 
     // check which AFPS series is requested and build its params list for the enabled AFPS resolutions
-    switch(Resolution)
+    switch (pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes)
     {
+        case SUPPORT_MIPI_ONE_LANE:
+        {
+
+            break;
+        }
+
+        case SUPPORT_MIPI_TWO_LANE:
+        {
+    
+		    switch(Resolution)
+		    {
+		        default:
+		            TRACE( OV13850_DEBUG,  "%s: Resolution %08x not supported by AFPS\n",  __FUNCTION__, Resolution );
+		            result = RET_NOTSUPP;
+		            break;
+				case ISI_RES_2112_1568P30:
+				case ISI_RES_2112_1568P25:
+				case ISI_RES_2112_1568P20:
+				case ISI_RES_2112_1568P15:
+				case ISI_RES_2112_1568P10:
+					AFPSCHECKANDADD( ISI_RES_2112_1568P30 );
+					AFPSCHECKANDADD( ISI_RES_2112_1568P25 );			
+					AFPSCHECKANDADD( ISI_RES_2112_1568P20 );			
+					AFPSCHECKANDADD( ISI_RES_2112_1568P15 );			
+					AFPSCHECKANDADD( ISI_RES_2112_1568P10 );
+					break;
+				case ISI_RES_4224_3136P7:
+				case ISI_RES_4224_3136P4:
+					AFPSCHECKANDADD( ISI_RES_4224_3136P7 );			
+					//AFPSCHECKANDADD( ISI_RES_4224_3136P4 );
+					break;
+
+		        // check next series here...
+		    }
+			break;
+    	}
+        case SUPPORT_MIPI_FOUR_LANE:
+        {
+		    switch(Resolution)
+		    {
+		        default:
+		            TRACE( OV13850_DEBUG,  "%s: Resolution %08x not supported by AFPS\n",  __FUNCTION__, Resolution );
+		            result = RET_NOTSUPP;
+		            break;
+				case ISI_RES_2112_1568P30:
+				case ISI_RES_2112_1568P25:
+				case ISI_RES_2112_1568P20:
+				case ISI_RES_2112_1568P15:
+				case ISI_RES_2112_1568P10:
+					AFPSCHECKANDADD( ISI_RES_2112_1568P30 );
+					AFPSCHECKANDADD( ISI_RES_2112_1568P25 );			
+					AFPSCHECKANDADD( ISI_RES_2112_1568P20 );			
+					AFPSCHECKANDADD( ISI_RES_2112_1568P15 );			
+					AFPSCHECKANDADD( ISI_RES_2112_1568P10 );
+					break;
+				case ISI_RES_4224_3136P15:
+				case ISI_RES_4224_3136P7:
+				case ISI_RES_4224_3136P4:
+					AFPSCHECKANDADD( ISI_RES_4224_3136P15 );
+					AFPSCHECKANDADD( ISI_RES_4224_3136P7 );			
+					//AFPSCHECKANDADD( ISI_RES_4224_3136P4 );
+					break;
+
+		        // check next series here...
+		    }			
+			break;
+    	}
         default:
-            TRACE( OV13850_DEBUG,  "%s: Resolution %08x not supported by AFPS\n",  __FUNCTION__, Resolution );
-            result = RET_NOTSUPP;
+            TRACE( OV13850_ERROR,  "%s: pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes(0x%x) is invalidate!\n", 
+                __FUNCTION__, pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes );
+            result = RET_FAILURE;
             break;
-
-        #if 0
-        // 1080p15 series in ascending integration time order (most probably the same as descending frame rate order)
-        case ISI_RES_TV1080P15:
-        case ISI_RES_TV1080P10:
-        case ISI_RES_TV1080P5:
-            AFPSCHECKANDADD( ISI_RES_TV1080P15 );
-            AFPSCHECKANDADD( ISI_RES_TV1080P10 );
-            AFPSCHECKANDADD( ISI_RES_TV1080P5  );
-            break;
-        #endif
-
-        // check next series here...
-    }
+	}
 
     // release dummy context again
     free(pDummyCtx);
@@ -3786,6 +4065,7 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationChk>*/   //ddl@rock-chips.com 
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationSet>*/   //ddl@rock-chips.com
+        0,                      /**< IsiSensor_t.pIsiCheckOTPInfo>*/  //zyc 
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

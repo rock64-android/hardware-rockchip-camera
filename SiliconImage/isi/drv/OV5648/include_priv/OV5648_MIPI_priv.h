@@ -49,9 +49,10 @@ extern "C"
 *
 *v0.1.0 : create file -- zyl
 *v0.2.0 : modify ov5648 driver --oyyf
+*v0.3.0 : support OTP
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 2, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 3, 0x00) 
 
 
 #define Sensor_CHIP_ID_HIGH_BYTE            (0x300a) // r - 

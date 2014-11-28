@@ -161,6 +161,21 @@ int CameraIspAdapter::cameraDestroy()
     }
 
     preview_frame_inval = 0;
+    //check flash mode last time
+    
+    if(mParameters.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES) &&
+        (strcmp(mParameters.get(CameraParameters::KEY_FLASH_MODE),CameraParameters::FLASH_MODE_TORCH)==0)){
+        CamEngineFlashCfg_t flash_cfg;
+        rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
+        if((strcmp(pCamInfo->mHardInfo.mFlashInfo.mFlashName,"Internal")==0))
+            flash_cfg.dev_mask = pCamInfo->mHardInfo.mSensorInfo.mHostDevid;
+        else
+            flash_cfg.dev_mask = pCamInfo->mHardInfo.mSensorInfo.mCamDevid;
+        flash_cfg.mode = CAM_ENGINE_FLASH_TORCH;
+        m_camDevice->configureFlash(&flash_cfg);
+        m_camDevice->stopFlash(true);
+    }
+
     if(m_camDevice){
         disconnectCamera();
         delete m_camDevice;
@@ -271,7 +286,7 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
     if (is_capture) {
         enable_flash = isNeedToEnableFlash();
 
-        m_camDevice->lock3a((Lock_awb|Lock_aec|Lock_af)); 
+        m_camDevice->lock3a((Lock_awb|Lock_aec)); 
     }
     low_illumin = isLowIllumin();
 
@@ -285,20 +300,31 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         uint32_t resMask;
         CamEnginePathConfig_t mainPathConfig ,selfPathConfig;
 		CamEngineBestSensorResReq_t resReq;
-		
+        float curGain,curExp; /* ddl@rock-chips.com: v1.0x15.0 */
+
+        memset(&resReq, 0x00, sizeof(CamEngineBestSensorResReq_t));
         resReq.request_w = preview_w;
         resReq.request_h = preview_h;
-        if (m_camDevice->getIntegrationTime(resReq.request_exp_t) == false) {
-            resReq.request_exp_t = 0.0;
+
+        
+        if ((m_camDevice->getIntegrationTime(curExp) == false)) {
+            curExp = 0.0;
+        }
+
+        if (m_camDevice->getGain(curGain) == false){
+            curGain = 0.0;
         }
         
         if (is_video) {
             resReq.request_fps = 20;
         } else if (is_capture) {
-            resReq.request_fps = 0;            
+            resReq.request_fps = 0;
+            resReq.request_exp_t = curExp*curGain;
         } else { 
             resReq.request_fps = 10; 
+            resReq.request_exp_t = curExp;
         }
+        
         resReq.requset_aspect = (bool_t)false;        
         resReq.request_fullfov = (bool_t)mImgAllFovReq;        
         m_camDevice->getPreferedSensorRes(&resReq);
@@ -400,7 +426,7 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
             }
         }
 
-        m_camDevice->unlock3a((Lock_awb|Lock_aec|Lock_af));
+        m_camDevice->unlock3a((Lock_awb|Lock_aec));
         
     } 
     flashControl(enable_flash);
@@ -641,21 +667,42 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isR
         CamEngineFlashCfg_t flash_cfg;
 
         if (mParameters.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES) && mParameters.get(CameraParameters::KEY_FLASH_MODE)) {
-		
+
             if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES),params_set.get(CameraParameters::KEY_FLASH_MODE))) {
                 if (strcmp(mParameters.get(CameraParameters::KEY_FLASH_MODE),params_set.get(CameraParameters::KEY_FLASH_MODE))) {
                     rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
                     flash_cfg.active_pol = (pCamInfo->mHardInfo.mFlashInfo.mFlashTrigger.active>0) ? CAM_ENGINE_FLASH_HIGH_ACTIVE:CAM_ENGINE_FLASH_LOW_ACTIVE;
 					flash_cfg.flashtype = pCamInfo->mHardInfo.mFlashInfo.mFlashMode;
+                    if((strcmp(pCamInfo->mHardInfo.mFlashInfo.mFlashName,"Internal")==0))
+                        flash_cfg.dev_mask = pCamInfo->mHardInfo.mSensorInfo.mHostDevid;
+                    else
+                        flash_cfg.dev_mask = pCamInfo->mHardInfo.mSensorInfo.mCamDevid;
                     if ((strcmp(params_set.get(CameraParameters::KEY_FLASH_MODE),CameraParameters::FLASH_MODE_ON)==0)
                         || ((strcmp(params_set.get(CameraParameters::KEY_FLASH_MODE),CameraParameters::FLASH_MODE_AUTO)==0))){
+                        //check flash mode last time
+                        if(strcmp(mParameters.get(CameraParameters::KEY_FLASH_MODE),CameraParameters::FLASH_MODE_TORCH)==0){
+                            flash_cfg.mode = CAM_ENGINE_FLASH_TORCH;
+                            m_camDevice->configureFlash(&flash_cfg);
+                            m_camDevice->stopFlash(true);
+                        }
                         flash_cfg.mode = CAM_ENGINE_FLASH_ON;
                         m_camDevice->configureFlash(&flash_cfg);
             			LOG1("Set flash on success!");
                     }else if (strcmp(params_set.get(CameraParameters::KEY_FLASH_MODE),CameraParameters::FLASH_MODE_OFF)==0) {
+                        //check flash mode last time
+                        if(strcmp(mParameters.get(CameraParameters::KEY_FLASH_MODE),CameraParameters::FLASH_MODE_TORCH)==0){
+                            flash_cfg.mode = CAM_ENGINE_FLASH_TORCH;
+                            m_camDevice->configureFlash(&flash_cfg);
+                            m_camDevice->stopFlash(true);
+                        }
                         flash_cfg.mode = CAM_ENGINE_FLASH_OFF;
                         m_camDevice->configureFlash(&flash_cfg);
             			LOG1("Set flash off success!");
+                    }else if (strcmp(params_set.get(CameraParameters::KEY_FLASH_MODE),CameraParameters::FLASH_MODE_TORCH)==0) {
+                        flash_cfg.mode = CAM_ENGINE_FLASH_TORCH;
+                        m_camDevice->configureFlash(&flash_cfg);
+                        m_camDevice->startFlash(true);
+            			LOG1("Set flash torch success!");
                     }
                 }
             } else {
@@ -877,8 +924,9 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     //flash parameters
     {
         CamEngineFlashCfg_t flash_cfg;
-        
-        if ((strcmp(pCamInfo->mHardInfo.mFlashInfo.mFlashName,"Internal")==0)) {
+
+        //Internal or external flash
+        if ((strcmp(pCamInfo->mHardInfo.mFlashInfo.mFlashName,"NC")!=0)) {
             parameterString = CameraParameters::FLASH_MODE_OFF;
 
             parameterString.append(",");
@@ -886,6 +934,13 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             
             parameterString.append(",");
             parameterString.append(CameraParameters::FLASH_MODE_AUTO);
+
+            //only external flash support torch now,zyc
+            if((strcmp(pCamInfo->mHardInfo.mFlashInfo.mFlashName,"Internal")!=0)){
+                parameterString.append(",");
+                parameterString.append(CameraParameters::FLASH_MODE_TORCH);
+            }
+            
             //must FLASH_MODE_OFF when initial,forced by cts
             params.set(CameraParameters::KEY_FLASH_MODE,CameraParameters::FLASH_MODE_OFF);
             params.set(CameraParameters::KEY_SUPPORTED_FLASH_MODES,parameterString.string());
@@ -894,6 +949,10 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             flash_cfg.mode = CAM_ENGINE_FLASH_ON;
             flash_cfg.active_pol = (pCamInfo->mHardInfo.mFlashInfo.mFlashTrigger.active>0) ? CAM_ENGINE_FLASH_HIGH_ACTIVE:CAM_ENGINE_FLASH_LOW_ACTIVE;
 			flash_cfg.flashtype = pCamInfo->mHardInfo.mFlashInfo.mFlashMode;
+            if((strcmp(pCamInfo->mHardInfo.mFlashInfo.mFlashName,"Internal")==0))
+                flash_cfg.dev_mask = pCamInfo->mHardInfo.mSensorInfo.mHostDevid;
+            else
+                flash_cfg.dev_mask = pCamInfo->mHardInfo.mSensorInfo.mCamDevid;
             m_camDevice->configureFlash(&flash_cfg);
         }
     }
@@ -2293,11 +2352,13 @@ void CameraIspAdapter::flashControl(bool on)
             m_camDevice->setGain(maxgain, maxgain);
             m_camDevice->getIntegrationTimeLimits(mintime,maxtime,step);
             m_camDevice->setIntegrationTime(maxtime, maxtime);
+
+            m_camDevice->lscDisable(); /*ddl@rock-chips.com: v1.0x25.0*/
         }
 //     m_camDevice->stopAvs();
 //     m_camDevice->stopAdpcc();
 //     m_camDevice->stopAdpf();
-       m_camDevice->lscDisable();
+       
 //     m_camDevice->stopAwb();
 //       //set D65 manual awb
 //     m_camDevice->startAwb(CAM_ENGINE_AWB_MODE_MANUAL, 1, (bool_t)false);

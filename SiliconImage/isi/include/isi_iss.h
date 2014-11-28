@@ -162,6 +162,17 @@ typedef RESULT (IsiGetSensorMipiInfoIss_t)          ( IsiSensorHandle_t handle ,
 /* Testpattern */
 typedef RESULT (IsiActivateTestPattern_t)           ( IsiSensorHandle_t handle, const bool_t enable );
 
+//add for OTP,zyc
+typedef int (sensor_i2c_write_t)(void* context,int camsys_fd,const uint32_t reg_address, const uint32_t  value);
+typedef int (sensor_i2c_read_t)(void* context,int camsys_fd,const uint32_t reg_address);
+
+typedef RESULT (IsiCheckOTPInfo_t)
+(
+    sensor_i2c_write_t*  sensor_i2c_write_p,
+    sensor_i2c_read_t*  sensor_i2c_read_p,
+    void* context,
+    int camsys_fd
+);
 
 
 /*****************************************************************************/
@@ -183,6 +194,7 @@ struct IsiSensor_s
 	IsiGetSensorTuningXmlVersion_t		*pIsiGetSensorTuningXmlVersion;
 	IsiWhiteBalanceIlluminationChk_t    *pIsiWhiteBalanceIlluminationChk;//ddl@rock-chips.com
     IsiWhiteBalanceIlluminationSet_t    *pIsiWhiteBalanceIlluminationSet;//ddl@rock-chips.com
+    IsiCheckOTPInfo_t                   *pIsiCheckOTPInfo;  //for OTP,zyc
 	
     IsiCreateSensorIss_t                *pIsiCreateSensorIss;           /**< create a sensor handle */
     IsiReleaseSensorIss_t               *pIsiReleaseSensorIss;          /**< release a sensor handle */

@@ -69,10 +69,12 @@ extern "C"
 *   1). support mutil framerate and Afps;
 *v0.c.0
 *   1)  Skip frames when resolution change in OV8858_IsiChangeSensorResolutionIss;
+*v0.d.0
+*   1). support OTP;
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(0, 0x0c, 0) 
+#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(0, 0x0d, 0) 
 
 /*****************************************************************************
  * System control registers

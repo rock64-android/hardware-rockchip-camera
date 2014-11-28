@@ -4488,6 +4488,7 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationChk>*/   //ddl@rock-chips.com 
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationSet>*/   //ddl@rock-chips.com
+        0,                      /**< IsiSensor_t.pIsiCheckOTPInfo>*/  //zyc 
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

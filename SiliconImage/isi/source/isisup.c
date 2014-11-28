@@ -502,14 +502,14 @@ RESULT IsiRegDefaultsApply
             }
         }
 
-#ifdef __DELAY_HACK_WITH_DEFAULT_VALUE__
+//#ifdef __DELAY_HACK_WITH_DEFAULT_VALUE__
         /* some registers need some delay after reading or writing */
         if ( pRegDesc->Flags & eDelay )
         {
             //wait user defined ms
             osSleep( pRegDesc->DefaultValue );
         }
-#endif        
+//#endif        
 
         ++pRegDesc;
     }

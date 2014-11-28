@@ -260,7 +260,10 @@ extern "C"
 #define ISI_RES_4224_3136P30                   0x3d080c40      /**<  5 4416x3312    */
 
 #define ISI_RES_2112_1568P7                    0x0e840620      /**<  5 4416x3312    */
+#define ISI_RES_2112_1568P10                   0x14840620      /**<  5 4416x3312    */
 #define ISI_RES_2112_1568P15                   0x1e840620      /**<  5 4416x3312    */
+#define ISI_RES_2112_1568P20                   0x28840620      /**<  5 4416x3312    */
+#define ISI_RES_2112_1568P25                   0x32840620      /**<  5 4416x3312    */
 #define ISI_RES_2112_1568P30                   0x3c840620      /**<  5 4416x3312    */
 
 #define ISI_RES_TV720P5                     0x0a5002d0      /**< 16 1280x720@5   */

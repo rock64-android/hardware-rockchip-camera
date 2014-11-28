@@ -977,9 +977,14 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         	if(pIsiCamDrvConfig->IsiSensor.pIsiSensorCaps->SensorOutputMode == ISI_SENSOR_OUTPUT_MODE_RAW){
 	            CalibDb *pcalidb = &(pCamInfo->mLoadSensorInfo.calidb);
                 if(strlen(pSensorInfo->mLensName) == 0)
-	                sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName);
+	                sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName);
                 else
-	                sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s_lens_%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName,pSensorInfo->mLensName);
+	                sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s_lens_%s", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName,pSensorInfo->mLensName);
+                if(pCamInfo->mHardInfo.mIsOTP == true)
+                    strcat(pLoadSensorInfo->mSensorXmlFile,"_OTP.xml");
+                else
+                    strcat(pLoadSensorInfo->mSensorXmlFile,".xml");
+                    
                 LOGD("sensor xml file name : %s lens name %s",pLoadSensorInfo->mSensorXmlFile,pSensorInfo->mLensName);
 	            bool res = pcalidb->CreateCalibDb(pLoadSensorInfo->mSensorXmlFile);	           	
 			    if(res){	                
@@ -1005,6 +1010,62 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
     }
 	
 	return 0;
+}
+
+static int sensor_write_i2c(
+    void* context,
+    int camsys_fd,    
+    const uint32_t      reg_address,
+    const uint32_t      value
+)
+{
+    int err = RK_RET_SUCCESS; 
+    camsys_i2c_info_t i2cinfo;
+    rk_cam_total_info* pCamInfo = (rk_cam_total_info*)context;
+    rk_sensor_info *pSensorInfo = &(pCamInfo->mHardInfo.mSensorInfo);
+    camsys_load_sensor_info *pLoadInfo = &(pCamInfo->mLoadSensorInfo);
+    i2cinfo.bus_num = pSensorInfo->mSensorI2cBusNum;
+    i2cinfo.slave_addr = pLoadInfo->mpI2cInfo->i2c_addr;
+    i2cinfo.reg_addr = reg_address; 
+    i2cinfo.reg_size = pLoadInfo->mpI2cInfo->reg_size;
+    i2cinfo.val = value;
+    i2cinfo.val_size = pLoadInfo->mpI2cInfo->value_size;
+    i2cinfo.i2cbuf_directly = 0;
+    i2cinfo.speed = pSensorInfo->mSensorI2cRate;
+	err = ioctl(camsys_fd, CAMSYS_I2CWR, &i2cinfo);
+    if (err<0) {
+        ALOGE("%s failed\n",__FUNCTION__);
+        err = RK_RET_DEVICEERR;
+    }
+    return err;
+}
+
+static int sensor_read_i2c(
+    void* context,
+    int camsys_fd,    
+    const uint32_t      reg_address
+)
+{
+    int err = RK_RET_SUCCESS; 
+    camsys_i2c_info_t i2cinfo;
+    rk_cam_total_info* pCamInfo = (rk_cam_total_info*)context;
+    rk_sensor_info *pSensorInfo = &(pCamInfo->mHardInfo.mSensorInfo);
+    camsys_load_sensor_info *pLoadInfo = &(pCamInfo->mLoadSensorInfo);
+    i2cinfo.bus_num = pSensorInfo->mSensorI2cBusNum;
+    i2cinfo.slave_addr = pLoadInfo->mpI2cInfo->i2c_addr;
+    i2cinfo.reg_addr = reg_address; 
+    i2cinfo.reg_size = pLoadInfo->mpI2cInfo->reg_size;
+    i2cinfo.val = 0;
+    i2cinfo.val_size = pLoadInfo->mpI2cInfo->value_size;
+    i2cinfo.i2cbuf_directly = 0;
+    i2cinfo.speed = pSensorInfo->mSensorI2cRate;
+	err = ioctl(camsys_fd, CAMSYS_I2CRD, &i2cinfo);
+    if (err<0) {
+        ALOGE("%s failed\n",__FUNCTION__);
+        err = RK_RET_DEVICEERR;
+    }else
+        err = i2cinfo.val;
+    return err;
 }
 
 int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
@@ -1082,6 +1143,13 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 			}
 		    extdev.dev_cfg |= CAMSYS_DEVCFG_PREFLASHLIGHT;
 		}
+    }else{
+       strcpy((char*)extdev.fl.fl_drv_name,pFlashInfo->mFlashName);
+       strlcpy((char*)extdev.fl.fl.name, (char*)pFlashInfo->mFlashTrigger.name,sizeof(extdev.fl.fl.name));
+	   extdev.fl.fl.active = pFlashInfo->mFlashTrigger.active;
+       strlcpy((char*)extdev.fl.fl_en.name, (char*)pFlashInfo->mFlashEn.name,sizeof(extdev.fl.fl_en.name));
+	   extdev.fl.fl_en.active = pFlashInfo->mFlashEn.active;
+        
     }
 
     if(pSensorInfo->mPhy.type == CamSys_Phy_Cif){
@@ -1240,6 +1308,18 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
         }
     }
 
+    //check otp
+    {
+        camsys_load_sensor_info* pLoadSensorInfo = &(pCamInfo->mLoadSensorInfo);
+
+        if(pLoadInfo->pCamDrvConfig->IsiSensor.pIsiCheckOTPInfo){
+            ALOGD("%s:check and read otp info!!!!",__FUNCTION__); 
+            int tmp = pLoadInfo->pCamDrvConfig->IsiSensor.pIsiCheckOTPInfo(sensor_write_i2c,sensor_read_i2c,pCamInfo,camsys_fd);
+            if(tmp == RET_SUCCESS){
+                pCamInfo->mHardInfo.mIsOTP = true;
+            }
+        }
+    }
     //query iommu is enabled ?
     {
         int iommu_enabled = 0;

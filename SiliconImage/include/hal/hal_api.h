@@ -624,11 +624,13 @@ RESULT HalPhyCtrl
     uint32_t bit_rate
 );
 
+//mode refer to enum CamerIcIspFlashMode_e ,defined in file cameric_isp_flash_drv_api.h
 RESULT HalFlashTrigCtrl
 (
     HalHandle_t HalHandle,
     uint32_t dev_mask,
-    uint32_t on
+    uint32_t on,
+    int mode
 );
 
 RESULT HalGetMemoryMapFd( 
