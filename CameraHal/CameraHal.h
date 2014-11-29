@@ -35,7 +35,10 @@
 #include <cutils/properties.h>
 #include <cutils/atomic.h>
 #include <linux/version.h>
-#include <linux/videodev2.h> 
+#include <linux/videodev2.h>
+#if defined(ANDROID_5_X)
+#include <linux/v4l2-controls.h>
+#endif
 #include <binder/MemoryBase.h>
 #include <binder/MemoryHeapBase.h>
 #include <utils/threads.h>
@@ -430,9 +433,12 @@ namespace android {
 *   1) merge source code frome mid,include following version:
 *       v1.0x21.1:
 *          1) support V4L2 flash control of soc camera when picure size is the same as preview size.
+*v1.0x27.0:
+*   1) compatible with android 5.0 .
+
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x26, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x27, 0)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -561,7 +567,7 @@ typedef struct rk_buffer_info {
 
 class BufferProvider{
 public:
-    int createBuffer(int count,int perbufsize,buffer_type_enum buftype);
+    int createBuffer(int count,int perbufsize,buffer_type_enum buftype,bool is_cif_driver);
     int freeBuffer();
     virtual int setBufferStatus(int bufindex,int status,int cmd=0);
     virtual int getOneAvailableBuffer(int *buf_phy,int *buf_vir);
@@ -573,6 +579,8 @@ public:
 	int flushBuffer(int bufindex);
     BufferProvider(MemManagerBase* memManager):mBufInfo(NULL),mCamBuffer(memManager){}
     virtual ~BufferProvider(){mCamBuffer = NULL;mBufInfo = NULL;}
+
+	bool is_cif_driver;
 protected:
     rk_buffer_info_t* mBufInfo;
     int mBufCount;
@@ -669,6 +677,9 @@ public:
     virtual int faceNotify(struct RectFace* faces, int* num);
 	
     virtual int flashcontrol();
+	
+	bool cif_driver_iommu;
+
 	 
 protected:
     //talk to driver

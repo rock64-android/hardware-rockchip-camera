@@ -36,7 +36,7 @@ int BufferProvider::getBufShareFd(int bufindex)
     mBufInfo[bufindex].lock->unlock();
     return share_fd;
 }
-int BufferProvider::createBuffer(int count,int perbufsize,buffer_type_enum buftype)
+int BufferProvider::createBuffer(int count,int perbufsize,buffer_type_enum buftype,bool is_cif_driver)
 {
     int ret = 0,i;
     struct bufferinfo_s buf;
@@ -52,11 +52,14 @@ int BufferProvider::createBuffer(int count,int perbufsize,buffer_type_enum bufty
 
     switch(buftype){
         case PREVIEWBUFFER:
-            
-#if defined(TARGET_RK312x)
+/*            
+#if (defined(TARGET_RK312x) || defined(TARGET_RK32))
             //should use cma buffer
             buf.mIsForceIommuBuf = false;
-#endif
+#endif*/
+			if(is_cif_driver){//should use cma buffer
+				buf.mIsForceIommuBuf = false;
+			}
             if(mCamBuffer->createPreviewBuffer(&buf) !=0) {
                 LOGE("%s(%d): preview buffer create failed",__FUNCTION__,__LINE__);		
                 ret = -1;	

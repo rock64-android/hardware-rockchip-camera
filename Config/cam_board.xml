@@ -638,7 +638,7 @@
 				<ZSL support="1"></ZSL>
 				<DigitalZoom support="1"></DigitalZoom>
 				<Continue_SnapShot support="1"></Continue_SnapShot>
-				<InterpolationRes resolution="8000000"></InterpolationRes>
+				<InterpolationRes resolution="0"></InterpolationRes>
 				<PreviewSize width="800" height="600"></PreviewSize>
 				<FaceDetect support="0" MaxNum="0"></FaceDetect>
 				<DV>

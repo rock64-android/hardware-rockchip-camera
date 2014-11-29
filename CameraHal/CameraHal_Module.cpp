@@ -66,7 +66,10 @@ camera_module_t HAL_MODULE_INFO_SYM = {
     get_camera_info: camera_get_camera_info,
     set_callbacks:NULL,
     get_vendor_tag_ops:NULL,
-    reserved: {0}
+#if defined(ANDROID_5_X)
+    open_legacy:NULL,
+#endif
+    reserved: {0}   
 };
 
 
@@ -1021,7 +1024,8 @@ int camera_get_number_of_cameras(void)
 						pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);	        
 					}
 					
-					strcpy(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, SOC_CAM_NAME);//yzm822
+					strcpy(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, SOC_CAM_NAME);
+					pNewCamInfo->mIsIommuEnabled = capability.reserved[0];
 				}
                 pNewCamInfo->mHardInfo.mSensorInfo.mPhy.type = CamSys_Phy_end;
 
@@ -1029,7 +1033,7 @@ int camera_get_number_of_cameras(void)
 				pNewCamInfo->mIsConnect = 1;
 				profiles->mCurDevice= pNewCamInfo;
             	profiles->mDevieVector.add(pNewCamInfo);
-				//strcpy(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, SOC_CAM_NAME);//yzm822
+
                 camInfoTmp[cam_cnt].pcam_total_info = pNewCamInfo;
                 cam_cnt++;
                 if (cam_cnt >= CAMERAS_SUPPORT_MAX)

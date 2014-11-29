@@ -283,14 +283,14 @@ void AppMsgNotifier::setPictureRawBufProvider(BufferProvider* bufprovider)
 {
     mRawBufferProvider = bufprovider;
 	#if (JPEG_BUFFER_DYNAMIC == 0)
-    mRawBufferProvider->createBuffer(1, 0xd00000, RAWBUFFER);
+    mRawBufferProvider->createBuffer(1, 0xd00000, RAWBUFFER,mRawBufferProvider->is_cif_driver);
 	#endif
  }
 void AppMsgNotifier::setPictureJpegBufProvider(BufferProvider* bufprovider)
 {
     mJpegBufferProvider = bufprovider;
 	#if (JPEG_BUFFER_DYNAMIC == 0)
-    mJpegBufferProvider->createBuffer(1, 0x700000,JPEGBUFFER);
+    mJpegBufferProvider->createBuffer(1, 0x700000,JPEGBUFFER,mJpegBufferProvider->is_cif_driver);
 	#endif
 }
 void AppMsgNotifier::setFrameProvider(FrameProvider * framepro)
@@ -401,7 +401,7 @@ int AppMsgNotifier::startRecording(int w,int h)
 
     //release video buffer
     mVideoBufferProvider->freeBuffer();
-    mVideoBufferProvider->createBuffer(CONFIG_CAMERA_VIDEOENC_BUF_CNT, frame_size, VIDEOENCBUFFER);
+    mVideoBufferProvider->createBuffer(CONFIG_CAMERA_VIDEOENC_BUF_CNT, frame_size, VIDEOENCBUFFER,mVideoBufferProvider->is_cif_driver);
 
 	for (int i=0; i < CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++) {
     	if(!mVideoBufs[i])
@@ -986,12 +986,12 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     jpegbuf_size = 0x700000; //pictureSize;
     #if (JPEG_BUFFER_DYNAMIC == 1)
     //create raw & jpeg buffer
-    ret = mRawBufferProvider->createBuffer(1, pictureSize, RAWBUFFER);
+    ret = mRawBufferProvider->createBuffer(1, pictureSize, RAWBUFFER,mRawBufferProvider->is_cif_driver);
     if(ret < 0){
         LOGE("mRawBufferProvider->createBuffer FAILED");
         goto 	captureEncProcessPicture_exit;
     }
-    ret =mJpegBufferProvider->createBuffer(1, jpegbuf_size,JPEGBUFFER);
+    ret = mJpegBufferProvider->createBuffer(1, jpegbuf_size,JPEGBUFFER,mJpegBufferProvider->is_cif_driver);
     if(ret < 0){
         LOGE("mJpegBufferProvider->createBuffer FAILED");
         goto 	captureEncProcessPicture_exit;

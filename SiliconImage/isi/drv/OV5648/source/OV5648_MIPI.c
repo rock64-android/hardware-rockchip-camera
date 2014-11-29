@@ -1658,6 +1658,7 @@ static RESULT Sensor_IsiSetupSensorIss
 
     osSleep( 10 );
 
+
     // disable streaming during sensor setup
     // (this seems not to be necessary, however Omnivision is doing it in their
     // reference settings, simply overwrite upper bits since setup takes care
@@ -1687,7 +1688,6 @@ static RESULT Sensor_IsiSetupSensorIss
 
     /* sleep a while, that sensor can take over new default values */
     osSleep( 10 );
-
 
     /* 3.) verify default values to make sure everything has been written correctly as expected */
 	#if 0
@@ -1913,7 +1913,6 @@ static RESULT Sensor_IsiSensorSetStreamingIss
     RESULT result = RET_SUCCESS;
 
     TRACE( Sensor_INFO, "%s (enter)  on = %d\n", __FUNCTION__,on);
-
     if ( pSensorCtx == NULL )
     {
         return ( RET_WRONG_HANDLE );

@@ -42,6 +42,7 @@ LOCAL_C_INCLUDES += \
   bionic\
   external/stlport/stlport\
   external/tinyxml2\
+  system/media/camera/include\
 
 LOCAL_C_INCLUDES += \
     external/skia/include/core \
@@ -179,6 +180,10 @@ endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk30xxb)	
 LOCAL_CFLAGS += -DTARGET_BOARD_PLATFORM_RK30XXB
+endif
+
+ifeq ($(strip $(PLATFORM_SDK_VERSION)),21)	
+LOCAL_CFLAGS += -DANDROID_5_X
 endif
 
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw

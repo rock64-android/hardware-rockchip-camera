@@ -1680,7 +1680,6 @@ static RESULT OV8858_AecSetModeParameters
     return ( result );
 }
 
-
 /*****************************************************************************/
 /**
  *          OV8858_IsiSetupSensorIss
@@ -1986,8 +1985,6 @@ static RESULT OV8858_IsiChangeSensorResolutionIss
 
     return ( result );
 }
-
-
 
 /*****************************************************************************/
 /**

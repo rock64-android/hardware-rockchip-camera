@@ -67,6 +67,7 @@ v0.7.0
 *	2). skip frames when resolution change in OV13850_IsiChangeSensorResolutionIss;
 */
 
+
 #define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 9, 0x00) 
 
 

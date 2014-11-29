@@ -1148,7 +1148,7 @@ int CameraSOCAdapter::cameraAutoFocus(bool auto_trig_only)
     	err = true;
     	goto cameraAutoFocus_end;
     }
-
+/*
 	extCtrInfo.rect[0] = 0;
     extCtrInfo.rect[1] = 0;
     extCtrInfo.rect[2] = 0;
@@ -1178,7 +1178,7 @@ int CameraSOCAdapter::cameraAutoFocus(bool auto_trig_only)
 	} else {
 	    LOG1("%s(%d): Set focus mode %d",__FUNCTION__,__LINE__, m_focus_mode);
         err = true;
-	}
+	}*/
 cameraAutoFocus_end:
     return err;
 }

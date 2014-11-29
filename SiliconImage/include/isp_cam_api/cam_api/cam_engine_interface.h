@@ -208,10 +208,12 @@
 *          1) getPreferedSensorRes support max_exp_res/max_fps_res/max_res for different request resolution;
 *    v1.0x11.5:
 *          1) pAecCtx->EcmT0 define max integration time for 5M and 8M resolution;
+* v1.0x16.0:
+*   1)  compatible with android 5.0 .
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x15, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x16, 0)
 
 
 class CamEngineItf;

@@ -18,13 +18,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#include <linux/videodev.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/time.h>
 #include <signal.h>
 #include <linux/ion.h>
+#if !defined(ANDROID_5_X)
+#include <linux/videodev.h>
 #include <linux/android_pmem.h>
+#endif
 #include <linux/videodev2.h>
 #include <linux/fb.h>
 #include <linux/types.h>

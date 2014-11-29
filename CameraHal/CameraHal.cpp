@@ -89,7 +89,7 @@ CameraHal::CameraHal(int cameraId)
         LOG1("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
 	#elif(CONFIG_CAMERA_MEM == CAMERA_MEM_IONDMA)
         if((strcmp(gCamInfos[cameraId].driver,"uvcvideo") == 0) //uvc camera
-            || (gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_end)// soc cif
+            //|| (gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_end)// soc cif
             ) {
             gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled = (IOMMU_ENABLED == 1)? true:false;
         }
@@ -110,6 +110,18 @@ CameraHal::CameraHal(int cameraId)
     mRawBuf = new BufferProvider(mCamMemManager);
     mJpegBuf = new BufferProvider(mCamMemManager);
 
+	if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_end){// soc cif
+		mPreviewBuf->is_cif_driver = true;
+		mVideoBuf->is_cif_driver = true;
+		mRawBuf->is_cif_driver = true;
+		mJpegBuf->is_cif_driver = true;
+	}else{
+		mPreviewBuf->is_cif_driver = false;
+		mVideoBuf->is_cif_driver = false;
+		mRawBuf->is_cif_driver = false;
+		mJpegBuf->is_cif_driver = false;
+	}
+	
     char value[PROPERTY_VALUE_MAX];
     property_get(/*CAMERAHAL_TYPE_PROPERTY_KEY*/"sys.cam_hal.type", value, "none");
 
@@ -135,6 +147,8 @@ CameraHal::CameraHal(int cameraId)
 	    else{
 	        LOGD("it is a soc camera!");
 	        mCameraAdapter = new CameraSOCAdapter(cameraId);
+			//mCameraAdapter->is_cif_driver = true;
+			mCameraAdapter->cif_driver_iommu = gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled;
 	    }
     }
     

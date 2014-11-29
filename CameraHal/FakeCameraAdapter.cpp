@@ -47,11 +47,11 @@ int createSourceImage(unsigned char* output, int width, int height)
     fread(RGBBuffer, sizeof(char), size, ifp);
 
     SkBitmap bitmap;
-    bitmap.setConfig(SkBitmap::kARGB_8888_Config, srcW, srcH, 0);
+    //bitmap.setConfig(SkBitmap::kARGB_8888_Config, srcW, srcH, 0);
     bitmap.setPixels(RGBBuffer);
 
     SkBitmap newbmp;
-    newbmp.setConfig(SkBitmap::kARGB_8888_Config, width, height, 0);
+    //newbmp.setConfig(SkBitmap::kARGB_8888_Config, width, height, 0);
     newbmp.allocPixels();
     newbmp.eraseColor(SK_ColorWHITE);
 

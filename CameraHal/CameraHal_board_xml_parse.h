@@ -54,8 +54,8 @@ using namespace android;
 #define RK_SENSOR_LIB_PATH "/system/lib/hw/libisp_isi_drv_"
 #define RK_BOARD_XML_PATH "/etc/cam_board.xml"
 #define RK_DEFAULT_MEDIA_PROFILES_XML_PATH "/etc/media_profiles_default.xml"
-#define RK_DST_MEDIA_PROFILES_XML_PATH "/data/media_profiles.xml"
-#define RK_TMP_MEDIA_PROFILES_XML_PATH "/data/media_profiles_tmp.xml"
+#define RK_DST_MEDIA_PROFILES_XML_PATH "/data/camera/media_profiles.xml"
+#define RK_TMP_MEDIA_PROFILES_XML_PATH "/data/camera/media_profiles_tmp.xml"
 #define RK_SENSOR_XML_PATH "/etc/"
 
 
@@ -466,5 +466,6 @@ public:
 	int mBoardXmlVersion;
 
 };
+
 
 #endif

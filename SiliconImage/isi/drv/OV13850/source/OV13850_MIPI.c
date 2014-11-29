@@ -381,7 +381,7 @@ static RESULT OV13850_IsiGetCapsIssInternal
                     pIsiSensorCaps->Resolution = ISI_RES_4224_3136P7;
                     break;
                 }
-                case 1:
+	            case 1:
                 {
                     pIsiSensorCaps->Resolution = ISI_RES_4224_3136P4;
                     break;
@@ -2446,7 +2446,7 @@ RESULT OV13850_IsiSetIntegrationTimeIss
     //return current state
     *pSetIntegrationTime = pOV13850Ctx->AecCurIntegrationTime;
 
-   // TRACE( OV13850_ERROR, "%s: SetTi=%f NewTi=%f\n", __FUNCTION__, *pSetIntegrationTime,NewIntegrationTime);
+   // TRACE( OV13850_ERROR, "%s: SetTi=%f NewTi=%f\n", __FUNCTION__, *pSetIntegrationTime,NewIntegrationTime);   
     TRACE( OV13850_INFO, "%s: (exit)\n", __FUNCTION__);
 
     return ( result );

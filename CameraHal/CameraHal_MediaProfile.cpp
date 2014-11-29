@@ -13,8 +13,6 @@
 #include <sys/file.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <linux/android_pmem.h>
-#include <linux/videodev.h>
 #include <linux/videodev2.h>
 #include <linux/version.h>
 

@@ -31,6 +31,8 @@ CameraAdapter::CameraAdapter(int cameraId):mPreviewRunning(0),
     CameraHal_SupportFmt[3] = V4L2_PIX_FMT_RGB565;
     CameraHal_SupportFmt[4] = 0x00;
     CameraHal_SupportFmt[5] = 0x00;
+
+	cif_driver_iommu = false;
    LOG_FUNCTION_NAME_EXIT   
 }
 
@@ -192,7 +194,7 @@ status_t CameraAdapter::startPreview(int preview_w,int preview_h,int w, int h, i
     if(is_capture){
         buf_count = 1;
     }
-    if(mPreviewBufProvider->createBuffer(buf_count,frame_size,PREVIEWBUFFER) < 0)
+    if(mPreviewBufProvider->createBuffer(buf_count,frame_size,PREVIEWBUFFER,mPreviewBufProvider->is_cif_driver) < 0)
     {
         LOGE("%s%d:create preview buffer failed",__FUNCTION__,__LINE__);
         return -1;
@@ -656,11 +658,14 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
     mPreviewFrameInfos[cfilledbuffer1.index].frame_width = mCamDrvWidth;
     mPreviewFrameInfos[cfilledbuffer1.index].frame_index = cfilledbuffer1.index;
     if(mCamDriverV4l2MemType == V4L2_MEMORY_OVERLAY){
-		#if (defined(TARGET_RK312x) && (IOMMU_ENABLED == 1))
+		/*#if ((defined(TARGET_RK312x) && (IOMMU_ENABLED == 1)))
 			mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = mPreviewBufProvider->getBufShareFd(cfilledbuffer1.index);
-		#else
-        	mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = mPreviewBufProvider->getBufPhyAddr(cfilledbuffer1.index);
-    	#endif
+		#else*/
+			if(cif_driver_iommu && (IOMMU_ENABLED == 1)){
+				mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = mPreviewBufProvider->getBufShareFd(cfilledbuffer1.index);
+			}else
+        		mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = mPreviewBufProvider->getBufPhyAddr(cfilledbuffer1.index);
+    	//#endif
 	}else
         mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = 0;
     mPreviewFrameInfos[cfilledbuffer1.index].vir_addr = (int)mCamDriverV4l2Buffer[cfilledbuffer1.index];
