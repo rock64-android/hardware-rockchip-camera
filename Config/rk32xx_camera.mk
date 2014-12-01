@@ -1,11 +1,7 @@
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk3288)
-ifeq ($(strip $(PLATFORM_VERSION)),5.0)
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_lollipop:obj/lib/libisp_silicomimageisp_api
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_lollipop:system/lib/libisp_silicomimageisp_api
-else
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_kitkat:obj/lib/libisp_silicomimageisp_api
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_kitkat:system/lib/libisp_silicomimageisp_api
-endif
+
+PRODUCT_PACKAGES += \
+    libisp_silicomimageisp_api
 
 PRODUCT_COPY_FILES += \
     hardware/rk29/camera/SiliconImage/isi/drv/OV8820/calib/OV8820.xml:system/etc/OV8820.xml \
@@ -23,23 +19,13 @@ PRODUCT_COPY_FILES += \
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk312x)
-ifeq ($(strip $(PLATFORM_VERSION)),5.0)
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_lollipop:obj/lib/libisp_silicomimageisp_api
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_lollipop:system/lib/libisp_silicomimageisp_api
-else
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_kitkat:obj/lib/libisp_silicomimageisp_api
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_kitkat:system/lib/libisp_silicomimageisp_api
-endif
+PRODUCT_PACKAGES += \
+    libisp_silicomimageisp_api
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk3036)
-ifeq ($(strip $(PLATFORM_VERSION)),5.0)
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_lollipop:obj/lib/libisp_silicomimageisp_api
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_lollipop:system/lib/libisp_silicomimageisp_api
-else
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_kitkat:obj/lib/libisp_silicomimageisp_api
-PRODUCT_PACKAGES += hardware/rk29/camera/Config/libisp_silicomimageisp_api_kitkat:system/lib/libisp_silicomimageisp_api
-endif
+PRODUCT_PACKAGES += \
+    libisp_silicomimageisp_api
 endif
 
 #force camera API 1

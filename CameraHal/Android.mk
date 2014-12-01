@@ -182,7 +182,7 @@ ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk30xxb)
 LOCAL_CFLAGS += -DTARGET_BOARD_PLATFORM_RK30XXB
 endif
 
-ifeq ($(strip $(PLATFORM_SDK_VERSION)),21)	
+ifeq ($(strip $(PLATFORM_VERSION)),5.0)	
 LOCAL_CFLAGS += -DANDROID_5_X
 endif
 
