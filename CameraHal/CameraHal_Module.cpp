@@ -1026,14 +1026,19 @@ int camera_get_number_of_cameras(void)
 					
 					strcpy(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, SOC_CAM_NAME);
 					pNewCamInfo->mIsIommuEnabled = capability.reserved[0];
+					if (strstr((char*)&capability.card[0], "front") != NULL) {
+                    	pNewCamInfo->mHardInfo.mSensorInfo.mFacing = 1;
+                	} else {
+                    	pNewCamInfo->mHardInfo.mSensorInfo.mFacing = 0;
+                	}
 				}
                 pNewCamInfo->mHardInfo.mSensorInfo.mPhy.type = CamSys_Phy_end;
 
-				pNewCamInfo->mDeviceIndex = (profiles->mDevieVector.size()) - 1;
+				//pNewCamInfo->mDeviceIndex = (profiles->mDevieVector.size()) - 1;
 				pNewCamInfo->mIsConnect = 1;
 				profiles->mCurDevice= pNewCamInfo;
             	profiles->mDevieVector.add(pNewCamInfo);
-
+				pNewCamInfo->mDeviceIndex = (profiles->mDevieVector.size()) - 1;
                 camInfoTmp[cam_cnt].pcam_total_info = pNewCamInfo;
                 cam_cnt++;
                 if (cam_cnt >= CAMERAS_SUPPORT_MAX)

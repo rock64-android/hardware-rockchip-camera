@@ -435,10 +435,13 @@ namespace android {
 *          1) support V4L2 flash control of soc camera when picure size is the same as preview size.
 *v1.0x27.0:
 *   1) compatible with android 5.0 .
+*v1.0x28.0:
+*   1) Modify setBufferStatus Failed after stream off .
+    2) Modify soc camera direction in XML 
 
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x27, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x28, 0)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
