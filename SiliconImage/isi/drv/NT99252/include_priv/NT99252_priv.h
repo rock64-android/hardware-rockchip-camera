@@ -26,8 +26,10 @@ extern "C"
 *   1). fix bugs
 *v0.7.0
 *   1). disable no-need debug
+*v0.8.0
+*   1). merge from hixin setting
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 7, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 8, 0) 
 
 
 #define NT99252_DELAY_5MS                    (0x0000) //delay 5 ms

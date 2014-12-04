@@ -57,6 +57,7 @@ CREATE_TRACER( NT99252_REG_DEBUG, "NT99252: ", INFO, 0U );
 const char NT99252_g_acName[] = "NT99252_ SOC_PARREL";
 extern const IsiRegDescription_t NT99252_g_aRegDescription[];
 extern const IsiRegDescription_t NT99252_g_svga[];
+extern const IsiRegDescription_t NT99252_g_720p[];
 extern const IsiRegDescription_t NT99252_g_1600x1200[];
 
 
@@ -274,7 +275,13 @@ static RESULT NT99252_IsiGetCapsIssInternal
             }
             case 1:
             {
+                //pIsiSensorCaps->Resolution = ISI_RES_SVGAP30;
                 pIsiSensorCaps->Resolution = ISI_RES_SVGAP15;
+                break;
+            }
+            case 2:
+            {
+                pIsiSensorCaps->Resolution =ISI_RES_TV720P5;
                 break;
             }
             default:
@@ -678,6 +685,16 @@ static RESULT NT99252_SetupOutputWindow
             }
             break;
         }*/
+        case ISI_RES_TV720P5:
+        {
+            if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pNT99252Ctx,NT99252_g_720p)) != RET_SUCCESS){
+                TRACE( NT99252_ERROR, "%s: failed to set  ISI_RES_TV720P \n", __FUNCTION__ );
+            }else{
+
+                TRACE( NT99252_ERROR, "%s: success to set  ISI_RES_TV720P \n", __FUNCTION__ );
+            }
+            break;
+        }
         case ISI_RES_1600_1200P7:
         {
             if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pNT99252Ctx,NT99252_g_1600x1200)) != RET_SUCCESS){
@@ -984,7 +1001,7 @@ static RESULT NT99252_IsiChangeSensorResolutionIss
             TRACE( NT99252_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
             return ( result );
         }
-        osSleep(200);
+        //osSleep(3000);
         // remember old exposure values
         float OldGain = pNT99252Ctx->AecCurGain;
         float OldIntegrationTime = pNT99252Ctx->AecCurIntegrationTime;
@@ -998,7 +1015,8 @@ static RESULT NT99252_IsiChangeSensorResolutionIss
         }
 
         // restore old exposure values (at least within new exposure values' limits)
-        uint8_t NumberOfFramesToSkip = 0;
+        uint8_t NumberOfFramesToSkip = 4;
+		//uint8_t NumberOfFramesToSkip;
         float   DummySetGain;
         float   DummySetIntegrationTime;
         result = NT99252_IsiExposureControlIss( handle, OldGain, OldIntegrationTime, &NumberOfFramesToSkip, &DummySetGain, &DummySetIntegrationTime );
@@ -1062,14 +1080,14 @@ static RESULT NT99252_IsiSensorSetStreamingIss
     {
         /* enable streaming */
         // hkw add;
-        result = NT99252_IsiRegWriteIss( handle, 0x3021, 0x2);
+        result = NT99252_IsiRegWriteIss( handle, 0x0100, 0x1);
        //result = RET_SUCCESS;
 
     }
     else
     {
         /* disable streaming */
-        result = NT99252_IsiRegWriteIss( handle, 0x3021, 0x0);
+        result = NT99252_IsiRegWriteIss( handle, 0x0100, 0x0);
 		//		result = RET_SUCCESS;
 
     }
