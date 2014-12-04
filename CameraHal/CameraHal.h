@@ -440,6 +440,9 @@ namespace android {
     2) Modify soc camera direction in XML 
 *V1.0x29.0:
 *     1) fix bug caused by the path of media_profiles.xml  in android kitkat. 
+*V1.0x29.1:
+*     1) add 480p in back camera's resolution. 
+*
 */
 
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 0)

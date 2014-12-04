@@ -752,7 +752,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         unsigned int max_w,max_h,max_fps,maxfps_res;
         bool chk_720p,chk_1080p;
         
-        parameterString = "176x144,320x240,352x288,640x480,800x600";
+        parameterString = "176x144,320x240,352x288,640x480,720x480,800x600";
         LOG1("Sensor resolution list:");
 
         max_w = 0;

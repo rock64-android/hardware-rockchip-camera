@@ -119,13 +119,13 @@
 				<Continue_SnapShot support="1"></Continue_SnapShot>
 				<InterpolationRes resolution="0"></InterpolationRes>
 				<PreviewSize width="1920" height="1080"></PreviewSize>
-				<FaceDetect support="1" MaxNum="1"></FaceDetect>
+				<FaceDetect support="0" MaxNum="1"></FaceDetect>
 				<DV>
 					<DV_QCIF name="qcif" width="176" height="144" fps="10" support="1"></DV_QCIF>
 					<DV_QVGA name="qvga" width="320" height="240" fps="10" support="1"></DV_QVGA>
 					<DV_CIF name="cif" width="352" height="288" fps="10" support="1"></DV_CIF>
 					<DV_VGA name="480p" width="640" height="480" fps="10" support="0"></DV_VGA>
-					<DV_480P name="480p" width="720" height="480" fps="10" support="0"></DV_480P>
+					<DV_480P name="480p" width="720" height="480" fps="10" support="1"></DV_480P>
 					<DV_720P name="720p" width="1280" height="720" fps="10" support="1"></DV_720P>
 					<DV_1080P name="1080p" width="1920" height="1080" fps="10" support="1"></DV_1080P>
 				</DV>
@@ -257,7 +257,7 @@
 					<DV_QVGA name="qvga" width="320" height="240" fps="10" support="1"></DV_QVGA>
 					<DV_CIF name="cif" width="352" height="288" fps="10" support="1"></DV_CIF>
 					<DV_VGA name="480p" width="640" height="480" fps="10" support="0"></DV_VGA>
-					<DV_480P name="480p" width="720" height="480" fps="10" support="0"></DV_480P>
+					<DV_480P name="480p" width="720" height="480" fps="10" support="1"></DV_480P>
 					<DV_720P name="720p" width="1280" height="720" fps="10" support="1"></DV_720P>
 					<DV_1080P name="1080p" width="1920" height="1080" fps="10" support="1"></DV_1080P>
 				</DV>
@@ -386,7 +386,7 @@
 					<DV_QVGA name="qvga" width="320" height="240" fps="10" support="1"></DV_QVGA>
 					<DV_CIF name="cif" width="352" height="288" fps="10" support="1"></DV_CIF>
 					<DV_VGA name="480p" width="640" height="480" fps="10" support="0"></DV_VGA>
-					<DV_480P name="480p" width="720" height="480" fps="10" support="0"></DV_480P>
+					<DV_480P name="480p" width="720" height="480" fps="10" support="1"></DV_480P>
 					<DV_720P name="720p" width="1280" height="720" fps="10" support="1"></DV_720P>
 					<DV_1080P name="1080p" width="1920" height="1080" fps="10" support="1"></DV_1080P>
 				</DV>
@@ -517,7 +517,7 @@
 					<DV_QVGA name="qvga" width="320" height="240" fps="10" support="1"></DV_QVGA>
 					<DV_CIF name="cif" width="352" height="288" fps="10" support="1"></DV_CIF>
 					<DV_VGA name="480p" width="640" height="480" fps="10" support="0"></DV_VGA>
-					<DV_480P name="480p" width="720" height="480" fps="10" support="0"></DV_480P>
+					<DV_480P name="480p" width="720" height="480" fps="10" support="1"></DV_480P>
 					<DV_720P name="720p" width="1280" height="720" fps="10" support="1"></DV_720P>
 					<DV_1080P name="1080p" width="1920" height="1080" fps="10" support="1"></DV_1080P>
 				</DV>
