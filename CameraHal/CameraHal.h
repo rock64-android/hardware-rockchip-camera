@@ -442,10 +442,12 @@ namespace android {
 *     1) fix bug caused by the path of media_profiles.xml  in android kitkat. 
 *V1.0x29.1:
 *     1) add 480p in back camera's resolution. 
+*V1.0x29.2:
+	 1) use PLATFORM_SDK_VERSION instead of PLATFORM_VERSION
 *
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 2)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
