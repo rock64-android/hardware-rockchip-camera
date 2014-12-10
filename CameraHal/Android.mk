@@ -36,7 +36,7 @@ LOCAL_C_INCLUDES += \
   external/jhead\
   hardware/rk29/hwcomposer_rga\
 	hardware/rk29/libgralloc_ump/ump/include\
-	hardware/rk29/libon2\
+	hardware/rk29/librkvpu\
   $(LOCAL_PATH)/../SiliconImage/include\
   $(LOCAL_PATH)/../SiliconImage/include/isp_cam_api\
   bionic\
@@ -80,7 +80,7 @@ LOCAL_C_INCLUDES += \
   external/jpeg \
   external/jhead\
   hardware/rk29/hwcomposer_rga\
-  hardware/rk29/libon2\
+  hardware/rk29/librkvpu\
   hardware/rk29/libgralloc_ump/ump/include
 
 LOCAL_SHARED_LIBRARIES:= \

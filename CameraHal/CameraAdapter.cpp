@@ -309,19 +309,19 @@ int CameraAdapter::cameraCreate(int cameraId)
     if (mMjpegDecoder.get == NULL) {
         if (mLibstageLibHandle != NULL)
             dlclose(mLibstageLibHandle);            /* ddl@rock-chips.com: v0.4.0x27 */
-        mLibstageLibHandle = dlopen("librk_on2.so", RTLD_NOW);    
+        mLibstageLibHandle = dlopen("librk_vpuapi.so", RTLD_NOW);    
         if (mLibstageLibHandle == NULL) {
-            LOGE("%s(%d): open librk_on2.so fail",__FUNCTION__,__LINE__);
+            LOGE("%s(%d): open librk_vpuapi.so fail",__FUNCTION__,__LINE__);
         } else {
-            mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");
+            mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_RkJpegDecoder");
             if (mMjpegDecoder.get == NULL) {
-                LOGE("%s(%d): dlsym get_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+                LOGE("%s(%d): dlsym get_class_RkJpegDecoder fail",__FUNCTION__,__LINE__);
             } else {
-                strcat(decode_name,"dec_oneframe_On2JpegDecoder");
+                strcat(decode_name,"dec_oneframe_RkJpegDecoder");
             }
         }
     } else {
-        strcat(decode_name,"dec_oneframe_class_On2JpegDecoder");
+        strcat(decode_name,"dec_oneframe_class_RkJpegDecoder");
     }
 
 
@@ -330,17 +330,17 @@ int CameraAdapter::cameraCreate(int cameraId)
         if (mMjpegDecoder.decoder==NULL) {
             LOGE("%s(%d): get mjpeg decoder failed",__FUNCTION__,__LINE__);
         } else {
-            mMjpegDecoder.destroy =(destroyMjpegDecoderFun)dlsym(mLibstageLibHandle, "destroy_class_On2JpegDecoder");
+            mMjpegDecoder.destroy =(destroyMjpegDecoderFun)dlsym(mLibstageLibHandle, "destroy_class_RkJpegDecoder");
             if (mMjpegDecoder.destroy == NULL)
-                LOGE("%s(%d): dlsym destroy_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+                LOGE("%s(%d): dlsym destroy_class_RkJpegDecoder fail",__FUNCTION__,__LINE__);
 
-            mMjpegDecoder.init = (initMjpegDecoderFun)dlsym(mLibstageLibHandle, "init_class_On2JpegDecoder");
+            mMjpegDecoder.init = (initMjpegDecoderFun)dlsym(mLibstageLibHandle, "init_class_RkJpegDecoder");
             if (mMjpegDecoder.init == NULL)
-                LOGE("%s(%d): dlsym init_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+                LOGE("%s(%d): dlsym init_class_RkJpegDecoder fail",__FUNCTION__,__LINE__);
 
-            mMjpegDecoder.deInit =(deInitMjpegDecoderFun)dlsym(mLibstageLibHandle, "deinit_class_On2JpegDecoder");
+            mMjpegDecoder.deInit =(deInitMjpegDecoderFun)dlsym(mLibstageLibHandle, "deinit_class_RkJpegDecoder");
             if (mMjpegDecoder.deInit == NULL)
-                LOGE("%s(%d): dlsym deinit_class_On2JpegDecoder fail",__FUNCTION__,__LINE__);
+                LOGE("%s(%d): dlsym deinit_class_RkJpegDecoder fail",__FUNCTION__,__LINE__);
 
             mMjpegDecoder.decode =(mjpegDecodeOneFrameFun)dlsym(mLibstageLibHandle, decode_name);
             if (mMjpegDecoder.decode == NULL)

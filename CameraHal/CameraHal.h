@@ -56,7 +56,6 @@
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
 #include "../jpeghw/release/encode_release/rk29-ipp.h"
-#include "../libon2/vpu_global.h"
 
 #include "CameraHal_Module.h"
 #include "common_type.h"
@@ -406,7 +405,7 @@ namespace android {
 		      1) add flip for weixin and MiTalk.
 		*v1.0.c:
 		      1) fix uvc exposure bug.
-		      2) uvc capture may crash in librk_on2.so, fix it.
+		      2) uvc capture may crash in librk_vpuapi.so, fix it.
 		      3) filter not mjpeg data when uvc output format is mjpeg.
 		      4) invalide auto,infinity,macro focus function for uvc.
 		*v1.0.d:
@@ -444,10 +443,12 @@ namespace android {
 *     1) add 480p in back camera's resolution. 
 *V1.0x29.2:
 	 1) use PLATFORM_SDK_VERSION instead of PLATFORM_VERSION
+*V1.0x29.3:
+    1) jpeg decoder interface has been changed , fix it.
 *
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 2)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 3)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
