@@ -11,7 +11,7 @@
 #include <camera/CameraParameters.h>
 
 #if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) || (defined(TARGET_BOARD_PLATFORM_RK2928)))
-#include "../libgralloc_ump/gralloc_priv.h"
+#include "../libgralloc/gralloc_priv.h"
 #if (CONFIG_CAMERA_INVALIDATE_RGA==0)
 #include <hardware/rga.h>
 #endif
