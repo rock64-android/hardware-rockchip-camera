@@ -6,7 +6,7 @@ LOCAL_MODULE := libisp_silicomimageisp_api
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_STEM := $(LOCAL_MODULE)
-ifeq ($(strip $(PLATFORM_VERSION)),5.0)
+ifeq ($(strip $(PLATFORM_SDK_VERSION)), 21)
 LOCAL_SRC_FILES := $(LOCAL_MODULE)_lollipop.so
 else
 LOCAL_SRC_FILES := $(LOCAL_MODULE)_kitkat.so
@@ -23,7 +23,7 @@ LOCAL_MODULE := libisp_silicomimageisp_api
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_STEM := $(LOCAL_MODULE)
-ifeq ($(strip $(PLATFORM_VERSION)),5.0)
+ifeq ($(strip $(PLATFORM_SDK_VERSION)), 21)
 LOCAL_SRC_FILES := $(LOCAL_MODULE)_lollipop.so
 else
 LOCAL_SRC_FILES := $(LOCAL_MODULE)_kitkat.so
@@ -39,7 +39,7 @@ LOCAL_MODULE := libisp_silicomimageisp_api
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_STEM := $(LOCAL_MODULE)
-ifeq ($(strip $(PLATFORM_VERSION)),5.0)
+ifeq ($(strip $(PLATFORM_SDK_VERSION)), 21)
 LOCAL_SRC_FILES := $(LOCAL_MODULE)_lollipop.so
 else
 LOCAL_SRC_FILES := $(LOCAL_MODULE)_kitkat.so
