@@ -110,17 +110,10 @@ CameraHal::CameraHal(int cameraId)
     mRawBuf = new BufferProvider(mCamMemManager);
     mJpegBuf = new BufferProvider(mCamMemManager);
 
-	if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_end){// soc cif
-		mPreviewBuf->is_cif_driver = true;
-		mVideoBuf->is_cif_driver = true;
-		mRawBuf->is_cif_driver = true;
-		mJpegBuf->is_cif_driver = true;
-	}else{
-		mPreviewBuf->is_cif_driver = false;
-		mVideoBuf->is_cif_driver = false;
-		mRawBuf->is_cif_driver = false;
-		mJpegBuf->is_cif_driver = false;
-	}
+	mPreviewBuf->is_cif_driver = false;
+	mVideoBuf->is_cif_driver = false;
+	mRawBuf->is_cif_driver = false;
+	mJpegBuf->is_cif_driver = false;
 	
     char value[PROPERTY_VALUE_MAX];
     property_get(/*CAMERAHAL_TYPE_PROPERTY_KEY*/"sys.cam_hal.type", value, "none");
@@ -149,6 +142,10 @@ CameraHal::CameraHal(int cameraId)
 	        mCameraAdapter = new CameraSOCAdapter(cameraId);
 			//mCameraAdapter->is_cif_driver = true;
 			mCameraAdapter->cif_driver_iommu = gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled;
+			mPreviewBuf->is_cif_driver = true;
+			mVideoBuf->is_cif_driver = true;
+			mRawBuf->is_cif_driver = true;
+			mJpegBuf->is_cif_driver = true;
 	    }
     }
     

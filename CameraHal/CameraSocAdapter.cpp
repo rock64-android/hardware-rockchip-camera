@@ -262,7 +262,7 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x720,800x600,720x480,640x480,352x288,320x240,176x144");
 		else
 	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "800x600,720x480,640x480,352x288,320x240,176x144");
-		strcat( str_picturesize,"1600x1200,1600x900,1024x768,800x600,640x480,352x288,320x240,176x144");			
+		strcat( str_picturesize,"1600x1200,1024x768,800x600,720x480,640x480,352x288,320x240,176x144");			
 		params.setPictureSize(1600,1200);
 	} else if (mCamDriverFrmWidthMax <= 2048) {
         params.setPreviewSize(800, 600);
