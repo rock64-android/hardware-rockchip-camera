@@ -476,7 +476,7 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
 	int frame_size;
 	camera_ionbuf_t* tmpalloc = NULL;
 	struct bufferinfo_s* tmp_buf = NULL;
-    struct ion_handle* handle = NULL;
+    ion_user_handle_t handle = 0;
     int map_fd;
     unsigned long vir_addr = 0;
 
@@ -538,15 +538,15 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
     	memset(tmpalloc,0,sizeof(struct camera_ionbuf_s));
 
         if((!mIommuEnabled) || (!ionbuf->mIsForceIommuBuf))
-            ret = ion_alloc(client_fd, ionbuf->mPerBuffersize, PAGE_SIZE, 2, 0, &handle);
+            ret = ion_alloc(client_fd, ionbuf->mPerBuffersize, PAGE_SIZE, ION_HEAP(ION_CMA_HEAP_ID), 0, &handle);
         else
-            ret = ion_alloc(client_fd, ionbuf->mPerBuffersize, PAGE_SIZE, 8, 0, &handle);
+            ret = ion_alloc(client_fd, ionbuf->mPerBuffersize, PAGE_SIZE, ION_HEAP(ION_VMALLOC_HEAP_ID), 0, &handle);
         if (ret) {
             LOGE("ion alloc failed\n");
             break;
         }
 
-        LOG1("handle %p\n", handle);
+        LOG1("handle %d\n", handle);
 
         ret = ion_share(client_fd,handle,&map_fd);
         if (ret) {
@@ -588,7 +588,7 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
             --tmpalloc;
             --tmp_buf;
             munmap((void *)tmpalloc->vir_addr, tmpalloc->size);
-            ion_free(client_fd, (struct ion_handle*)(tmpalloc->ion_hdl));
+            ion_free(client_fd, (ion_user_handle_t)(tmpalloc->ion_hdl));
         }
         free(tmpalloc);
         free(tmp_buf);
@@ -638,7 +638,7 @@ void IonDmaMemManager::destroyIonBuffer(buffer_type_enum buftype)
 
             close(tmpalloc->map_fd);
 
-            err = ion_free(client_fd, (struct ion_handle*)(tmpalloc->ion_hdl));
+            err = ion_free(client_fd, (ion_user_handle_t)(tmpalloc->ion_hdl));
 
         }
         tmpalloc++;

@@ -25,7 +25,7 @@
 #endif
 
 #elif (CONFIG_CAMERA_MEM == CAMERA_MEM_IONDMA)
-#include <linux/ion.h>
+#include <linux/rockchip_ion.h>
 #include <ion/ion.h>
 #endif
 #include <binder/IMemory.h>
