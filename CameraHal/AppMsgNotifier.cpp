@@ -951,9 +951,9 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	memset(&JpegOutInfo,0x00,sizeof(JpegEncOutInfo));
 	memset(&exifInfo,0x00,sizeof(exifInfo));
 
-	quality = mPictureInfo.quality;
-	thumbquality = mPictureInfo.thumbquality;
-	thumbwidth	= mPictureInfo.thumbwidth;
+	quality = 70;//mPictureInfo.quality;
+	thumbquality = 160;//mPictureInfo.thumbquality;
+	thumbwidth	= 128;//mPictureInfo.thumbwidth;
 	thumbheight = mPictureInfo.thumbheight;
 	rotation = mPictureInfo.rotation;
     
