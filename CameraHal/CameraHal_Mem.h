@@ -25,8 +25,8 @@
 #endif
 
 #elif (CONFIG_CAMERA_MEM == CAMERA_MEM_IONDMA)
-#include <linux/rockchip_ion.h>
-#include <ion/ion.h>
+#include <rockchip_ion.h>
+#include <ion.h>
 #endif
 #include <binder/IMemory.h>
 namespace android {

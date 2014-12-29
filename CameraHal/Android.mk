@@ -43,6 +43,8 @@ LOCAL_C_INCLUDES += \
   external/stlport/stlport\
   external/tinyxml2\
   system/media/camera/include\
+  system/core/libion/kernel-headers/linux\
+  system/core/libion/include/ion
 
 LOCAL_C_INCLUDES += \
     external/skia/include/core \

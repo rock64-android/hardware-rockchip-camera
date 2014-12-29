@@ -208,12 +208,20 @@
 *          1) getPreferedSensorRes support max_exp_res/max_fps_res/max_res for different request resolution;
 *    v1.0x11.5:
 *          1) pAecCtx->EcmT0 define max integration time for 5M and 8M resolution;
-* v1.0x16.0:
+*v1.0x16.0:
 *   1)  compatible with android 5.0 .
+*v1.0x17.0:
+*    include for ifive(hisense f415)
+*    v1.0x11.6:
+*          1) if enableAfps is false, change framerate only is invalidate in changeResolution;
+*v1.0x18.0:
+    1) wrong of operation of comparation 0.0 to  float in func getPreferedSensorRes,fix it.
+*v1.0x19.0:
+	1) correct ion heap for allocate ,replace ion_handle* with ion_user_handle_t
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x16, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x19, 0)
 
 
 class CamEngineItf;
