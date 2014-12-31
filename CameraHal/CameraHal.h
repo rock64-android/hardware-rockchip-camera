@@ -452,10 +452,11 @@ namespace android {
 *	1) force thumb's w and h to 160x128 
 *V1.0x29.6:
 	1) use new ion interface,commit corresponding isp lib
-*
+*V1.0x29.7:
+*	1) fix V1.0x29.5 
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 6)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 7)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
