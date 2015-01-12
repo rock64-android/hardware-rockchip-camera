@@ -453,10 +453,12 @@ namespace android {
 *V1.0x29.6:
 	1) use new ion interface,commit corresponding isp lib
 *V1.0x29.7:
-*	1) fix V1.0x29.5 
+*	1) fix V1.0x29.5
+*V1.0x29.8:
+*     1) bug exist in 'Internal' flash control,fix it.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 7)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 8)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

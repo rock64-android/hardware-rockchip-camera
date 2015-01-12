@@ -218,10 +218,12 @@
     1) wrong of operation of comparation 0.0 to  float in func getPreferedSensorRes,fix it.
 *v1.0x19.0:
 	1) correct ion heap for allocate ,replace ion_handle* with ion_user_handle_t
+*v1.0x20.0:
+    1) wrong of operation of comparation dev_mask in func HalFlashTrigCtrl,fix it.	
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x19, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x20, 0)
 
 
 class CamEngineItf;
