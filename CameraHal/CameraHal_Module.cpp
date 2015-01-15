@@ -508,7 +508,7 @@ int camera_device_open(const hw_module_t* module, const char* name,
 
         if(gCamerasOpen >= CAMERAS_SUPPORTED_SIMUL_MAX) {
             LOGE("maximum number(%d) of cameras already open",gCamerasOpen);
-            rv = -ENOMEM;
+            rv = -EUSERS;
             goto fail;
         }
 

@@ -456,9 +456,11 @@ namespace android {
 *	1) fix V1.0x29.5
 *V1.0x29.8:
 *     1) bug exist in 'Internal' flash control,fix it.
+*V1.0x29.9:
+*	1) fix something for pass cts
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 8)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 9)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

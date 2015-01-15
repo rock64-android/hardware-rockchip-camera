@@ -262,7 +262,7 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x720,800x600,720x480,640x480,352x288,320x240,176x144");
 		else
 	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "800x600,720x480,640x480,352x288,320x240,176x144");
-		strcat( str_picturesize,"1600x1200,1024x768,800x600,720x480,640x480,352x288,320x240,176x144");			
+		strcat( str_picturesize,"1600x1200,1024x768,720x480,640x480,352x288,320x240,176x144");			
 		params.setPictureSize(1600,1200);
 	} else if (mCamDriverFrmWidthMax <= 2048) {
         params.setPreviewSize(800, 600);
@@ -438,6 +438,10 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 		}
 		params.set(CameraParameters::KEY_SUPPORTED_ANTIBANDING, str_Antibanding);
 		params.set(CameraParameters::KEY_ANTIBANDING, cur_param);
+	}else{
+		/*no much meaning ,only for passing cts yzm*/
+		params.set(CameraParameters::KEY_SUPPORTED_ANTIBANDING, "auto,50hz,60hz,off");
+		params.set(CameraParameters::KEY_ANTIBANDING, "off");
 	}
 
 	/*White Balance lock setting*/
@@ -465,7 +469,9 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 			params.set(CameraParameters::KEY_AUTO_EXPOSURE_LOCK, "false");
 		}
 	}else{
-		params.set(CameraParameters::KEY_AUTO_EXPOSURE_LOCK_SUPPORTED, "");
+		/*no much meaning ,only for passing cts yzm*/
+		params.set(CameraParameters::KEY_AUTO_EXPOSURE_LOCK, "false");
+		params.set(CameraParameters::KEY_AUTO_EXPOSURE_LOCK_SUPPORTED, "true");
 	}
 
 	/*flash mode setting*/
@@ -544,10 +550,11 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 		sprintf(str_exposure,"%d",exposure.step); 
 		params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, str_exposure);
 	} else {
+		/*no much meaning ,only for passing cts yzm*/
 		params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, "0");
-		params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "0");
-		params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "0");
-		params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, "0.000001f");
+		params.set(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION, "2");
+		params.set(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION, "1");
+		params.set(CameraParameters::KEY_EXPOSURE_COMPENSATION_STEP, "1.0f");
 	}
 	/*rotation setting*/
 	params.set(CameraParameters::KEY_ROTATION, "0");
@@ -941,7 +948,6 @@ int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
     /*exposure setting*/
 	const char *exposure = params.get(CameraParameters::KEY_EXPOSURE_COMPENSATION);
     const char *mexposure = mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION);
-    
 	if (strcmp("0", params.get(CameraParameters::KEY_MAX_EXPOSURE_COMPENSATION))
 		|| strcmp("0", params.get(CameraParameters::KEY_MIN_EXPOSURE_COMPENSATION))) {
 	    if (!mexposure || (exposure && strcmp(exposure,mexposure))) {

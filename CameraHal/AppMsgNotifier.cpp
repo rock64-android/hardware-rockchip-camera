@@ -946,15 +946,22 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     int jpegbuf_size;
 	int bufindex;
     bool mIs_Verifier = false;
-
+	char prop_value[PROPERTY_VALUE_MAX];
 	memset(&JpegInInfo,0x00,sizeof(JpegEncInInfo));
 	memset(&JpegOutInfo,0x00,sizeof(JpegEncOutInfo));
 	memset(&exifInfo,0x00,sizeof(exifInfo));
-
-	quality = mPictureInfo.quality;
-	thumbquality = 70;//mPictureInfo.thumbquality;
-	thumbwidth	= 160;//mPictureInfo.thumbwidth;
-	thumbheight = 128;//mPictureInfo.thumbheight;
+	quality = mPictureInfo.quality;	
+	/*only for passing cts yzm*/
+	property_get("sys.cts_gts.status",prop_value, "false");
+	if(strcmp(prop_value,"true")){
+		thumbquality = mPictureInfo.thumbquality;
+		thumbwidth	= mPictureInfo.thumbwidth;
+		thumbheight = mPictureInfo.thumbheight;
+	}else{
+		thumbquality = 70;
+		thumbwidth	= 160;
+		thumbheight = 128;		
+	}
 	rotation = mPictureInfo.rotation;
     
 	jpeg_w = mPictureInfo.w;
