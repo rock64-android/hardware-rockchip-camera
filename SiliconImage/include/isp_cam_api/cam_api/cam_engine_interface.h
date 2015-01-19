@@ -219,11 +219,13 @@
 *v1.0x19.0:
 	1) correct ion heap for allocate ,replace ion_handle* with ion_user_handle_t
 *v1.0x20.0:
-    1) wrong of operation of comparation dev_mask in func HalFlashTrigCtrl,fix it.	
+    1) wrong of operation of comparation dev_mask in func HalFlashTrigCtrl,fix it.
+*v1.0x21.0:
+    1) add to support 5040 afps.
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x20, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x21, 0)
 
 
 class CamEngineItf;

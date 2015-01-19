@@ -439,28 +439,31 @@ namespace android {
     2) Modify soc camera direction in XML 
 *V1.0x29.0:
 *     1) fix bug caused by the path of media_profiles.xml  in android kitkat. 
-*V1.0x29.1:
-*     1) add 480p in back camera's resolution. 
-*V1.0x29.2:
-	 1) use PLATFORM_SDK_VERSION instead of PLATFORM_VERSION
-*V1.0x29.3:
-    1) jpeg decoder interface has been changed , fix it.    
-*V1.0x29.4:
-    1) uvc camera create buf err sometimes cause by "is_cif_driver", fix it.
-    2) del 1200X900,add 720X480,if mCamDriverFrmWidthMax <= 1600 for soc camera. 
-*V1.0x29.5:
-*	1) force thumb's w and h to 160x128 
-*V1.0x29.6:
-	1) use new ion interface,commit corresponding isp lib
-*V1.0x29.7:
-*	1) fix V1.0x29.5
-*V1.0x29.8:
-*     1) bug exist in 'Internal' flash control,fix it.
-*V1.0x29.9:
-*	1) fix something for pass cts
+*V1.0x30.0:
+       1) Invalid IOMMU_ENABLED defaultly, except for 312x.
+       2) merge source code frome mid,include following version:
+		*V1.0x29.1:
+		*     1) add 480p in back camera's resolution. 
+		*V1.0x29.2:
+			1) use PLATFORM_SDK_VERSION instead of PLATFORM_VERSION
+		*V1.0x29.3:
+			1) jpeg decoder interface has been changed , fix it.    
+		*V1.0x29.4:
+			1) uvc camera create buf err sometimes cause by "is_cif_driver", fix it.
+			2) del 1200X900,add 720X480,if mCamDriverFrmWidthMax <= 1600 for soc camera. 
+		*V1.0x29.5:
+		*	1) force thumb's w and h to 160x128 
+		*V1.0x29.6:
+			1) use new ion interface,commit corresponding isp lib
+		*V1.0x29.7:
+		*	1) fix V1.0x29.5 
+		*V1.0x29.8:
+		*     1) bug exist in 'Internal' flash control,fix it.
+		*V1.0x29.9:
+		*	1) fix something for pass cts
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x29, 9)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x30, 0)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -532,7 +535,13 @@ namespace android {
 #define OPTIMIZE_MEMORY_USE
 #define VIDEO_ENC_BUFFER            0x151800 
 #define FILTER_FRAME_NUMBER (3)
+
+#if (defined(TARGET_RK312x)) /*dalon.zhang@rock-chips.com: V1.0x29.7*/
 #define IOMMU_ENABLED   (1)
+#else
+#define IOMMU_ENABLED   (0)
+#endif
+
 #define JPEG_BUFFER_DYNAMIC		(1)
 
 #define V4L2_BUFFER_MAX             32

@@ -2184,8 +2184,12 @@ RESULT IsiGetResolutionParam
         case ISI_RES_SVGAP60:
         case ISI_RES_SVGAP120:
 
+        case ISI_RES_2592_1944P5:
         case ISI_RES_2592_1944P7:
+        case ISI_RES_2592_1944P10:
         case ISI_RES_2592_1944P15:
+        case ISI_RES_2592_1944P20:
+        case ISI_RES_2592_1944P25:
         case ISI_RES_2592_1944P30:
             
         case ISI_RES_1296_972P7:
