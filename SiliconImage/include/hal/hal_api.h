@@ -137,6 +137,7 @@ typedef struct HalContext_s *HalHandle_t;
 typedef struct HalPara_s
 {
     uint32_t   mipi_lanes;
+	bool_t     is_new_ion;
 } HalPara_t;
 
 /*****************************************************************************/

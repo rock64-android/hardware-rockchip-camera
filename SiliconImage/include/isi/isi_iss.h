@@ -163,8 +163,8 @@ typedef RESULT (IsiGetSensorMipiInfoIss_t)          ( IsiSensorHandle_t handle ,
 typedef RESULT (IsiActivateTestPattern_t)           ( IsiSensorHandle_t handle, const bool_t enable );
 
 //add for OTP,zyc
-typedef int (sensor_i2c_write_t)(void* context,int camsys_fd,const uint32_t reg_address, const uint32_t  value);
-typedef int (sensor_i2c_read_t)(void* context,int camsys_fd,const uint32_t reg_address);
+typedef int (sensor_i2c_write_t)(void* context,int camsys_fd,const uint32_t reg_address, const uint32_t  value, int* i2c_base_info);
+typedef int (sensor_i2c_read_t)(void* context,int camsys_fd,const uint32_t reg_address,int* i2c_base_info);
 
 typedef RESULT (IsiCheckOTPInfo_t)
 (

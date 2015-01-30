@@ -31,8 +31,10 @@ using namespace android;
 *     1:add gamma out module config.
 *v.0.0x0c.0
 *     1:add sensor lens config.
+*v.0.0x0d.0
+*     1:support sensor otp i2c info.
 */
-#define ConfigBoardXmlVersion KERNEL_VERSION(0, 0xc, 0x00) 
+#define ConfigBoardXmlVersion KERNEL_VERSION(0, 0xd, 0x00) 
 
 #define UVC_CAM_NAME "UVC Camera"
 #define SOC_CAM_NAME "SOC Camera"//yzm

@@ -18,7 +18,7 @@ LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/../../include\
 
 
-LOCAL_CFLAGS := -Wall -Wextra -std=c99  -Wformat-nonliteral -g -O0 -DDEBUG -pedantic
+LOCAL_CFLAGS := -Wall -Wextra -std=c99   -Wformat-nonliteral -g -O0 -DDEBUG -pedantic
 LOCAL_CFLAGS += -DLINUX  -DMIPI_USE_CAMERIC -DHAL_MOCKUP -DCAM_ENGINE_DRAW_DOM_ONLY -D_FILE_OFFSET_BITS=64 -DHAS_STDINT_H
 #LOCAL_STATIC_LIBRARIES := libisp_ebase libisp_oslayer libisp_common libisp_hal libisp_cameric_reg_drv libisp_cameric_drv 
 #LOCAL_WHOLE_STATIC_LIBRARIES := libisp_ebase libisp_common libisp_hal libisp_cameric_reg_drv libisp_cameric_drv

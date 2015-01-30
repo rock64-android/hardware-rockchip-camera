@@ -524,27 +524,7 @@ static RESULT OV8825_IsiGetCapsIssInternal
                 }
                 case 1:
                 {
-                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P15;
-                    break;
-                }
-				case 2:
-                {
                     pIsiSensorCaps->Resolution = ISI_RES_TV1080P30;
-                    break;
-                }
-				case 3:
-                {
-                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P25;
-                    break;
-                }
-				case 4:
-                {
-                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P20;
-                    break;
-                }
-				case 5:
-                {
-                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P5;
                     break;
                 }
                 default:
@@ -564,26 +544,6 @@ static RESULT OV8825_IsiGetCapsIssInternal
                 case 1:
                 {
                     pIsiSensorCaps->Resolution = ISI_RES_TV1080P15;
-                    break;
-                }
-				case 2:
-                {
-                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P30;
-                    break;
-                }
-				case 3:
-                {
-                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P25;
-                    break;
-                }
-				case 4:
-                {
-                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P20;
-                    break;
-                }
-				case 5:
-                {
-                    pIsiSensorCaps->Resolution = ISI_RES_TV1080P5;
                     break;
                 }
                 default:
@@ -1017,12 +977,10 @@ int OV8825_get_PCLK( OV8825_Context_t *pOV8825Ctx, int XVCLK)
  * @retval  RET_NULL_POINTER
  *
  *****************************************************************************/
-static RESULT OV8825_SetupOutputWindowInternal
+static RESULT OV8825_SetupOutputWindow
 (
     OV8825_Context_t        *pOV8825Ctx,
-    const IsiSensorConfig_t *pConfig,
-    bool_t set2Sensor,
-    bool_t res_no_chg
+    const IsiSensorConfig_t *pConfig
 )
 {
     RESULT result     = RET_SUCCESS;
@@ -1307,16 +1265,11 @@ static RESULT OV8825_SetupOutputWindowInternal
         pOV8825Ctx->FrameLengthLines = usFrameLengthLines;
     }else if(pOV8825Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_ONE_LANE){
 
-        pOV8825Ctx->IsiSensorMipiInfo.ulMipiFreq = 656;
+    	pOV8825Ctx->IsiSensorMipiInfo.ulMipiFreq = 656;
         /* resolution */
         switch ( pConfig->Resolution )
         {
-            case ISI_RES_TV1080P30:
-            case ISI_RES_TV1080P25:
-            case ISI_RES_TV1080P20:
             case ISI_RES_TV1080P15:
-            case ISI_RES_TV1080P10:
-            case ISI_RES_TV1080P5:
             {
                 TRACE( OV8825_NOTICE1, "%s(%d): ISI_RES_TV1080P15", __FUNCTION__,__LINE__ );
                 usModeSelect = 0x00;
@@ -1540,7 +1493,7 @@ static RESULT OV8825_SetupOutputWindowInternal
         pOV8825Ctx->LineLengthPck    = usLineLengthPck;
         pOV8825Ctx->FrameLengthLines = usFrameLengthLines;	
 
-	}
+    }
 
 //have to reset mipi freq here,zyc
 
@@ -1552,24 +1505,6 @@ static RESULT OV8825_SetupOutputWindowInternal
     return ( result );
 }
 
-static RESULT OV8825_SetupOutputWindow
-(
-    OV8825_Context_t        *pOV8825Ctx,
-    const IsiSensorConfig_t *pConfig
-)
-{
-    bool_t res_no_chg;
-
-    if ((ISI_RES_W_GET(pConfig->Resolution)==ISI_RES_W_GET(pOV8825Ctx->Config.Resolution)) && 
-        (ISI_RES_W_GET(pConfig->Resolution)==ISI_RES_W_GET(pOV8825Ctx->Config.Resolution))) {
-        res_no_chg = BOOL_TRUE;
-
-    } else {
-        res_no_chg = BOOL_FALSE;
-    }
-
-    return OV8825_SetupOutputWindowInternal(pOV8825Ctx,pConfig,BOOL_TRUE, BOOL_FALSE);
-}
 
 
 
@@ -1970,7 +1905,7 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
         return ( RET_NULL_POINTER );
     }
 
-    if ( (pOV8825Ctx->Configured != BOOL_TRUE) )
+    if ( (pOV8825Ctx->Configured != BOOL_TRUE) || (pOV8825Ctx->Streaming != BOOL_FALSE) )
     {
         return RET_WRONG_STATE;
     }
@@ -1998,19 +1933,6 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
     {
         // change resolution
         char *szResName = NULL;
-        bool_t res_no_chg;
-
-        if (!((ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pOV8825Ctx->Config.Resolution)) && 
-            (ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pOV8825Ctx->Config.Resolution))) ) {
-
-            if (pOV8825Ctx->Streaming != BOOL_FALSE) {
-                TRACE( OV8825_ERROR, "%s: Sensor is streaming, Change resolution is not allow\n",__FUNCTION__);
-                return RET_WRONG_STATE;
-            }
-            res_no_chg = BOOL_FALSE;
-        } else {
-            res_no_chg = BOOL_TRUE;
-        }
         result = IsiGetResolutionName( Resolution, &szResName );
         TRACE( OV8825_DEBUG, "%s: NewRes=0x%08x (%s)\n", __FUNCTION__, Resolution, szResName);
 
@@ -2018,7 +1940,7 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
         pOV8825Ctx->Config.Resolution = Resolution;
 
         // tell sensor about that
-        result = OV8825_SetupOutputWindowInternal( pOV8825Ctx, &pOV8825Ctx->Config,BOOL_TRUE, res_no_chg);
+        result = OV8825_SetupOutputWindow( pOV8825Ctx, &pOV8825Ctx->Config );
         if ( result != RET_SUCCESS )
         {
             TRACE( OV8825_ERROR, "%s: SetupOutputWindow failed.\n", __FUNCTION__);
@@ -2049,11 +1971,7 @@ static RESULT OV8825_IsiChangeSensorResolutionIss
         }
 
         // return number of frames that aren't exposed correctly
-        if (res_no_chg == BOOL_TRUE)
-            *pNumberOfFramesToSkip = 0;
-        else 
-            *pNumberOfFramesToSkip = NumberOfFramesToSkip + 1;
-        
+        *pNumberOfFramesToSkip = NumberOfFramesToSkip + 1;
     }
 
     TRACE( OV8825_INFO, "%s (exit)\n", __FUNCTION__);
@@ -3191,7 +3109,7 @@ static RESULT OV8825_IsiGetAfpsInfoHelperIss(
     pOV8825Ctx->Config.Resolution = Resolution;
 
     // tell sensor about that
-    result = OV8825_SetupOutputWindowInternal( pOV8825Ctx, &pOV8825Ctx->Config,BOOL_FALSE,BOOL_FALSE );
+    result = OV8825_SetupOutputWindow( pOV8825Ctx, &pOV8825Ctx->Config );
     if ( result != RET_SUCCESS )
     {
         TRACE( OV8825_ERROR, "%s: SetupOutputWindow failed for resolution ID %08x.\n", __FUNCTION__, Resolution);
@@ -3290,6 +3208,7 @@ RESULT OV8825_IsiGetAfpsInfoIss(
     pDummyCtx->isAfpsRun = BOOL_TRUE;
 
 #define AFPSCHECKANDADD(_res_) \
+    if ( (pOV8825Ctx->Config.AfpsResolutions & (_res_)) != 0 ) \
     { \
         RESULT lres = OV8825_IsiGetAfpsInfoHelperIss( pDummyCtx, _res_, pAfpsInfo, idx ); \
         if ( lres == RET_SUCCESS ) \
@@ -3310,17 +3229,11 @@ RESULT OV8825_IsiGetAfpsInfoIss(
             result = RET_NOTSUPP;
             break;
 
-        #if 1
+        #if 0
         // 1080p15 series in ascending integration time order (most probably the same as descending frame rate order)
-        case ISI_RES_TV1080P30:
-        case ISI_RES_TV1080P25:
-        case ISI_RES_TV1080P20:
         case ISI_RES_TV1080P15:
         case ISI_RES_TV1080P10:
         case ISI_RES_TV1080P5:
-            AFPSCHECKANDADD( ISI_RES_TV1080P30 );
-            AFPSCHECKANDADD( ISI_RES_TV1080P25 );
-            AFPSCHECKANDADD( ISI_RES_TV1080P20 );
             AFPSCHECKANDADD( ISI_RES_TV1080P15 );
             AFPSCHECKANDADD( ISI_RES_TV1080P10 );
             AFPSCHECKANDADD( ISI_RES_TV1080P5  );

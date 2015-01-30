@@ -23,7 +23,9 @@
 *v0.8.0
 *   1). for fps, remove svga setting and preview is from 720p. 
 *   2). becaus fps's increasing,so the rate fps is increasing.
-*
+*v0.9.0
+*   1)for preview pic err,set I2C write speed to 100K;
+*	  2)don't check sensor ID hight byte,it may fail sometimes;  
 */
 #define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 8, 0) 
 

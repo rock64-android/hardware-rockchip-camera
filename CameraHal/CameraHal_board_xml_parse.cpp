@@ -1018,7 +1018,8 @@ static int sensor_write_i2c(
     void* context,
     int camsys_fd,    
     const uint32_t      reg_address,
-    const uint32_t      value
+    const uint32_t      value,
+    int* i2c_base_info
 )
 {
     int err = RK_RET_SUCCESS; 
@@ -1026,14 +1027,28 @@ static int sensor_write_i2c(
     rk_cam_total_info* pCamInfo = (rk_cam_total_info*)context;
     rk_sensor_info *pSensorInfo = &(pCamInfo->mHardInfo.mSensorInfo);
     camsys_load_sensor_info *pLoadInfo = &(pCamInfo->mLoadSensorInfo);
-    i2cinfo.bus_num = pSensorInfo->mSensorI2cBusNum;
-    i2cinfo.slave_addr = pLoadInfo->mpI2cInfo->i2c_addr;
-    i2cinfo.reg_addr = reg_address; 
-    i2cinfo.reg_size = pLoadInfo->mpI2cInfo->reg_size;
-    i2cinfo.val = value;
-    i2cinfo.val_size = pLoadInfo->mpI2cInfo->value_size;
-    i2cinfo.i2cbuf_directly = 0;
-    i2cinfo.speed = pSensorInfo->mSensorI2cRate;
+
+    if(i2c_base_info != NULL && i2c_base_info[0] != 0){
+        i2cinfo.bus_num = pSensorInfo->mSensorI2cBusNum;
+        i2cinfo.slave_addr = i2c_base_info[0];
+        i2cinfo.reg_addr = reg_address; 
+        i2cinfo.reg_size = i2c_base_info[1];
+        i2cinfo.val = value;
+        i2cinfo.val_size = i2c_base_info[2];
+        i2cinfo.i2cbuf_directly = 0;
+        i2cinfo.speed = pSensorInfo->mSensorI2cRate;
+    }else{
+        i2cinfo.bus_num = pSensorInfo->mSensorI2cBusNum;
+        i2cinfo.slave_addr = pLoadInfo->mpI2cInfo->i2c_addr;
+        i2cinfo.reg_addr = reg_address; 
+        i2cinfo.reg_size = pLoadInfo->mpI2cInfo->reg_size;
+        i2cinfo.val = value;
+        i2cinfo.val_size = pLoadInfo->mpI2cInfo->value_size;
+        i2cinfo.i2cbuf_directly = 0;
+        i2cinfo.speed = pSensorInfo->mSensorI2cRate;
+
+    }
+    
 	err = ioctl(camsys_fd, CAMSYS_I2CWR, &i2cinfo);
     if (err<0) {
         ALOGE("%s failed\n",__FUNCTION__);
@@ -1045,7 +1060,8 @@ static int sensor_write_i2c(
 static int sensor_read_i2c(
     void* context,
     int camsys_fd,    
-    const uint32_t      reg_address
+    const uint32_t      reg_address,
+    int* i2c_base_info
 )
 {
     int err = RK_RET_SUCCESS; 
@@ -1053,14 +1069,27 @@ static int sensor_read_i2c(
     rk_cam_total_info* pCamInfo = (rk_cam_total_info*)context;
     rk_sensor_info *pSensorInfo = &(pCamInfo->mHardInfo.mSensorInfo);
     camsys_load_sensor_info *pLoadInfo = &(pCamInfo->mLoadSensorInfo);
-    i2cinfo.bus_num = pSensorInfo->mSensorI2cBusNum;
-    i2cinfo.slave_addr = pLoadInfo->mpI2cInfo->i2c_addr;
-    i2cinfo.reg_addr = reg_address; 
-    i2cinfo.reg_size = pLoadInfo->mpI2cInfo->reg_size;
-    i2cinfo.val = 0;
-    i2cinfo.val_size = pLoadInfo->mpI2cInfo->value_size;
-    i2cinfo.i2cbuf_directly = 0;
-    i2cinfo.speed = pSensorInfo->mSensorI2cRate;
+
+    if(i2c_base_info != NULL && i2c_base_info[0] != 0){
+        i2cinfo.bus_num = pSensorInfo->mSensorI2cBusNum;
+        i2cinfo.slave_addr = i2c_base_info[0];
+        i2cinfo.reg_addr = reg_address; 
+        i2cinfo.reg_size = i2c_base_info[1];
+        i2cinfo.val = 0;
+        i2cinfo.val_size = i2c_base_info[2];
+        i2cinfo.i2cbuf_directly = 0;
+        i2cinfo.speed = pSensorInfo->mSensorI2cRate;
+    }else{
+        i2cinfo.bus_num = pSensorInfo->mSensorI2cBusNum;
+        i2cinfo.slave_addr = pLoadInfo->mpI2cInfo->i2c_addr;
+        i2cinfo.reg_addr = reg_address; 
+        i2cinfo.reg_size = pLoadInfo->mpI2cInfo->reg_size;
+        i2cinfo.val = 0;
+        i2cinfo.val_size = pLoadInfo->mpI2cInfo->value_size;
+        i2cinfo.i2cbuf_directly = 0;
+        i2cinfo.speed = pSensorInfo->mSensorI2cRate;
+    }
+    
 	err = ioctl(camsys_fd, CAMSYS_I2CRD, &i2cinfo);
     if (err<0) {
         ALOGE("%s failed\n",__FUNCTION__);
@@ -1309,19 +1338,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
             goto power_off;
         }
     }
-
-    //check otp
-    {
-        camsys_load_sensor_info* pLoadSensorInfo = &(pCamInfo->mLoadSensorInfo);
-
-        if(pLoadInfo->pCamDrvConfig->IsiSensor.pIsiCheckOTPInfo){
-            ALOGD("%s:check and read otp info!!!!",__FUNCTION__); 
-            int tmp = pLoadInfo->pCamDrvConfig->IsiSensor.pIsiCheckOTPInfo(sensor_write_i2c,sensor_read_i2c,pCamInfo,camsys_fd);
-            if(tmp == RET_SUCCESS){
-                pCamInfo->mHardInfo.mIsOTP = true;
-            }
-        }
-    }
+    
     //query iommu is enabled ?
     {
         int iommu_enabled = 0;
@@ -1359,6 +1376,19 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
         ALOGE("ERROR: sensor dirver don't have chip id info\n");
         ret = RK_RET_DEVICEERR;
         goto power_off;
+    }
+
+    //check otp
+    {
+        camsys_load_sensor_info* pLoadSensorInfo = &(pCamInfo->mLoadSensorInfo);
+
+        if(pLoadInfo->pCamDrvConfig->IsiSensor.pIsiCheckOTPInfo){
+            ALOGD("%s:check and read otp info!!!!",__FUNCTION__); 
+            int tmp = pLoadInfo->pCamDrvConfig->IsiSensor.pIsiCheckOTPInfo(sensor_write_i2c,sensor_read_i2c,pCamInfo,camsys_fd);
+            if(tmp == RET_SUCCESS){
+                pCamInfo->mHardInfo.mIsOTP = true;
+            }
+        }
     }
 
 //  power off

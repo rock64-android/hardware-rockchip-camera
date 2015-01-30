@@ -50,9 +50,12 @@
 *    1) add struct sensor_caps_t in struct sensor_i2c_info_t, IsiGetSensorI2cInfo support enum resolution; 
 *v0.8.0
 *    1) support OTP;
+*v0.9.0
+*    1) support read OTP by transfer i2c info;
+*    2) support new resolutin 4208x3120 & 2104x1560
 */
 
-#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 8, 0x00) 
+#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 9, 0x00) 
 
 
 #ifdef __cplusplus

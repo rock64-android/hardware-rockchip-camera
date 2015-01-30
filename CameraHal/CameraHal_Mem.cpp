@@ -476,7 +476,11 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
 	int frame_size;
 	camera_ionbuf_t* tmpalloc = NULL;
 	struct bufferinfo_s* tmp_buf = NULL;
+	#ifdef ROCKCHIP_ION_VERSION
     ion_user_handle_t handle = 0;
+	#else
+	struct ion_handle* handle = NULL;
+	#endif
     int map_fd;
     unsigned long vir_addr = 0;
 
@@ -588,7 +592,7 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
             --tmpalloc;
             --tmp_buf;
             munmap((void *)tmpalloc->vir_addr, tmpalloc->size);
-            ion_free(client_fd, (ion_user_handle_t)(tmpalloc->ion_hdl));
+            ion_free(client_fd, tmpalloc->ion_hdl);
         }
         free(tmpalloc);
         free(tmp_buf);
@@ -637,9 +641,7 @@ void IonDmaMemManager::destroyIonBuffer(buffer_type_enum buftype)
             }
 
             close(tmpalloc->map_fd);
-
-            err = ion_free(client_fd, (ion_user_handle_t)(tmpalloc->ion_hdl));
-
+            err = ion_free(client_fd, tmpalloc->ion_hdl);
         }
         tmpalloc++;
     }

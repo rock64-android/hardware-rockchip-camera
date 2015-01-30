@@ -71,10 +71,12 @@ extern "C"
 *   1)  Skip frames when resolution change in OV8858_IsiChangeSensorResolutionIss;
 *v0.d.0
 *   1). support OTP;
+*v0.e.0
+*   1). support OTP i2c info;
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(0, 0x0d, 0) 
+#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(0, 0x0e, 0) 
 
 /*****************************************************************************
  * System control registers

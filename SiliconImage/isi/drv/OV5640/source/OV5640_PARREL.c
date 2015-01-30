@@ -703,7 +703,7 @@ static RESULT OV5640_SetupOutputWindow
                 TRACE( OV5640_INFO, "%s: success to set  ISI_RES_SVGAP30 \n", __FUNCTION__ );
             }
             break;
-       }
+        }
         /*case ISI_RES_1600_1200:
         {
             if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pOV5640Ctx,OV5640_g_1600x1200)) != RET_SUCCESS){
@@ -1252,7 +1252,8 @@ static RESULT OV5640_IsiCheckSensorConnectionIss
     RevId = RevId | OV5640_CHIP_ID_LOW_BYTE_DEFAULT;
 
     result = OV5640_IsiGetSensorRevisionIss( handle, &value );
-    if ( (result != RET_SUCCESS) || (RevId != value) )
+    //if ( (result != RET_SUCCESS) || (RevId != value) )
+    if ( (result != RET_SUCCESS) || ((RevId & 0x00ffff) != (value & 0x00ffff)) )
     {
         TRACE( OV5640_ERROR, "%s RevId = 0x%08x, value = 0x%08x \n", __FUNCTION__, RevId, value );
         return ( RET_FAILURE );
@@ -1405,7 +1406,7 @@ static RESULT OV5640_IsiRegWriteIss
     {
         return ( RET_WRONG_HANDLE );
     }
-
+		OV5640_Context_t *pOV5640Ctx = (OV5640_Context_t *)handle;
     NrOfBytes = IsiGetNrDatBytesIss( address, OV5640_g_aRegDescription );
     if ( !NrOfBytes )
     {
@@ -1413,8 +1414,15 @@ static RESULT OV5640_IsiRegWriteIss
     }
     TRACE( OV5640_REG_DEBUG, "%s (IsiGetNrDatBytesIss %d 0x%08x 0x%08x)\n", __FUNCTION__, NrOfBytes, address, value);
 
-    result = IsiI2cWriteSensorRegister( handle, address, (uint8_t *)(&value), NrOfBytes, BOOL_TRUE );
-
+    //result = IsiI2cWriteSensorRegister( handle, address, (uint8_t *)(&value), NrOfBytes, BOOL_TRUE );
+		result = HalWriteI2CMem_Rate( pOV5640Ctx->IsiCtx.HalHandle,
+                             pOV5640Ctx->IsiCtx.I2cBusNum,
+                             pOV5640Ctx->IsiCtx.SlaveAddress,
+                             address,
+                             pOV5640Ctx->IsiCtx.NrOfAddressBytes,
+                             (uint8_t *)(&value),
+                             1U,
+			     									 50); 
     return ( result );
 }
 

@@ -222,10 +222,14 @@
     1) wrong of operation of comparation dev_mask in func HalFlashTrigCtrl,fix it.
 *v1.0x21.0:
     1) add to support 5040 afps.
+*v1.0x22.0:
+	1) support sensor otp i2c info
+*v1.0x23.0:
+    1)  compatible with ion no matter new or old version.
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x21, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x23, 0)
 
 
 class CamEngineItf;

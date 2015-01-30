@@ -108,7 +108,12 @@ int CameraIspAdapter::cameraCreate(int cameraId)
 	for(i=0; i<4; i++){
 		mipiLaneNum += (pCamInfo->mHardInfo.mSensorInfo.mPhy.info.mipi.data_en_bit>>i)&0x01;
 	}
-
+	
+#ifdef ROCKCHIP_ION_VERSION
+	isp_halpara.is_new_ion = (bool_t)true;
+#else
+	isp_halpara.is_new_ion = (bool_t)false;
+#endif
     isp_halpara.mipi_lanes = mipiLaneNum;
 	mCtxCbResChange.pIspAdapter = (void*)this;
     m_camDevice = new CamDevice( HalHolder::handle(dev_filename,&isp_halpara), CameraIspAdapter_AfpsResChangeCb, (void*)&mCtxCbResChange ,NULL, mipiLaneNum);

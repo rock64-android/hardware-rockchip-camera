@@ -254,13 +254,31 @@ extern "C"
 #define ISI_RES_1600_1200P15                   0x1e6404b0       /**<  5 4416x3312    */
 #define ISI_RES_1600_1200P30                   0x3c6404b0       /**<  5 4416x3312    */
 
-#define ISI_RES_4208_3120P7                    0x0f070c30                    
+
+#define ISI_RES_4208_3120P4                    0x09070c30 
+#define ISI_RES_4208_3120P7                    0x0f070c30 
+#define ISI_RES_4208_3120P10                   0x15070c30
 #define ISI_RES_4208_3120P15                   0x1f070c30
+#define ISI_RES_4208_3120P20                   0x29070c30
+#define ISI_RES_4208_3120P25                   0x33070c30
 #define ISI_RES_4208_3120P30                   0x3d070c30
+
+#define ISI_RES_2104_1560P7                    0x0e838618 
+#define ISI_RES_2104_1560P10                   0x14838618
+#define ISI_RES_2104_1560P15                   0x1e838618
+#define ISI_RES_2104_1560P20                   0x28838618
+#define ISI_RES_2104_1560P25                   0x32838618
+#define ISI_RES_2104_1560P30                   0x3c838618
+#define ISI_RES_2104_1560P40                   0x50838618
+#define ISI_RES_2104_1560P50                   0x64838618
+#define ISI_RES_2104_1560P60                   0x78838618
 
 #define ISI_RES_4224_3136P4                    0x09080c40
 #define ISI_RES_4224_3136P7                    0x0f080c40      /**<  5 4416x3312    */
+#define ISI_RES_4224_3136P10                   0x15080c40
 #define ISI_RES_4224_3136P15                   0x1f080c40      /**<  5 4416x3312    */
+#define ISI_RES_4224_3136P20                   0x29080c40
+#define ISI_RES_4224_3136P25                   0x33080c40
 #define ISI_RES_4224_3136P30                   0x3d080c40      /**<  5 4416x3312    */
 
 #define ISI_RES_2112_1568P7                    0x0e840620      /**<  5 4416x3312    */
@@ -269,6 +287,9 @@ extern "C"
 #define ISI_RES_2112_1568P20                   0x28840620      /**<  5 4416x3312    */
 #define ISI_RES_2112_1568P25                   0x32840620      /**<  5 4416x3312    */
 #define ISI_RES_2112_1568P30                   0x3c840620      /**<  5 4416x3312    */
+#define ISI_RES_2112_1568P40                   0x50840620      /**<  5 4416x3312    */
+#define ISI_RES_2112_1568P50                   0x64840620      /**<  5 4416x3312    */
+#define ISI_RES_2112_1568P60                   0x78840620      /**<  5 4416x3312    */
 
 #define ISI_RES_TV720P5                     0x0a5002d0      /**< 16 1280x720@5   */
 #define ISI_RES_TV720P15                    0x1e5002d0      /**< 17 1280x720@15  */
