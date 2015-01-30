@@ -992,7 +992,7 @@ int camera_get_number_of_cameras(void)
 								pDVResolution->mIsSupport = 1;
 								
 								if ((crop_w != width) || (crop_h != height)) {
-			                        if(width==1280 && height==720 ) {
+			                        if((width==1280 && height==720 ) || (width==1920 && height==1080 )) {
 			                            pDVResolution->mIsSupport = 0;
 			                        }
 			                    }

@@ -461,9 +461,11 @@ namespace android {
 		*     1) bug exist in 'Internal' flash control,fix it.
 		*V1.0x29.9:
 		*	1) fix something for pass cts
+*V1.0x30.1:
+	1) vpu input bufsize must be an integer multiple of 16,fix it.
+	2) remove 1080p if driver not reallly support for soc camera.
 */
-
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x30, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x30, 1)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

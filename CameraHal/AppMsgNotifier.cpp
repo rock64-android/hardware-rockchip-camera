@@ -917,7 +917,7 @@ int AppMsgNotifier::Jpegfillgpsinfo(RkGPSInfo *gpsInfo,picture_info_s &params)
 
 int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     int ret = 0;
-	int jpeg_w,jpeg_h,i;
+	int jpeg_w,jpeg_h,i,jpeg_buf_w,jpeg_buf_h;
 	unsigned int pictureSize;
 	int jpegSize;
 	int quality;
@@ -984,7 +984,13 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	}
 	else{
 		encodetype = JPEGENC_YUV420_SP;
-		pictureSize = jpeg_w * jpeg_h * 3/2;
+		jpeg_buf_w = jpeg_w;
+		jpeg_buf_h = jpeg_h;
+		if(jpeg_buf_w%16)
+			jpeg_buf_w += 8;
+		if(jpeg_buf_h%16)
+			jpeg_buf_h += 8;
+		pictureSize = jpeg_buf_w * jpeg_buf_h * 3/2;
 	}
 	if (pictureSize & 0xfff) {
 		pictureSize = (pictureSize & 0xfffff000) + 0x1000;
@@ -1036,7 +1042,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	/*ddl@rock-chips.com: v0.4.7*/
     // bool rotat_180 = false; //used by ipp
     //frame->phy_addr = -1 ,just for isp soc camera used iommu,so ugly...
-    if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && ((frame->frame_width != jpeg_w) || (frame->frame_height != jpeg_h) || (frame->zoom_value != 100) || frame->phy_addr == -1)){
+    if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && ((frame->frame_width != mPictureInfo.w) || (frame->frame_height != mPictureInfo.h) || (frame->zoom_value != 100) || frame->phy_addr == -1)){
         output_phy_addr = rawbuf_phy;
         output_vir_addr = rawbuf_vir;
         #if 0
