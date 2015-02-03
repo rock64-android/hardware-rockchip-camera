@@ -51,7 +51,11 @@ bool DisplayAdapter::isNeedSendToDisplay()
 {
     Mutex::Autolock lock(mDisplayLock);
 
-    if((mDisplayRuning == STA_DISPLAY_PAUSE) || (mDisplayRuning == STA_DISPLAY_STOP))
+    if((mDisplayRuning == STA_DISPLAY_PAUSE) || (mDisplayRuning == STA_DISPLAY_STOP)
+        ||(mDisplayState == CMD_DISPLAY_PAUSE_PREPARE)
+        ||(mDisplayState == CMD_DISPLAY_PAUSE_DONE)
+        ||(mDisplayState == CMD_DISPLAY_STOP_PREPARE)
+        ||(mDisplayState == CMD_DISPLAY_STOP_DONE))
         return false;
     else{
         LOG2("need to display this frame");
@@ -62,7 +66,12 @@ void DisplayAdapter::notifyNewFrame(FramInfo_s* frame)
 {
     mDisplayLock.lock();
     //send a frame to display
-    if(mDisplayRuning == STA_DISPLAY_RUNNING){
+    if((mDisplayRuning == STA_DISPLAY_RUNNING)  
+        &&(mDisplayState != CMD_DISPLAY_PAUSE_PREPARE)
+        &&(mDisplayState != CMD_DISPLAY_PAUSE_DONE)
+        &&(mDisplayState != CMD_DISPLAY_STOP_PREPARE)
+        &&(mDisplayState != CMD_DISPLAY_STOP_DONE))
+   {
         Message_cam msg;
         msg.command = CMD_DISPLAY_FRAME;
         msg.arg1 = NULL;

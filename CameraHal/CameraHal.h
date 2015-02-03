@@ -470,8 +470,14 @@ namespace android {
 	             1) vpu input bufsize must be an integer multiple of 16,fix it.
 	             2) remove 1080p if driver not reallly support for soc camera.
 
+*v1.0x32.1:
+		1) pauseDisplay,notifyNewFrame,displayThread are async,following case may happen:
+			(1) pauseDisplay (2)notifyNewFrame (3) displayThread do the really pause job
+			(4)displayThread get new frame,cause displayThread has been pause now,so this frame
+			will not been processed , and this frame buffer didn't been returned to provider,then
+			this buffer lost.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x32, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x32,1)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
