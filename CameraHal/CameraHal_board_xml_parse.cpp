@@ -2040,8 +2040,10 @@ int camera_board_profiles::ProduceNewXml(camera_board_profiles* profiles)
         return RK_RET_SUCCESS;
     }
 
-	
-    if((int)nCamNum>=1){ 
+    int fileexit = access(RK_DST_MEDIA_PROFILES_XML_PATH, 0);
+    ALOGD("judge the media profile xml fileexit = %d\n", fileexit);	
+    //if((int)nCamNum>=1){ 
+    if((int)nCamNum>=1 && fileexit == -1){
         LOG1("enter produce new xml\n");
         //new xml file name
         strncpy(default_file, RK_DEFAULT_MEDIA_PROFILES_XML_PATH, sizeof(default_file));
