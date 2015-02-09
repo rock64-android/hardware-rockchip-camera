@@ -728,13 +728,13 @@ int AppMsgNotifier::Jpegfillexifinfo(RkExifInfo *exifInfo,picture_info_s &params
         	exifInfo->Orientation = 1;
             break;
         case 90:
-        	exifInfo->Orientation = 6;
+        	exifInfo->Orientation = 1; 
             break;
         case 180:
-        	exifInfo->Orientation = 3;
+        	exifInfo->Orientation = 1; 
             break;
         case 270:
-        	exifInfo->Orientation = 8;
+        	exifInfo->Orientation = 1; 
             break;
         default:
         	exifInfo->Orientation = 1;
@@ -1083,7 +1083,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     output_phy_addr = jpegbuf_phy;
     output_vir_addr = jpegbuf_vir;
 
-#if 0
+#if 1
 
     //3. src data will be changed by mirror and flip algorithm
     //use jpeg buffer as line buffer
@@ -1176,7 +1176,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	JpegOutInfo.jpegFileLen = 0x00;
 	JpegOutInfo.cacheflush= /*jpegEncFlushBufferCb*/NULL;
 	LOG1("input_phy_addr %d,JpegOutInfo.outBufPhyAddr:%x,JpegOutInfo.outBufVirAddr:%p,jpegbuf_size:%d",input_phy_addr,JpegOutInfo.outBufPhyAddr,JpegOutInfo.outBufVirAddr,jpegbuf_size);
-
+	
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
 	
 	if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
