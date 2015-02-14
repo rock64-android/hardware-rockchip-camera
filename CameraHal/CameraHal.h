@@ -476,8 +476,10 @@ namespace android {
 			(4)displayThread get new frame,cause displayThread has been pause now,so this frame
 			will not been processed , and this frame buffer didn't been returned to provider,then
 			this buffer lost.
+*v1.0x32.2:
+		fix something to pass cts.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x32,1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x32,2)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

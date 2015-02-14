@@ -953,7 +953,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	quality = mPictureInfo.quality;	
 	/*only for passing cts yzm*/
 	property_get("sys.cts_gts.status",prop_value, "false");
-	if(strcmp(prop_value,"true")){
+	if(!strcmp(prop_value,"true")){
 		thumbquality = mPictureInfo.thumbquality;
 		thumbwidth	= mPictureInfo.thumbwidth;
 		thumbheight = mPictureInfo.thumbheight;
