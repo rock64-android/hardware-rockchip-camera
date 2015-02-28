@@ -117,6 +117,7 @@ extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 							bool mirror);
 							
 extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21);
+extern "C" int rga_nv12_scale_crop2(int offset, int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width, int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21);
 
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
@@ -478,8 +479,11 @@ namespace android {
 			this buffer lost.
 *v1.0x32.2:
 		fix something to pass cts.
+*v1.0x32.3:
+		1) fix focus mode for soc camera.
+          2) The maximum output dst_width is 2048 on rga1.0,when dst_width more then 2048,must be divided into more times
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x32,2)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x32,3)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -893,7 +897,7 @@ private:
 	__u32 m_focus_value;
 	__s32 m_taf_roi[4];
 
-	void GetAFParameters(const char* focusmode = NULL);
+	int GetAFParameters(const CameraParameters params);
 	int AndroidZoneMapping(
 			const char* tag,
 			__s32 pre_w,

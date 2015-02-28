@@ -896,17 +896,21 @@ int CameraSOCAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
     /*focus setting*/
     const char *focusMode = params.get(CameraParameters::KEY_FOCUS_MODE);
 	const char *mfocusMode = mParameters.get(CameraParameters::KEY_FOCUS_MODE);
+	int weight;
 	if (strstr(params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES),focusMode)) {
+		err = GetAFParameters(params);		
+   		if(err < 0)
+			return BAD_VALUE;
+		
 		if ( !mfocusMode || strcmp(focusMode, mfocusMode) ) {
 			if(strcmp(focusMode,CameraParameters::FOCUS_MODE_FIXED)){
-			GetAFParameters(focusMode);
-       		if(!cameraAutoFocus(isInit)){
-        		params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
-        		err = -1;
-   			}
+	       		if(!cameraAutoFocus(isInit)){
+	        		params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
+	        		err = -1;
+	   			}
 			}
-		}
-	} else{
+		} 
+	}else{
 		params.set(CameraParameters::KEY_FOCUS_MODE,(mfocusMode?mfocusMode:CameraParameters::FOCUS_MODE_FIXED));
 		return BAD_VALUE;
 	}
@@ -1066,29 +1070,27 @@ int CameraSOCAdapter::AndroidZoneMapping(
 	return 0;
 }
 
-void CameraSOCAdapter::GetAFParameters(const char* focusmode)
+int CameraSOCAdapter::GetAFParameters(const CameraParameters params)
 {
-	//const char *focusmode = mParameters.get(CameraParameters::KEY_FOCUS_MODE);
-	if (focusmode == NULL) {
-		focusmode = mParameters.get(CameraParameters::KEY_FOCUS_MODE);
-	}
+	int weight = 0;
+	const char *focusmode = params.get(CameraParameters::KEY_FOCUS_MODE);
 
 	m_focus_mode = 0;
 
 	if (!focusmode) {
 		LOGE("%s(%d): focus is null",__FUNCTION__,__LINE__);
-		return;
+		return BAD_VALUE;
 	}
-
 	if (strcmp(focusmode, CameraParameters::FOCUS_MODE_AUTO) == 0) {
 		m_focus_mode = V4L2_CID_FOCUS_AUTO;
 		m_focus_value = 1;
-
+		
 		// set zone focus
-		if(mParameters.getInt(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS) == 1){
+		if(params.getInt(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS) == 1){
 			//parse zone,
 			int lx,ty,rx,dy;
-			const char* zoneStr = mParameters.get(CameraParameters::KEY_FOCUS_AREAS);
+			const char* zoneStr = params.get(CameraParameters::KEY_FOCUS_AREAS);
+			LOGD("zoneStr = %s",zoneStr);
 			if(zoneStr){
 				//get lx
 				m_taf_roi[0] = strtol(zoneStr+1,0,0);
@@ -1102,10 +1104,42 @@ void CameraSOCAdapter::GetAFParameters(const char* focusmode)
 				char* rxs = strstr(tys+1,",");
 				m_taf_roi[2] = strtol(rxs+1,0,0);
 
-				//get dy
+				//get by
 				char* dys = strstr(rxs+1,",");
 				m_taf_roi[3] = strtol(dys+1,0,0);
 
+				//get weight
+				char* wt = strstr(dys+1,",");
+				weight = strtol(wt+1,0,0);
+				
+				if(strstr(wt+1,"(")){
+					//more than one zone
+					return BAD_VALUE;
+				}
+
+				if((m_taf_roi[0] == 0) && (m_taf_roi[1] == 0) && (m_taf_roi[2] == 0) && (m_taf_roi[3] == 0)){
+					m_taf_roi[0] = 0;
+					m_taf_roi[1] = 0;
+					m_taf_roi[2] = 0;
+					m_taf_roi[3] = 0;
+				}
+				else if ( ((m_taf_roi[0]<-1000) || (m_taf_roi[0]>1000)) ||
+					 ((m_taf_roi[1]<-1000) || (m_taf_roi[1]>1000)) ||
+					 ((m_taf_roi[2]<-1000) || (m_taf_roi[2]>1000)) ||
+					 ((m_taf_roi[3]<-1000) || (m_taf_roi[3]>1000)) ||
+					 (m_taf_roi[0]>=m_taf_roi[2]) || 
+					 (m_taf_roi[1]>=m_taf_roi[3]) ||
+					 (weight<1) || (weight>1000)) {
+					LOGE("%s: %s , afWin(%d,%d,%d,%d)is invalidate!",
+						CameraParameters::KEY_FOCUS_AREAS,
+						params.get(CameraParameters::KEY_FOCUS_AREAS),
+						m_taf_roi[0],m_taf_roi[1],m_taf_roi[2],m_taf_roi[3]); 						   
+					m_taf_roi[0] = 0;
+					m_taf_roi[1] = 0;
+					m_taf_roi[2] = 0;
+					m_taf_roi[3] = 0;
+					return BAD_VALUE;
+				}
 				//remapping if the image is croped by hal
 				AndroidZoneMapping(
 						"AF ROI",
@@ -1135,6 +1169,7 @@ void CameraSOCAdapter::GetAFParameters(const char* focusmode)
 	} else {
 		LOGE("%s(%d): focus is not support in camera driver",__FUNCTION__,__LINE__);
 	}
+	return 0;
 }
 
 //auto_trig_only: avoid drive driver to focus if focus mode is V4L2_CID_FOCUS_AUTO
@@ -1143,7 +1178,7 @@ int CameraSOCAdapter::cameraAutoFocus(bool auto_trig_only)
     int err;
     struct v4l2_ext_control extCtrInfo;
 	struct v4l2_ext_controls extCtrInfos;
-    
+	
     if (m_focus_mode == 0) {
     	LOGE("%s(%d): focus mode is not set",__FUNCTION__,__LINE__);
     	err = false;

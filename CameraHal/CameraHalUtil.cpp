@@ -393,6 +393,112 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
 extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst, 
 									char *srcbuf, char *dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool mirror,int zoom_val);
 
+extern "C" int rga_nv12_scale_crop2(int offset,
+										int src_width, int src_height, char *src, short int *dst, 
+										int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21)
+{
+    int rgafd = -1,ret = -1;
+    if((rgafd = open("/dev/rga",O_RDWR)) < 0) {
+    	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
+        ret = -1;
+    	return ret;
+	}
+
+    struct rga_req  Rga_Request;
+    int err = 0;
+    
+    memset(&Rga_Request,0x0,sizeof(Rga_Request));
+
+	unsigned char *psY, *psUV;
+	int srcW,srcH,cropW,cropH;
+	int ratio = 0;
+	int top_offset=0,left_offset=0,src_width_act = 0;
+	
+	src_width_act = src_width/2;
+	cropW = src_width_act;
+	cropH = src_height;
+	if(offset == 0)
+		left_offset = 0;
+	else
+		left_offset = src_width_act;
+		
+    //zoom ?
+    if(zoom_val > 100){
+        cropW = cropW*100/zoom_val;
+        cropH = cropH*100/zoom_val;
+		if(offset == 0)
+			left_offset = src_width_act - cropW;
+		top_offset=((src_height-cropH)>>1) & (~0x01);
+    }
+    
+
+	psY = (unsigned char*)(src)/*+top_offset*src_width+left_offset*/;
+	//psUV = (unsigned char*)(src) +src_width*src_height+top_offset*src_width/2+left_offset;
+	
+	Rga_Request.src.yrgb_addr =  0;
+    Rga_Request.src.uv_addr  = (int)psY;
+    Rga_Request.src.v_addr   =  0;
+    Rga_Request.src.vir_w =  src_width;
+    Rga_Request.src.vir_h = src_height;
+    Rga_Request.src.format = RK_FORMAT_YCbCr_420_SP;
+    Rga_Request.src.act_w = cropW;
+    Rga_Request.src.act_h = cropH;
+    Rga_Request.src.x_offset = left_offset;
+    Rga_Request.src.y_offset = top_offset;
+
+    Rga_Request.dst.yrgb_addr = 0;
+    Rga_Request.dst.uv_addr  = (int)dst;
+    Rga_Request.dst.v_addr   = 0;
+    Rga_Request.dst.vir_w = dstbuf_width;
+    Rga_Request.dst.vir_h = dst_height;
+    if(isDstNV21) 
+        Rga_Request.dst.format = RK_FORMAT_YCrCb_420_SP;
+    else 
+        Rga_Request.dst.format = RK_FORMAT_YCbCr_420_SP;
+    Rga_Request.clip.xmin = 0;
+    Rga_Request.clip.xmax = dstbuf_width - 1;
+    Rga_Request.clip.ymin = 0;
+    Rga_Request.clip.ymax = dst_height - 1;
+    Rga_Request.dst.act_w = dst_width;
+    Rga_Request.dst.act_h = dst_height;
+	if(offset == 1)
+    	Rga_Request.dst.x_offset = dst_width;
+	else
+		Rga_Request.dst.x_offset = 0;
+    Rga_Request.dst.y_offset = 0;    
+
+    Rga_Request.mmu_info.mmu_en    = 1;
+    Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1 | (1 << 8) | (1 << 10);
+    Rga_Request.alpha_rop_flag |= (1 << 5);             /* ddl@rock-chips.com: v0.4.3 */
+    
+#if defined(TARGET_RK312x)
+    /* wrong operation of nv12 to nv21 ,not scale */
+	if(1/*(cropW != dst_width) || ( cropH != dst_height)*/){
+#else
+	if((cropW != dst_width) || ( cropH != dst_height)){
+#endif
+		Rga_Request.sina = 0;
+		Rga_Request.cosa = 0x10000;
+		Rga_Request.scale_mode = 1;
+    	Rga_Request.rotate_mode = mirror ? 2:1;
+	}else{
+		Rga_Request.sina = 0;
+		Rga_Request.cosa =  0;
+		Rga_Request.scale_mode = 0;
+    	Rga_Request.rotate_mode = mirror ? 2:0;
+		Rga_Request.render_mode = pre_scaling_mode;
+	}
+    
+
+    if(ioctl(rgafd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
+        LOGE("%s(%d):  RGA_BLIT_ASYNC Failed", __FUNCTION__, __LINE__);
+        err = -1;
+    }
+
+    close(rgafd);
+    return err;
+}
+
 extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21)
 {
     int rgafd = -1,ret = -1;
@@ -403,7 +509,24 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 			src, (char *)dst,src_width, src_height,dst_width, dst_height,true,zoom_val);
 	}
 	#endif
-
+	/*for rga1.0, The maximum output dst_width is 2048*/
+	#if (defined(TARGET_RK312x) || defined(TARGET_RK3188))
+		if(dst_width > 2048){
+			ret = rga_nv12_scale_crop2(0,
+				src_width, src_height, 
+				src, dst, 
+				dstbuf_width,dst_width/2,dst_height,zoom_val,mirror,isNeedCrop,isDstNV21);
+			if(ret < 0)
+				return ret;		
+			
+			ret = rga_nv12_scale_crop2(1,
+				src_width, src_height, 
+				src, dst, 
+				dstbuf_width,dst_width/2,dst_height,zoom_val,mirror,isNeedCrop,isDstNV21);
+			return ret;			
+		}
+	#endif
+	
     if((rgafd = open("/dev/rga",O_RDWR)) < 0) {
     	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
         ret = -1;
@@ -505,7 +628,6 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
     close(rgafd);
     return err;
 }
-
 
 extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst, 
 									char *srcbuf, char *dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool mirror,int zoom_val)
