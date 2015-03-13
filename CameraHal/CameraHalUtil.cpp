@@ -6,6 +6,7 @@
 #include <utils/Log.h>
 #include <linux/videodev2.h> 
 #include <binder/IPCThreadState.h>
+#include "CameraHal.h"
 
 
 #include <camera/CameraParameters.h>
@@ -414,13 +415,21 @@ extern "C" int rga_nv12_scale_crop2(int offset,
 	int ratio = 0;
 	int top_offset=0,left_offset=0,src_width_act = 0;
 	
-	src_width_act = src_width/2;
-	cropW = src_width_act;
-	cropH = src_height;
-	if(offset == 0)
-		left_offset = 0;
-	else
-		left_offset = src_width_act;
+	//need crop ? when cts FOV,don't crop
+	if(isNeedCrop){
+		src_width_act = src_width/2;
+		cropW = src_width_act;
+		cropH = src_height;
+		if(offset == 0)
+			left_offset = 0;
+		else
+			left_offset = src_width_act;
+	}else{
+		cropW = src_width;
+		cropH = src_height;
+		top_offset=0;
+		left_offset=0;
+	}
 		
     //zoom ?
     if(zoom_val > 100){
@@ -509,24 +518,24 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 			src, (char *)dst,src_width, src_height,dst_width, dst_height,true,zoom_val);
 	}
 	#endif
-	/*for rga1.0, The maximum output dst_width is 2048*/
-	#if (defined(TARGET_RK312x) || defined(TARGET_RK3188))
-		if(dst_width > 2048){
+	
+	if(RGA_VER == 1.0){
+		if ((dst_width > RGA_ACTIVE_W) && (dst_width < RGA_VIRTUAL_W)){
 			ret = rga_nv12_scale_crop2(0,
-				src_width, src_height, 
-				src, dst, 
-				dstbuf_width,dst_width/2,dst_height,zoom_val,mirror,isNeedCrop,isDstNV21);
+										src_width, src_height, 
+										src, dst, 
+										dstbuf_width,dst_width/2,dst_height,zoom_val,mirror,isNeedCrop,isDstNV21);
 			if(ret < 0)
 				return ret;		
 			
 			ret = rga_nv12_scale_crop2(1,
-				src_width, src_height, 
-				src, dst, 
-				dstbuf_width,dst_width/2,dst_height,zoom_val,mirror,isNeedCrop,isDstNV21);
+										src_width, src_height, 
+										src, dst, 
+										dstbuf_width,dst_width/2,dst_height,zoom_val,mirror,isNeedCrop,isDstNV21);
 			return ret;			
 		}
-	#endif
-	
+	}
+
     if((rgafd = open("/dev/rga",O_RDWR)) < 0) {
     	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
         ret = -1;

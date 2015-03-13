@@ -481,9 +481,11 @@ namespace android {
 		fix something to pass cts.
 *v1.0x32.3:
 		1) fix focus mode for soc camera.
-          2) The maximum output dst_width is 2048 on rga1.0,when dst_width more then 2048,must be divided into more times
+        2) The maximum output dst_width is 2048 on rga1.0,when dst_width more then 2048,must be divided into more times
+*v1.0x32.4:
+		Modify rga do scale and crop when dst_width more then RGA_ACTIVE_W.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x32,3)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x32,4)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -555,6 +557,18 @@ namespace android {
 #define OPTIMIZE_MEMORY_USE
 #define VIDEO_ENC_BUFFER            0x151800 
 #define FILTER_FRAME_NUMBER (3)
+
+#if (defined(TARGET_RK312x) || defined(TARGET_RK3188))
+#define RGA_VER (1.0)
+#define RGA_ACTIVE_W (2048)
+#define RGA_VIRTUAL_W (4096)
+
+#else
+#define RGA_VER (2.0)
+#define RGA_ACTIVE_W (4096)
+#define RGA_VIRTUAL_W (4096)
+
+#endif
 
 #if (defined(TARGET_RK312x)) /*dalon.zhang@rock-chips.com: V1.0x29.7*/
 #define IOMMU_ENABLED   (1)
