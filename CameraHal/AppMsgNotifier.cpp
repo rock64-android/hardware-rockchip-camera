@@ -1052,7 +1052,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
         #else
         rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
                             (char*)(frame->vir_addr), (short int *)rawbuf_vir, 
-                            jpeg_w,jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false);
+                            jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false);
         #endif
         input_phy_addr = output_phy_addr;
         input_vir_addr = output_vir_addr;
@@ -1242,7 +1242,7 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 #else
 			rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 					(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
-					mPreviewDataW,mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p);
+					mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p);
 #endif
 			//arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
 			
@@ -1303,7 +1303,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
         #else
         rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
                             (char*)(frame->vir_addr), (short int *)buf_vir, 
-                            mRecordW,mRecordW,mRecordH,frame->zoom_value,false,true,false);
+                            mRecordW,mRecordH,frame->zoom_value,false,true,false);
         #endif
 
         mVideoBufferProvider->flushBuffer(buf_index);

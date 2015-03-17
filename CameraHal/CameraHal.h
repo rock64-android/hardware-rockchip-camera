@@ -116,8 +116,7 @@ extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 							int dst_w, int dst_h, int dstbuf_w,
 							bool mirror);
 							
-extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21);
-extern "C" int rga_nv12_scale_crop2(int offset, int src_width, int src_height, char *src, short int *dst, int dstbuf_width,int dst_width, int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21);
+extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21);
 
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
@@ -484,8 +483,11 @@ namespace android {
         2) The maximum output dst_width is 2048 on rga1.0,when dst_width more then 2048,must be divided into more times
 *v1.0x32.4:
 		Modify rga do scale and crop when dst_width more then RGA_ACTIVE_W.
+		
+*v1.0x32.5:
+		Modify and unified rga interface.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x32,4)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x32,5)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -558,15 +560,19 @@ namespace android {
 #define VIDEO_ENC_BUFFER            0x151800 
 #define FILTER_FRAME_NUMBER (3)
 
-#if (defined(TARGET_RK312x) || defined(TARGET_RK3188))
-#define RGA_VER (1.0)
-#define RGA_ACTIVE_W (2048)
-#define RGA_VIRTUAL_W (4096)
-
-#else
+#if (defined(TARGET_RK3288) || defined(TARGET_RK3368))
 #define RGA_VER (2.0)
 #define RGA_ACTIVE_W (4096)
 #define RGA_VIRTUAL_W (4096)
+#define RGA_ACTIVE_H (2048)
+#define RGA_VIRTUAL_H (4096)
+
+#else
+#define RGA_VER (1.0)
+#define RGA_ACTIVE_W (2048)
+#define RGA_VIRTUAL_W (4096)
+#define RGA_ACTIVE_H (2048)
+#define RGA_VIRTUAL_H (2048)
 
 #endif
 
