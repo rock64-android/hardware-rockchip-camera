@@ -219,6 +219,8 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
                 pSensorInfo->mPhy.info.cif.cifio = CamSys_SensorBit0_CifBit0;
             } else if (strcmp(atts[3], "2") == 0) {
                 pSensorInfo->mPhy.info.cif.cifio = CamSys_SensorBit0_CifBit2;
+            }else if (strcmp(atts[3], "4") == 0) {
+                pSensorInfo->mPhy.info.cif.cifio = CamSys_SensorBit0_CifBit4;
             }
                 
             pSensorInfo->mPhy.info.cif.cif_num = atoi(atts[5]);            

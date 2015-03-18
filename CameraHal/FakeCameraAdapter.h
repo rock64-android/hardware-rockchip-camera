@@ -31,7 +31,7 @@ private:
     virtual int cameraCreate(int cameraId);
     virtual int cameraDestroy();
     virtual int cameraSetSize(int w, int h, int fmt, bool is_capture); 
-    virtual int adapterReturnFrame(int index,int cmd);
+    virtual int adapterReturnFrame(long index,int cmd);
     virtual int cameraStream(bool on);
     virtual int cameraStart();
     virtual int cameraStop();

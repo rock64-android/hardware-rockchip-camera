@@ -6,7 +6,7 @@ namespace android{
 /*
  * zyh neon optimize
  */
-#define HAVE_ARM_NEON 1
+
 
 CameraIspSOCAdapter::CameraIspSOCAdapter(int cameraId):CameraIspAdapter(cameraId)
 {
@@ -28,7 +28,8 @@ void CameraIspSOCAdapter::setupPreview(int width_sensor,int height_sensor,int pr
     //
 	rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
 
-    if((pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Raw_10b)
+    if(((pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Raw_10b)
+		|| (pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Raw_12b))
         && (m_camDevice->getBusWidth() == ISI_BUSWIDTH_12BIT)){
         if(pCamInfo->mHardInfo.mSensorInfo.mPhy.info.cif.cifio == CamSys_SensorBit0_CifBit0)
             mIs10bit0To0 = true;
@@ -61,7 +62,7 @@ extern "C" void arm_isp_yuyv_12bit_to_8bit (int src_w, int src_h,char *srcbuf,ui
     srcint = ( int*)srcbuf;
     dst_buf = ( int*)srcbuf;
     debug_buf = ( int*)srcbuf;
-#if HAVE_ARM_NEON
+#ifdef HAVE_ARM_NEON
     /*for(i=0;i<16;i++) {
            LOGE("before:0x%x,",*(debug_buf+i));
     }*/
@@ -166,30 +167,49 @@ extern "C" void arm_isp_yuyv_12bit_to_8bit (int src_w, int src_h,char *srcbuf,ui
         #endif
     }
 #else
-    for(i=0;i<(y_size>>1);i++) {
+	if(ycSequence == ISI_YCSEQ_CBYCRY){
 
-        if(ycSequence == ISI_YCSEQ_CBYCRY){
-           //dst : YUYV
-           *dst_buf++= (((*(srcint+1) >> 6) & 0xff ) << 0)| /* Y0 */
-                        ((((*(srcint+1) >> 22) & 0xff)) << 8) | /* U*/
-                        (((*(srcint) >> 6) & 0xff) << 16) | /*Y1*/
-                        ((((*(srcint) >> 22) & 0xff)) << 24) /*V*/
-                        ; 
-        }
-       srcint += 2;
+#if defined(TARGET_RK3368)
+		for(i=0;i<(y_size>>1);i++) {
 
-    }
+		   //dst : YUYV
+			*dst_buf++= (((*(srcint+1) >> 8) & 0x000000ff ) << 0)|
+						((((*(srcint+1) >> 24) & 0x000000ff)) << 8) |
+						(((*(srcint) >> 8) & 0x000000ff) << 16) |
+						((((*(srcint) >> 24) & 0x000000ff)) << 24); 
+		   srcint += 2;
+
+		}
+
+#else
+		for(i=0;i<(y_size>>1);i++) {
+
+		   //dst : YUYV
+			*dst_buf++= (((*(srcint+1) >> 6) & 0x000000ff ) << 0)| /* Y0 */
+						((((*(srcint+1) >> 22) & 0x000000ff)) << 8) | /* U*/
+						(((*(srcint) >> 6) & 0x000000ff) << 16) | /*Y1*/
+						((((*(srcint) >> 22) & 0x000000ff)) << 24);  /*V*/
+		   srcint += 2;
+
+		}
+
+#endif
+
+	}
+
+	char *dstbuf1 = srcbuf+src_w*src_h*2;
+	arm_yuyv_to_nv12(src_w, src_h,srcbuf, dstbuf1);
 #endif
 }
 
 void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 {
     static int writeoneframe = 0;
-    uint32_t y_addr,uv_addr;
-    void* y_addr_vir = NULL,*uv_addr_vir = NULL ;
+    unsigned long y_addr,uv_addr;
+    void *y_addr_vir = NULL,*uv_addr_vir = NULL ;
     int width = 0,height = 0;
     int fmt = 0;
-    int phy_addr;
+    long phy_addr;
     
 	Mutex::Autolock lock(mLock);
     // get & check buffer meta data
@@ -200,7 +220,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 //get sensor fmt
                 //convert to yuyv 8 bit
                 fmt = V4L2_PIX_FMT_NV12;
-                y_addr = (uint32_t)(pPicBufMetaData->Data.raw.pBuffer );
+                y_addr = (unsigned long)(pPicBufMetaData->Data.raw.pBuffer );
                 width = pPicBufMetaData->Data.raw.PicWidthPixel >> 1;
                 height = pPicBufMetaData->Data.raw.PicHeightPixel;
                 HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
@@ -211,7 +231,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                     phy_addr = -1; //fd mode can't get offset,so must be copied when pic taken,ugly now
                 else
                     phy_addr = y_addr;
-                y_addr_vir= (void*)((int)y_addr_vir + width*height*2);
+                y_addr_vir= (void*)((unsigned long)y_addr_vir + width*height*2);
                 
 
     }else{
@@ -235,11 +255,11 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 			return;
       }
       //add to vector
-      tmpFrame->frame_index = (int)tmpFrame; 
-      tmpFrame->phy_addr = (int)phy_addr;
+      tmpFrame->frame_index = (long)tmpFrame; 
+      tmpFrame->phy_addr = (long)phy_addr;
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
-      tmpFrame->vir_addr = (int)y_addr_vir;
+      tmpFrame->vir_addr = (long)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
 	  
       tmpFrame->used_flag = 4;
@@ -263,11 +283,11 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 			return;
       }
       //add to vector
-      tmpFrame->frame_index = (int)tmpFrame; 
-      tmpFrame->phy_addr = (int)(phy_addr);
+      tmpFrame->frame_index = (long)tmpFrame; 
+      tmpFrame->phy_addr = (long)(phy_addr);
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
-      tmpFrame->vir_addr = (int)y_addr_vir;
+      tmpFrame->vir_addr = (long)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
       tmpFrame->used_flag = 0;
@@ -289,11 +309,11 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 			return;
       }
       //add to vector
-      tmpFrame->frame_index = (int)tmpFrame; 
-      tmpFrame->phy_addr = (int)(phy_addr);
+      tmpFrame->frame_index = (long)tmpFrame; 
+      tmpFrame->phy_addr = (long)(phy_addr);
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
-      tmpFrame->vir_addr = (int)y_addr_vir;
+      tmpFrame->vir_addr = (long)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
       tmpFrame->used_flag = 1;
@@ -315,11 +335,11 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 		}
 	  //add to vector
 	  //fmt = V4L2_PIX_FMT_NV12;
-	  tmpFrame->frame_index = (int)tmpFrame; 
-	  tmpFrame->phy_addr = (int)(phy_addr);
+	  tmpFrame->frame_index = (long)tmpFrame; 
+	  tmpFrame->phy_addr = (long)(phy_addr);
 	  tmpFrame->frame_width = width;
 	  tmpFrame->frame_height= height;
-	  tmpFrame->vir_addr = (int)y_addr_vir;
+	  tmpFrame->vir_addr = (long)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
       tmpFrame->used_flag = 2;
@@ -342,11 +362,11 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 			return;
 		}
 	  //add to vector
-	  tmpFrame->frame_index = (int)tmpFrame; 
-	  tmpFrame->phy_addr = (int)(phy_addr);
+	  tmpFrame->frame_index = (long)tmpFrame; 
+	  tmpFrame->phy_addr = (long)(phy_addr);
 	  tmpFrame->frame_width = width;
 	  tmpFrame->frame_height= height;
-	  tmpFrame->vir_addr =  (int)y_addr_vir;
+	  tmpFrame->vir_addr =  (long)y_addr_vir;
 	  tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
       tmpFrame->used_flag = 3;

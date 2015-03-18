@@ -56,6 +56,7 @@
 #include "MessageQueue.h"
 #include "../jpeghw/release/encode_release/hw_jpegenc.h"
 #include "../jpeghw/release/encode_release/rk29-ipp.h"
+#include "../librkvpu/vpu_global.h"
 
 #include "CameraHal_Module.h"
 #include "common_type.h"
@@ -82,6 +83,9 @@
 #elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
 #include <hardware/hal_public.h>
 #include <hardware/rga.h>
+#elif defined(TARGET_RK3368)
+#include <hardware/img_gralloc_public.h>
+#include <hardware/rga.h>
 #elif defined(TARGET_RK29)
 #include "../libgralloc/gralloc_priv.h"
 #endif
@@ -97,7 +101,7 @@ extern "C" void arm_nv12torgb565(int width, int height, char *src, short int *ds
 extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short int *dst, 
                                 int dstbuf_width,int dst_width,int dst_height);
 extern "C" int rk_camera_yuv_scale_crop_ipp(int v4l2_fmt_src, int v4l2_fmt_dst, 
-	            int srcbuf, int dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool rotation_180);
+	            long srcbuf, long dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool rotation_180);
 extern "C"  int YData_Mirror_Line(int v4l2_fmt_src, int *psrc, int *pdst, int w);
 extern "C"  int UVData_Mirror_Line(int v4l2_fmt_src, int *psrc, int *pdst, int w);
 extern "C"  int YuvData_Mirror_Flip(int v4l2_fmt_src, char *pdata, char *pline_tmp, int w, int h);
@@ -111,7 +115,7 @@ extern "C" char* getCallingProcess();
 extern "C" void arm_yuyv_to_nv12(int src_w, int src_h,char *srcbuf, char *dstbuf);
 
 extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, 
-							char *srcbuf, char *dstbuf,int srcphy,int dstphy,int src_size,
+							char *srcbuf, char *dstbuf,long srcphy,long dstphy,int src_size,
 							int src_w, int src_h, int srcbuf_w,
 							int dst_w, int dst_h, int dstbuf_w,
 							bool mirror);
@@ -469,25 +473,34 @@ namespace android {
              *V1.0x30.1:
 	             1) vpu input bufsize must be an integer multiple of 16,fix it.
 	             2) remove 1080p if driver not reallly support for soc camera.
-
-*v1.0x32.1:
-		1) pauseDisplay,notifyNewFrame,displayThread are async,following case may happen:
-			(1) pauseDisplay (2)notifyNewFrame (3) displayThread do the really pause job
-			(4)displayThread get new frame,cause displayThread has been pause now,so this frame
-			will not been processed , and this frame buffer didn't been returned to provider,then
-			this buffer lost.
-*v1.0x32.2:
-		fix something to pass cts.
-*v1.0x32.3:
-		1) fix focus mode for soc camera.
-        2) The maximum output dst_width is 2048 on rga1.0,when dst_width more then 2048,must be divided into more times
-*v1.0x32.4:
-		Modify rga do scale and crop when dst_width more then RGA_ACTIVE_W.
-		
-*v1.0x32.5:
-		Modify and unified rga interface.
+*V1.0x33.0:
+*		1) modify android 5.x compile condition.
+*V1.0x34.0:
+*		1) switch disser off in Camerahalutil rag scale
+*V1.0x35.0:
+     1) support rk3368, CameraHal support 32bit and 64bit.
+	 2) merge from mid, include following versions:
+			*v1.0x32.1:
+					1) pauseDisplay,notifyNewFrame,displayThread are async,following case may happen:
+						(1) pauseDisplay (2)notifyNewFrame (3) displayThread do the really pause job
+						(4)displayThread get new frame,cause displayThread has been pause now,so this frame
+						will not been processed , and this frame buffer didn't been returned to provider,then
+						this buffer lost.
+			*v1.0x32.2:
+					fix something to pass cts.
+			*v1.0x32.3:
+					1) fix focus mode for soc camera.
+			        2) The maximum output dst_width is 2048 on rga1.0,when dst_width more then 2048,must be divided into more times
+			*v1.0x32.4:
+					Modify rga do scale and crop when dst_width more then RGA_ACTIVE_W.
+*V1.0x36.0:
+     1) merge from mid, include following versions:
+			*v1.0x32.5:
+					Modify and unified rga interface.
 */
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x32,5)
+
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 0)
+
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -610,7 +623,7 @@ namespace android {
     #define NATIVE_HANDLE_TYPE             private_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)    
-#elif defined(TARGET_BOARD_PLATFORM_RK30XXB)               
+#elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368)
     #define NATIVE_HANDLE_TYPE             IMG_native_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->iWidth)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->iHeight)    
@@ -622,7 +635,7 @@ namespace android {
 class FrameProvider
 {
 public:
-   virtual int returnFrame(int index,int cmd)=0;
+   virtual int returnFrame(long index,int cmd)=0;
    virtual ~FrameProvider(){};
    FrameProvider(){};
    FramInfo_s mPreviewFrameInfos[CONFIG_CAMERA_PREVIEW_BUF_CNT];
@@ -630,8 +643,8 @@ public:
 
 typedef struct rk_buffer_info {
     Mutex* lock;
-    int phy_addr;
-    int vir_addr;
+    long phy_addr;
+    long vir_addr;
 	int share_fd;
     int buf_state;
 } rk_buffer_info_t;
@@ -641,11 +654,11 @@ public:
     int createBuffer(int count,int perbufsize,buffer_type_enum buftype,bool is_cif_driver);
     int freeBuffer();
     virtual int setBufferStatus(int bufindex,int status,int cmd=0);
-    virtual int getOneAvailableBuffer(int *buf_phy,int *buf_vir);
+    virtual int getOneAvailableBuffer(long *buf_phy,long *buf_vir);
     int getBufferStatus(int bufindex);
     int getBufCount();
-    int getBufPhyAddr(int bufindex);
-    int getBufVirAddr(int bufindex);
+    long getBufPhyAddr(int bufindex);
+    long getBufVirAddr(int bufindex);
     int getBufShareFd(int bufindex);
 	int flushBuffer(int bufindex);
     BufferProvider(MemManagerBase* memManager):mBufInfo(NULL),mCamBuffer(memManager){}
@@ -698,7 +711,7 @@ typedef int (*initMjpegDecoderFun)(void* jpegDecoder);
 typedef int (*deInitMjpegDecoderFun)(void* jpegDecoder);
 
 typedef int (*mjpegDecodeOneFrameFun)(void * jpegDecoder,uint8_t* aOutBuffer, uint32_t *aOutputLength,
-        uint8_t* aInputBuf, uint32_t* aInBufSize, uint32_t out_phyaddr);
+        uint8_t* aInputBuf, uint32_t* aInBufSize, ulong_t out_phyaddr);
 
 typedef struct mjpeg_interface {
     void*                       decoder;
@@ -735,7 +748,7 @@ public:
     virtual status_t startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture);
     virtual status_t stopPreview();
    // virtual int initialize() = 0;
-    virtual int returnFrame(int index,int cmd);
+    virtual int returnFrame(long index,int cmd);
     virtual int setParameters(const CameraParameters &params_set,bool &isRestartValue);
     virtual void initDefaultParameters(int camFd);
     virtual status_t autoFocus();
@@ -770,7 +783,7 @@ protected:
 
     //define  the frame info ,such as w, h ,fmt ,dealflag(preview callback ? display ? video enc ? picture?)
     virtual int reprocessFrame(FramInfo_s* frame);
-    virtual int adapterReturnFrame(int index,int cmd);
+    virtual int adapterReturnFrame(long index,int cmd);
 
 private:
     class CameraPreviewThread :public Thread
@@ -1019,8 +1032,8 @@ public:
         Mutex* lock;
         buffer_handle_t* buffer_hnd;
         NATIVE_HANDLE_TYPE *priv_hnd;
-        int phy_addr;
-        int vir_addr;
+        long phy_addr;
+        long vir_addr;
         int buf_state;
         int stride;
     } rk_displaybuf_info_t;

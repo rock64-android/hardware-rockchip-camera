@@ -367,7 +367,7 @@ typedef void (* CamerIcEventFunc_t)
  *****************************************************************************/
 typedef struct CamerIcDrvConfig_s
 {
-    uint32_t                base;               /**< base address of CamerIC hardware (start of the register map) */
+    ulong_t                 base;               /**< base address of CamerIC hardware (start of the register map) */
 
     HalHandle_t             HalHandle;          /**< HAL handle */
     uint32_t                ModuleMask;         /**< mask of all modules to crate/initialize (see @ref CamerIcModuleIdMask_t) */

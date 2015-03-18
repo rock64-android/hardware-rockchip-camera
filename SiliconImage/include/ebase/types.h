@@ -85,6 +85,8 @@
 /* make lint happy: */
 typedef char CHAR;
 typedef char char_t;    /* like suggested in  Misra 6.3 (P. 29) */
+typedef unsigned long   ulong_t;
+typedef          long   long_t;
 
 typedef enum
 {
@@ -94,10 +96,10 @@ typedef enum
 
 
 #define UNUSED_PARAM(unref_param)  ((void) (unref_param));
-#define CAST_POINTER_TO_UINT32( pointer ) ((uint32_t) (pointer))
-#define CAST_POINTER_TO_INT32( pointer ) ((int32_t) (pointer))
+#define CAST_POINTER_TO_UINT32( pointer ) ((ulong_t) (pointer))
+#define CAST_POINTER_TO_INT32( pointer ) ((long_t) (pointer))
 #define CAST_UINT32_TO_POINTER( pointerType, value ) ((pointerType)(value))
-#define CAST_INT32_TO_POINTER( value ) ((int32_t*)(value))
+#define CAST_INT32_TO_POINTER( value ) ((long_t*)(value))
 #define N_ELEMENTS(s)      (sizeof(s) / sizeof ((s) [0]))
 #ifdef ABS
 #undef ABS

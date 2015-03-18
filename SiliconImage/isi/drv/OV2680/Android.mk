@@ -6,9 +6,9 @@ LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES:=\
-	source/OV5640_PARREL.c\
-	source/OV5640_tables.c\
-    source/OV5640_af_firmware.c	
+	source/OV2680_MIPI.c\
+	source/OV2680_tables.c\
+	
 
 LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/include_priv\
@@ -22,8 +22,7 @@ LOCAL_CFLAGS := -Wall -Wextra -std=c99   -Wformat-nonliteral -g -O0 -DDEBUG -ped
 LOCAL_CFLAGS += -DLINUX  -DMIPI_USE_CAMERIC -DHAL_MOCKUP -DCAM_ENGINE_DRAW_DOM_ONLY -D_FILE_OFFSET_BITS=64 -DHAS_STDINT_H
 #LOCAL_STATIC_LIBRARIES := libisp_ebase libisp_oslayer libisp_common libisp_hal libisp_cameric_reg_drv libisp_cameric_drv libisp_isi
 LOCAL_SHARED_LIBRARIES := libutils libcutils libion libisp_silicomimageisp_api
-LOCAL_MODULE:= libisp_isi_drv_OV5640
-
+LOCAL_MODULE:= libisp_isi_drv_OV2680
 #LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 ifneq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 5.0)))
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw

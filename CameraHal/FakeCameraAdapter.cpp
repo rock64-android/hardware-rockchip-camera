@@ -88,7 +88,7 @@ bool RGB2YUV420SPFast(void* RgbBuf, void* yuvBuf, int nWidth, int nHeight)
     int i, j; 
 	unsigned char*bufY, *bufUV, *bufRGB, *bufYuv; 
 	bufY = yuvBuf; 
-	bufUV = yuvBuf + nWidth * nHeight; 
+	bufUV = (unsigned char*)((long)yuvBuf + nWidth * nHeight); 
 	unsigned char y, u, v, r, g, b; 
 	for (j = 0; j<nHeight; j++)
 	{
@@ -214,7 +214,7 @@ void CameraFakeAdapter::initDefaultParameters(int camFd)
 
 int CameraFakeAdapter::getFrame(FramInfo_s** tmpFrame)
 {
-    int buf_phy, buf_vir;
+    long buf_phy, buf_vir;
     int index = -1;
     LOG1("GET ONE FRAME ");
     index = mPreviewBufProvider->getOneAvailableBuffer(&buf_phy,&buf_vir);
@@ -229,7 +229,7 @@ int CameraFakeAdapter::getFrame(FramInfo_s** tmpFrame)
     mPreviewFrameInfos[index].frame_width = mCamPreviewW;
     mPreviewFrameInfos[index].frame_index = index;
     mPreviewFrameInfos[index].phy_addr = mPreviewBufProvider->getBufPhyAddr(index);
-    mPreviewFrameInfos[index].vir_addr = (int)mCamDriverV4l2Buffer[index];
+    mPreviewFrameInfos[index].vir_addr = (long)mCamDriverV4l2Buffer[index];
     //get zoom_value
     mPreviewFrameInfos[index].zoom_value = 100;
     mPreviewFrameInfos[index].used_flag = 0;
@@ -256,7 +256,7 @@ int CameraFakeAdapter::getFrame(FramInfo_s** tmpFrame)
     return 0;
 }
 
-int CameraFakeAdapter::adapterReturnFrame(int index,int cmd)
+int CameraFakeAdapter::adapterReturnFrame(long index,int cmd)
 {
     mCamDriverStreamLock.lock();
     LOG1("RETURN FRAME ");

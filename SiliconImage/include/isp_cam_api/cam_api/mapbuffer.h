@@ -78,7 +78,7 @@ static bool mapRawBuffer( HalHandle_t hal, const PicBufMetaData_t *pSrcBuffer, P
 
     // get sizes & base addresses of plane
     uint32_t PlaneSize = pSrcBuffer->Data.raw.PicWidthBytes * pSrcBuffer->Data.raw.PicHeightPixel;
-    uint32_t BaseAddr  = (uint32_t) (pSrcBuffer->Data.raw.pBuffer);
+    ulong_t  BaseAddr  = (ulong_t) (pSrcBuffer->Data.raw.pBuffer);
 
     if ( RET_SUCCESS != HalMapMemory( hal, BaseAddr, PlaneSize, HAL_MAPMEM_READONLY,
                              (void**)&(pDstBuffer->Data.raw.pBuffer) ) )
@@ -119,7 +119,7 @@ static bool mapYCbCrBuffer( HalHandle_t hal, const PicBufMetaData_t *pSrcBuffer,
 
         // get sizes & base addresses of plane
         uint32_t YCPlaneSize = pSrcBuffer->Data.YCbCr.combined.PicWidthBytes * pSrcBuffer->Data.YCbCr.combined.PicHeightPixel;
-        uint32_t YCBaseAddr  = (uint32_t) (pSrcBuffer->Data.YCbCr.combined.pBuffer);
+        ulong_t  YCBaseAddr  = (ulong_t) (pSrcBuffer->Data.YCbCr.combined.pBuffer);
 
         // map combined plane
         if ( RET_SUCCESS != HalMapMemory( hal, YCBaseAddr, YCPlaneSize, HAL_MAPMEM_READONLY,
@@ -137,8 +137,8 @@ static bool mapYCbCrBuffer( HalHandle_t hal, const PicBufMetaData_t *pSrcBuffer,
         // get sizes & base addresses of planes
         uint32_t YPlaneSize     = pSrcBuffer->Data.YCbCr.semiplanar.Y.PicWidthBytes * pSrcBuffer->Data.YCbCr.semiplanar.Y.PicHeightPixel;
         uint32_t CbCrPlaneSize  = pSrcBuffer->Data.YCbCr.semiplanar.CbCr.PicWidthBytes * pSrcBuffer->Data.YCbCr.semiplanar.CbCr.PicHeightPixel;
-        uint32_t YBaseAddr      = (uint32_t) (pSrcBuffer->Data.YCbCr.semiplanar.Y.pBuffer);
-        uint32_t CbCrBaseAddr   = (uint32_t) (pSrcBuffer->Data.YCbCr.semiplanar.CbCr.pBuffer);
+        ulong_t  YBaseAddr      = (ulong_t) (pSrcBuffer->Data.YCbCr.semiplanar.Y.pBuffer);
+        ulong_t  CbCrBaseAddr   = (ulong_t) (pSrcBuffer->Data.YCbCr.semiplanar.CbCr.pBuffer);
 
         // map luma plane
         if ( RET_SUCCESS != HalMapMemory( hal, YBaseAddr, YPlaneSize, HAL_MAPMEM_READONLY,
@@ -167,9 +167,9 @@ static bool mapYCbCrBuffer( HalHandle_t hal, const PicBufMetaData_t *pSrcBuffer,
         uint32_t YPlaneSize  = pSrcBuffer->Data.YCbCr.planar.Y.PicWidthBytes * pSrcBuffer->Data.YCbCr.planar.Y.PicHeightPixel;
         uint32_t CbPlaneSize = pSrcBuffer->Data.YCbCr.planar.Cb.PicWidthBytes * pSrcBuffer->Data.YCbCr.planar.Cb.PicHeightPixel;
         uint32_t CrPlaneSize = pSrcBuffer->Data.YCbCr.planar.Cr.PicWidthBytes * pSrcBuffer->Data.YCbCr.planar.Cr.PicHeightPixel;
-        uint32_t YBaseAddr   = (uint32_t) (pSrcBuffer->Data.YCbCr.planar.Y.pBuffer);
-        uint32_t CbBaseAddr  = (uint32_t) (pSrcBuffer->Data.YCbCr.planar.Cb.pBuffer);
-        uint32_t CrBaseAddr  = (uint32_t) (pSrcBuffer->Data.YCbCr.planar.Cr.pBuffer);
+        ulong_t  YBaseAddr   = (ulong_t) (pSrcBuffer->Data.YCbCr.planar.Y.pBuffer);
+        ulong_t  CbBaseAddr  = (ulong_t) (pSrcBuffer->Data.YCbCr.planar.Cb.pBuffer);
+        ulong_t  CrBaseAddr  = (ulong_t) (pSrcBuffer->Data.YCbCr.planar.Cr.pBuffer);
 
         // map luma plane
         if ( RET_SUCCESS != HalMapMemory( hal, YBaseAddr, YPlaneSize, HAL_MAPMEM_READONLY,

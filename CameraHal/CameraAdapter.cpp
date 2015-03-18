@@ -674,7 +674,7 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
     	//#endif
 	}else
         mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = 0;
-    mPreviewFrameInfos[cfilledbuffer1.index].vir_addr = (int)mCamDriverV4l2Buffer[cfilledbuffer1.index];
+    mPreviewFrameInfos[cfilledbuffer1.index].vir_addr = (unsigned long)mCamDriverV4l2Buffer[cfilledbuffer1.index];
     //get zoom_value
     mPreviewFrameInfos[cfilledbuffer1.index].zoom_value = mZoomVal;
     mPreviewFrameInfos[cfilledbuffer1.index].used_flag = 0;
@@ -690,7 +690,7 @@ getFrame_out:
         mRefEventNotifier->notifyCbMsg(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED);
     return ret ;
 }
-int CameraAdapter::adapterReturnFrame(int index,int cmd){
+int CameraAdapter::adapterReturnFrame(long index,int cmd){
     int buf_state = -1;
    struct v4l2_buffer vb;
     mCamDriverStreamLock.lock();
@@ -723,7 +723,7 @@ int CameraAdapter::adapterReturnFrame(int index,int cmd){
     return 0;
 }
 
-int CameraAdapter::returnFrame(int index,int cmd)
+int CameraAdapter::returnFrame(long index,int cmd)
 {
     return adapterReturnFrame(index,cmd);
 }

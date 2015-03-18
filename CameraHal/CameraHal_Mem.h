@@ -43,9 +43,9 @@ struct bufferinfo_s{
 	unsigned int mNumBffers; //invaild if this value is 0
 	size_t mPerBuffersize;
 	size_t mBufferSizes;
-	unsigned int mPhyBaseAddr;
-	unsigned int mVirBaseAddr;
-	unsigned int mShareFd;
+	unsigned long mPhyBaseAddr;
+	unsigned long mVirBaseAddr;
+	unsigned long mShareFd;
 	buffer_type_enum mBufType;
 	bool        mIsForceIommuBuf;
 };

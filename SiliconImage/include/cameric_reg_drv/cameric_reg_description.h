@@ -132,7 +132,7 @@ typedef char RegHint_t[100];
  *****************************************************************************/
 typedef struct RegDescription_s
 {
-    uint32_t        Address;            /**< adddress of the register */
+    ulong_t         Address;            /**< adddress of the register */
     Permissions_t   Permission;         /**< access mode to the register */
     RegName_t       Name;               /**< name string of the register */
     RegHint_t       Hint;               /**< hint string of the register */
@@ -213,7 +213,7 @@ RESULT CamerIcReleaseRegDescriptionDrv
  *****************************************************************************/
 RESULT CamerIcGetRegister
 (
-    const uint32_t  address,
+    const ulong_t   address,
     uint32_t        *value
 );
 
@@ -235,7 +235,7 @@ RESULT CamerIcGetRegister
  *****************************************************************************/
 RESULT CamerIcSetRegister
 (
-    const uint32_t  address,
+    const ulong_t   address,
     const uint32_t  value
 );
 

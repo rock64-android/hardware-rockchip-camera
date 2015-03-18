@@ -128,7 +128,8 @@ CameraHal::CameraHal(int cameraId)
 	    }
 	    else if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_Cif){
 	        LOGD("it is a isp soc camera");
-	        if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Raw_10b)
+	        if(gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Raw_10b
+			|| gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.info.cif.fmt == CamSys_Fmt_Raw_12b)
 	            mCameraAdapter = new CameraIspSOCAdapter(cameraId);
 	        else
 	            mCameraAdapter = new CameraIspAdapter(cameraId);

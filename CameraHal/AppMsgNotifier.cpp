@@ -273,7 +273,7 @@ void AppMsgNotifier::notifyNewFaceDecFrame(FramInfo_s* frame)
         msg.command = CameraAppFaceDetThread::CMD_FACEDET_FACE_DETECT ;
         msg.arg2 = (void*)(frame);
         msg.arg3 = (void*)(frame->used_flag);
-        LOG2("%s(%d):notify new frame,index(%d)",__FUNCTION__,__LINE__,frame->frame_index);
+        LOG2("%s(%d):notify new frame,index(%ld)",__FUNCTION__,__LINE__,frame->frame_index);
         faceDetThreadCommandQ.put(&msg);
    }else
         mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
@@ -390,7 +390,7 @@ int AppMsgNotifier::startRecording(int w,int h)
 {
    LOG_FUNCTION_NAME
     int i = 0,frame_size = 0;
-	int *addr;
+	long *addr;
 	struct bufferinfo_s videoencbuf;
     
     Mutex::Autolock lock(mRecordingLock);
@@ -411,8 +411,8 @@ int AppMsgNotifier::startRecording(int w,int h)
     		LOGE("%s(%d): video buffer %d create failed",__FUNCTION__,__LINE__,i);
     	}
     	if (mVideoBufs[i]) {
-    		addr = (int*)mVideoBufs[i]->data;
-    		*addr =  (int)mVideoBufferProvider->getBufPhyAddr(i);
+    		addr = (long*)mVideoBufs[i]->data;
+    		*addr =  (long)mVideoBufferProvider->getBufPhyAddr(i);
     	}
 	}
 
@@ -609,7 +609,7 @@ void AppMsgNotifier::notifyNewVideoFrame(FramInfo_s* frame)
         msg.command = CameraAppMsgThread::CMD_EVENT_VIDEO_ENCING ;
         msg.arg2 = (void*)(frame);
         msg.arg3 = (void*)(frame->used_flag);
-        LOG2("%s(%d):notify new frame,index(%d)",__FUNCTION__,__LINE__,frame->frame_index);
+        LOG2("%s(%d):notify new frame,index(%ld)",__FUNCTION__,__LINE__,frame->frame_index);
         eventThreadCommandQ.put(&msg);
    }else
         mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
@@ -937,12 +937,12 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	long timestamp;
 	JpegEncType encodetype;
     int picfmt;
-    int rawbuf_phy;
-    int rawbuf_vir;
-    int jpegbuf_phy;
-    int jpegbuf_vir;
-    int input_phy_addr,input_vir_addr;
-    int output_phy_addr,output_vir_addr;
+    long rawbuf_phy;
+    long rawbuf_vir;
+    long jpegbuf_phy;
+    long jpegbuf_vir;
+    long input_phy_addr,input_vir_addr;
+    long output_phy_addr,output_vir_addr;
     int jpegbuf_size;
 	int bufindex;
     bool mIs_Verifier = false;
@@ -1042,7 +1042,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	/*ddl@rock-chips.com: v0.4.7*/
     // bool rotat_180 = false; //used by ipp
     //frame->phy_addr = -1 ,just for isp soc camera used iommu,so ugly...
-    if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && ((frame->frame_width != mPictureInfo.w) || (frame->frame_height != mPictureInfo.h) || (frame->zoom_value != 100) || frame->phy_addr == -1)){
+    if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && ((frame->frame_width != mPictureInfo.w) || (frame->frame_height != mPictureInfo.h) || (frame->zoom_value != 100) || (long)frame->phy_addr == -1)){
         output_phy_addr = rawbuf_phy;
         output_vir_addr = rawbuf_vir;
         #if 0
@@ -1286,7 +1286,9 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 	return ret;
 }
 int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
-    int ret = 0,buf_phy = 0,buf_vir = 0,buf_index = -1;
+    int ret = 0,buf_index = -1;
+	long buf_phy = 0,buf_vir = 0;
+	
     //get one available buffer
     if((buf_index = mVideoBufferProvider->getOneAvailableBuffer(&buf_phy,&buf_vir)) == -1){
         ret = -1;
@@ -1459,7 +1461,7 @@ void AppMsgNotifier::encProcessThread()
 		bool loop = true;
 		Message_cam msg;
 		int err = 0;
-        int frame_used_flag = -1;
+        long frame_used_flag = -1;
 	
 		LOG_FUNCTION_NAME
 		while (loop) {
@@ -1491,7 +1493,7 @@ void AppMsgNotifier::encProcessThread()
 					captureEncProcessPicture(frame);
 
                     //return frame
-                    frame_used_flag = (int)msg.arg3;
+                    frame_used_flag = (long)msg.arg3;
                     mFrameProvider->returnFrame(frame->frame_index,frame_used_flag);
 					
 					break;
@@ -1538,7 +1540,7 @@ void AppMsgNotifier::faceDetectThread()
 	bool loop = true;
 	Message_cam msg;
     FramInfo_s *frame = NULL;
-    int frame_used_flag = -1;
+    long frame_used_flag = -1;
     bool face_detected = 0;
 	LOG_FUNCTION_NAME
 	while (loop) {
@@ -1547,9 +1549,9 @@ void AppMsgNotifier::faceDetectThread()
 		switch (msg.command)
 		{
           case CameraAppFaceDetThread::CMD_FACEDET_FACE_DETECT:
-                frame_used_flag = (int)msg.arg3;
+                frame_used_flag = (long)msg.arg3;
 				frame = (FramInfo_s*)msg.arg2;				
-                LOG2("%s(%d):get new frame , index(%d),useflag(%d)",__FUNCTION__,__LINE__,frame->frame_index,frame_used_flag);
+                LOG2("%s(%d):get new frame , index(%ld),useflag(%d)",__FUNCTION__,__LINE__,frame->frame_index,frame_used_flag);
         		mFaceDecLock.lock();
                 if(mFaceFrameNum++ % FACEDETECT_FRAME_INTERVAL == 0){
             		mFaceDecLock.unlock();
@@ -1616,7 +1618,7 @@ void AppMsgNotifier::eventThread()
 	Message_cam msg;
 	int index,err = 0;
     FramInfo_s *frame = NULL;
-    int frame_used_flag = -1;
+    long frame_used_flag = -1;
 	LOG_FUNCTION_NAME
 	while (loop) {
         memset(&msg,0,sizeof(msg));
@@ -1627,13 +1629,13 @@ void AppMsgNotifier::eventThread()
 				frame = (FramInfo_s*)msg.arg2;
                 processPreviewDataCb(frame);
                 //return frame
-                frame_used_flag = (int)msg.arg3;
+                frame_used_flag = (long)msg.arg3;
                 mFrameProvider->returnFrame(frame->frame_index,frame_used_flag);
                 break;
           case CameraAppMsgThread::CMD_EVENT_VIDEO_ENCING:
-                frame_used_flag = (int)msg.arg3;
+                frame_used_flag = (long)msg.arg3;
 				frame = (FramInfo_s*)msg.arg2;				
-                LOG2("%s(%d):get new frame , index(%d),useflag(%d)",__FUNCTION__,__LINE__,frame->frame_index,frame_used_flag);
+                LOG2("%s(%d):get new frame , index(%ld),useflag(%d)",__FUNCTION__,__LINE__,frame->frame_index,frame_used_flag);
 
                 processVideoCb(frame);
                 //return frame

@@ -53,9 +53,11 @@
 *v0.9.0
 *    1) support read OTP by transfer i2c info;
 *    2) support new resolutin 4208x3120 & 2104x1560
+*v0.0xa.0
+*    2) support new resolutin 1600x1200 
 */
 
-#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 9, 0x00) 
+#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 0x0a, 0x00) 
 
 
 #ifdef __cplusplus

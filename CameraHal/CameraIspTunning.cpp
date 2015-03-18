@@ -728,7 +728,7 @@ int CameraIspTunning::ispTuneStoreBuffer
     return result;
 }
 
-int  CameraIspTunning::ispTuneDesiredExp(int raw_ddr,int width,int height,int min_raw,int max_raw,int threshold){
+int  CameraIspTunning::ispTuneDesiredExp(long raw_ddr,int width,int height,int min_raw,int max_raw,int threshold){
 	int max_raw_num = 0,min_raw_num = 0;
 	int num,value,result = 0;
 	int proportion;

@@ -2127,7 +2127,7 @@ RESULT IsiGetResolutionName
 
     memset(szName, 0x00, sizeof(szName));
     
-    sprintf(szName,"%dx%dP%d",ISI_RES_W_GET(Resolution),ISI_RES_H_GET(Resolution),ISI_FPS_GET(Resolution));
+    snprintf(szName,sizeof(szName)-1,"%dx%dP%d",ISI_RES_W_GET(Resolution),ISI_RES_H_GET(Resolution),ISI_FPS_GET(Resolution));
 
     *pszName = szName;
 
@@ -2223,7 +2223,9 @@ RESULT IsiGetResolutionParam
         case ISI_RES_2208_1656P30:
 
         case ISI_RES_1600_1200P7:
+        case ISI_RES_1600_1200P10:
         case ISI_RES_1600_1200P15:
+        case ISI_RES_1600_1200P20:
         case ISI_RES_1600_1200P30:
         
 		case ISI_RES_4224_3136P4:

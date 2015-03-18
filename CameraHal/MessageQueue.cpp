@@ -69,7 +69,7 @@ static char* MessageCmdConvert(char* msgQ, unsigned int cmd)
 static char* MessageArg1Convert(char* msgQ, Message_cam *msg)
 {    
     char *arg_name = gInvalArg,*cmd_name=gInvalCommands;
-    unsigned arg_val = (unsigned int)msg->arg1;
+    unsigned long arg_val = (unsigned long)msg->arg1;
 
     if (strstr(msgQ,"AckQ")) {
         if (arg_val<1)

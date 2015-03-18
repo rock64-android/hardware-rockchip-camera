@@ -332,9 +332,9 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
         mANativeWindow->lock_buffer(mANativeWindow, (buffer_handle_t*)mDisplayBufInfo[i].buffer_hnd);
         mapper.lock((buffer_handle_t)mDisplayBufInfo[i].priv_hnd, CAMHAL_GRALLOC_USAGE, bounds, y_uv);
         #if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928)
-            mDisplayBufInfo[i].vir_addr = mDisplayBufInfo[i].priv_hnd->base;
-        #elif defined(TARGET_BOARD_PLATFORM_RK30XXB)
-            mDisplayBufInfo[i].vir_addr = (int)y_uv[0];
+            mDisplayBufInfo[i].vir_addr = (long)mDisplayBufInfo[i].priv_hnd->base;
+        #elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368)
+            mDisplayBufInfo[i].vir_addr = (long)y_uv[0];
         #endif
         setBufferState(i,0);
         LOG1("%s(%d): mGrallocBufferMap[%d] phy_addr: 0x%x  vir_dir: 0x%x",
@@ -560,13 +560,13 @@ extern "C" void arm_yuyv_to_nv12_soc_ex(int src_w, int src_h,char *srcbuf, char 
 void DisplayAdapter::displayThread()
 {
     int err,stride,i,queue_cnt;
-    int dequeue_buf_index,queue_buf_index,queue_display_index;
+    long dequeue_buf_index,queue_buf_index,queue_display_index;
     buffer_handle_t *hnd = NULL; 
     NATIVE_HANDLE_TYPE *phnd;
     GraphicBufferMapper& mapper = GraphicBufferMapper::get();
     Message_cam msg;
     void *y_uv[3];
-    int frame_used_flag = -1;
+    long frame_used_flag = -1;
     Rect bounds;
     
     LOG_FUNCTION_NAME    
@@ -628,11 +628,11 @@ display_receive_cmd:
                     }
 
                     FramInfo_s* frame = (FramInfo_s*)msg.arg2;
-                    frame_used_flag = (int)msg.arg3;
+                    frame_used_flag = (long)msg.arg3;
 
 
                     
-                    queue_buf_index = (int)msg.arg1;                    
+                    queue_buf_index = (long)msg.arg1;                    
                     queue_display_index = CONFIG_CAMERA_DISPLAY_BUF_CNT;
                     //get a free buffer                        
                         for (i=0; i<CONFIG_CAMERA_DISPLAY_BUF_CNT; i++) {
@@ -775,7 +775,7 @@ display_receive_cmd:
                                 }
                                 
                                 if (i >= mDislayBufNum) {                    
-                                    LOGE("%s(%d): dequeue buffer(0x%x ) don't find in mDisplayBufferMap", __FUNCTION__,__LINE__,(int)phnd);                    
+                                    LOGE("%s(%d): dequeue buffer(0x%x ) don't find in mDisplayBufferMap", __FUNCTION__,__LINE__,(long)phnd);                    
                                     continue;
                                 } else {
                                     setBufferState(dequeue_buf_index, 0);

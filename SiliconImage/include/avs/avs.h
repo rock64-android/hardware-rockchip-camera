@@ -397,7 +397,7 @@ RESULT AvsGetStatus
 RESULT AvsProcessFrame
 (
     AvsHandle_t        handle,
-    uint32_t           frameId,
+    ulong_t            frameId,
     CamEngineVector_t *pDisplVec
 );
 
@@ -425,7 +425,7 @@ RESULT AvsProcessFrame
 RESULT AvsSetCroppingWindow
 (
     AvsHandle_t        handle,
-    uint32_t           frameId
+    ulong_t            frameId
 );
 
 

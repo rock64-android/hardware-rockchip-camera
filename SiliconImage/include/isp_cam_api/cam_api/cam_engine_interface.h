@@ -226,10 +226,18 @@
 	1) support sensor otp i2c info
 *v1.0x23.0:
     1)  compatible with ion no matter new or old version.
+*v1.0x24.0:
+    1)  change isp output from limit range to full range
+*v1.0x25.0:
+    1)  modify android 5.x compile condition. 
+*v1.0x26.0:
+    1)  fix some aec ecm flicker issues
+*v1.0x27.0
+    1) support 32bit andr 64bit.
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x23, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x27, 0)
 
 
 class CamEngineItf;
@@ -560,6 +568,10 @@ public:
     void gamCorrectEnable();
     void gamCorrectDisable();
     void gamCorrectSetCurve( CamEngineGammaOutCurve_t GammaCurve );
+
+	
+	void ColorConversionSetRange(CamerIcColorConversionRange_t YConvRange,CamerIcColorConversionRange_t CrConvRange);
+	void ColorConversionSetCoefficients(CamerIc3x3Matrix_t	*pCConvCoefficients);
 
     // isp ilter
     void demosaicGet( bool& bypass, uint8_t& threshold ) const;

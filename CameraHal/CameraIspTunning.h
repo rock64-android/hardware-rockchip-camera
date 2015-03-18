@@ -62,8 +62,8 @@ typedef struct ispTuneTaskInfo_t{
 
 //from ..
     bool mForceRGBOut;
-    uint32_t y_addr;
-    uint32_t uv_addr;
+    unsigned long y_addr;
+    unsigned long uv_addr;
 }ispTuneTaskInfo_s;
 
 
@@ -74,7 +74,7 @@ public:
     ~CameraIspTunning();
     static CameraIspTunning* createInstance();
     static void StartElementHandler(void *userData, const char *name, const char **atts);
-    static int ispTuneDesiredExp(int raw_ddr,int width,int height,int min_raw,int max_raw,int threshold);
+    static int ispTuneDesiredExp(long raw_ddr,int width,int height,int min_raw,int max_raw,int threshold);
 
     static int ispTuneStoreBufferRAW
     (

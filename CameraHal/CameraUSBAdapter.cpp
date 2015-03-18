@@ -898,12 +898,12 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
     int ret = 0;
     //  usb camera may do something
    	#if (IOMMU_ENABLED == 1)
-    int phy_addr = mPreviewBufProvider->getBufShareFd(frame->frame_index);
+    long phy_addr = mPreviewBufProvider->getBufShareFd(frame->frame_index);
     #else
-    int phy_addr = mPreviewBufProvider->getBufPhyAddr(frame->frame_index);
+    long phy_addr = mPreviewBufProvider->getBufPhyAddr(frame->frame_index);
     #endif
     if( frame->frame_fmt == V4L2_PIX_FMT_MJPEG){
-    	   char *srcbuf = frame->vir_addr;
+    	   char *srcbuf = (char*)frame->vir_addr;
     	   if((srcbuf[0] == 0xff) && (srcbuf[1] == 0xd8) && (srcbuf[2] == 0xff)){
         //decoder to NV12
         VPU_FRAME outbuf; 
@@ -949,11 +949,11 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
 	w = frame->frame_width;
 	h = frame->frame_height;
 	if((w&0x0f) || (h&0x0f)){
-		char *buf = malloc(w*h*3/2);
+		char *buf = (char*)malloc(w*h*3/2);
 		if(buf != NULL){
-			memcpy(buf,frame->vir_addr,w*h);
-			memcpy(buf+w*h,frame->vir_addr+((w+15)&0xfff0)*((h+15)&0xfff0), w*h/2);
-			memcpy(frame->vir_addr,buf,w*h*3/2);
+			memcpy(buf,(void*)frame->vir_addr,w*h);
+			memcpy(buf+w*h,(void*)(frame->vir_addr+((w+15)&0xfff0)*((h+15)&0xfff0)), w*h/2);
+			memcpy((void*)frame->vir_addr,buf,w*h*3/2);
 			free(buf);
 		}
 	}

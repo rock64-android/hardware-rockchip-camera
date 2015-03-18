@@ -34,7 +34,7 @@ LOCAL_C_INCLUDES += \
 	frameworks/base/include/ui \
   external/jpeg \
   external/jhead\
-  hardware/rockchip/hwcomposer_rga\
+  hardware/rockchip/hwcomposer\
 	hardware/rockchip/libgralloc_ump/ump/include\
 	hardware/rockchip/librkvpu\
   $(LOCAL_PATH)/../SiliconImage/include\
@@ -124,7 +124,6 @@ endif
 LOCAL_CPPFLAGS := -fpermissive
 LOCAL_CFLAGS := -fno-short-enums -DCOPY_IMAGE_BUFFER
 LOCAL_CFLAGS += -DLINUX  -DMIPI_USE_CAMERIC -DHAL_MOCKUP -DCAM_ENGINE_DRAW_DOM_ONLY -D_FILE_OFFSET_BITS=64 -DHAS_STDINT_H
-LOCAL_CFLAGS += -DHAVE_ARM_NEON
 
 ifeq ($(strip $(GRAPHIC_MEMORY_PROVIDER)),dma_buf)
 LOCAL_CFLAGS += -DUSE_DMA_BUF
@@ -147,6 +146,13 @@ ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3288)
 LOCAL_CFLAGS += -DTARGET_BOARD_PLATFORM_RK30XX
 LOCAL_CFLAGS += -DTARGET_RK32
 LOCAL_CFLAGS += -DHAL_MOCKUP
+LOCAL_CFLAGS += -DHAVE_ARM_NEON
+endif
+
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3368)
+LOCAL_CFLAGS += -DTARGET_RK3368
+LOCAL_CFLAGS += -DTARGET_RK32
+LOCAL_CFLAGS += -DHAL_MOCKUP
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3036)
@@ -159,6 +165,7 @@ ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk312x)
 LOCAL_CFLAGS += -DTARGET_BOARD_PLATFORM_RK30XX
 LOCAL_CFLAGS += -DTARGET_RK312x
 LOCAL_CFLAGS += -DHAL_MOCKUP
+LOCAL_CFLAGS += -DHAVE_ARM_NEON
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3188)
@@ -184,11 +191,20 @@ ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk30xxb)
 LOCAL_CFLAGS += -DTARGET_BOARD_PLATFORM_RK30XXB
 endif
 
-ifeq ($(strip $(PLATFORM_SDK_VERSION)),21)
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 5.0)))
 LOCAL_CFLAGS += -DANDROID_5_X
 endif
 
+#LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
+ifneq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 5.0)))
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
+else
+ifneq ($(strip $(TARGET_2ND_ARCH)), )
+LOCAL_MULTILIB := both
+endif
+LOCAL_MODULE_RELATIVE_PATH := hw
+endif
+
 LOCAL_MODULE:=camera.rk30board
 
 LOCAL_MODULE_TAGS:= optional

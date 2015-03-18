@@ -1813,7 +1813,7 @@ void CameraIspAdapter::clearFrameArray(){
     mFrameInfoArray.clear();
     LOG_FUNCTION_NAME_EXIT
 }
-int CameraIspAdapter::adapterReturnFrame(int index,int cmd){
+int CameraIspAdapter::adapterReturnFrame(long index,int cmd){
     FramInfo_s* tmpFrame = ( FramInfo_s *)index;
     Mutex::Autolock lock(mFrameArrayLock);
     if(mFrameInfoArray.size() > 0){
@@ -1885,12 +1885,13 @@ static void debugShowFPS()
 void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 {
     static int writeoneframe = 0;
-    uint32_t y_addr = 0,uv_addr = 0,y_size;
+    ulong_t y_addr = 0,uv_addr = 0;
+	uint32_t y_size;
     void* y_addr_vir = NULL,*uv_addr_vir = NULL ;
     int width = 0,height = 0;
     int fmt = 0;
 	int tem_val;
-	int phy_addr;
+	ulong_t phy_addr=0;
 
 	Mutex::Autolock lock(mLock);
     // get & check buffer meta data
@@ -1908,45 +1909,45 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
         }
 
         if(pPicBufMetaData->Layout == PIC_BUF_LAYOUT_SEMIPLANAR ){
-            y_addr = (uint32_t)(pPicBufMetaData->Data.YCbCr.semiplanar.Y.pBuffer);
+            y_addr = (ulong_t)(pPicBufMetaData->Data.YCbCr.semiplanar.Y.pBuffer);
             //now gap of y and uv buffer is 0. so uv addr could be calc from y addr.
-            uv_addr = (uint32_t)(pPicBufMetaData->Data.YCbCr.semiplanar.CbCr.pBuffer);
+            uv_addr = (ulong_t)(pPicBufMetaData->Data.YCbCr.semiplanar.CbCr.pBuffer);
             width = pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicWidthPixel;
             height = pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicHeightPixel;
             //get vir addr
             HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
             HalMapMemory( tmpHandle, uv_addr, 100, HAL_MAPMEM_READWRITE, &uv_addr_vir );
             if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
-                HalGetMemoryMapFd(tmpHandle, y_addr,&phy_addr);
+                HalGetMemoryMapFd(tmpHandle, y_addr,(int*)&phy_addr);
             else
                 phy_addr = y_addr;
             
             /* ddl@rock-chips.com:  v1.3.0 */
             y_size = pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicWidthPixel*pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicHeightPixel;
             if (uv_addr > (y_addr+y_size)) {
-                memcpy((void*)((int)y_addr_vir+y_size),uv_addr_vir, y_size/2);
+                memcpy((void*)((ulong_t)y_addr_vir+y_size),uv_addr_vir, y_size/2);
             }
             
         }else if(pPicBufMetaData->Layout == PIC_BUF_LAYOUT_COMBINED){
-            y_addr = (uint32_t)(pPicBufMetaData->Data.YCbCr.combined.pBuffer );
+            y_addr = (ulong_t)(pPicBufMetaData->Data.YCbCr.combined.pBuffer );
             width = pPicBufMetaData->Data.YCbCr.combined.PicWidthPixel>>1;
             height = pPicBufMetaData->Data.YCbCr.combined.PicHeightPixel;
             HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
             if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
-                HalGetMemoryMapFd(tmpHandle, y_addr,&phy_addr);
+                HalGetMemoryMapFd(tmpHandle, y_addr,(int*)&phy_addr);
             else
                 phy_addr = y_addr;
         }
 
     } else if(pPicBufMetaData->Type == PIC_BUF_TYPE_RAW16) {
 
-        y_addr = (uint32_t)(pPicBufMetaData->Data.raw.pBuffer );
+        y_addr = (ulong_t)(pPicBufMetaData->Data.raw.pBuffer );
         width = pPicBufMetaData->Data.raw.PicWidthPixel;
         height = pPicBufMetaData->Data.raw.PicHeightPixel;
         fmt = V4L2_PIX_FMT_SBGGR10;
         HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
         if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
-            HalGetMemoryMapFd(tmpHandle, y_addr,&phy_addr);
+            HalGetMemoryMapFd(tmpHandle, y_addr,(int*)&phy_addr);
         else
             phy_addr = y_addr;
     } else {
@@ -1986,13 +1987,13 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
             return;
         }
         //add to vector
-        tmpFrame->frame_index = (int)tmpFrame; 
-        tmpFrame->phy_addr = (int)phy_addr;
+        tmpFrame->frame_index = (ulong_t)tmpFrame; 
+        tmpFrame->phy_addr = (ulong_t)phy_addr;
         tmpFrame->frame_width = width;
         tmpFrame->frame_height= height;
-        tmpFrame->vir_addr = (int)y_addr_vir;
+        tmpFrame->vir_addr = (ulong_t)y_addr_vir;
         tmpFrame->frame_fmt = fmt;
-        tmpFrame->used_flag = (int)pMediaBuffer; // tunning thread will use pMediaBuffer
+        tmpFrame->used_flag = (ulong_t)pMediaBuffer; // tunning thread will use pMediaBuffer
 
         {
             Mutex::Autolock lock(mFrameArrayLock);
@@ -2015,11 +2016,11 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     			return;
           }
           //add to vector
-          tmpFrame->frame_index = (int)tmpFrame; 
-          tmpFrame->phy_addr = (int)phy_addr;
+          tmpFrame->frame_index = (ulong_t)tmpFrame; 
+          tmpFrame->phy_addr = (ulong_t)phy_addr;
           tmpFrame->frame_width = width;
           tmpFrame->frame_height= height;
-          tmpFrame->vir_addr = (int)y_addr_vir;
+          tmpFrame->vir_addr = (ulong_t)y_addr_vir;
           tmpFrame->frame_fmt = fmt;
     	  
           tmpFrame->used_flag = 4;
@@ -2043,11 +2044,11 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     			return;
           }
           //add to vector
-          tmpFrame->frame_index = (int)tmpFrame; 
-          tmpFrame->phy_addr = (int)phy_addr;
+          tmpFrame->frame_index = (ulong_t)tmpFrame; 
+          tmpFrame->phy_addr = (ulong_t)phy_addr;
           tmpFrame->frame_width = width;
           tmpFrame->frame_height= height;
-          tmpFrame->vir_addr = (int)y_addr_vir;
+          tmpFrame->vir_addr = (ulong_t)y_addr_vir;
           tmpFrame->frame_fmt = fmt;
     	  
           tmpFrame->used_flag = 0;
@@ -2081,11 +2082,11 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
             	return;
             }          
             //add to vector
-            tmpFrame->frame_index = (int)tmpFrame; 
-            tmpFrame->phy_addr = (int)phy_addr;
+            tmpFrame->frame_index = (ulong_t)tmpFrame; 
+            tmpFrame->phy_addr = (ulong_t)phy_addr;
             tmpFrame->frame_width = width;
             tmpFrame->frame_height= height;
-            tmpFrame->vir_addr = (int)y_addr_vir;
+            tmpFrame->vir_addr = (ulong_t)y_addr_vir;
             tmpFrame->frame_fmt = fmt;
             tmpFrame->used_flag = 1;
 #if (USE_RGA_TODO_ZOOM == 1)  
@@ -2109,7 +2110,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     	//picture ?
     	if(mRefEventNotifier->isNeedSendToPicture()){
             bool send_to_pic = true;
-            if(mFlashStatus && ((int)(pPicBufMetaData->priv) != 1)){
+            if(mFlashStatus && ((ulong_t)(pPicBufMetaData->priv) != 1)){
                 pPicBufMetaData->priv = NULL;
                 send_to_pic = false;
                 LOG1("not the desired flash pic,skip it,mFlashStatus %d!",mFlashStatus);
@@ -2124,11 +2125,11 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 }
 
                 //add to vector
-                tmpFrame->frame_index = (int)tmpFrame; 
-                tmpFrame->phy_addr = (int)phy_addr;
+                tmpFrame->frame_index = (ulong_t)tmpFrame; 
+                tmpFrame->phy_addr = (ulong_t)phy_addr;
                 tmpFrame->frame_width = width;
                 tmpFrame->frame_height= height;
-                tmpFrame->vir_addr = (int)y_addr_vir;
+                tmpFrame->vir_addr = (ulong_t)y_addr_vir;
                 tmpFrame->frame_fmt = fmt;
                 tmpFrame->used_flag = 2;
                 tmpFrame->res = &mImgAllFovReq;
@@ -2163,11 +2164,11 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
             	return;
             }
             //add to vector
-            tmpFrame->frame_index = (int)tmpFrame; 
-            tmpFrame->phy_addr = (int)phy_addr;
+            tmpFrame->frame_index = (ulong_t)tmpFrame; 
+            tmpFrame->phy_addr = (ulong_t)phy_addr;
             tmpFrame->frame_width = width;
             tmpFrame->frame_height= height;
-            tmpFrame->vir_addr = (int)y_addr_vir;
+            tmpFrame->vir_addr = (ulong_t)y_addr_vir;
             tmpFrame->frame_fmt = fmt;
             tmpFrame->used_flag = 3;
 #if (USE_RGA_TODO_ZOOM == 1)  

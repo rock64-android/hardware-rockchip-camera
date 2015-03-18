@@ -7,14 +7,14 @@
 //包括zoom的信息
 typedef struct FramInfo
 {
-    int phy_addr;
-    int vir_addr;
+    ulong_t phy_addr;
+    ulong_t vir_addr;
     int frame_width;
     int frame_height;
-    int frame_index;
+    ulong_t frame_index;
     int frame_fmt;
     int zoom_value;
-    int used_flag;
+    ulong_t used_flag;
     int frame_size;
     void* res;
 }FramInfo_s;

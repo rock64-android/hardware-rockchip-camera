@@ -11,17 +11,17 @@ int BufferProvider::getBufCount()
 {
     return mBufCount;
 }
-int BufferProvider::getBufPhyAddr(int bufindex)
+long BufferProvider::getBufPhyAddr(int bufindex)
 {
-    int phy_addr;
+    long phy_addr;
     mBufInfo[bufindex].lock->lock();
     phy_addr = mBufInfo[bufindex].phy_addr;
     mBufInfo[bufindex].lock->unlock();
     return phy_addr;
 }
-int BufferProvider::getBufVirAddr(int bufindex)
+long BufferProvider::getBufVirAddr(int bufindex)
 {
-    int vir_addr;
+    long vir_addr;
     mBufInfo[bufindex].lock->lock();
     vir_addr = mBufInfo[bufindex].vir_addr;
     mBufInfo[bufindex].lock->unlock();
@@ -102,9 +102,9 @@ int BufferProvider::createBuffer(int count,int perbufsize,buffer_type_enum bufty
     }
     for (i=0; i<count; i++) {
             mBufInfo[i].lock = new Mutex();
-            mBufInfo[i].vir_addr = (int)mCamBuffer->getBufferAddr(buftype,i,buffer_addr_vir);
-            mBufInfo[i].phy_addr = (int)mCamBuffer->getBufferAddr(buftype,i,buffer_addr_phy);
-    		mBufInfo[i].share_fd = (int)mCamBuffer->getBufferAddr(buftype,i,buffer_sharre_fd);
+            mBufInfo[i].vir_addr = (long)mCamBuffer->getBufferAddr(buftype,i,buffer_addr_vir);
+            mBufInfo[i].phy_addr = (long)mCamBuffer->getBufferAddr(buftype,i,buffer_addr_phy);
+    		mBufInfo[i].share_fd = (long)mCamBuffer->getBufferAddr(buftype,i,buffer_sharre_fd);
 	        mBufInfo[i].buf_state = 0;
     }
 
@@ -173,7 +173,7 @@ setBufferStatus_end:
     return err;
 }
 
-int BufferProvider::getOneAvailableBuffer(int *buf_phy,int *buf_vir)
+int BufferProvider::getOneAvailableBuffer(long *buf_phy,long *buf_vir)
 {
 	int i;
 	for ( i=0; i < mBufCount; i++) {

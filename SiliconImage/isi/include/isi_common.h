@@ -253,6 +253,8 @@ extern "C"
 #define ISI_RES_1600_1200P7                    0x0e6404b0      /**<  5 4416x3312    */
 #define ISI_RES_1600_1200P15                   0x1e6404b0       /**<  5 4416x3312    */
 #define ISI_RES_1600_1200P30                   0x3c6404b0       /**<  5 4416x3312    */
+#define ISI_RES_1600_1200P20                   0x286404b0       /**<  5 4416x3312    */
+#define ISI_RES_1600_1200P10                   0x146404b0       /**<  5 4416x3312    */
 
 
 #define ISI_RES_4208_3120P4                    0x09070c30 

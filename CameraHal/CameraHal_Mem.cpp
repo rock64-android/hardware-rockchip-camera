@@ -28,7 +28,7 @@ MemManagerBase::~MemManagerBase()
 
 unsigned int MemManagerBase::getBufferAddr(enum buffer_type_enum buf_type, unsigned int buf_idx, buffer_addr_t addr_type)
 {
-    unsigned int addr = 0x00;
+    unsigned long addr = 0x00;
     struct bufferinfo_s *buf_info;
    
     switch(buf_type)
@@ -134,19 +134,19 @@ int IonMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
 	{
 		case PREVIEWBUFFER:
 			tmpalloc = mPreviewData;
-			tmp_buf = &mPreviewBufferInfo;
+			tmp_buf = mPreviewBufferInfo;
 			break;
 		case RAWBUFFER:
 			tmpalloc = mRawData;
-			tmp_buf = &mRawBufferInfo;
+			tmp_buf = mRawBufferInfo;
 			break;
 		case JPEGBUFFER:
 			tmpalloc = mJpegData;
-			tmp_buf = &mJpegBufferInfo;
+			tmp_buf = mJpegBufferInfo;
 			break;
 		case VIDEOENCBUFFER:
 			tmpalloc = mVideoEncData;
-			tmp_buf = &mVideoEncBufferInfo;
+			tmp_buf = mVideoEncBufferInfo;
 			break;
         default:
             goto null_fail;
@@ -189,7 +189,7 @@ void IonMemManager::destroyIonBuffer(buffer_type_enum buftype)
  			    if (mPreviewData == NULL) {
 				  //  LOGE("%s(%d): mPreviewData is NULL",__FUNCTION__,__LINE__);
                 } else {
-				    LOGE("mPreviewData->virt:0x%x mPreviewBufferInfo.mVirBaseAddr:0x%x",(int)mPreviewData->virt,mPreviewBufferInfo.mVirBaseAddr);
+				    LOGE("mPreviewData->virt:0x%x mPreviewBufferInfo.mVirBaseAddr:0x%x",(long)mPreviewData->virt,mPreviewBufferInfo->mVirBaseAddr);
                 }
 			}
 			memset(&mPreviewBufferInfo,0,sizeof(mPreviewBufferInfo));
@@ -204,7 +204,7 @@ void IonMemManager::destroyIonBuffer(buffer_type_enum buftype)
 				if (mRawData == NULL) {
 				 //   LOGE("%s(%d): mRawData is NULL",__FUNCTION__,__LINE__);
                 } else {
-				    LOGE("mRawData->virt:0x%x mRawBufferInfo.mVirBaseAddr:0x%x",(int)mRawData->virt,mRawBufferInfo.mVirBaseAddr);
+				    LOGE("mRawData->virt:0x%x mRawBufferInfo.mVirBaseAddr:0x%x",(long)mRawData->virt,mRawBufferInfo->mVirBaseAddr);
                 }
 			}
 			memset(&mRawBufferInfo,0,sizeof(mRawBufferInfo));
@@ -219,7 +219,7 @@ void IonMemManager::destroyIonBuffer(buffer_type_enum buftype)
 				if (mJpegData == NULL) {
 				//    LOGE("%s(%d): mJpegData is NULL",__FUNCTION__,__LINE__);
                 } else {
-				    LOGE("mJpegData->virt:0x%x mRawBufferInfo.mVirBaseAddr:0x%x",(int)mJpegData->virt,mJpegBufferInfo.mVirBaseAddr);
+				    LOGE("mJpegData->virt:0x%x mRawBufferInfo.mVirBaseAddr:0x%x",(long)mJpegData->virt,mJpegBufferInfo->mVirBaseAddr);
                 }
 			}
 			memset(&mJpegBufferInfo,0,sizeof(mJpegBufferInfo));
@@ -234,7 +234,7 @@ void IonMemManager::destroyIonBuffer(buffer_type_enum buftype)
 				if (mVideoEncData == NULL) {
 				//	LOGE("%s(%d): mVideoEncData is NULL",__FUNCTION__,__LINE__);
 				} else {
-					LOGE("mVideoEncData->virt:0x%x mVideoEncBufferInfo.mVirBaseAddr:0x%x",(int)mVideoEncData->virt,mVideoEncBufferInfo.mVirBaseAddr);
+					LOGE("mVideoEncData->virt:0x%x mVideoEncBufferInfo.mVirBaseAddr:0x%x",(long)mVideoEncData->virt,mVideoEncBufferInfo->mVirBaseAddr);
 				}
 			}
 			memset(&mVideoEncBufferInfo,0,sizeof(mVideoEncBufferInfo));
@@ -267,7 +267,7 @@ int IonMemManager::createVideoEncBuffer(struct bufferinfo_s* videoencbuf)
 	ret = createIonBuffer(videoencbuf);
 	if (ret == 0) {
 		LOG1("Video buffer information(phy:0x%x vir:0x%x size:0x%x)",
-			mVideoEncBufferInfo.mPhyBaseAddr,mVideoEncBufferInfo.mVirBaseAddr,mVideoEncBufferInfo.mBufferSizes);
+			mVideoEncBufferInfo->mPhyBaseAddr,mVideoEncBufferInfo->mVirBaseAddr,mVideoEncBufferInfo->mBufferSizes);
 	} else {
 		LOGE("Video buffer alloc failed");
 	}
@@ -307,7 +307,7 @@ int IonMemManager::createPreviewBuffer(struct bufferinfo_s* previewbuf)
     ret = createIonBuffer(previewbuf);
     if (ret == 0) {
         LOG1("Preview buffer information(phy:0x%x vir:0x%x size:0x%x)",
-            mPreviewBufferInfo.mPhyBaseAddr,mPreviewBufferInfo.mVirBaseAddr,mPreviewBufferInfo.mBufferSizes);
+            mPreviewBufferInfo->mPhyBaseAddr,mPreviewBufferInfo->mVirBaseAddr,mPreviewBufferInfo->mBufferSizes);
     } else {
         LOGE("%s(%d): Preview buffer alloc failed",__FUNCTION__,__LINE__);
     }
@@ -345,7 +345,7 @@ int IonMemManager::createRawBuffer(struct bufferinfo_s* rawbuf)
     ret = createIonBuffer(rawbuf);
     if (ret == 0) {
         LOG1("Raw buffer information(phy:0x%x vir:0x%x size:0x%x)",
-            mRawBufferInfo.mPhyBaseAddr,mRawBufferInfo.mVirBaseAddr,mRawBufferInfo.mBufferSizes);
+            mRawBufferInfo->mPhyBaseAddr,mRawBufferInfo->mVirBaseAddr,mRawBufferInfo->mBufferSizes);
     } else {
         LOGE("Raw buffer alloc failed");
     }
@@ -381,7 +381,7 @@ int IonMemManager::destroyRawBuffer()
     ret = createIonBuffer(jpegbuf);
     if (ret == 0) {
         LOG1("Jpeg buffer information(phy:0x%x vir:0x%x size:0x%x)",
-            mJpegBufferInfo.mPhyBaseAddr,mJpegBufferInfo.mVirBaseAddr,mJpegBufferInfo.mBufferSizes);
+            mJpegBufferInfo->mPhyBaseAddr,mJpegBufferInfo->mVirBaseAddr,mJpegBufferInfo->mBufferSizes);
     } else {
         LOGE("Jpeg buffer alloc failed");
     }
@@ -482,6 +482,7 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
 	struct ion_handle* handle = NULL;
 	#endif
     int map_fd;
+	long temp_handle = 0;
     unsigned long vir_addr = 0;
 
     
@@ -559,7 +560,7 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
             break;
         }
 
-            vir_addr = (unsigned int )mmap(NULL, ionbuf->mPerBuffersize, PROT_READ | PROT_WRITE, MAP_SHARED, map_fd, 0);
+        vir_addr = (unsigned long )mmap(NULL, ionbuf->mPerBuffersize, PROT_READ | PROT_WRITE, MAP_SHARED, map_fd, 0);
         if (vir_addr == 0) {
             LOGE("ion mmap failed\n");
             ret = -1;
@@ -573,12 +574,13 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
             tmpalloc->phy_addr = map_fd;
         tmpalloc->size = ionbuf->mPerBuffersize;
         tmpalloc->vir_addr = vir_addr;
-        tmpalloc->ion_hdl = (void*)handle;
+		temp_handle = handle;
+        tmpalloc->ion_hdl = (void*)temp_handle;
         tmpalloc->map_fd    =   map_fd;
 
         
-    	ionbuf->mPhyBaseAddr = (unsigned int)tmpalloc->phy_addr;
-    	ionbuf->mVirBaseAddr = (unsigned int)tmpalloc->vir_addr;
+    	ionbuf->mPhyBaseAddr = (unsigned long)tmpalloc->phy_addr;
+    	ionbuf->mVirBaseAddr = (unsigned long)tmpalloc->vir_addr;
     	ionbuf->mPerBuffersize = PAGE_ALIGN(frame_size);
     	ionbuf->mShareFd     = (unsigned int)tmpalloc->map_fd;
 		*tmp_buf = *ionbuf;

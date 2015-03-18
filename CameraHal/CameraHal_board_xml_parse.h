@@ -53,7 +53,11 @@ using namespace android;
 #define RK_RET_DEVICEERR (-5)
 #define RK_RET_FUNC_FAILED (-6)
 
+#if (defined(__arm64__) || defined(__aarch64__))
+#define RK_SENSOR_LIB_PATH "/system/lib64/hw/libisp_isi_drv_"
+#else
 #define RK_SENSOR_LIB_PATH "/system/lib/hw/libisp_isi_drv_"
+#endif
 #define RK_BOARD_XML_PATH "/etc/cam_board.xml"
 #define RK_DEFAULT_MEDIA_PROFILES_XML_PATH "/etc/media_profiles_default.xml"
 #if defined(ANDROID_5_X)

@@ -73,10 +73,19 @@ extern "C"
 *   1). support OTP;
 *v0.e.0
 *   1). support OTP i2c info;
+*v0.f.0
+*   1). support R1A&R2A OTP info;
+*v1.0.0
+*   1). fix some issues in v0.f.0;
+*v1.1.0
+*   1). fix somme issuse in r2a
+*   2). support different otp rg bg typetical value
+*v1.2.0
+*   1). support another type of R1A.
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(0, 0x0e, 0) 
+#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(1, 2, 0)
 
 /*****************************************************************************
  * System control registers

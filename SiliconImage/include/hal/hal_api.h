@@ -286,7 +286,7 @@ RESULT HalSetClock( HalHandle_t HalHandle, uint32_t dev_mask, uint32_t frequency
  *
  * @note    It is required to pass in the full address (base address + offset).
  *****************************************************************************/
-uint32_t HalReadReg( HalHandle_t HalHandle, uint32_t reg_address );
+uint32_t HalReadReg( HalHandle_t HalHandle, ulong_t reg_address );
 
 
 /*****************************************************************************/
@@ -299,7 +299,7 @@ uint32_t HalReadReg( HalHandle_t HalHandle, uint32_t reg_address );
  *
  * @note    It is required to pass in the full address (base address + offset).
  *****************************************************************************/
-void HalWriteReg( HalHandle_t HalHandle, uint32_t reg_address, uint32_t value );
+void HalWriteReg( HalHandle_t HalHandle, ulong_t reg_address, uint32_t value );
 
 
 /*****************************************************************************/
@@ -313,7 +313,7 @@ void HalWriteReg( HalHandle_t HalHandle, uint32_t reg_address, uint32_t value );
  *
  * @note    It is required to pass in the full address (base address + offset).
  *****************************************************************************/
-INLINE uint32_t HalReadMaskedReg( HalHandle_t HalHandle, uint32_t reg_address, uint32_t reg_mask, uint32_t shift_mask );
+INLINE uint32_t HalReadMaskedReg( HalHandle_t HalHandle, ulong_t reg_address, uint32_t reg_mask, uint32_t shift_mask );
 
 
 /*****************************************************************************/
@@ -328,7 +328,7 @@ INLINE uint32_t HalReadMaskedReg( HalHandle_t HalHandle, uint32_t reg_address, u
  *
  * @note    It is required to pass in the full address (base address + offset).
  *****************************************************************************/
-INLINE void HalWriteMaskedReg( HalHandle_t HalHandle, uint32_t reg_address, uint32_t reg_mask, uint32_t shift_mask, uint32_t value );
+INLINE void HalWriteMaskedReg( HalHandle_t HalHandle, ulong_t reg_address, uint32_t reg_mask, uint32_t shift_mask, uint32_t value );
 
 
 /*****************************************************************************/
@@ -341,7 +341,7 @@ INLINE void HalWriteMaskedReg( HalHandle_t HalHandle, uint32_t reg_address, uint
  * @note    It is required to pass in the full address (base address + offset).
  *          DEMO SYSTEM & VALIDATION USE ONLY, NOT INDENDED TO BE PORTABLE.
  *****************************************************************************/
-INLINE uint32_t HalReadSysReg( HalHandle_t HalHandle, uint32_t reg_address );
+INLINE uint32_t HalReadSysReg( HalHandle_t HalHandle, ulong_t reg_address );
 
 
 /*****************************************************************************/
@@ -355,7 +355,7 @@ INLINE uint32_t HalReadSysReg( HalHandle_t HalHandle, uint32_t reg_address );
  * @note    It is required to pass in the full address (base address + offset).
  *          DEMO SYSTEM & VALIDATION USE ONLY, NOT INDENDED TO BE PORTABLE.
  *****************************************************************************/
-INLINE void HalWriteSysReg( HalHandle_t HalHandle, uint32_t reg_address, uint32_t value );
+INLINE void HalWriteSysReg( HalHandle_t HalHandle, ulong_t reg_address, uint32_t value );
 
 
 /*****************************************************************************/
@@ -384,7 +384,7 @@ uint32_t HalAllocMemory( HalHandle_t HalHandle, uint32_t byte_size );
  *
  * @note    Chunks of n*4K byte with addresses aligned to 4K are used internally.
  *****************************************************************************/
-RESULT HalFreeMemory( HalHandle_t HalHandle, uint32_t mem_address );
+RESULT HalFreeMemory( HalHandle_t HalHandle, ulong_t mem_address );
 
 
 /*****************************************************************************/
@@ -399,7 +399,7 @@ RESULT HalFreeMemory( HalHandle_t HalHandle, uint32_t mem_address );
  * @note    Certain implementation dependent limitations regarding alignment of
  *          both addresses and transfer size exist!
  *****************************************************************************/
-RESULT HalReadMemory( HalHandle_t HalHandle, uint32_t mem_address, uint8_t* p_read_buffer, uint32_t byte_size );
+RESULT HalReadMemory( HalHandle_t HalHandle, ulong_t mem_address, uint8_t* p_read_buffer, uint32_t byte_size );
 
 
 /*****************************************************************************/
@@ -415,7 +415,7 @@ RESULT HalReadMemory( HalHandle_t HalHandle, uint32_t mem_address, uint8_t* p_re
  * @note    Certain implementation dependent limitations regarding alignment of
  *          both addresses and transfer size exist!
  *****************************************************************************/
-RESULT HalWriteMemory( HalHandle_t HalHandle, uint32_t mem_address, uint8_t* p_write_buffer, uint32_t byte_size );
+RESULT HalWriteMemory( HalHandle_t HalHandle, ulong_t mem_address, uint8_t* p_write_buffer, uint32_t byte_size );
 
 
 /*****************************************************************************/
@@ -442,7 +442,7 @@ typedef enum HalMapMemType_s
  * @note    Certain implementation dependent limitations regarding alignment of
  *          both addresses and transfer size exist!
  *****************************************************************************/
-RESULT HalMapMemory( HalHandle_t HalHandle, uint32_t mem_address, uint32_t byte_size, HalMapMemType_t mapping_type, void **pp_mapped_buf );
+RESULT HalMapMemory( HalHandle_t HalHandle, ulong_t mem_address, uint32_t byte_size, HalMapMemType_t mapping_type, void **pp_mapped_buf );
 
 
 /*****************************************************************************/
@@ -636,7 +636,7 @@ RESULT HalFlashTrigCtrl
 
 RESULT HalGetMemoryMapFd( 
     HalHandle_t HalHandle, 
-    uint32_t mem_address, 
+    ulong_t  mem_address, 
     int *fd 
 );
 
@@ -665,8 +665,8 @@ RESULT HalGetMemoryMapFd(
 struct HalIrqCtx_s                                  // note: a forward declaration was given in this file before!
 {
     HalHandle_t         HalHandle;                  /**< hal handle this context belongs to; must be set by callee prior connection of irq! */
-    uint32_t            misRegAddress;              /**< address of the masked interrupt status register (MIS); must be set by callee prior connection of irq! */
-    uint32_t            icrRegAddress;              /**< address of the interrupt clear register (ICR); must be set by callee prior connection of irq! */
+    ulong_t             misRegAddress;              /**< address of the masked interrupt status register (MIS); must be set by callee prior connection of irq! */
+    ulong_t             icrRegAddress;              /**< address of the interrupt clear register (ICR); must be set by callee prior connection of irq! */
 
     osInterrupt         OsIrq;                      /**< os layer abstraction for the interrupt */
     uint32_t            misValue;                   /**< value of the MIS-Register */

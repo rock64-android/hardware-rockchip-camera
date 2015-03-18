@@ -174,7 +174,7 @@ extern sc_testcase* testcase_ptr;
 /******************************************************************************
  * HalReadReg()
  *****************************************************************************/
-INLINE uint32_t HalReadReg( HalHandle_t handle, uint32_t reg_address )
+INLINE uint32_t HalReadReg( HalHandle_t handle, ulong_t reg_address )
 {
     (void) handle;
     DCT_ASSERT(handle != NULL);
@@ -187,7 +187,7 @@ INLINE uint32_t HalReadReg( HalHandle_t handle, uint32_t reg_address )
 /******************************************************************************
  * HalWriteSysReg()
  *****************************************************************************/
-INLINE void HalWriteSysReg( HalHandle_t handle, uint32_t reg_address, uint32_t value )
+INLINE void HalWriteSysReg( HalHandle_t handle, ulong_t reg_address, uint32_t value )
 {
     (void) handle;
     DCT_ASSERT(handle != NULL);
@@ -200,7 +200,7 @@ INLINE void HalWriteSysReg( HalHandle_t handle, uint32_t reg_address, uint32_t v
 /******************************************************************************
  * HalReadSysReg()
  *****************************************************************************/
-INLINE uint32_t HalReadSysReg( HalHandle_t handle, uint32_t reg_address )
+INLINE uint32_t HalReadSysReg( HalHandle_t handle, ulong_t reg_address )
 {
     (void) handle;
     DCT_ASSERT(handle != NULL);
@@ -213,7 +213,7 @@ INLINE uint32_t HalReadSysReg( HalHandle_t handle, uint32_t reg_address )
 /******************************************************************************
  * HalWriteReg()
  *****************************************************************************/
-INLINE void HalWriteReg( HalHandle_t handle, uint32_t reg_address, uint32_t value )
+INLINE void HalWriteReg( HalHandle_t handle, ulong_t reg_address, uint32_t value )
 {
     (void) handle;
     DCT_ASSERT(handle != NULL);
@@ -226,7 +226,7 @@ INLINE void HalWriteReg( HalHandle_t handle, uint32_t reg_address, uint32_t valu
 /******************************************************************************
  * HalReadMaskedReg()
  *****************************************************************************/
-INLINE uint32_t HalReadMaskedReg( HalHandle_t handle, uint32_t reg_address, uint32_t reg_mask, uint32_t shift_mask )
+INLINE uint32_t HalReadMaskedReg( HalHandle_t handle, ulong_t reg_address, uint32_t reg_mask, uint32_t shift_mask )
 {
     (void) handle;
     DCT_ASSERT(handle != NULL);
@@ -239,7 +239,7 @@ INLINE uint32_t HalReadMaskedReg( HalHandle_t handle, uint32_t reg_address, uint
 /******************************************************************************
  * HalWriteMaskedReg()
  *****************************************************************************/
-INLINE void HalWriteMaskedReg( HalHandle_t handle, uint32_t reg_address, uint32_t reg_mask, uint32_t shift_mask, uint32_t value )
+INLINE void HalWriteMaskedReg( HalHandle_t handle, ulong_t reg_address, uint32_t reg_mask, uint32_t shift_mask, uint32_t value )
 {
     (void) handle;
     DCT_ASSERT(handle != NULL);
@@ -469,20 +469,20 @@ RESULT HalSetClock( HalHandle_t HalHandle, uint32_t dev_mask, uint32_t frequency
 /******************************************************************************
  * HalAllocMemory()
  *****************************************************************************/
-uint32_t HalAllocMemory( HalHandle_t HalHandle, uint32_t byte_size )
+ulong_t HalAllocMemory( HalHandle_t HalHandle, uint32_t byte_size )
 {
   //    if (HalHandle == NULL)
   //    {
   //        return RET_NULL_POINTER;
   //    }
-  return  ((uint32_t) malloc(byte_size));
+  return  ((ulong_t) malloc(byte_size));
 }
 
 
 /******************************************************************************
  * HalFreeMemory()
  *****************************************************************************/
-RESULT HalFreeMemory( HalHandle_t HalHandle, uint32_t mem_address )
+RESULT HalFreeMemory( HalHandle_t HalHandle, ulong_t mem_address )
 {
   //    if (HalHandle == NULL)
   //    {
@@ -499,7 +499,7 @@ RESULT HalFreeMemory( HalHandle_t HalHandle, uint32_t mem_address )
 /******************************************************************************
  * HalReadMemory()
  *****************************************************************************/
-RESULT HalReadMemory( HalHandle_t HalHandle, uint32_t mem_address, uint8_t* p_read_buffer, uint32_t byte_size )
+RESULT HalReadMemory( HalHandle_t HalHandle, ulong_t mem_address, uint8_t* p_read_buffer, uint32_t byte_size )
 {
     if (HalHandle == NULL)
     {
@@ -516,7 +516,7 @@ RESULT HalReadMemory( HalHandle_t HalHandle, uint32_t mem_address, uint8_t* p_re
 /******************************************************************************
  * HalWriteMemory()
  *****************************************************************************/
-RESULT HalWriteMemory( HalHandle_t HalHandle, uint32_t mem_address, uint8_t* p_write_buffer, uint32_t byte_size )
+RESULT HalWriteMemory( HalHandle_t HalHandle, ulong_t mem_address, uint8_t* p_write_buffer, uint32_t byte_size )
 {
   //if (HalHandle == NULL)
   //    {
@@ -539,7 +539,7 @@ RESULT HalReadI2CMem
     HalHandle_t HalHandle,
     uint8_t     bus_num,
     uint16_t    slave_addr,
-    uint32_t    reg_address,
+    ulong_t    reg_address,
     uint8_t     reg_addr_size,
     uint8_t     *p_read_buffer,
     uint32_t    byte_size
@@ -558,7 +558,7 @@ RESULT HalWriteI2CMem
     HalHandle_t HalHandle,
     uint8_t     bus_num,
     uint16_t    slave_addr,
-    uint32_t    reg_address,
+    ulong_t    reg_address,
     uint8_t     reg_addr_size,
     uint8_t     *p_write_buffer,
     uint32_t    byte_size

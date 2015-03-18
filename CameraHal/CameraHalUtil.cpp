@@ -19,6 +19,9 @@
 #elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
 #include <hardware/hal_public.h>
 #include <hardware/rga.h>
+#elif defined(TARGET_RK3368)
+#include <hardware/img_gralloc_public.h>
+#include <hardware/rga.h>
 #elif defined(TARGET_RK29)
 #include "../libgralloc/gralloc_priv.h"
 #endif
@@ -46,7 +49,7 @@
 
 
 extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, 
-						 char *srcbuf, char *dstbuf,int srcphy,int dstphy,int src_size,
+						 char *srcbuf, char *dstbuf,long srcphy,long dstphy,int src_size,
 						 int src_w, int src_h, int srcbuf_w,
 						 int dst_w, int dst_h, int dstbuf_w,
 						 bool mirror);
@@ -335,8 +338,8 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
 	psY = (unsigned char*)(src)+top_offset*src_width+left_offset;
 	psUV = (unsigned char*)(src) +src_width*src_height+top_offset*src_width/2+left_offset;
 	
-	Rga_Request.src.yrgb_addr =  (int)psY;
-    Rga_Request.src.uv_addr  = (int)psUV;
+	Rga_Request.src.yrgb_addr =  (long)psY;
+    Rga_Request.src.uv_addr  = (long)psUV;
     Rga_Request.src.v_addr   =  Rga_Request.src.uv_addr;
     Rga_Request.src.vir_w =  src_width;
     Rga_Request.src.vir_h = src_height;
@@ -346,7 +349,7 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
     Rga_Request.src.x_offset = 0;
     Rga_Request.src.y_offset = 0;
 
-    Rga_Request.dst.yrgb_addr = (int)dst;
+    Rga_Request.dst.yrgb_addr = (long)dst;
     Rga_Request.dst.uv_addr  = 0;
     Rga_Request.dst.v_addr   = 0;
     Rga_Request.dst.vir_w = dstbuf_width;
@@ -481,7 +484,7 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 			psY = (unsigned char*)(src);
 			
 			Rga_Request.src.yrgb_addr =  0;
-		    Rga_Request.src.uv_addr  = (int)psY;
+		    Rga_Request.src.uv_addr  = (long)psY;
 		    Rga_Request.src.v_addr   =  0;
 		    Rga_Request.src.vir_w =  src_width;
 		    Rga_Request.src.vir_h = src_height;
@@ -492,7 +495,7 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 		    Rga_Request.src.y_offset = src_top_offset;
 
 		    Rga_Request.dst.yrgb_addr = 0;
-		    Rga_Request.dst.uv_addr  = (int)dst;
+		    Rga_Request.dst.uv_addr  = (long)dst;
 		    Rga_Request.dst.v_addr   = 0;
 		    Rga_Request.dst.vir_w = dst_width;
 		    Rga_Request.dst.vir_h = dst_height;
@@ -813,9 +816,9 @@ do_ipp_err:
 }
 
 extern "C" int rk_camera_yuv_scale_crop_ipp(int v4l2_fmt_src, int v4l2_fmt_dst, 
-			int srcbuf, int dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool rotation_180)
+			long srcbuf, long dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool rotation_180)
 {
-	int vipdata_base;
+	long vipdata_base;
 
 	struct rk29_ipp_req ipp_req;
 	int src_y_offset,src_uv_offset,dst_y_offset,dst_uv_offset,src_y_size,dst_y_size;
@@ -1029,7 +1032,7 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
  }
 
  extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const char *android_fmt_dst, 
-							 char *srcbuf, char *dstbuf,int srcphy,int dstphy,int src_size,
+							 char *srcbuf, char *dstbuf,long srcphy,long dstphy,int src_size,
 							 int src_w, int src_h, int srcbuf_w,
 							 int dst_w, int dst_h, int dstbuf_w,
 							 bool mirror)
@@ -1173,13 +1176,13 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
 										 (v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF,
 										 v4l2_fmt_dst & 0xFF, (v4l2_fmt_dst >> 8) & 0xFF,
 										 (v4l2_fmt_dst >> 16) & 0xFF, (v4l2_fmt_dst >> 24) & 0xFF,
-										 (int)srcbuf, srcphy, (int)dstbuf,dstphy,src_w,src_h,dst_w,dst_h);
+										 (long)srcbuf, srcphy, (long)dstbuf,dstphy,src_w,src_h,dst_w,dst_h);
 						 } else if (android_fmt_dst) {
 							 LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->%s@(0x%x,0x%x) %dx%d->%dx%d "
 								  "scale isn't support",
 										 v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
 										 (v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF
-										 , (int)srcbuf, srcphy,android_fmt_dst, (int)dstbuf,dstphy,
+										 , (long)srcbuf, srcphy,android_fmt_dst, (long)dstbuf,dstphy,
 										  src_w,src_h,dst_w,dst_h);
 						 }
 					 }			
@@ -1351,13 +1354,13 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
 									 (v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF,
 									 v4l2_fmt_dst & 0xFF, (v4l2_fmt_dst >> 8) & 0xFF,
 									 (v4l2_fmt_dst >> 16) & 0xFF, (v4l2_fmt_dst >> 24) & 0xFF,
-									 (int)srcbuf, srcphy, (int)dstbuf,dstphy,src_w,src_h,dst_w,dst_h);
+									 (long)srcbuf, srcphy, (long)dstbuf,dstphy,src_w,src_h,dst_w,dst_h);
 					 } else if (android_fmt_dst) {
 						 LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->%s@(0x%x,0x%x) %dx%d->%dx%d "
 							  "scale isn't support",
 									 v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
 									 (v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF
-									 , (int)srcbuf, srcphy,android_fmt_dst, (int)dstbuf,dstphy,
+									 , (long)srcbuf, srcphy,android_fmt_dst, (long)dstbuf,dstphy,
 									  src_w,src_h,dst_w,dst_h);
 					 }
 				 }
@@ -1391,13 +1394,13 @@ extern "C" int YUV420_rotate(const unsigned char* srcy, int src_stride,  unsigne
 									 (v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF,
 									 v4l2_fmt_dst & 0xFF, (v4l2_fmt_dst >> 8) & 0xFF,
 									 (v4l2_fmt_dst >> 16) & 0xFF, (v4l2_fmt_dst >> 24) & 0xFF,
-									 (int)srcbuf, srcphy, (int)dstbuf,dstphy,src_w,src_h,dst_w,dst_h);
+									 (long)srcbuf, srcphy, (long)dstbuf,dstphy,src_w,src_h,dst_w,dst_h);
 					 } else if (android_fmt_dst) {
 						 LOGD("cameraFormatConvert '%c%c%c%c'@(0x%x,0x%x)->%s@(0x%x,0x%x) %dx%d->%dx%d "
 							  "scale isn't support",
 									 v4l2_fmt_src & 0xFF, (v4l2_fmt_src >> 8) & 0xFF,
 									 (v4l2_fmt_src >> 16) & 0xFF, (v4l2_fmt_src >> 24) & 0xFF
-									 , (int)srcbuf, srcphy,android_fmt_dst, (int)dstbuf,dstphy,
+									 , (long)srcbuf, srcphy,android_fmt_dst, (long)dstbuf,dstphy,
 									  src_w,src_h,dst_w,dst_h);
 					 }
 				 }

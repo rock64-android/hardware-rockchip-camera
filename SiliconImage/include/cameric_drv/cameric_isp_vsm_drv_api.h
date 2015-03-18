@@ -82,7 +82,7 @@ typedef struct CamerIcIspVsmDisplVec_s
  *****************************************************************************/
 typedef struct CamerIcIspVsmEventData_s
 {
-    uint32_t                frameId;  /**< ID of the frame to which the measured
+    ulong_t                frameId;  /**< ID of the frame to which the measured
                                            displacement vector belongs. */
     CamerIcIspVsmDisplVec_t DisplVec; /**< latest calculated displacement vector */
 } CamerIcIspVsmEventData_t;

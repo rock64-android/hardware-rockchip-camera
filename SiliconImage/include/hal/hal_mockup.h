@@ -118,7 +118,7 @@ extern bool_t	gIsNewIon;
 /******************************************************************************
  * HalReadMaskedReg()
  *****************************************************************************/
-INLINE uint32_t HalReadMaskedReg( HalHandle_t HalHandle, uint32_t reg_address, uint32_t reg_mask, uint32_t shift_mask )
+INLINE uint32_t HalReadMaskedReg( HalHandle_t HalHandle, ulong_t reg_address, uint32_t reg_mask, uint32_t shift_mask )
 {
     (void) HalHandle;
     DCT_ASSERT(HalHandle != NULL);
@@ -131,7 +131,7 @@ INLINE uint32_t HalReadMaskedReg( HalHandle_t HalHandle, uint32_t reg_address, u
 /******************************************************************************
  * HalWriteMaskedReg()
  *****************************************************************************/
-INLINE void HalWriteMaskedReg( HalHandle_t HalHandle, uint32_t reg_address, uint32_t reg_mask, uint32_t shift_mask, uint32_t value )
+INLINE void HalWriteMaskedReg( HalHandle_t HalHandle, ulong_t reg_address, uint32_t reg_mask, uint32_t shift_mask, uint32_t value )
 {
     (void) HalHandle;
     DCT_ASSERT(HalHandle != NULL);
@@ -145,7 +145,7 @@ INLINE void HalWriteMaskedReg( HalHandle_t HalHandle, uint32_t reg_address, uint
 /******************************************************************************
  * HalReadSysReg()
  *****************************************************************************/
-INLINE uint32_t HalReadSysReg( HalHandle_t HalHandle, uint32_t reg_address )
+INLINE uint32_t HalReadSysReg( HalHandle_t HalHandle, ulong_t reg_address )
 {
     (void) HalHandle;
     DCT_ASSERT(HalHandle != NULL);
@@ -157,7 +157,7 @@ INLINE uint32_t HalReadSysReg( HalHandle_t HalHandle, uint32_t reg_address )
 /******************************************************************************
  * HalWriteSysReg()
  *****************************************************************************/
-INLINE void HalWriteSysReg( HalHandle_t HalHandle, uint32_t reg_address, uint32_t value )
+INLINE void HalWriteSysReg( HalHandle_t HalHandle, ulong_t reg_address, uint32_t value )
 {
     (void) HalHandle;
     DCT_ASSERT(HalHandle != NULL);

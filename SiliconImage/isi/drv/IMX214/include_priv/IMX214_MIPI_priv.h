@@ -49,10 +49,12 @@ extern "C"
 *
 *v0.1.0 : create file -- oyyf
 *v0.2.0 : correct 4lane demo mistakes, but 4lane still not work
+*v0.3.0 : change imx214 2lane register setting from external to internal 
+*v0.4.0 : fix exposure and awb capture in setting -- oyyf
 *
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 2, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 4, 0x00) 
 
 
 #define Sensor_CHIP_ID_HIGH_BYTE            (0x0000) // r - 

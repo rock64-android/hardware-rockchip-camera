@@ -879,6 +879,21 @@ void CamEngineSetBufferSize
     uint32_t bufSize
 );
 
+RESULT CamEngineSetColorConversionRange
+(
+    CamEngineHandle_t           hCamEngine,
+    CamerIcColorConversionRange_t YConvRange,
+    CamerIcColorConversionRange_t CrConvRange
+);
+
+RESULT CamEngineSetColorConversionCoefficients
+(
+     CamEngineHandle_t           hCamEngine,
+    CamerIc3x3Matrix_t    *pCConvCoefficients
+);
+
+
+
 #ifdef __cplusplus
 }
 #endif
