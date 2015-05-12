@@ -497,9 +497,11 @@ namespace android {
      1) merge from mid, include following versions:
 			*v1.0x32.5:
 					Modify and unified rga interface.
+*V1.0x36.1:
+     1) TARGET_RK3288 had change to TARGET_RK32,fix it.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 1)
 
 
 /*  */
@@ -573,11 +575,11 @@ namespace android {
 #define VIDEO_ENC_BUFFER            0x151800 
 #define FILTER_FRAME_NUMBER (3)
 
-#if (defined(TARGET_RK3288) || defined(TARGET_RK3368))
+#if (defined(TARGET_RK32) || defined(TARGET_RK3368))
 #define RGA_VER (2.0)
 #define RGA_ACTIVE_W (4096)
 #define RGA_VIRTUAL_W (4096)
-#define RGA_ACTIVE_H (2048)
+#define RGA_ACTIVE_H (4096)
 #define RGA_VIRTUAL_H (4096)
 
 #else
