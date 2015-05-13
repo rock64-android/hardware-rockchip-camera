@@ -188,6 +188,7 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	int ret,picture_size_bit;
 	struct v4l2_format fmt;    
 	bool dot,isRestartPreview = false;
+	char prop_value[PROPERTY_VALUE_MAX];
 	
 	LOG_FUNCTION_NAME	 
 	memset(str_picturesize,0x00,sizeof(str_picturesize));
@@ -262,8 +263,17 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "1280x720,800x600,720x480,640x480,352x288,320x240,176x144");
 		else
 	        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, "800x600,720x480,640x480,352x288,320x240,176x144");
-		strcat( str_picturesize,"1600x1200,1024x768,720x480,640x480,352x288,320x240,176x144");			
-		params.setPictureSize(1600,1200);
+		
+		property_get("sys.cts_gts.status",prop_value, "false");
+		if(!strcmp(prop_value,"true")){
+			strcat( str_picturesize,"1600x1200,1024x768,720x480,640x480,352x288,320x240,176x144");			
+			params.setPictureSize(1600,1200);
+		}
+		else
+		{
+			strcat( str_picturesize,"1024x768,720x480,640x480,352x288,320x240,176x144");			
+			params.setPictureSize(1024,768);
+		}
 	} else if (mCamDriverFrmWidthMax <= 2048) {
         params.setPreviewSize(800, 600);
 		if(strstr(parameterString.string(),"1280x720"))

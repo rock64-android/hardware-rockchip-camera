@@ -499,9 +499,11 @@ namespace android {
 					Modify and unified rga interface.
 *V1.0x36.1:
      1) TARGET_RK3288 had change to TARGET_RK32,fix it.
+*v1.0x36.2:
+     1) fix something to pass cts, especially testYuvAndJpeg item by huangjinghua.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 2)
 
 
 /*  */

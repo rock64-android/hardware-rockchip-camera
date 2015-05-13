@@ -247,7 +247,14 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
         LOGE("%s(%d): set mANativeWindow run in synchronous mode failed",__FUNCTION__,__LINE__);
     }
     */
-    mANativeWindow->get_min_undequeued_buffer_count(mANativeWindow, &undequeued);
+    err = mANativeWindow->get_min_undequeued_buffer_count(mANativeWindow, &undequeued);
+    if (err != 0) {
+
+        if ( -ENODEV == err ) {
+            mANativeWindow = NULL;
+        }
+        goto fail;
+    }
     mDispBufUndqueueMin = undequeued;
     ///Set the number of buffers needed for camera preview
     
@@ -258,7 +265,7 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
     if (err != 0) {
         LOGE("%s(%d): %s(err:%d) native_window_set_buffer_count(%d+%d) failed", __FUNCTION__,__LINE__,strerror(-err), -err,numBufs,undequeued);
 
-        if ( ENODEV == err ) {
+        if ( -ENODEV == err ) {
             LOGE("%s(%d): Preview surface abandoned !",__FUNCTION__,__LINE__);
             mANativeWindow = NULL;
         }
@@ -364,7 +371,7 @@ int DisplayAdapter::cameraDisplayBufferDestory(void)
 
     LOG_FUNCTION_NAME
     //Give the buffers back to display here -  sort of free it
-    if (mANativeWindow) {
+    if (mANativeWindow && mDisplayBufInfo) {
         for(i = 0; i < mDislayBufNum; i++) {
             // unlock buffer before giving it up
             if (mDisplayBufInfo[i].priv_hnd && (mDisplayBufInfo[i].buf_state == 0) ) {
@@ -581,9 +588,11 @@ display_receive_cmd:
                 {
                     LOGD("%s(%d): receive CMD_DISPLAY_START", __FUNCTION__,__LINE__);
                     cameraDisplayBufferDestory(); 
-                    cameraDisplayBufferCreate(mDisplayWidth, mDisplayHeight,mDisplayFormat,CONFIG_CAMERA_DISPLAY_BUF_CNT);
+                    err = cameraDisplayBufferCreate(mDisplayWidth, mDisplayHeight,mDisplayFormat,CONFIG_CAMERA_DISPLAY_BUF_CNT);
+					if (err == 0){	
                     mDisplayRuning = STA_DISPLAY_RUNNING;
 					setDisplayState(CMD_DISPLAY_START_DONE);
+					}
                     if(msg.arg1)
                         ((Semaphore*)msg.arg1)->Signal();
                     break;
