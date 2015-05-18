@@ -53,3 +53,14 @@ LOCAL_MODULE_SUFFIX := .so
 include $(BUILD_PREBUILT)
 endif
 
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3188)
+include $(CLEAR_VARS)
+LOCAL_MODULE := libisp_silicomimageisp_api
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+LOCAL_MODULE_STEM := $(LOCAL_MODULE)
+LOCAL_SRC_FILES := $(LOCAL_MODULE)_32bit.so
+LOCAL_MODULE_SUFFIX := .so
+include $(BUILD_PREBUILT)
+endif
+

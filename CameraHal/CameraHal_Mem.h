@@ -9,7 +9,7 @@
 *   configuration macro 
 *      
 */
-#if  (defined(TARGET_RK32) || defined(TARGET_RK312x))
+#if  (defined(TARGET_RK32) || defined(TARGET_RK312x) || defined(TARGET_RK3188))
 #define CONFIG_CAMERA_MEM               CAMERA_MEM_IONDMA
 #elif	defined(TARGET_RK30)
 #define CONFIG_CAMERA_MEM               CAMERA_MEM_ION

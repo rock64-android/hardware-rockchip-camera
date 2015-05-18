@@ -501,9 +501,11 @@ namespace android {
      1) TARGET_RK3288 had change to TARGET_RK32,fix it.
 *v1.0x36.2:
      1) fix something to pass cts, especially testYuvAndJpeg item by huangjinghua.
+*v1.0x36.3:
+	 1) support rk3188 platform.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 2)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 3)
 
 
 /*  */
