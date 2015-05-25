@@ -503,6 +503,8 @@ namespace android {
      1) fix something to pass cts, especially testYuvAndJpeg item by huangjinghua.
 *v1.0x36.3:
 	 1) support rk3188 platform.
+*v1.0x36.4:
+         1) fix Luma value to 45 in auto flash mode.
 */
 
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 3)

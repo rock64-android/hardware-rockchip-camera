@@ -2304,7 +2304,7 @@ bool CameraIspAdapter::isLowIllumin()
     float gain,mingain,maxgain,step,time,mintime,maxtime,sharpness,meanluma = 0 ;
     bool enabled;
     CamEngineAfSearchAlgorithm_t searchAlgorithm;
-    const float lumaThreshold = 30;
+    const float lumaThreshold = 45;
     const float sharpThreshold = 300;
     
     m_camDevice->getGain(gain);
@@ -2321,7 +2321,7 @@ bool CameraIspAdapter::isLowIllumin()
     LOG1("    meanluma   %f     threshold: %f",meanluma,lumaThreshold);
     LOG1("    sharpness: %f     threshold: %f",sharpness,sharpThreshold);
 
-    if((meanluma < lumaThreshold ) && (sharpness < sharpThreshold))
+    if( meanluma < lumaThreshold ) //&& (sharpness < sharpThreshold))
         return true;
     else
         return false;
