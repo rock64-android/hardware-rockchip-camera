@@ -33,7 +33,7 @@ unsigned int MemManagerBase::getBufferAddr(enum buffer_type_enum buf_type, unsig
    
     switch(buf_type)
     {
-		case PREVIEWBUFFER:
+		case PREVIEWBUFFER:			
 			buf_info = mPreviewBufferInfo;
 			break;
 		case RAWBUFFER:
@@ -542,11 +542,16 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
     for(i = 0;i < numBufs;i++){
     	memset(tmpalloc,0,sizeof(struct camera_ionbuf_s));
 
-        if((!mIommuEnabled) || (!ionbuf->mIsForceIommuBuf))
-            ret = ion_alloc(client_fd, ionbuf->mPerBuffersize, PAGE_SIZE, ION_HEAP(ION_CMA_HEAP_ID), 0, &handle);
-        else
+        if((!mIommuEnabled) || (!ionbuf->mIsForceIommuBuf)){
+			#if defined(TARGET_RK3188)
+            ret = ion_alloc(client_fd, ionbuf->mPerBuffersize, PAGE_SIZE, ION_HEAP(ION_CARVEOUT_HEAP_ID), 0, &handle);
+			#else
+			ret = ion_alloc(client_fd, ionbuf->mPerBuffersize, PAGE_SIZE, ION_HEAP(ION_CMA_HEAP_ID), 0, &handle);
+			#endif
+		}else{
             ret = ion_alloc(client_fd, ionbuf->mPerBuffersize, PAGE_SIZE, ION_HEAP(ION_VMALLOC_HEAP_ID), 0, &handle);
-        if (ret) {
+        	}
+		if (ret) {
             LOGE("ion alloc failed\n");
             break;
         }
@@ -568,11 +573,14 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
             break;
         }
         
-        if((!mIommuEnabled) || (!ionbuf->mIsForceIommuBuf))
-            ion_get_phys(client_fd,handle,&(tmpalloc->phy_addr));
-        else
-            tmpalloc->phy_addr = map_fd;
-        tmpalloc->size = ionbuf->mPerBuffersize;
+        if((!mIommuEnabled) || (!ionbuf->mIsForceIommuBuf)){
+            ret=ion_get_phys(client_fd,handle,&(tmpalloc->phy_addr));
+			if(ret<0)
+				LOGE("ion_get_phys failed\n");
+        }else{
+				tmpalloc->phy_addr = map_fd;
+        }
+		tmpalloc->size = ionbuf->mPerBuffersize;
         tmpalloc->vir_addr = vir_addr;
 		temp_handle = handle;
         tmpalloc->ion_hdl = (void*)temp_handle;

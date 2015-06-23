@@ -482,9 +482,14 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 			dst_top_offset  = h*dst_cropH;
 
 			psY = (unsigned char*)(src);
-			
+
+		#if defined(TARGET_RK3188)
+			Rga_Request.src.yrgb_addr =  (long)psY;
+		    Rga_Request.src.uv_addr  = (long)psY+ src_cropW * src_cropH;;
+		#else
 			Rga_Request.src.yrgb_addr =  0;
-		    Rga_Request.src.uv_addr  = (long)psY;
+            Rga_Request.src.uv_addr  = (long)psY;
+		#endif
 		    Rga_Request.src.v_addr   =  0;
 		    Rga_Request.src.vir_w =  src_width;
 		    Rga_Request.src.vir_h = src_height;
@@ -493,9 +498,13 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 		    Rga_Request.src.act_h = src_cropH;
 		    Rga_Request.src.x_offset = src_left_offset;
 		    Rga_Request.src.y_offset = src_top_offset;
-
-		    Rga_Request.dst.yrgb_addr = 0;
-		    Rga_Request.dst.uv_addr  = (long)dst;
+		#if defined(TARGET_RK3188)
+		    Rga_Request.dst.yrgb_addr = (long)dst;
+		    Rga_Request.dst.uv_addr  = (long)dst + dst_width*dst_height;
+		#else
+			Rga_Request.dst.yrgb_addr = 0;
+            Rga_Request.dst.uv_addr  = (long)dst;
+		#endif
 		    Rga_Request.dst.v_addr   = 0;
 		    Rga_Request.dst.vir_w = dst_width;
 		    Rga_Request.dst.vir_h = dst_height;

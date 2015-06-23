@@ -818,6 +818,7 @@ void CameraHal::commandThread()
    struct v4l2_control control;
    struct v4l2_queryctrl hdr;
     picture_info_s picinfo;
+	memset(&picinfo,0x0,sizeof(picture_info_s));
     int prevStatus = -1,drv_w,drv_h,picture_w,picture_h;
     int app_previw_w = 0,app_preview_h = 0;
     bool isRestartPreview = false;
@@ -1057,7 +1058,7 @@ get_command:
 					if(err != 0)
 						goto CMD_CONTINUOS_PICTURE_OUT;
                 }
-                //take picture
+                //take picture           
                 picinfo.num = pic_num;
                 fillPicturInfo(picinfo);
                 mEventNotifier->takePicture(picinfo);

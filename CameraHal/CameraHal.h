@@ -505,9 +505,11 @@ namespace android {
 	 1) support rk3188 platform.
 *v1.0x36.4:
          1) fix Luma value to 45 in auto flash mode.
+*v1.0x36.5:
+         1) support rk3188,android5.1.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 3)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 5)
 
 
 /*  */
