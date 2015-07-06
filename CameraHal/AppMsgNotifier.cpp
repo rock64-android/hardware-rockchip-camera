@@ -1135,8 +1135,11 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	if(JpegInInfo.thumbqLvl  >10) {
 		JpegInInfo.thumbqLvl = 9;
 	}
-
+#if defined(TARGET_RK3188)
+	if(0) {
+#else
 	if(thumbwidth !=0 && thumbheight !=0) {
+#endif
 		JpegInInfo.doThumbNail = 1; 		 //insert thumbnail at APP0 extension
 		JpegInInfo.thumbData = NULL;		 //if thumbData is NULL, do scale, the type above can not be 420_P or 422_UYVY
 		JpegInInfo.thumbDataLen = -1;
