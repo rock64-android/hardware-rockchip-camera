@@ -896,12 +896,18 @@ end:
 int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
 {
     int ret = 0;
-    //  usb camera may do something
-   	#if (IOMMU_ENABLED == 1)
+   	#if 0
+	#if (IOMMU_ENABLED == 1)
     long phy_addr = mPreviewBufProvider->getBufShareFd(frame->frame_index);
     #else
     long phy_addr = mPreviewBufProvider->getBufPhyAddr(frame->frame_index);
     #endif
+	#endif
+	if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
+		phy_addr = mPreviewBufProvider->getBufShareFd(frame->frame_index);
+	else
+		phy_addr = mPreviewBufProvider->getBufPhyAddr(frame->frame_index);
+
     if( frame->frame_fmt == V4L2_PIX_FMT_MJPEG){
     	   char *srcbuf = (char*)frame->vir_addr;
     	   if((srcbuf[0] == 0xff) && (srcbuf[1] == 0xd8) && (srcbuf[2] == 0xff)){
