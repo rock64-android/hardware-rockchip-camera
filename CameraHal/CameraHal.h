@@ -511,9 +511,11 @@ namespace android {
 		 1) fix rk3188 thumbnails
 *v1.0x36.7:
 		 1) Support the query of iommu_enabled for usb camera.
+*v1.0x36.8:
+		 1) bug exist in v1.0x36.7, fix it.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 7)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 8)
 
 
 /*  */

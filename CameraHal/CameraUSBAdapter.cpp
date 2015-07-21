@@ -896,6 +896,8 @@ end:
 int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
 {
     int ret = 0;
+	long phy_addr;
+
    	#if 0
 	#if (IOMMU_ENABLED == 1)
     long phy_addr = mPreviewBufProvider->getBufShareFd(frame->frame_index);
