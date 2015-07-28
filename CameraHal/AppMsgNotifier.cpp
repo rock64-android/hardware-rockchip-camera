@@ -917,7 +917,7 @@ int AppMsgNotifier::Jpegfillgpsinfo(RkGPSInfo *gpsInfo,picture_info_s &params)
 
 int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     int ret = 0;
-	int jpeg_w,jpeg_h,i,jpeg_buf_w,jpeg_buf_h;
+	int jpeg_w,jpeg_h,i;
 	unsigned int pictureSize;
 	int jpegSize;
 	int quality;
@@ -980,18 +980,14 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	
 	if(picfmt ==V4L2_PIX_FMT_RGB565){
 		encodetype = HWJPEGENC_RGB565;
-		pictureSize = jpeg_w * jpeg_h *2;
+		pictureSize = ((jpeg_w+15)&(~15)) * ((jpeg_h+15)&(~15)) *2;
 	}
 	else{
 		encodetype = JPEGENC_YUV420_SP;
-		jpeg_buf_w = jpeg_w;
-		jpeg_buf_h = jpeg_h;
-		if(jpeg_buf_w%16)
-			jpeg_buf_w += 8;
-		if(jpeg_buf_h%16)
-			jpeg_buf_h += 8;
-		pictureSize = jpeg_buf_w * jpeg_buf_h * 3/2;
+		pictureSize = ((jpeg_w+15)&(~15)) * ((jpeg_h+15)&(~15)) * 3/2;
 	}
+	jpeg_w = (jpeg_w+15)&(~15);	
+	jpeg_h = (jpeg_h+15)&(~15);	
 	if (pictureSize & 0xfff) {
 		pictureSize = (pictureSize & 0xfffff000) + 0x1000;
 	}

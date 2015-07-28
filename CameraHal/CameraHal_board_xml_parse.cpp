@@ -42,10 +42,10 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
     rk_sensor_info *pSensorInfo = &(pCamInfo->mHardInfo.mSensorInfo);
 	int result;    
     if (strcmp(name, "SensorName")==0) {
-        strncpy(pSensorInfo->mSensorName, atts[1], strlen(atts[1]));
+        strlcpy(pSensorInfo->mSensorName, atts[1], sizeof(pSensorInfo->mSensorName));
         ALOGD("%s(%d): SensorName(%s)\n", __FUNCTION__, __LINE__, pSensorInfo->mSensorName);
     } else if (strcmp(name, "SensorLens")==0) {
-        strncpy(pSensorInfo->mLensName, atts[1], strlen(atts[1]));
+        strlcpy(pSensorInfo->mLensName, atts[1], sizeof(pSensorInfo->mLensName));
         ALOGD("%s(%d): lensName(%s)\n", __FUNCTION__, __LINE__, pSensorInfo->mLensName);
     } else if (strcmp(name, "SensorDevID")==0) {
         ALOGD("%s(%d): SensorDevID(%s)\n", __FUNCTION__, __LINE__, atts[1]);
@@ -64,13 +64,13 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
         ALOGD("%s(%d): SensorHostDevID(%s)\n", __FUNCTION__, __LINE__, atts[1]);
         if(strcmp("CAMSYS_DEVID_MARVIN", atts[1])==0){
             pSensorInfo->mHostDevid= CAMSYS_DEVID_MARVIN;
-            strncpy(pSensorInfo->mCamsysDevPath, "/dev/camsys_marvin", sizeof(pSensorInfo->mCamsysDevPath));
+            strlcpy(pSensorInfo->mCamsysDevPath, "/dev/camsys_marvin", sizeof(pSensorInfo->mCamsysDevPath));
         }else if(strcmp("CAMSYS_DEVID_CIF_0", atts[1])==0){
             pSensorInfo->mHostDevid = CAMSYS_DEVID_CIF_0; 
-            strncpy(pSensorInfo->mCamsysDevPath, "/dev/camsys_cif0", sizeof(pSensorInfo->mCamsysDevPath));
+            strlcpy(pSensorInfo->mCamsysDevPath, "/dev/camsys_cif0", sizeof(pSensorInfo->mCamsysDevPath));
         }else if(strcmp("CAMSYS_DEVID_CIF_1", atts[1])==0){
             pSensorInfo->mHostDevid = CAMSYS_DEVID_CIF_1; 
-            strncpy(pSensorInfo->mCamsysDevPath, "/dev/camsys_cif1", sizeof(pSensorInfo->mCamsysDevPath));
+            strlcpy(pSensorInfo->mCamsysDevPath, "/dev/camsys_cif1", sizeof(pSensorInfo->mCamsysDevPath));
         }else {
             pSensorInfo->mHostDevid = 0;
             ALOGD("%s(%d): SensorDevID(%s) don't support\n", __FUNCTION__, __LINE__, atts[1]);
@@ -89,30 +89,30 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
         pSensorInfo->mMclkRate = atoi(atts[1]);
     } else if (strcmp(name,"SensorAvdd")==0){
         ALOGD("%s(%d): SensorAvdd(%s) min(%s) max(%s)\n", __FUNCTION__, __LINE__, atts[1], atts[3], atts[5]);
-        strncpy((char*)pSensorInfo->mAvdd.name, (atts[1]), strlen(atts[1]));
+        strlcpy((char*)pSensorInfo->mAvdd.name, (atts[1]), sizeof(pSensorInfo->mAvdd.name));
         pSensorInfo->mAvdd.min_uv = atoi(atts[3]);
         pSensorInfo->mAvdd.max_uv = atoi(atts[5]);
     } else if (strcmp(name,"SensorDovdd")==0){
         ALOGD("%s(%d): SensorDovdd(%s) min(%s) max(%s)\n", __FUNCTION__, __LINE__, atts[1], atts[3], atts[5]);
-        strncpy((char*)pSensorInfo->mDovdd.name, (atts[1]), strlen(atts[1]));
+        strlcpy((char*)pSensorInfo->mDovdd.name, (atts[1]), sizeof(pSensorInfo->mDovdd.name));
         pSensorInfo->mDovdd.min_uv = atoi(atts[3]);   
         pSensorInfo->mDovdd.max_uv = atoi(atts[5]);
     } else if (strcmp(name,"SensorDvdd")==0){
         ALOGD("%s(%d): SensorDvdd(%s) min(%s) max(%s)\n", __FUNCTION__, __LINE__, atts[1], atts[3], atts[5]);
-        strncpy((char*)pSensorInfo->mDvdd.name, (atts[1]), strlen(atts[1]));
+        strlcpy((char*)pSensorInfo->mDvdd.name, (atts[1]), sizeof(pSensorInfo->mDvdd.name));
         pSensorInfo->mDvdd.min_uv = atoi(atts[3]);  
         pSensorInfo->mDvdd.max_uv = atoi(atts[5]);
     } else if (strcmp(name,"SensorGpioPwdn")==0){
         ALOGD("%s(%d): SensorGpioPwdn(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
-        strncpy((char*)pSensorInfo->mSensorGpioPwdn.name, (atts[1]), strlen(atts[1]));
+        strlcpy((char*)pSensorInfo->mSensorGpioPwdn.name, (atts[1]), sizeof(pSensorInfo->mSensorGpioPwdn.name));
         pSensorInfo->mSensorGpioPwdn.active = atoi(atts[3]);
     } else if (strcmp(name,"SensorGpioRst")==0){
         ALOGD("%s(%d): SensorGpioRst(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
-        strncpy((char*)pSensorInfo->mSensorGpioReset.name, (atts[1]), strlen(atts[1]));
+        strlcpy((char*)pSensorInfo->mSensorGpioReset.name, (atts[1]), sizeof(pSensorInfo->mSensorGpioReset.name));
         pSensorInfo->mSensorGpioReset.active = atoi(atts[3]);
     } else if (strcmp(name,"SensorGpioPwen")==0){
         ALOGD("%s(%d): SensorGpioPwen(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
-        strncpy((char*)pSensorInfo->SensorGpioPwen.name, (atts[1]), strlen(atts[1]));
+        strlcpy((char*)pSensorInfo->SensorGpioPwen.name, (atts[1]), sizeof(pSensorInfo->SensorGpioPwen.name));
         pSensorInfo->SensorGpioPwen.active = atoi(atts[3]);
     }else if (strcmp(name,"SensorFacing")==0){
         ALOGD("%s(%d): SensorFacing(%s) \n", __FUNCTION__, __LINE__, atts[1]);
@@ -147,7 +147,7 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
         pSensorInfo->mOrientation = atoi(atts[1]);
     }else if(strcmp(name, "SensorDriver")==0){
         ALOGD("%s(%d): SensorDriver(%s) \n", __FUNCTION__, __LINE__, atts[1]);
-        strncpy(pSensorInfo->mSensorDriver, atts[1], sizeof(pSensorInfo->mSensorDriver));
+        strlcpy(pSensorInfo->mSensorDriver, atts[1], sizeof(pSensorInfo->mSensorDriver));
     }else if(strcmp(name, "SensorPhy")==0){
         camsys_fmt_t fmt;
         
@@ -232,7 +232,7 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
         }else{
            ALOGE("%s(%d): unknown phy mode(%s) \n" ,__FUNCTION__,__LINE__, atts[1]); 
         }
-        strncpy(pSensorInfo->mSensorDriver, atts[1], sizeof(pSensorInfo->mSensorDriver));
+        strlcpy(pSensorInfo->mSensorDriver, atts[1], sizeof(pSensorInfo->mSensorDriver));
     }
 	else if(strcmp(name, "SensorFovParemeter")==0){
 		sscanf(atts[1], "%f", &(pSensorInfo->fov_h));
@@ -253,10 +253,10 @@ void camera_board_profiles::ParserVCMInfo(const char *name, const char **atts, v
 
     if (strcmp(name, "VCMDrvName")==0) {
         ALOGD("%s(%d): VCMDrvName(%s)\n", __FUNCTION__, __LINE__, atts[1]);
-        strncpy(pVcmInfo->mVcmDrvName, atts[1], strlen(atts[1]));
+        strlcpy(pVcmInfo->mVcmDrvName, atts[1], sizeof(pVcmInfo->mVcmDrvName));
     } else if (strcmp(name, "VCMName")==0) {
         ALOGD("%s(%d): VCMName(%s)\n", __FUNCTION__, __LINE__, atts[1]);
-        strncpy(pVcmInfo->mVcmName, atts[1], strlen(atts[1]));
+        strlcpy(pVcmInfo->mVcmName, atts[1], sizeof(pVcmInfo->mVcmName));
     } else if (strcmp(name, "VCMI2cBusNum")==0) {
         ALOGD("%s(%d): VCMI2cBusNum(%s)\n", __FUNCTION__, __LINE__, atts[1]);
         pVcmInfo->mVcmI2cBusNum = atoi(atts[1]);
@@ -268,15 +268,15 @@ void camera_board_profiles::ParserVCMInfo(const char *name, const char **atts, v
         pVcmInfo->mVcmI2cRate = atoi(atts[1]);
     } else if (strcmp(name,"VCMGpioPwdn")==0){
         ALOGD("%s(%d): VCMGpioPwdn(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
-        strncpy((char*)pVcmInfo->mVcmGpioPwdn.name, (atts[1]), strlen(atts[1]));
+        strlcpy((char*)pVcmInfo->mVcmGpioPwdn.name, (atts[1]), sizeof(pVcmInfo->mVcmGpioPwdn.name));
         pVcmInfo->mVcmGpioPwdn.active = atoi(atts[3]);
     } else if (strcmp(name,"VCMGpioPower")==0){
         ALOGD("%s(%d): VCMGpioPower(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
-        strncpy((char*)pVcmInfo->mVcmGpioPower.name, (atts[1]), strlen(atts[1]));
+        strlcpy((char*)pVcmInfo->mVcmGpioPower.name, (atts[1]), sizeof(pVcmInfo->mVcmGpioPower.name));
         pVcmInfo->mVcmGpioPower.active = atoi(atts[3]);
     } else if (strcmp(name,"VCMVdd")==0){
         ALOGD("%s(%d): VCMVdd(%s) min(%s) max(%s)\n", __FUNCTION__, __LINE__, atts[1], atts[3], atts[5]);
-        strncpy((char*)pVcmInfo->mVcmVdd.name, (atts[1]), strlen(atts[1]));       
+        strlcpy((char*)pVcmInfo->mVcmVdd.name, (atts[1]), sizeof(pVcmInfo->mVcmVdd.name));       
         pVcmInfo->mVcmVdd.min_uv= atoi(atts[3]);
         pVcmInfo->mVcmVdd.max_uv= atoi(atts[5]);
     } else if (strcmp(name,"VCMCurrent") == 0) {        
@@ -306,7 +306,7 @@ void camera_board_profiles::ParserFlashInfo(const char *name, const char **atts,
 
     if (strcmp(name, "FlashName")==0) {
         ALOGD("%s(%d): FlashName(%s)\n", __FUNCTION__, __LINE__, atts[1]);
-        strncpy(pFlashInfo->mFlashName, atts[1], strlen(atts[1]));        
+        strlcpy(pFlashInfo->mFlashName, atts[1], sizeof(pFlashInfo->mFlashName));        
     } else if (strcmp(name, "FlashI2cBusNum")==0) {
         ALOGD("%s(%d): FlashI2cBusNum(%s)\n", __FUNCTION__, __LINE__, atts[1]);
         pFlashInfo->mFlashI2cBusNum = atoi(atts[1]);
@@ -318,11 +318,11 @@ void camera_board_profiles::ParserFlashInfo(const char *name, const char **atts,
         pFlashInfo->mFlashI2cRate = atoi(atts[1]);
     } else if (strcmp(name,"FlashTrigger")==0){
         ALOGD("%s(%d): FlashTrigger(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
-        strncpy((char*)pFlashInfo->mFlashTrigger.name, (atts[1]), strlen(atts[1]));
+        strlcpy((char*)pFlashInfo->mFlashTrigger.name, (atts[1]), sizeof(pFlashInfo->mFlashTrigger.name));
         pFlashInfo->mFlashTrigger.active = atoi(atts[3]);
     } else if (strcmp(name,"FlashEn")==0){
         ALOGD("%s(%d): FlashEn(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
-        strncpy((char*)pFlashInfo->mFlashEn.name, (atts[1]), strlen(atts[1]));
+        strlcpy((char*)pFlashInfo->mFlashEn.name, (atts[1]), sizeof(pFlashInfo->mFlashEn.name));
         pFlashInfo->mFlashEn.active = atoi(atts[3]);     
     }else if(strcmp(name,"FlashModeType")==0){
     	pFlashInfo->mFlashMode = atoi(atts[1]);
@@ -601,7 +601,7 @@ void camera_board_profiles::ParserDVConfig(const char *name, const char **atts, 
 	    ALOGD("%s(%d):  DV_QCIF(%s) resolution(%sx%s) fps(%s) support(%s)\n", __FUNCTION__, __LINE__, atts[1],atts[3], atts[5],atts[7],atts[9]);
 	    pDVResolution = new rk_DV_info();
         if(pDVResolution){
-            strncpy(pDVResolution->mName, atts[1], strlen(atts[1]));
+            strlcpy(pDVResolution->mName, atts[1], sizeof(pDVResolution->mName));
     	    pDVResolution->mWidth = atoi(atts[3]);
     	    pDVResolution->mHeight = atoi(atts[5]);
     	    pDVResolution->mFps = atoi(atts[7]);
@@ -613,7 +613,7 @@ void camera_board_profiles::ParserDVConfig(const char *name, const char **atts, 
         ALOGD("%s(%d):  DV_QVGA(%s) resolution(%sx%s) fps(%s) support(%s)\n", __FUNCTION__, __LINE__, atts[1],atts[3], atts[5],atts[7],atts[9]);
 	    pDVResolution = new rk_DV_info();
         if(pDVResolution){
-            strncpy(pDVResolution->mName, atts[1], strlen(atts[1]));
+            strlcpy(pDVResolution->mName, atts[1], sizeof(pDVResolution->mName));
     	    pDVResolution->mWidth = atoi(atts[3]);
     	    pDVResolution->mHeight = atoi(atts[5]);
     	    pDVResolution->mFps = atoi(atts[7]);
@@ -625,7 +625,7 @@ void camera_board_profiles::ParserDVConfig(const char *name, const char **atts, 
         ALOGD("%s(%d):  DV_CIF(%s) resolution(%sx%s) fps(%s) support(%s)\n", __FUNCTION__, __LINE__, atts[1],atts[3], atts[5],atts[7],atts[9]);
 	    pDVResolution = new rk_DV_info();
         if(pDVResolution){
-            strncpy(pDVResolution->mName, atts[1], strlen(atts[1]));
+            strlcpy(pDVResolution->mName, atts[1], sizeof(pDVResolution->mName));
     	    pDVResolution->mWidth = atoi(atts[3]);
     	    pDVResolution->mHeight = atoi(atts[5]);
     	    pDVResolution->mFps = atoi(atts[7]);
@@ -637,7 +637,7 @@ void camera_board_profiles::ParserDVConfig(const char *name, const char **atts, 
         ALOGD("%s(%d):  DV_VGA(%s) resolution(%sx%s) fps(%s) support(%s)\n", __FUNCTION__, __LINE__, atts[1],atts[3], atts[5],atts[7],atts[9]);
 	    pDVResolution = new rk_DV_info();
         if(pDVResolution){
-            strncpy(pDVResolution->mName, atts[1], strlen(atts[1]));
+            strlcpy(pDVResolution->mName, atts[1], sizeof(pDVResolution->mName));
     	    pDVResolution->mWidth = atoi(atts[3]);
     	    pDVResolution->mHeight = atoi(atts[5]);
     	    pDVResolution->mFps = atoi(atts[7]);
@@ -649,7 +649,7 @@ void camera_board_profiles::ParserDVConfig(const char *name, const char **atts, 
         ALOGD("%s(%d):  DV_480P(%s) resolution(%sx%s) fps(%s) support(%s)\n", __FUNCTION__, __LINE__, atts[1],atts[3], atts[5],atts[7],atts[9]);
 	    pDVResolution = new rk_DV_info();
         if(pDVResolution){
-            strncpy(pDVResolution->mName, atts[1], strlen(atts[1]));
+            strlcpy(pDVResolution->mName, atts[1], sizeof(pDVResolution->mName));
     	    pDVResolution->mWidth = atoi(atts[3]);
     	    pDVResolution->mHeight = atoi(atts[5]);
     	    pDVResolution->mFps = atoi(atts[7]);
@@ -661,7 +661,7 @@ void camera_board_profiles::ParserDVConfig(const char *name, const char **atts, 
         ALOGD("%s(%d):  DV_SVGA(%s) resolution(%sx%s) fps(%s) support(%s)\n", __FUNCTION__, __LINE__, atts[1],atts[3], atts[5],atts[7],atts[9]);
 	    pDVResolution = new rk_DV_info();
         if(pDVResolution){
-            strncpy(pDVResolution->mName, atts[1], strlen(atts[1]));
+            strlcpy(pDVResolution->mName, atts[1], sizeof(pDVResolution->mName));
     	    pDVResolution->mWidth = atoi(atts[3]);
     	    pDVResolution->mHeight = atoi(atts[5]);
     	    pDVResolution->mFps = atoi(atts[7]);
@@ -673,7 +673,7 @@ void camera_board_profiles::ParserDVConfig(const char *name, const char **atts, 
         ALOGD("%s(%d):  DV_720P(%s) resolution(%sx%s) fps(%s) support(%s)\n", __FUNCTION__, __LINE__, atts[1],atts[3], atts[5],atts[7],atts[9]);
 	    pDVResolution = new rk_DV_info();
         if(pDVResolution){
-            strncpy(pDVResolution->mName, atts[1], strlen(atts[1]));
+            strlcpy(pDVResolution->mName, atts[1], sizeof(pDVResolution->mName));
     	    pDVResolution->mWidth = atoi(atts[3]);
     	    pDVResolution->mHeight = atoi(atts[5]);
     	    pDVResolution->mFps = atoi(atts[7]);
@@ -685,7 +685,7 @@ void camera_board_profiles::ParserDVConfig(const char *name, const char **atts, 
         ALOGD("%s(%d):  DV_1080P(%s) resolution(%sx%s) fps(%s) support(%s)\n", __FUNCTION__, __LINE__, atts[1],atts[3], atts[5],atts[7],atts[9]);
 	    pDVResolution = new rk_DV_info();
         if(pDVResolution){
-            strncpy(pDVResolution->mName, atts[1], strlen(atts[1]));
+            strlcpy(pDVResolution->mName, atts[1], sizeof(pDVResolution->mName));
     	    pDVResolution->mWidth = atoi(atts[3]);
     	    pDVResolution->mHeight = atoi(atts[5]);
     	    pDVResolution->mFps = atoi(atts[7]);
@@ -1146,8 +1146,8 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     extdev.dovdd.min_uv = pSensorInfo->mDovdd.min_uv;
     extdev.dovdd.max_uv = pSensorInfo->mDovdd.max_uv;
     strlcpy((char*)extdev.dvdd.name, (char*)pSensorInfo->mDvdd.name,sizeof(extdev.dvdd.name));
-    extdev.dovdd.min_uv = pSensorInfo->mDvdd.min_uv;
-    extdev.dovdd.max_uv = pSensorInfo->mDvdd.max_uv;
+    extdev.dvdd.min_uv = pSensorInfo->mDvdd.min_uv;
+    extdev.dvdd.max_uv = pSensorInfo->mDvdd.max_uv;
     strlcpy((char*)extdev.afvdd.name, (char*)pVcmInfo->mVcmVdd.name,sizeof(extdev.afvdd.name));
     extdev.afvdd.min_uv = pVcmInfo->mVcmVdd.min_uv;
     extdev.afvdd.max_uv = pVcmInfo->mVcmVdd.max_uv;
@@ -2048,9 +2048,9 @@ int camera_board_profiles::ProduceNewXml(camera_board_profiles* profiles)
     if((int)nCamNum>=1 && fileexit == -1){
         LOG1("enter produce new xml\n");
         //new xml file name
-        strncpy(default_file, RK_DEFAULT_MEDIA_PROFILES_XML_PATH, sizeof(default_file));
-        strncpy(dst_file, RK_DST_MEDIA_PROFILES_XML_PATH, sizeof(dst_file));
-        strncpy(temp_dst_file, RK_TMP_MEDIA_PROFILES_XML_PATH, sizeof(temp_dst_file));
+        strlcpy(default_file, RK_DEFAULT_MEDIA_PROFILES_XML_PATH, sizeof(default_file));
+        strlcpy(dst_file, RK_DST_MEDIA_PROFILES_XML_PATH, sizeof(dst_file));
+        strlcpy(temp_dst_file, RK_TMP_MEDIA_PROFILES_XML_PATH, sizeof(temp_dst_file));
 		
         for(int i=0; i<(int)nCamNum; i++){		
             CheckSensorSupportDV(profiles->mDevideConnectVector[i]);
@@ -2087,7 +2087,7 @@ int camera_board_profiles::LoadSensor(camera_board_profiles* profiles)
 
     LOG_FUNCTION_NAME
         
-    strncpy(dst_file, RK_DST_MEDIA_PROFILES_XML_PATH, sizeof(dst_file));
+    strlcpy(dst_file, RK_DST_MEDIA_PROFILES_XML_PATH, sizeof(dst_file));
     ALOGD("read cam name from xml(%s)\n",dst_file );
 
     FILE* fp = fopen(dst_file, "r");

@@ -171,7 +171,7 @@ status_t CameraAdapter::startPreview(int preview_w,int preview_h,int w, int h, i
     
     //create buffer
 	LOG_FUNCTION_NAME
-    unsigned int frame_size = 0,i,buf_w,buf_h;
+    unsigned int frame_size = 0,i;
     struct bufferinfo_s previewbuf;
     int ret = 0,buf_count = CONFIG_CAMERA_PREVIEW_BUF_CNT;
     LOGD("%s%d:preview_w = %d,preview_h = %d,drv_w = %d,drv_h = %d",__FUNCTION__,__LINE__,preview_w,preview_h,w,h);
@@ -181,13 +181,9 @@ status_t CameraAdapter::startPreview(int preview_w,int preview_h,int w, int h, i
     {
         case V4L2_PIX_FMT_NV12:
         case V4L2_PIX_FMT_YUV420:
-			buf_w = w;
-			buf_h = h;
-			if(buf_w%16)
-				buf_w += 8;
-			if(buf_h%16)
-				buf_h += 8;
-            frame_size = buf_w*buf_h*3/2;
+			w = (w+15)&(~15);
+			h = (h+15)&(~15);
+			frame_size = w*h*3/2;
             break;
         case V4L2_PIX_FMT_NV16:
         case V4L2_PIX_FMT_YUV422P:

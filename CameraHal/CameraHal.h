@@ -504,18 +504,30 @@ namespace android {
 *v1.0x36.3:
 	 1) support rk3188 platform.
 *v1.0x36.4:
-         1) fix Luma value to 45 in auto flash mode.
+     1) fix Luma value to 45 in auto flash mode.
 *v1.0x36.5:
-         1) support rk3188,android5.1.
+     1) support rk3188,android5.1.
 *v1.0x36.6:
-		 1) fix rk3188 thumbnails
+     1) fix rk3188 thumbnails
 *v1.0x36.7:
-		 1) Support the query of iommu_enabled for usb camera.
+     1) Support the query of iommu_enabled for usb camera.
 *v1.0x36.8:
-		 1) bug exist in v1.0x36.7, fix it.
+     1) bug exist in v1.0x36.7, fix it.
+*v1.0x36.9:
+     1) merge with 3368 camera branch,include follow versions:
+		*v1.0x30.1:
+			1) CameraHal_board_xml_parse.cpp: strncpy is not safer,replace it with strlncpy.
+		*v1.0x30.2:
+			1) risk exist in v1.0x30.1, fix it.
+		*v1.0x30.3:
+			1) enable neon for isp soc camera.
+		*v1.0x30.4:
+    		1) ensure that input size and offset is 2 alignment for rga.
+		*v1.0x30.5:
+    		1) src x_offset must be 32 alignment, rga's bug.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 8)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 9)
 
 
 /*  */

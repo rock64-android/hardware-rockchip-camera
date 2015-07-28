@@ -494,10 +494,15 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 		    Rga_Request.src.vir_w =  src_width;
 		    Rga_Request.src.vir_h = src_height;
 		    Rga_Request.src.format = RK_FORMAT_YCbCr_420_SP;
-		    Rga_Request.src.act_w = src_cropW;
-		    Rga_Request.src.act_h = src_cropH;
-		    Rga_Request.src.x_offset = src_left_offset;
-		    Rga_Request.src.y_offset = src_top_offset;
+		    Rga_Request.src.act_w = src_cropW & (~0x01);
+		    Rga_Request.src.act_h = src_cropH & (~0x01);
+#if defined(TARGET_RK3368)
+		    Rga_Request.src.x_offset = src_left_offset & (~0x1f);//32 alignment,rga's bug
+		    Rga_Request.src.y_offset = src_top_offset & (~0xf);
+#else
+		    Rga_Request.src.x_offset = src_left_offset & (~0x01);
+		    Rga_Request.src.y_offset = src_top_offset & (~0x01);
+#endif
 		#if defined(TARGET_RK3188)
 		    Rga_Request.dst.yrgb_addr = (long)dst;
 		    Rga_Request.dst.uv_addr  = (long)dst + dst_width*dst_height;

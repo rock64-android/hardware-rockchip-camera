@@ -1,3 +1,5 @@
+ifneq ($(strip $(TARGET_BOARD_PLATFORM_PRODUCT)), box)
+
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk3368)
 
 PRODUCT_PACKAGES += \
@@ -43,6 +45,10 @@ PRODUCT_COPY_FILES += \
     hardware/rockchip/camera/SiliconImage/isi/drv/OV2680/calib/OV2680.xml:system/etc/OV2680.xml \
     hardware/rockchip/camera/Config/cam_board_rk3288.xml:system/etc/cam_board.xml
 	
+endif
+else
+PRODUCT_PACKAGES += \
+    libisp_silicomimageisp_api
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk312x)

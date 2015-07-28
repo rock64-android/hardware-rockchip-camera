@@ -69,6 +69,28 @@ extern "C" void arm_isp_yuyv_12bit_to_8bit (int src_w, int src_h,char *srcbuf,ui
     if(ycSequence == ISI_YCSEQ_CBYCRY){
 		int n = y_size;
         if(!is0bitto0bit){
+			#if defined(TARGET_RK3368)
+            asm volatile (
+                    "   pld [%[src], %[src_stride], lsl #2]                         \n\t"
+                    "   cmp %[n], #8                                                \n\t"
+                    "   blt 5f                                                      \n\t"
+                    "0: @ 16 pixel swap                                             \n\t"
+                    "   vld2.32 {q0,q1} , [%[src]]!  @ q0 = dat0 q1 = dat1          \n\t"
+                    "   vshr.u32 q0,q0,#8            @ now q0  -> y1 00 v0 00       \n\t"
+                    "   vshr.u32 q1,q1,#8            @ now q1  -> y0 00 u0 00       \n\t"
+                    "   vswp q0, q1                  @ now q0 = q1 q1 = q0          \n\t"
+                    "   vuzp.u8 q0,q4                @ now d0 = y0u0.. d8  = 00..   \n\t"
+                    "   vuzp.u8 q1,q5                @ now d2 = y1v0.. d10 = 00..   \n\t"
+                    "   vst2.16 {d0,d2},[%[dst_buf]]!@ now q0  -> dst               \n\t"
+                    "   sub %[n], %[n], #8                                          \n\t"
+                    "   cmp %[n], #8                                                \n\t"
+                    "   bge 0b                                                      \n\t"
+                    "5: @ end                                                       \n\t"
+                    : [dst_buf] "+r" (dst_buf),[src] "+r" (srcint), [n] "+r" (n) ,[tmp] "+r" (is0bitto0bit)
+                    : [src_stride] "r" (y_size)
+                    : "cc", "memory", "q0", "q1", "q2","q3"
+                    );
+			#else
     		asm volatile (
     				"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
     				"   cmp %[n], #8                                                \n\t"
@@ -89,6 +111,7 @@ extern "C" void arm_isp_yuyv_12bit_to_8bit (int src_w, int src_h,char *srcbuf,ui
     				: [src_stride] "r" (y_size)
     				: "cc", "memory", "q0", "q1", "q2","q3"
     				);
+			#endif
         }else{
     		asm volatile (
     				"   pld [%[src], %[src_stride], lsl #2]                         \n\t"
