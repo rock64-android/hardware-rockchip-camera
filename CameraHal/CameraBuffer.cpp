@@ -52,11 +52,6 @@ int BufferProvider::createBuffer(int count,int perbufsize,buffer_type_enum bufty
 
     switch(buftype){
         case PREVIEWBUFFER:
-/*            
-#if (defined(TARGET_RK312x) || defined(TARGET_RK32))
-            //should use cma buffer
-            buf.mIsForceIommuBuf = false;
-#endif*/
 			if(is_cif_driver){//should use cma buffer
 				buf.mIsForceIommuBuf = false;
 			}
@@ -66,6 +61,9 @@ int BufferProvider::createBuffer(int count,int perbufsize,buffer_type_enum bufty
             }
             break;
         case RAWBUFFER:
+			#if defined(TARGET_RK3188)//should use cma buffer
+				buf.mIsForceIommuBuf = false;
+			#endif
             if(mCamBuffer->createRawBuffer(&buf) !=0) {
                 LOGE("%s(%d): raw buffer create failed",__FUNCTION__,__LINE__);		
                 ret = -1;	

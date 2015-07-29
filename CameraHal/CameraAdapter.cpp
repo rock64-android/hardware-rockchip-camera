@@ -181,9 +181,7 @@ status_t CameraAdapter::startPreview(int preview_w,int preview_h,int w, int h, i
     {
         case V4L2_PIX_FMT_NV12:
         case V4L2_PIX_FMT_YUV420:
-			w = (w+15)&(~15);
-			h = (h+15)&(~15);
-			frame_size = w*h*3/2;
+			frame_size = ((w+15)&(~15))*((h+15)&(~15))*3/2;
             break;
         case V4L2_PIX_FMT_NV16:
         case V4L2_PIX_FMT_YUV422P:

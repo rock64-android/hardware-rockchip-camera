@@ -415,8 +415,13 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 			return arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, (isDstNV21 ? V4L2_PIX_FMT_NV21:V4L2_PIX_FMT_NV12), 
 				src, (char *)dst,src_width, src_height,dst_width, dst_height,true,zoom_val);
 		}
-	#endif
-
+	#endif 
+	/*rk3188 do not support yuv to yuv scale by rga*/
+	#if defined(TARGET_RK3188)
+		return arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, (isDstNV21 ? V4L2_PIX_FMT_NV21:V4L2_PIX_FMT_NV12), 
+			src, (char *)dst,src_width, src_height,dst_width, dst_height,true,zoom_val);
+	#endif 
+	
 	if((dst_width > RGA_VIRTUAL_W) || (dst_height > RGA_VIRTUAL_H)){
 		LOGE("%s(%d):(dst_width > RGA_VIRTUAL_W) || (dst_height > RGA_VIRTUAL_H), switch to arm ",__FUNCTION__,__LINE__);
 		
@@ -485,7 +490,7 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 
 		#if defined(TARGET_RK3188)
 			Rga_Request.src.yrgb_addr =  (long)psY;
-		    Rga_Request.src.uv_addr  = (long)psY+ src_cropW * src_cropH;;
+		    Rga_Request.src.uv_addr  = (long)psY + src_width * src_height;
 		#else
 			Rga_Request.src.yrgb_addr =  0;
             Rga_Request.src.uv_addr  = (long)psY;
@@ -845,7 +850,7 @@ extern "C" int rk_camera_yuv_scale_crop_ipp(int v4l2_fmt_src, int v4l2_fmt_dst,
 
 
     if((ippFd = open("/dev/rk29-ipp",O_RDWR)) < 0) {
-    	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
+    	LOGE("%s(%d):open /dev/rk29-ipp device failed!!",__FUNCTION__,__LINE__);
         ret = -1;
     	goto do_ipp_err;
 	}

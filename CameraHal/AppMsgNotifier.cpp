@@ -1046,9 +1046,13 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
             (char*)rawbuf_vir,frame->frame_width, frame->frame_height,
              jpeg_w, jpeg_h,false,frame->zoom_value);
         #else
-        rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
-                            (char*)(frame->vir_addr), (short int *)rawbuf_vir, 
-                            jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false);
+			#if defined(TARGET_RK3188)
+				rk_camera_zoom_ipp(V4L2_PIX_FMT_NV12, (int)(frame->phy_addr), frame->frame_width, frame->frame_height,(int)rawbuf_phy,frame->zoom_value);
+			#else
+				rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+		                            (char*)(frame->vir_addr), (short int *)rawbuf_vir, 
+		                            jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false);
+			#endif
         #endif
         input_phy_addr = output_phy_addr;
         input_vir_addr = output_vir_addr;

@@ -323,9 +323,11 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
             /* ddl@rock-chips.com: gralloc buffer is not continuous in phy */
             mDisplayBufInfo[i].phy_addr = 0x00;
         }        
-    #else
-        mDisplayBufInfo[i].phy_addr = 0x00;        
-    #endif
+    #elif defined(TARGET_RK3188)
+		mDisplayBufInfo[i].phy_addr = mDisplayBufInfo[i].priv_hnd->phy_addr;
+	#else
+		mDisplayBufInfo[i].phy_addr = 0x00;  
+	#endif
         
     }
     // lock the initial queueable buffers
@@ -729,9 +731,13 @@ display_receive_cmd:
 							mDisplayWidth, mDisplayHeight,
 							false,frame->zoom_value);
                     #else
-                        rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+						#if defined(TARGET_RK3188)
+							rk_camera_zoom_ipp(V4L2_PIX_FMT_NV12, (int)(frame->phy_addr), frame->frame_width, frame->frame_height,(int)(mDisplayBufInfo[queue_display_index].phy_addr),frame->zoom_value);
+						#else
+                        	rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
                                             (char*)(frame->vir_addr), (short int *)(mDisplayBufInfo[queue_display_index].vir_addr), 
                                             mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false);
+						#endif
 
                     #endif
                     }

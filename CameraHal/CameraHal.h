@@ -121,6 +121,7 @@ extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 							bool mirror);
 							
 extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21);
+extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int src_h,int dstbuf,int zoom_value);
 
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 
@@ -525,9 +526,11 @@ namespace android {
     		1) ensure that input size and offset is 2 alignment for rga.
 		*v1.0x30.5:
     		1) src x_offset must be 32 alignment, rga's bug.
+*v1.0x36.a:
+	1) support rk3188 scale by ipp
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 9)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, a)
 
 
 /*  */
