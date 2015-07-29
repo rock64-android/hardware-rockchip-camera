@@ -530,7 +530,7 @@ namespace android {
 	1) support rk3188 scale by ipp
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, a)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 0xa)
 
 
 /*  */
