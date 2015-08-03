@@ -530,9 +530,13 @@ namespace android {
 	1) support rk3188 scale by ipp.
 *v1.0x36.b:
 	1) fix some bugs.
+*v1.0x36.c:
+	1) fix bugs in v1.0x36.b.
+	2) bug in rga_nv12_scale_crop func, fix it.
+	3) add some setting for usb camera.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 0xb)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 0xc)
 
 
 /*  */

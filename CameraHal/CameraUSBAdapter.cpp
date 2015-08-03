@@ -606,13 +606,31 @@ int CameraUSBAdapter::setParameters(const CameraParameters &params_set,bool &isR
     }
 
     //set zoom
+    if (params.getInt(CameraParameters::KEY_ZOOM) > params.getInt(CameraParameters::KEY_MAX_ZOOM)) {
+        LOGE("Zomm(%d) is larger than MaxZoom(%d)",params.getInt(CameraParameters::KEY_ZOOM),params.getInt(CameraParameters::KEY_MAX_ZOOM));
+        return BAD_VALUE;
+    }
 
     params.getPreviewFpsRange(&fps_min,&fps_max);
     if ((fps_min < 0) || (fps_max < 0) || (fps_max < fps_min)) {
         LOGE("%s(%d): FpsRange(%s) is invalidate",__FUNCTION__,__LINE__,params.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
         return BAD_VALUE;
     }
-    
+	
+	//set af
+	if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES),params.get(CameraParameters::KEY_FOCUS_MODE))){
+		LOGD("suppport focus modes:%s, expect:%s",mParameters.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES),
+			params.get(CameraParameters::KEY_FOCUS_MODE));
+	}else {
+            LOGE("%s isn't supported for this camera, support focus: %s",
+                params.get(CameraParameters::KEY_FOCUS_MODE),
+                mParameters.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES));
+            if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES),CameraParameters::FOCUS_MODE_AUTO))
+                mParameters.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_AUTO);
+            else 
+                mParameters.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_FIXED);
+            return BAD_VALUE;
+    }
 
     //adapter needn't know preview formats ? just to tell AppMsgNotifier ?
     if (strstr(mParameters.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),params.getPreviewFormat())) {
