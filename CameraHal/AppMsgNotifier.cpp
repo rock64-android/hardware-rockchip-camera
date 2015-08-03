@@ -986,8 +986,8 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 		encodetype = JPEGENC_YUV420_SP;
 		pictureSize = ((jpeg_w+15)&(~15)) * ((jpeg_h+15)&(~15)) * 3/2;
 	}
-	jpeg_w = (jpeg_w+15)&(~15);	
-	jpeg_h = (jpeg_h+15)&(~15);	
+//	jpeg_w = (jpeg_w+15)&(~15);	
+//	jpeg_h = (jpeg_h+15)&(~15);	
 	if (pictureSize & 0xfff) {
 		pictureSize = (pictureSize & 0xfffff000) + 0x1000;
 	}

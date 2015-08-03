@@ -527,10 +527,12 @@ namespace android {
 		*v1.0x30.5:
     		1) src x_offset must be 32 alignment, rga's bug.
 *v1.0x36.a:
-	1) support rk3188 scale by ipp
+	1) support rk3188 scale by ipp.
+*v1.0x36.b:
+	1) fix some bugs.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 0xa)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 0xb)
 
 
 /*  */
