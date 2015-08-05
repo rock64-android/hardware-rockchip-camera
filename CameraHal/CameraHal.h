@@ -534,9 +534,11 @@ namespace android {
 	1) fix bugs in v1.0x36.b.
 	2) bug in rga_nv12_scale_crop func, fix it.
 	3) add some setting for usb camera.
+*v1.0x36.d:
+	1) fix risk in v1.0x36.c.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 0xc)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 0xd)
 
 
 /*  */
@@ -1675,7 +1677,7 @@ private:
 	enum CommandStatus{
 		CMD_PREVIEW_START_PREPARE 			= 0x01,
 		CMD_PREVIEW_START_DONE				= 0x02,	
-		CMD_PREVIEW_START_MASK				= 0x11,		
+		CMD_PREVIEW_START_MASK				= 0x03,
 		
 		CMD_PREVIEW_STOP_PREPARE			= 0x04,
 		CMD_PREVIEW_STOP_DONE				= 0x08,

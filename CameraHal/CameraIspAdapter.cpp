@@ -231,25 +231,25 @@ void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int previ
     if(mISPOutputFmt == ISP_OUT_YUV422_INTERLEAVED){
         m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
                                 CAMERIC_MI_DATAMODE_YUV422,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)true);
-		bufSize = (max_w*max_h*2+15) & (~0xf);
+		bufSize = ((max_w+15)&(~0xf))*((max_h+15)&(~0xf))*2;
 		bufNum = CONFIG_CAMERA_ISP_BUF_REQ_CNT;
         LOGD("isp out put format is YUV422 interleaved.");
     }else if(mISPOutputFmt == ISP_OUT_YUV422_SEMI){
         m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
                                  CAMERIC_MI_DATAMODE_YUV422,CAMERIC_MI_DATASTORAGE_SEMIPLANAR,(bool_t)true);
-		bufSize = (max_w*max_h*2+15) & (~0xf);
+		bufSize = ((max_w+15)&(~0xf))*((max_h+15)&(~0xf))*2;
 		bufNum = CONFIG_CAMERA_ISP_BUF_REQ_CNT;
         LOGD("isp out put format is YUV422 semi.");
     }else if(mISPOutputFmt == ISP_OUT_YUV420SP){
         m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
                                  CAMERIC_MI_DATAMODE_YUV420,CAMERIC_MI_DATASTORAGE_SEMIPLANAR,(bool_t)true);
-		bufSize = (max_w*max_h*3/2+15) & (~0xf);
+		bufSize = ((max_w+15)&(~0xf))*((max_h+15)&(~0xf))*3/2 ;
 		bufNum = CONFIG_CAMERA_ISP_BUF_REQ_CNT;		
         LOGD("isp out put format is YUV420SP.");
     }else if(mISPOutputFmt == ISP_OUT_RAW12){
         m_camDevice->previewSetup_ex( dcWin, preview_w, preview_h,
                                 CAMERIC_MI_DATAMODE_RAW12,CAMERIC_MI_DATASTORAGE_INTERLEAVED,(bool_t)false);
-		bufSize = (max_w*max_h*2+15) & (~0xf);
+		bufSize = ((max_w+15)&(~0xf))*((max_h+15)&(~0xf))*2;
 		bufNum = CONFIG_CAMERA_ISP_BUF_REQ_CNT;
         LOGD("isp out put format is RAW12.");
     }else{
