@@ -536,6 +536,10 @@ namespace android {
 	3) add some setting for usb camera.
 *v1.0x36.d:
 	1) fix risk in v1.0x36.c.
+*v1.0x36.e:
+	1) fix bug in v1.0x36.7:dynamic query iommu status for usb camera.
+	2) macro IOMMU is invalide, remove it.
+	3) avoid the access of mDisplayBufInfo when it is NULL.
 */
 
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 0xd)
@@ -626,12 +630,6 @@ namespace android {
 #define RGA_ACTIVE_H (2048)
 #define RGA_VIRTUAL_H (2048)
 
-#endif
-
-#if (defined(TARGET_RK312x)) /*dalon.zhang@rock-chips.com: V1.0x29.7*/
-#define IOMMU_ENABLED   (1)
-#else
-#define IOMMU_ENABLED   (0)
 #endif
 
 #define JPEG_BUFFER_DYNAMIC		(1)

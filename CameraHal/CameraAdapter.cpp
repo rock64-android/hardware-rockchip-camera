@@ -658,14 +658,10 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
     mPreviewFrameInfos[cfilledbuffer1.index].frame_width = mCamDrvWidth;
     mPreviewFrameInfos[cfilledbuffer1.index].frame_index = cfilledbuffer1.index;
     if(mCamDriverV4l2MemType == V4L2_MEMORY_OVERLAY){
-		/*#if ((defined(TARGET_RK312x) && (IOMMU_ENABLED == 1)))
+		if(cif_driver_iommu){
 			mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = mPreviewBufProvider->getBufShareFd(cfilledbuffer1.index);
-		#else*/
-			if(cif_driver_iommu && (IOMMU_ENABLED == 1)){
-				mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = mPreviewBufProvider->getBufShareFd(cfilledbuffer1.index);
-			}else
-        		mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = mPreviewBufProvider->getBufPhyAddr(cfilledbuffer1.index);
-    	//#endif
+		}else
+        	mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = mPreviewBufProvider->getBufPhyAddr(cfilledbuffer1.index);
 	}else
         mPreviewFrameInfos[cfilledbuffer1.index].phy_addr = 0;
     mPreviewFrameInfos[cfilledbuffer1.index].vir_addr = (unsigned long)mCamDriverV4l2Buffer[cfilledbuffer1.index];

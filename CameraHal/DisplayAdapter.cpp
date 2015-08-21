@@ -354,7 +354,7 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
     return err; 
  fail:
         for (i = 0; i<total; i++) {
-            if (mDisplayBufInfo[i].buffer_hnd) {
+            if (mDisplayBufInfo && mDisplayBufInfo[i].buffer_hnd) {
                 err = mANativeWindow->cancel_buffer(mANativeWindow, (buffer_handle_t*)mDisplayBufInfo[i].buffer_hnd);
                 if (err != 0) {
                   LOGE("%s(%d): cancelBuffer failed w/ error 0x%08x",__FUNCTION__,__LINE__, err);                  

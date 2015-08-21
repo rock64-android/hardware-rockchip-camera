@@ -88,11 +88,6 @@ CameraHal::CameraHal(int cameraId)
         mCamMemManager = new IonMemManager();
         LOG1("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
 	#elif(CONFIG_CAMERA_MEM == CAMERA_MEM_IONDMA)
-        if((strcmp(gCamInfos[cameraId].driver,"uvcvideo") == 0) //uvc camera
-            //|| (gCamInfos[cameraId].pcam_total_info->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_end)// soc cif
-            ) {
-            gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled = (IOMMU_ENABLED == 1)? true:false;
-        }
 		mCamMemManager = new IonDmaMemManager(gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled);
         LOG1("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
     #elif(CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)
