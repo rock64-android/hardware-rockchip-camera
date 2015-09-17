@@ -95,10 +95,12 @@ int DisplayAdapter::startDisplay(int width, int height)
     Semaphore sem;
     LOG_FUNCTION_NAME
     mDisplayLock.lock();
-    if (mDisplayRuning == STA_DISPLAY_RUNNING) {
-        LOGD("%s(%d): display thread is already run",__FUNCTION__,__LINE__);
-        goto cameraDisplayThreadStart_end;
-    }
+    #if 0
+        if (mDisplayRuning == STA_DISPLAY_RUNNING) {
+            LOGD("%s(%d): display thread is already run",__FUNCTION__,__LINE__);
+            goto cameraDisplayThreadStart_end;
+        }
+    #endif
     mDisplayWidth = width;
     mDisplayHeight = height;
     setDisplayState(CMD_DISPLAY_START_PREPARE);

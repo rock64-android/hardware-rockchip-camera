@@ -71,6 +71,8 @@ AppMsgNotifier::AppMsgNotifier(CameraAdapter *camAdp)
     mEncProcessThread->run("CamHalAppEncThread",ANDROID_PRIORITY_NORMAL);
     mFaceDetThread = new CameraAppFaceDetThread(this);
     mFaceDetThread->run("CamHalAppFaceThread",ANDROID_PRIORITY_NORMAL);
+    mCallbackThread = new CameraAppCallbackThread(this);
+    mCallbackThread->run("CamHalCallbckThread",ANDROID_PRIORITY_NORMAL);    
     LOG_FUNCTION_NAME_EXIT
 }
 AppMsgNotifier::~AppMsgNotifier()
@@ -113,6 +115,17 @@ AppMsgNotifier::~AppMsgNotifier()
         mFaceDetThread->requestExitAndWait();
         mFaceDetThread.clear();
     }
+    if(mCallbackThread != NULL){
+        msg.command = CameraAppCallbackThread::CMD_CALLBACK_EXIT;
+        sem1.Create();
+        msg.arg1 = (void*)(&sem1);
+        callbackThreadCommandQ.put(&msg);
+        if(msg.arg1){
+            sem1.Wait();
+        }
+        mCallbackThread->requestExitAndWait();
+        mCallbackThread.clear();
+    }
 
     int i = 0;
     //release mVideoBufs
@@ -132,9 +145,9 @@ AppMsgNotifier::~AppMsgNotifier()
         mJpegBufferProvider->freeBuffer();
     if(mVideoBufferProvider)
         mVideoBufferProvider->freeBuffer();
-    if(mPicture){
-        mPicture->release(mPicture);
-    }
+//    if(mPicture){
+//        mPicture->release(mPicture);
+//    }
 	if (pool) {
 		release_vpu_memory_pool_allocator(pool);
 		pool = NULL;
@@ -183,7 +196,7 @@ void AppMsgNotifier::stopFaceDection()
     LOG_FUNCTION_NAME_EXIT
 }
 int AppMsgNotifier::initializeFaceDetec(int width,int height){
-
+    return;
     if(!mFaceDetecInit){
         //load face detection lib 
         mFaceDetectorFun.mLibFaceDetectLibHandle = dlopen("libFFTEm.so", RTLD_NOW);    
@@ -273,7 +286,7 @@ void AppMsgNotifier::notifyNewFaceDecFrame(FramInfo_s* frame)
         msg.command = CameraAppFaceDetThread::CMD_FACEDET_FACE_DETECT ;
         msg.arg2 = (void*)(frame);
         msg.arg3 = (void*)(frame->used_flag);
-        LOG2("%s(%d):notify new frame,index(%ld)",__FUNCTION__,__LINE__,frame->frame_index);
+        LOG2("%s(%d):notify new frame,index(%d)",__FUNCTION__,__LINE__,frame->frame_index);
         faceDetThreadCommandQ.put(&msg);
    }else
         mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
@@ -586,6 +599,87 @@ void AppMsgNotifier::notifyNewPicFrame(FramInfo_s* frame)
     msg.arg3 = (void*)(frame->used_flag);
     encProcessThreadCommandQ.put(&msg);
 }
+
+void AppMsgNotifier::callback_notify_shutter()
+{
+	//send to callbackthread
+    Message_cam msg;
+    msg.command = CameraAppCallbackThread::CMD_MSG_SHUTTER;
+    msg.arg2 = NULL;
+    msg.arg3 = NULL;
+    callbackThreadCommandQ.put(&msg);
+}
+
+void AppMsgNotifier::callback_raw_image(camera_memory_t* frame)
+{
+	//send to callbackthread
+    Message_cam msg;
+    msg.command = CameraAppCallbackThread::CMD_MSG_RAW_IMAGE;
+    msg.arg2 = (void *)frame;
+    msg.arg3 = NULL;
+    callbackThreadCommandQ.put(&msg);
+}
+
+void AppMsgNotifier::callback_notify_raw_image()
+{
+	//send to callbackthread
+    Message_cam msg;
+    msg.command = CameraAppCallbackThread::CMD_MSG_RAW_IMAGE_NOTIFY;
+    msg.arg2 = NULL;
+    msg.arg3 = NULL;
+    callbackThreadCommandQ.put(&msg);
+}
+
+void AppMsgNotifier::callback_compressed_image(camera_memory_t* frame)
+{
+	//send to callbackthread
+    Message_cam msg;
+    msg.command = CameraAppCallbackThread::CMD_MSG_COMPRESSED_IMAGE;
+    msg.arg2 = (void*)frame;
+    msg.arg3 = NULL;
+    callbackThreadCommandQ.put(&msg);
+}
+
+void AppMsgNotifier::callback_notify_error()
+{
+	//send to callbackthread
+    Message_cam msg;
+    msg.command = CameraAppCallbackThread::CMD_MSG_ERROR;
+    msg.arg2 = NULL;
+    msg.arg3 = NULL;
+    callbackThreadCommandQ.put(&msg);
+}
+
+void AppMsgNotifier::callback_preview_metadata(camera_frame_metadata_t *facedata, struct RectFace *faces)
+{
+	//send to callbackthread
+    Message_cam msg;
+    msg.command = CameraAppCallbackThread::CMD_MSG_PREVIEW_METADATA;
+    msg.arg2 = (void *)facedata;
+    msg.arg3 = (void *)faces;
+    callbackThreadCommandQ.put(&msg);
+}
+
+void AppMsgNotifier::callback_video_frame(camera_memory_t* video_frame)
+{
+	//send to callbackthread
+    Message_cam msg;
+    msg.command = CameraAppCallbackThread::CMD_MSG_VIDEO_FRAME;
+    msg.arg2 = (void *)video_frame;
+    msg.arg3 = NULL;
+    callbackThreadCommandQ.put(&msg);
+}
+
+void AppMsgNotifier::callback_preview_frame(camera_memory_t* datacbFrameMem)
+{
+    //send to callbackthread
+    Message_cam msg;
+	msg.command = CameraAppCallbackThread::CMD_MSG_PREVIEW_FRAME;
+	msg.arg2 = (void*)(datacbFrameMem);
+	msg.arg3 = NULL;
+	callbackThreadCommandQ.put(&msg);
+}
+
 void AppMsgNotifier::notifyNewPreviewCbFrame(FramInfo_s* frame)
 {
     //send to app msg thread
@@ -609,7 +703,7 @@ void AppMsgNotifier::notifyNewVideoFrame(FramInfo_s* frame)
         msg.command = CameraAppMsgThread::CMD_EVENT_VIDEO_ENCING ;
         msg.arg2 = (void*)(frame);
         msg.arg3 = (void*)(frame->used_flag);
-        LOG2("%s(%d):notify new frame,index(%ld)",__FUNCTION__,__LINE__,frame->frame_index);
+        LOG2("%s(%d):notify new frame,index(%d)",__FUNCTION__,__LINE__,frame->frame_index);
         eventThreadCommandQ.put(&msg);
    }else
         mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
@@ -643,6 +737,7 @@ int AppMsgNotifier::copyAndSendRawImage(void *raw_image, int size)
     void *dest = NULL, *src = NULL;
 
     if(mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE) {
+    #if 0
         if(mPicture == NULL){
             mPicture = mRequestMemory(-1, size, 1, NULL);
             mPicSize = size;
@@ -651,20 +746,26 @@ int AppMsgNotifier::copyAndSendRawImage(void *raw_image, int size)
             mPicture = mRequestMemory(-1, size, 1, NULL);
             mPicSize = size;
         }
+		#endif
+        mPicture = mRequestMemory(-1, size, 1, NULL);
+        mPicSize = size;
         picture = mPicture;
       //  picture = mRequestMemory(-1, size, 1, NULL);
         if (NULL != picture) {
             dest = picture->data;
             if (NULL != dest) {
                 memcpy(dest, raw_image, size);
-                mDataCb(CAMERA_MSG_RAW_IMAGE, picture, 0, NULL, mCallbackCookie);
+                //mDataCb(CAMERA_MSG_RAW_IMAGE, picture, 0, NULL, mCallbackCookie);
+                callback_raw_image(picture);
             }
       //      picture->release(picture);
         } else if (mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE_NOTIFY) {
-            mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
+            //mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
+            callback_notify_raw_image();
         }
     } else if (mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE_NOTIFY) {
-        mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
+        //mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
+        callback_notify_raw_image();        
     }
     return 0;
 }
@@ -673,8 +774,8 @@ int AppMsgNotifier::copyAndSendCompressedImage(void *compressed_image, int size)
 {
     camera_memory_t* picture = NULL;
     void *dest = NULL, *src = NULL;
-
     if(mMsgTypeEnabled & CAMERA_MSG_COMPRESSED_IMAGE) {
+    #if 0
         if(mPicture == NULL){
             mPicture = mRequestMemory(-1, size, 1, NULL);
             mPicSize = size;
@@ -683,13 +784,17 @@ int AppMsgNotifier::copyAndSendCompressedImage(void *compressed_image, int size)
             mPicture = mRequestMemory(-1, size, 1, NULL);
             mPicSize = size;
         }
+		#endif
+		mPicture = mRequestMemory(-1, size, 1, NULL);
+		mPicSize = size;        
         picture = mPicture;
       //  picture = mRequestMemory(-1, size, 1, NULL);
         if (NULL != picture) {
             dest = picture->data;
             if (NULL != dest) {
                 memcpy(dest, compressed_image, size);
-                mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie);
+               // mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie);
+               callback_compressed_image(picture);
             }
         //    picture->release(picture);
         }
@@ -917,7 +1022,7 @@ int AppMsgNotifier::Jpegfillgpsinfo(RkGPSInfo *gpsInfo,picture_info_s &params)
 
 int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     int ret = 0;
-	int jpeg_w,jpeg_h,i;
+	int jpeg_w,jpeg_h,i,jpeg_buf_w,jpeg_buf_h;
 	unsigned int pictureSize;
 	int jpegSize;
 	int quality;
@@ -980,14 +1085,18 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	
 	if(picfmt ==V4L2_PIX_FMT_RGB565){
 		encodetype = HWJPEGENC_RGB565;
-		pictureSize = ((jpeg_w+15)&(~15)) * ((jpeg_h+15)&(~15)) *2;
+		pictureSize = jpeg_w * jpeg_h *2;
 	}
 	else{
 		encodetype = JPEGENC_YUV420_SP;
-		pictureSize = ((jpeg_w+15)&(~15)) * ((jpeg_h+15)&(~15)) * 3/2;
+		jpeg_buf_w = jpeg_w;
+		jpeg_buf_h = jpeg_h;
+		if(jpeg_buf_w%16)
+			jpeg_buf_w += 8;
+		if(jpeg_buf_h%16)
+			jpeg_buf_h += 8;
+		pictureSize = jpeg_buf_w * jpeg_buf_h * 3/2;
 	}
-//	jpeg_w = (jpeg_w+15)&(~15);	
-//	jpeg_h = (jpeg_h+15)&(~15);	
 	if (pictureSize & 0xfff) {
 		pictureSize = (pictureSize & 0xfffff000) + 0x1000;
 	}
@@ -1028,9 +1137,13 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     output_phy_addr = jpegbuf_phy;
     output_vir_addr = jpegbuf_vir;
 	LOG1("rawbuf_phy:%x,rawbuf_vir:%x;jpegbuf_phy = %x,jpegbuf_vir = %x",rawbuf_phy,rawbuf_vir,jpegbuf_phy,jpegbuf_vir);
-
+  #if 0
 	if (mMsgTypeEnabled & CAMERA_MSG_SHUTTER)
 		mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
+	#else
+	if (mMsgTypeEnabled & CAMERA_MSG_SHUTTER)
+		callback_notify_shutter();
+	#endif
 
 	LOGD("captureEncProcessPicture,rotation = %d,jpeg_w = %d,jpeg_h = %d",rotation,jpeg_w,jpeg_h);
 
@@ -1198,7 +1311,8 @@ captureEncProcessPicture_exit:
 	if(err < 0) {
 		LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
 		if (mNotifyCb && (mMsgTypeEnabled & CAMERA_MSG_ERROR)) {						
-			mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
+			//mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
+			callback_notify_error();
 		}
 	} 
 
@@ -1269,16 +1383,22 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
                                (char*)frame->vir_addr,mPreviewDataW, mPreviewDataH);
             }			
 			//callback
+			#if 0
 			/* ddl@rock-chips.com:  v1.0x1b.0 */
 			if (mMainThreadLockRef->tryLock() == NO_ERROR) {
+				LOGD("----------------tryLock() -------------------");
 			    mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
-                mMainThreadLockRef->unlock();
+                LOGD("----------------unlock() -------------------");
+				mMainThreadLockRef->unlock();                
 			} else {
                 LOGD("Try lock mMainThreadLockRef failed, mDataCb cancel!!");
 			}
 
 			//release buffer
 			tmpPreviewMemory->release(tmpPreviewMemory);
+			#else
+			callback_preview_frame(tmpPreviewMemory);
+			#endif			
 		} else {
 			LOGE("%s(%d): mPreviewMemory create failed",__FUNCTION__,__LINE__);
 		}
@@ -1289,9 +1409,7 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 	return ret;
 }
 int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
-    int ret = 0,buf_index = -1;
-	long buf_phy = 0,buf_vir = 0;
-	
+    int ret = 0,buf_phy = 0,buf_vir = 0,buf_index = -1;
     //get one available buffer
     if((buf_index = mVideoBufferProvider->getOneAvailableBuffer(&buf_phy,&buf_vir)) == -1){
         ret = -1;
@@ -1312,7 +1430,8 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
         #endif
 
         mVideoBufferProvider->flushBuffer(buf_index);
-        mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_index], 0, mCallbackCookie);
+        //mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_index], 0, mCallbackCookie);
+        callback_video_frame(mVideoBufs[buf_index]);
         LOG1("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
     }
 	/*//fill video buffer
@@ -1347,13 +1466,14 @@ int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
 
             nsecs_t diff = now - last;
             LOG2("FaceDetection mCurBiasAngle %0.0f,facenum: %d, use time: %lldms\n", mCurBiasAngle,num, ns2ms(diff));
+            camera_frame_metadata_t *pMetadata = (camera_frame_metadata_t *)malloc(sizeof(camera_frame_metadata_t));
 
             if(num > 0){
                 num = 1 ;//just report one face to app
-                camera_frame_metadata_t tmpMetadata;
-                tmpMetadata.number_of_faces = num;
+                //camera_frame_metadata_t tmpMetadata;
+                pMetadata->number_of_faces = num;
                 camera_face_t* pFace = (camera_face_t*)malloc(sizeof(camera_face_t)*num);
-                tmpMetadata.faces = pFace;
+                pMetadata->faces = pFace;
                 int tmpX,tmpY,tmpW,tempH;
                 tmpX = faces[i].x;
                 tmpY = faces[i].y;
@@ -1401,26 +1521,16 @@ int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
                 {
                     Mutex::Autolock lock(mFaceDecLock);
                     if(mMsgTypeEnabled & CAMERA_MSG_PREVIEW_METADATA){
-                        mDataCb(CAMERA_MSG_PREVIEW_METADATA, NULL,0,&tmpMetadata,mCallbackCookie); 
+                        callback_preview_metadata(pMetadata, faces);
                     }
                 }
-                /* ddl@rock-chips.com: v1.0xb.0 */
-                mCamAdp->faceNotify(faces, &num);
-                
-                free(pFace);
             }else{
-                camera_frame_metadata_t tmpMetadata;
-                tmpMetadata.number_of_faces = 0;
-                tmpMetadata.faces = NULL;
-                {
-                    Mutex::Autolock lock(mFaceDecLock);
-                    if(mMsgTypeEnabled & CAMERA_MSG_PREVIEW_METADATA){
-                        mDataCb(CAMERA_MSG_PREVIEW_METADATA, NULL,0,&tmpMetadata,mCallbackCookie); 
-                    }
+				        pMetadata->number_of_faces = 0;
+				        pMetadata->faces = NULL;
+				        Mutex::Autolock lock(mFaceDecLock);
+                if(mMsgTypeEnabled & CAMERA_MSG_PREVIEW_METADATA){
+                 callback_preview_metadata(pMetadata, faces);
                 }
-
-                num = 0;
-                mCamAdp->faceNotify(NULL, &num);
             }
         }
     }
@@ -1682,5 +1792,122 @@ void AppMsgNotifier::eventThread()
     return;
 
  }
+
+void AppMsgNotifier::callbackThread()
+{
+	bool loop = true;
+	Message_cam msg;
+	int index,err = 0;
+	camera_memory_t *frame = NULL;
+	LOG_FUNCTION_NAME
+	while (loop) {
+        memset(&msg,0,sizeof(msg));
+		callbackThreadCommandQ.get(&msg);
+		switch (msg.command)
+		{
+          case CameraAppCallbackThread::CMD_MSG_PREVIEW_FRAME:
+			{
+				LOG2("datacb: send preview frame (CAMERA_MSG_PREVIEW_FRAME).");
+				frame = (camera_memory_t*)msg.arg2;
+				if (mMsgTypeEnabled & CAMERA_MSG_PREVIEW_FRAME)			
+					mDataCb(CAMERA_MSG_PREVIEW_FRAME, frame, 0,NULL,mCallbackCookie);  
+				//release buffer
+				frame->release(frame);
+			}
+			break;
+			
+          case CameraAppCallbackThread::CMD_MSG_SHUTTER:
+		  		LOG1("Notify CAMERA_MSG_SHUTTER.");
+				if (mMsgTypeEnabled & CAMERA_MSG_SHUTTER)
+					mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
+                break;
+				
+		  case CameraAppCallbackThread::CMD_MSG_RAW_IMAGE:
+		  	{
+				LOG1("send raw image pic.");
+		  		frame = (camera_memory_t*)msg.arg2;
+				if(mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE)
+		  			mDataCb(CAMERA_MSG_RAW_IMAGE, frame, 0, NULL, mCallbackCookie);
+				//release buffer
+				frame->release(frame);				
+		  	}
+		  	break;
+				
+		  case CameraAppCallbackThread::CMD_MSG_RAW_IMAGE_NOTIFY:
+		  		LOG1("Notify CAMERA_MSG_RAW_IMAGE_NOTIFY.");
+				if (mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE_NOTIFY)
+		  			mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
+		  		break;
+				
+		  case CameraAppCallbackThread::CMD_MSG_COMPRESSED_IMAGE:
+		  	{
+				LOG1("send compressed jpeg image pic.");
+		  		frame = (camera_memory_t*)msg.arg2;
+				if(mMsgTypeEnabled & CAMERA_MSG_COMPRESSED_IMAGE)
+		  			mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, frame, 0, NULL, mCallbackCookie);
+				//release buffer
+				frame->release(frame);
+		  	}
+		  		break;
+				
+		  case CameraAppCallbackThread::CMD_MSG_ERROR:
+		  		LOG1("Notify CAMERA_MSG_ERROR.");
+				if(mMsgTypeEnabled & CAMERA_MSG_ERROR)
+		  			mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
+		  		break;
+				
+		  case CameraAppCallbackThread::CMD_MSG_PREVIEW_METADATA:
+		  	{
+				camera_frame_metadata_t *tempMetaData;
+
+				tempMetaData = (camera_frame_metadata_t *)msg.arg2;
+				struct RectFace *faces = (struct RectFace *)msg.arg3;
+				LOG1("send facedetect data, number_of_faces=%d.",tempMetaData->number_of_faces);
+				if(tempMetaData->number_of_faces>0){
+					if(mMsgTypeEnabled & CAMERA_MSG_PREVIEW_METADATA){
+						mDataCb(CAMERA_MSG_PREVIEW_METADATA, NULL,0,tempMetaData,mCallbackCookie); 
+					}
+				 	mCamAdp->faceNotify(faces, &tempMetaData->number_of_faces);
+              		free(tempMetaData->faces);
+					free(tempMetaData);
+				}else{
+					if(mMsgTypeEnabled & CAMERA_MSG_PREVIEW_METADATA){
+						mDataCb(CAMERA_MSG_PREVIEW_METADATA, NULL,0,tempMetaData,mCallbackCookie);
+					}
+             		mCamAdp->faceNotify(NULL, &tempMetaData->number_of_faces);
+					free(tempMetaData);
+				}
+		  	}
+		  		break;
+				
+		  case CameraAppCallbackThread::CMD_MSG_VIDEO_FRAME:
+		  	{
+				LOG1("send video frame.");
+				frame = (camera_memory_t*)msg.arg2;
+				mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, frame, 0, mCallbackCookie);
+		  	}
+		  		break;
+				
+          case CameraAppCallbackThread::CMD_CALLBACK_PAUSE:
+			{
+				break; 
+			}
+		  
+          case CameraAppCallbackThread::CMD_CALLBACK_EXIT:
+            {
+	    		loop = false;
+	            if(msg.arg1)
+	                ((Semaphore*)(msg.arg1))->Signal();
+	            break;
+            }
+          default:
+                break;
+		}
+    }
+	LOG_FUNCTION_NAME_EXIT
+    return;
+
+ }
+ 
 }
 

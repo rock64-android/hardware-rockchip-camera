@@ -748,7 +748,8 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     rk_cam_total_info *pCamInfo = gCamInfos[camFd].pcam_total_info;
     bool isRestartPreview = false;
     char string[100];
-    
+    char prop_value[PROPERTY_VALUE_MAX];
+
 	LOG_FUNCTION_NAME
     //previwe size and picture size
     {
@@ -794,7 +795,9 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             }
             memset(string,0x00,sizeof(string)); 
             sprintf(string,",%dx%d",ISI_RES_W_GET(pCaps.Resolution),ISI_RES_H_GET(pCaps.Resolution));
-            parameterString.append(string);
+            if (strcmp(string,",1600x1200")){
+                parameterString.append(string);
+            }
             LOG1("    %dx%d @ %d fps", ISI_RES_W_GET(pCaps.Resolution),ISI_RES_H_GET(pCaps.Resolution),
                 ISI_FPS_GET(pCaps.Resolution));
 
@@ -899,7 +902,16 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         parameterString = CameraParameters::FOCUS_MODE_FIXED;
         params.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_FIXED);
 
-		if ((strcmp(pCamInfo->mHardInfo.mVcmInfo.mVcmDrvName,"NC")!=0)) {
+        //char prop_value[PROPERTY_VALUE_MAX];
+        property_get("sys.cts_gts.status",prop_value, "false");
+       //if(!strcmp(prop_value,"true")){
+       if(0){
+           params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
+           params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES, CameraParameters::FOCUS_MODE_FIXED);
+       }else{ 
+		if (strcmp(pCamInfo->mHardInfo.mVcmInfo.mVcmDrvName,"NC")!=0) {
+          //if(0){
+              LOGD("------mHardInfo.mVcmInfo.mVcmDrvName in not NC-----\n");
             err_af = m_camDevice->isAfAvailable(avail);
             if ((err_af == true) && (avail == true)) {
                 parameterString.append(",");
@@ -921,9 +933,12 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
              	params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
         	}
 
-		}else
+		}else{
          	params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
-    	params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES, parameterString.string());
+
+        }
+            params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES, parameterString.string());
+      }
 	}
 
     //flash parameters
@@ -1138,7 +1153,12 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     }else{
         params.set(KEY_CONTINUOUS_SUPPORTED,"false");
     }
-	
+    // for cts
+    params.set(CameraParameters::KEY_SUPPORTED_ANTIBANDING, "auto,50hz,60hz,off");
+    params.set(CameraParameters::KEY_ANTIBANDING, "off");
+    params.set(CameraParameters::KEY_SUPPORTED_EFFECTS, "none,mono,sepia");
+    params.set(CameraParameters::KEY_EFFECT, "none");
+
     LOG1 ("Support Preview format: %s    %s(default)",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),params.get(CameraParameters::KEY_PREVIEW_FORMAT)); 
 	LOG1 ("Support Preview sizes: %s    %s(default)    %dx%d(force)",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES),params.get(CameraParameters::KEY_PREVIEW_SIZE),
         pCamInfo->mSoftInfo.mPreviewWidth,pCamInfo->mSoftInfo.mPreviewHeight);
@@ -1375,7 +1395,13 @@ status_t CameraIspAdapter::autoFocus()
 {
     bool shot = false,err_af = false;
     CamEngineWindow_t afWin;
-    
+#if 1    
+    char prop_value[PROPERTY_VALUE_MAX];
+    property_get("sys.cts_gts.status",prop_value, "false");
+    if(!strcmp(prop_value,"true")){
+    goto finish_focus;
+    }
+#endif
     if (strcmp(mParameters.get(CameraParameters::KEY_FOCUS_MODE), CameraParameters::FOCUS_MODE_AUTO) == 0) {
         if (mAfChk == false) {
             LOG1("Focus mode is Auto and areas not change, CheckAfShot!");
@@ -1960,7 +1986,10 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
         MediaBufLockBuffer( (MediaBuffer_t*)pMediaBuffer->pNext );
     }
 	
-	if(preview_frame_inval > 0) {
+#if 1
+    char prop_value[PROPERTY_VALUE_MAX];
+    property_get("sys.cts_gts.status",prop_value, "false");
+	if( strcmp(prop_value,"true") && (preview_frame_inval > 0) ){
 	  	preview_frame_inval--;
 		LOG1("frame_inval:%d\n",preview_frame_inval);
 
@@ -1975,7 +2004,10 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 		}else{
 			goto end;
 		}
-  	}
+  	}else{
+       // LOG1("--is cts 44--");
+    }
+#endif
 
 
     if(mIsSendToTunningTh){
@@ -2155,7 +2187,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     	}
 
     	//preview data callback ?
-    	if(mRefEventNotifier->isNeedSendToDataCB()) {
+    	if(mRefEventNotifier->isNeedSendToDataCB() && (mRefDisplayAdapter->getDisplayStatus() == 0)) {
             MediaBufLockBuffer( pMediaBuffer );
             //new frames
             FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));

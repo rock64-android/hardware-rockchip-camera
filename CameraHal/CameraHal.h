@@ -632,6 +632,12 @@ namespace android {
 
 #endif
 
+#if (defined(TARGET_RK312x)) /*dalon.zhang@rock-chips.com: V1.0x29.7*/
+#define IOMMU_ENABLED   (1)
+#else
+#define IOMMU_ENABLED   (0)
+#endif
+
 #define JPEG_BUFFER_DYNAMIC		(1)
 
 #define V4L2_BUFFER_MAX             32
@@ -1301,6 +1307,33 @@ private:
 			return false;
 		}
 	};
+    class CameraAppCallbackThread :public Thread
+    {
+    public:
+        enum CALLBACK_THREAD_CMD{
+            CMD_MSG_PREVIEW_FRAME,
+            CMD_MSG_SHUTTER,
+            CMD_MSG_RAW_IMAGE,
+            CMD_MSG_RAW_IMAGE_NOTIFY,
+            CMD_MSG_COMPRESSED_IMAGE,
+            CMD_MSG_PREVIEW_METADATA,
+            CMD_MSG_VIDEO_FRAME,
+            CMD_MSG_ERROR,
+            CMD_CALLBACK_PAUSE,
+            CMD_CALLBACK_EXIT
+        };
+	protected:
+		AppMsgNotifier* mAppMsgNotifier;
+	public:
+		CameraAppCallbackThread(AppMsgNotifier* hw)
+			: Thread(false),mAppMsgNotifier(hw) { }
+	
+		virtual bool threadLoop() {
+			mAppMsgNotifier->callbackThread();
+	
+			return false;
+		}
+	};
 
 	friend class EncProcessThread;
 public:
@@ -1334,6 +1367,14 @@ public:
     void notifyNewPicFrame(FramInfo_s* frame);
     void notifyNewPreviewCbFrame(FramInfo_s* frame);
     void notifyNewVideoFrame(FramInfo_s* frame);
+	void callback_notify_shutter();
+	void callback_preview_frame(camera_memory_t* datacbFrameMem);
+	void callback_raw_image(camera_memory_t* frame);
+	void callback_notify_raw_image();
+	void callback_compressed_image(camera_memory_t* frame);
+	void callback_notify_error();
+	void callback_preview_metadata(camera_frame_metadata_t *facedata, struct RectFace *faces);
+	void callback_video_frame(camera_memory_t* video_frame);    
     int enableMsgType(int32_t msgtype);
     int disableMsgType(int32_t msgtype);
     void setCallbacks(camera_notify_callback notify_cb,
@@ -1356,6 +1397,7 @@ private:
    void encProcessThread();
    void eventThread();
    void faceDetectThread();
+   void callbackThread();
 
 	int captureEncProcessPicture(FramInfo_s* frame);
     int processPreviewDataCb(FramInfo_s* frame);
@@ -1401,6 +1443,8 @@ private:
     sp<CameraAppMsgThread> mCameraAppMsgThread;
     sp<EncProcessThread> mEncProcessThread;
     sp<CameraAppFaceDetThread> mFaceDetThread;
+    sp<CameraAppCallbackThread> mCallbackThread;
+    
     BufferProvider* mRawBufferProvider;
     BufferProvider* mJpegBufferProvider;
     BufferProvider* mVideoBufferProvider;
@@ -1415,6 +1459,7 @@ private:
     MessageQueue encProcessThreadCommandQ;
     MessageQueue eventThreadCommandQ;
     MessageQueue faceDetThreadCommandQ;
+    MessageQueue callbackThreadCommandQ;
 
     camera_memory_t* mVideoBufs[CONFIG_CAMERA_VIDEO_BUF_CNT];
 
