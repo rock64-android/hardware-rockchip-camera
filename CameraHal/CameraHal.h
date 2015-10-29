@@ -27,6 +27,7 @@
 #include <time.h>
 #include <fcntl.h>
 #include <dlfcn.h>
+#include <math.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -540,6 +541,8 @@ namespace android {
 	1) fix bug in v1.0x36.7:dynamic query iommu status for usb camera.
 	2) macro IOMMU is invalide, remove it.
 	3) avoid the access of mDisplayBufInfo when it is NULL.
+*v1.0x37.0:
+	compatible with android 6.0
 */
 
 #define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x36, 0xd)

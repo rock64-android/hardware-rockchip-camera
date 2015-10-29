@@ -40,11 +40,16 @@ LOCAL_C_INCLUDES += \
   $(LOCAL_PATH)/../SiliconImage/include\
   $(LOCAL_PATH)/../SiliconImage/include/isp_cam_api\
   bionic\
-  external/stlport/stlport\
   external/tinyxml2\
   system/media/camera/include\
-  system/core/libion/kernel-headers/linux\
-  system/core/libion/include/ion
+  system/core/libion/include/ion\
+  system/core/libion/kernel-headers/linux
+
+#has no "external/stlport" from Android 6.0 on                         
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \< 6.0)))
+LOCAL_C_INCLUDES += \
+    external/stlport/stlport
+endif
 
 LOCAL_C_INCLUDES += \
     external/skia/include/core \
@@ -66,9 +71,14 @@ LOCAL_SHARED_LIBRARIES:= \
     libvpu\
     libdl\
 	libisp_silicomimageisp_api \
-	libstlport\
 	libexpat \
 	libskia \
+
+#has no "external/stlport" from Android 6.0 on                         
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \< 6.0)))
+LOCAL_SHARED_LIBRARIES += \
+    libstlport
+endif
 
 #LOCAL_STATIC_LIBRARIES :=  libisp_calibdb libtinyxml2 libisp_cam_calibdb libisp_ebase \
 #							libisp_oslayer libisp_common libisp_hal libisp_isi\
@@ -196,6 +206,10 @@ endif
 
 ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 5.0)))
 LOCAL_CFLAGS += -DANDROID_5_X
+endif
+
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 6.0)))
+LOCAL_CFLAGS += -DANDROID_6_X
 endif
 
 #LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
