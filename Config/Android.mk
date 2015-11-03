@@ -1,7 +1,14 @@
 LOCAL_PATH := $(call my-dir)
 
-ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk3368)
 include $(CLEAR_VARS)
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 6.0)))
+LOCAL_MODULE := libisp_silicomimageisp_api_6x
+else
+LOCAL_MODULE := libisp_silicomimageisp_api_5x
+endif
+
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk3368)
+#include $(CLEAR_VARS)
 ifneq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 5.0)))
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)
 else
@@ -10,7 +17,7 @@ LOCAL_MULTILIB := both
 endif
 LOCAL_MODULE_RELATIVE_PATH :=
 endif
-LOCAL_MODULE := libisp_silicomimageisp_api
+#LOCAL_MODULE := libisp_silicomimageisp_api
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_STEM := $(LOCAL_MODULE)
@@ -21,8 +28,8 @@ include $(BUILD_PREBUILT)
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3288)
-include $(CLEAR_VARS)
-LOCAL_MODULE := libisp_silicomimageisp_api
+#include $(CLEAR_VARS)
+#LOCAL_MODULE := libisp_silicomimageisp_api
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_STEM := $(LOCAL_MODULE)
@@ -32,8 +39,8 @@ include $(BUILD_PREBUILT)
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk312x)
-include $(CLEAR_VARS)
-LOCAL_MODULE := libisp_silicomimageisp_api
+#include $(CLEAR_VARS)
+#LOCAL_MODULE := libisp_silicomimageisp_api
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_STEM := $(LOCAL_MODULE)
@@ -43,8 +50,8 @@ include $(BUILD_PREBUILT)
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3036)
-include $(CLEAR_VARS)
-LOCAL_MODULE := libisp_silicomimageisp_api
+#include $(CLEAR_VARS)
+#LOCAL_MODULE := libisp_silicomimageisp_api
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_STEM := $(LOCAL_MODULE)
@@ -54,8 +61,8 @@ include $(BUILD_PREBUILT)
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3188)
-include $(CLEAR_VARS)
-LOCAL_MODULE := libisp_silicomimageisp_api
+#include $(CLEAR_VARS)
+#LOCAL_MODULE := libisp_silicomimageisp_api
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_STEM := $(LOCAL_MODULE)
