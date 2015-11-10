@@ -134,7 +134,7 @@ status_t SensorListener::initialize() {
     status_t ret = NO_ERROR;
 
 #if defined(ANDROID_6_X)
-    SensorManager mgr(String16("CamHal Sensor"));
+    SensorManager& mgr = SensorManager::getInstanceForPackage(String16("CamHal Sensor"));
 #else
     SensorManager& mgr(SensorManager::getInstance());
 #endif
@@ -199,7 +199,7 @@ void SensorListener::enableSensor(sensor_type_t type) {
     Sensor const* sensor;
 
 #if defined(ANDROID_6_X)
-    SensorManager mgr(String16("CamHal Sensor"));
+    SensorManager& mgr = SensorManager::getInstanceForPackage(String16("CamHal Sensor"));
 #else
     SensorManager& mgr(SensorManager::getInstance());
 #endif
@@ -223,7 +223,7 @@ void SensorListener::disableSensor(sensor_type_t type) {
     Sensor const* sensor;
 
 #if defined(ANDROID_6_X)
-    SensorManager mgr(String16("CamHal Sensor"));
+    SensorManager& mgr = SensorManager::getInstanceForPackage(String16("CamHal Sensor"));
 #else
     SensorManager& mgr(SensorManager::getInstance());
 #endif
