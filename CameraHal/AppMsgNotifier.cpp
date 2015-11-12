@@ -1409,7 +1409,8 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 	return ret;
 }
 int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
-    int ret = 0,buf_phy = 0,buf_vir = 0,buf_index = -1;
+    int ret = 0,buf_index = -1;
+    long buf_phy = 0,buf_vir = 0;
     //get one available buffer
     if((buf_index = mVideoBufferProvider->getOneAvailableBuffer(&buf_phy,&buf_vir)) == -1){
         ret = -1;

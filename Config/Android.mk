@@ -5,10 +5,10 @@ LOCAL_MODULE := libisp_silicomimageisp_api
 
 ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 6.0)))
 LOCAL_SRC_FILES_arm := $(LOCAL_MODULE)_6x_32bit.so
-LOCAL_SRC_FILES_arm64 := $(LOCAL_MODULE)_64bit.so
+LOCAL_SRC_FILES_arm64 := $(LOCAL_MODULE)_6x_64bit.so
 else
 LOCAL_SRC_FILES_arm := $(LOCAL_MODULE)_5x_32bit.so
-LOCAL_SRC_FILES_arm64 := $(LOCAL_MODULE)_64bit.so
+LOCAL_SRC_FILES_arm64 := $(LOCAL_MODULE)_5x_64bit.so
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk3368)

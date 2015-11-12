@@ -202,6 +202,7 @@ CameraHal::CameraHal(int cameraId)
 #endif 
 	mEventNotifier->setDatacbFrontMirrorFlipState(dataCbFrontMirror,dataCbFrontFlip);
 
+#ifndef DANDROID_6_X
       // register for sensor events
     mSensorListener = new SensorListener();
     if (mSensorListener.get()) {
@@ -213,8 +214,10 @@ CameraHal::CameraHal(int cameraId)
             mSensorListener.clear();
             mSensorListener = NULL;
         }
-    }  
-
+    } 
+#else
+ 	mSensorListener = NULL; 
+#endif
     
 	LOG_FUNCTION_NAME_EXIT
 
@@ -328,7 +331,25 @@ int CameraHal::setPreviewWindow(struct preview_stream_ops *window)
 int CameraHal::startPreview()
 {
     LOG_FUNCTION_NAME
-    Message_cam msg;    
+    Message_cam msg;
+
+#ifdef DANDROID_6_X
+	if ( mSensorListener == NULL ) {   
+      // register for sensor events
+    mSensorListener = new SensorListener();
+    if (mSensorListener.get()) {
+        if (mSensorListener->initialize() == NO_ERROR) {
+            mSensorListener->setCallbacks(gsensor_orientation_cb, this);
+            mSensorListener->enableSensor(SensorListener::SENSOR_ORIENTATION);
+        } else {
+            LOGE("Error initializing SensorListener. not fatal, continuing");
+            mSensorListener.clear();
+            mSensorListener = NULL;
+        }
+    }
+	}
+#endif
+ 
     Mutex::Autolock lock(mLock);
     if ((mCommandThread != NULL)) {
         msg.command = CMD_PREVIEW_START;
