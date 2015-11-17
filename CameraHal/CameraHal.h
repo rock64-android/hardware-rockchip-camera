@@ -545,9 +545,13 @@ namespace android {
 	compatible with android 6.0
 *v1.0x37.1:
     compatible with 64bit
+*v1.0x37.2:
+    1) modify for RK3368 Android6.0
+    2) when sensor service doesn't start
+       sensor listener will return at time 
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x37, 0x1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x37, 0x2)
 
 
 /*  */

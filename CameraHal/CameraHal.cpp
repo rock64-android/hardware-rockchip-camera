@@ -202,7 +202,7 @@ CameraHal::CameraHal(int cameraId)
 #endif 
 	mEventNotifier->setDatacbFrontMirrorFlipState(dataCbFrontMirror,dataCbFrontFlip);
 
-#ifndef DANDROID_6_X
+#ifndef ANDROID_6_X
       // register for sensor events
     mSensorListener = new SensorListener();
     if (mSensorListener.get()) {
@@ -333,7 +333,7 @@ int CameraHal::startPreview()
     LOG_FUNCTION_NAME
     Message_cam msg;
 
-#ifdef DANDROID_6_X
+#ifdef ANDROID_6_X
 	if ( mSensorListener == NULL ) {   
       // register for sensor events
     mSensorListener = new SensorListener();

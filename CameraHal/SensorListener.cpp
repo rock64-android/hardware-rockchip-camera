@@ -210,10 +210,12 @@ void SensorListener::enableSensor(sensor_type_t type) {
 
     if ((type & SENSOR_ORIENTATION) && !(sensorsEnabled & SENSOR_ORIENTATION)) {
         sensor = mgr.getDefaultSensor(Sensor::TYPE_ACCELEROMETER);
-        LOGD("orientation = %p (%s)", sensor, sensor->getName().string());
-        mSensorEventQueue->enableSensor(sensor);
-        mSensorEventQueue->setEventRate(sensor, ms2ns(100));
-        sensorsEnabled |= SENSOR_ORIENTATION;
+        if(sensor != NULL){
+            LOGD("orientation = %p (%s)", sensor, sensor->getName().string());
+            mSensorEventQueue->enableSensor(sensor);
+            mSensorEventQueue->setEventRate(sensor, ms2ns(100));
+            sensorsEnabled |= SENSOR_ORIENTATION;
+        }
     }
 
     LOG_FUNCTION_NAME_EXIT;
@@ -234,9 +236,11 @@ void SensorListener::disableSensor(sensor_type_t type) {
 
     if ((type & SENSOR_ORIENTATION) && (sensorsEnabled & SENSOR_ORIENTATION)) {
         sensor = mgr.getDefaultSensor(Sensor::TYPE_ACCELEROMETER);
-        LOGD("orientation = %p (%s)", sensor, sensor->getName().string());
-        mSensorEventQueue->disableSensor(sensor);
-        sensorsEnabled &= ~SENSOR_ORIENTATION;
+        if(sensor != NULL){
+            LOGD("orientation = %p (%s)", sensor, sensor->getName().string());
+            mSensorEventQueue->disableSensor(sensor);
+            sensorsEnabled &= ~SENSOR_ORIENTATION;
+        }
     }
 
     LOG_FUNCTION_NAME_EXIT;
