@@ -232,12 +232,27 @@
     1)  modify android 5.x compile condition. 
 *v1.0x26.0:
     1)  fix some aec ecm flicker issues
-*v1.0x27.0
+*v1.0x27.0:
     1) support 32bit andr 64bit.
+*v1.0x28.0:
+    1) add callback func param sensor_version_get_p in callback func IsiCheckOTPInfo_t.
+*v1.0x29.0:
+    1) support sensor powerup sequence configurable.
+*v1.0x30.0:
+	1) add enableSensorOTP and setupOTPInfo interfaces.
+*v1.0x31.0:
+	1) compatible with android 6.0
+*v1.0x32.0:
+    1) compatible with android 6.0 64bit  
+*v1.0x33.0:
+    1) add 0 cc offset in lowlight sence     //oyyf 
+*v1.0x34.0:
+    1) open camsys_marvin or camsys_marvin1 depend on phy config
 */
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x27, 0)
+
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x34, 0)
 
 
 class CamEngineItf;
@@ -326,6 +341,7 @@ public:
 	float getAecClmTolerance() const;
 	bool setAeClmTolerance(float clmtolerance);
 	bool setIspBufferInfo(unsigned int bufNum, unsigned int bufSize);
+	void enableSensorOTP(bool_t enable);
 	//oyyf add
 	void getIspVersion(unsigned int* version);
 	//oyyf add
@@ -623,7 +639,7 @@ private:
     bool setupCamerIC();
     void doneCamerIC();
     bool restartMipiDrv(); //zyc add
-
+	void setupOTPInfo();
 
 public:
     class SensorHolder;

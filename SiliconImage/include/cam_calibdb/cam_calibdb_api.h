@@ -845,6 +845,12 @@ RESULT CamCalibDbGetAecPoint
 	float *point
 );
 
+RESULT CamCalibDbGetOTPInfo
+(
+	CamCalibDbHandle_t          hCamCalibDb,
+	uint32_t *pOTPInfo
+);
+
 #ifdef __cplusplus
 }
 #endif

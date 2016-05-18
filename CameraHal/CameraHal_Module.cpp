@@ -645,6 +645,7 @@ int camera_get_number_of_cameras(void)
         goto camera_get_number_of_cameras_end;
 
     {
+		property_set(CAMERAHAL_CAM_OTP_PROPERTY_KEY, "true");
         memset(version,0x00,sizeof(version));
         sprintf(version,"%d.%d.%d",((CONFIG_CAMERAHAL_VERSION&0xff0000)>>16),
             ((CONFIG_CAMERAHAL_VERSION&0xff00)>>8),CONFIG_CAMERAHAL_VERSION&0xff);

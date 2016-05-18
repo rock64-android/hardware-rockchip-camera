@@ -107,19 +107,13 @@ extern const IsiRegDescription_t Sensor_g_1296x972P10_twolane_fpschg[];
 extern const IsiRegDescription_t Sensor_g_2592x1944P15_twolane_fpschg[];
 extern const IsiRegDescription_t Sensor_g_2592x1944P7_twolane_fpschg[];
 
-/*
-extern const IsiRegDescription_t Sensor_g_1296x972P30_fourlane_fpschg[];
-extern const IsiRegDescription_t Sensor_g_1296x972P25_fourlane_fpschg[];
-extern const IsiRegDescription_t Sensor_g_1296x972P20_fourlane_fpschg[];
-extern const IsiRegDescription_t Sensor_g_1296x972P15_fourlane_fpschg[];
-extern const IsiRegDescription_t Sensor_g_1296x972P10_fourlane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P30_onelane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P25_onelane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P20_onelane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P15_onelane_fpschg[];
+extern const IsiRegDescription_t Sensor_g_1296x972P10_onelane_fpschg[];
 
-extern const IsiRegDescription_t Sensor_g_2592x1944P30_fourlane_fpschg[];
-extern const IsiRegDescription_t Sensor_g_2592x1944P25_fourlane_fpschg[];
-extern const IsiRegDescription_t Sensor_g_2592x1944P20_fourlane_fpschg[];
-extern const IsiRegDescription_t Sensor_g_2592x1944P15_fourlane_fpschg[];
-extern const IsiRegDescription_t Sensor_g_2592x1944P10_fourlane_fpschg[];
-*/
+extern const IsiRegDescription_t Sensor_g_2592x1944P10_onelane_fpschg[];
 
 
 const IsiSensorCaps_t Sensor_g_IsiSensorDefaultConfig;
@@ -130,7 +124,7 @@ const IsiSensorCaps_t Sensor_g_IsiSensorDefaultConfig;
 #define Sensor_I2C_NR_DAT_BYTES     (1U)                        // 8 bit registers
 
 
-static uint16_t g_suppoted_mipi_lanenum_type = SUPPORT_MIPI_TWO_LANE;//SUPPORT_MIPI_ONE_LANE|SUPPORT_MIPI_TWO_LANE|SUPPORT_MIPI_FOUR_LANE;
+static uint16_t g_suppoted_mipi_lanenum_type = SUPPORT_MIPI_TWO_LANE|SUPPORT_MIPI_ONE_LANE;//SUPPORT_MIPI_ONE_LANE|SUPPORT_MIPI_TWO_LANE|SUPPORT_MIPI_FOUR_LANE;
 #define DEFAULT_NUM_LANES SUPPORT_MIPI_TWO_LANE
 
 
@@ -366,12 +360,32 @@ static RESULT Sensor_IsiGetCapsIssInternal
             {
                 case 0:
                 {
-                    pIsiSensorCaps->Resolution = ISI_RES_2592_1944P7;
+                    pIsiSensorCaps->Resolution = ISI_RES_2592_1944P10;
                     break;
                 }
                 case 1:
                 {
+                    pIsiSensorCaps->Resolution = ISI_RES_1296_972P30;
+                    break;
+                }
+                case 2:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1296_972P25;
+                    break;
+                }
+                case 3:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1296_972P20;
+                    break;
+                }
+                case 4:
+                {
                     pIsiSensorCaps->Resolution = ISI_RES_1296_972P15;
+                    break;
+                }
+                case 5:
+                {
+                    pIsiSensorCaps->Resolution = ISI_RES_1296_972P10;
                     break;
                 }
                 default:
@@ -384,6 +398,28 @@ static RESULT Sensor_IsiGetCapsIssInternal
         }else if(mipi_lanes == SUPPORT_MIPI_TWO_LANE){
             switch (pIsiSensorCaps->Index) 
             {
+				#ifdef MIPI_210MBPS
+				case 0:
+				{
+					pIsiSensorCaps->Resolution = ISI_RES_2592_1944P7;
+					break;
+				}
+				case 1:
+				{
+					pIsiSensorCaps->Resolution = ISI_RES_1296_972P20;
+					break;
+				}
+				case 2:
+				{
+					pIsiSensorCaps->Resolution = ISI_RES_1296_972P15;
+					break;
+				}
+				case 3:
+				{
+					pIsiSensorCaps->Resolution = ISI_RES_1296_972P10;
+					break;
+				}
+				#else
                 case 0:
                 {
                     pIsiSensorCaps->Resolution = ISI_RES_2592_1944P15;
@@ -419,6 +455,7 @@ static RESULT Sensor_IsiGetCapsIssInternal
                     pIsiSensorCaps->Resolution = ISI_RES_1296_972P10;
                     break;
                 }
+				#endif
                 default:
                 {
                     result = RET_OUTOFRANGE;
@@ -461,7 +498,7 @@ static RESULT Sensor_IsiGetCapsIssInternal
         pIsiSensorCaps->Conv422         = ISI_CONV422_NOCOSITED;
         pIsiSensorCaps->BPat            = ISI_BPAT_BGBGGRGR;
         pIsiSensorCaps->HPol            = ISI_HPOL_REFPOS;
-        pIsiSensorCaps->VPol            = ISI_VPOL_NEG;
+        pIsiSensorCaps->VPol            = ISI_VPOL_POS;
         pIsiSensorCaps->Edge            = ISI_EDGE_FALLING;
         pIsiSensorCaps->Bls             = ISI_BLS_OFF;
         pIsiSensorCaps->Gamma           = ISI_GAMMA_OFF;
@@ -531,13 +568,17 @@ const IsiSensorCaps_t Sensor_g_IsiSensorDefaultConfig =
     ISI_CONV422_NOCOSITED,      // Conv422
     ISI_BPAT_BGBGGRGR,          // BPat
     ISI_HPOL_REFPOS,            // HPol
-    ISI_VPOL_NEG,               // VPol
+    ISI_VPOL_POS,               // VPol
     ISI_EDGE_RISING,            // Edge
     ISI_BLS_OFF,                // Bls
     ISI_GAMMA_OFF,              // Gamma
     ISI_CCONV_OFF,              // CConv
-    ISI_RES_1296_972P30,          // Res
-    ISI_DWNSZ_SUBSMPL,          // DwnSz
+	#ifdef MIPI_210MBPS
+	ISI_RES_1296_972P20,
+	#else
+	ISI_RES_1296_972P30,          // Res
+	#endif
+	ISI_DWNSZ_SUBSMPL,          // DwnSz
     ISI_BLC_AUTO,               // BLC
     ISI_AGC_OFF,                // AGC
     ISI_AWB_OFF,                // AWB
@@ -677,9 +718,13 @@ RESULT Sensor_SetupOutputFormat
     }
 
     /* vertical polarity */
-    switch ( pConfig->VPol )            /* only ISI_VPOL_NEG supported, no configuration needed */
+    switch ( pConfig->VPol )            /*no configuration needed */
     {
         case ISI_VPOL_NEG:
+        {
+            break;
+        }
+        case ISI_VPOL_POS:
         {
             break;
         }
@@ -866,30 +911,72 @@ static RESULT Sensor_SetupOutputWindowInternal
 	    /* resolution */
 	    switch ( pConfig->Resolution )
 	    {
-	        case ISI_RES_1296_972P15:
+	        case ISI_RES_1296_972P30:
+			case ISI_RES_1296_972P25:
+			case ISI_RES_1296_972P20:
+			case ISI_RES_1296_972P15:
+			case ISI_RES_1296_972P10:
 	        {
-			  	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pSensorCtx, Sensor_g_onelane_resolution_1296_972)) != RET_SUCCESS){
-					result = RET_FAILURE;
-					TRACE( Sensor_ERROR, "%s: failed to set two lane ISI_RES_2112_1568 \n", __FUNCTION__ );
-	            }
+				//TRACE( Sensor_ERROR, "%s (enter)\n pConfig->Resolution:%d\n set2Sensor:%d\n res_no_chg:%d", 
+				//__FUNCTION__,pConfig->Resolution,set2Sensor,res_no_chg);
+				if (set2Sensor == BOOL_TRUE) {
+					if (res_no_chg == BOOL_FALSE) {
+						if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pSensorCtx, Sensor_g_onelane_resolution_1296_972)) != RET_SUCCESS){
+							result = RET_FAILURE;
+							TRACE( Sensor_ERROR, "%s: failed to set one lane ISI_RES_1296_972 \n", __FUNCTION__ );
+			            }
+					}
+					if (pConfig->Resolution == ISI_RES_1296_972P30) {                        
+	                        result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_1296x972P30_onelane_fpschg);
+	                }else if (pConfig->Resolution == ISI_RES_1296_972P25) {
+	                        result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_1296x972P25_onelane_fpschg);
+	                }else if (pConfig->Resolution == ISI_RES_1296_972P20) {
+	                    result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_1296x972P20_onelane_fpschg);
+	                }else if (pConfig->Resolution == ISI_RES_1296_972P15) {
+	                    result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_1296x972P15_onelane_fpschg);
+	                }else if (pConfig->Resolution == ISI_RES_1296_972P10) {
+	                    result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_1296x972P10_onelane_fpschg);
+	                }
+				} 	
+	            usLineLengthPck = 0x0590;
+				
+				if (pConfig->Resolution == ISI_RES_1296_972P30) {
+	            	usFrameLengthLines = 0x051c;
+				}else if(pConfig->Resolution == ISI_RES_1296_972P25){
+					usFrameLengthLines = 0x0621;
+				}else if(pConfig->Resolution == ISI_RES_1296_972P20){
+					usFrameLengthLines = 0x07aa;
+				}else if(pConfig->Resolution == ISI_RES_1296_972P15){
+					usFrameLengthLines = 0x0a38;
+				}else if(pConfig->Resolution == ISI_RES_1296_972P10){
+					usFrameLengthLines = 0x0f54;
+				}
 
-	            usLineLengthPck = 0x0b00;
-	            usFrameLengthLines = 0x03e0;
-				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 640;
+				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 584;
 	            break;
 	            
 	        }
 	        
-	        case ISI_RES_2592_1944P7:
+	        case ISI_RES_2592_1944P10:
 	        {
-	         	if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pSensorCtx, Sensor_g_onelane_resolution_2592_1944)) != RET_SUCCESS){
-					result = RET_FAILURE;
-					TRACE( Sensor_ERROR, "%s: failed to set two lane ISI_RES_4208_3120 \n", __FUNCTION__ );
-	            }
-
+				//TRACE( Sensor_ERROR, "%s (enter)\n pConfig->Resolution:%d\n set2Sensor:%d\n res_no_chg:%d", 
+				//__FUNCTION__,pConfig->Resolution,set2Sensor,res_no_chg);
+				if (set2Sensor == BOOL_TRUE) {
+					if (res_no_chg == BOOL_FALSE) {
+						if((result = IsiRegDefaultsApply((IsiSensorHandle_t)pSensorCtx, Sensor_g_onelane_resolution_2592_1944)) != RET_SUCCESS){
+							result = RET_FAILURE;
+							TRACE( Sensor_ERROR, "%s: failed to set one lane ISI_RES_2592_1944 \n", __FUNCTION__ );
+			            }
+					}
+				if (pConfig->Resolution == ISI_RES_2592_1944P10) {                        
+                        result = IsiRegDefaultsApply( (IsiSensorHandle_t)pSensorCtx, Sensor_g_2592x1944P10_onelane_fpschg);
+                    }
+				}	
 	            usLineLengthPck = 0x0b00;
-	            usFrameLengthLines = 0x07c0;
-				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 640;
+				if (pConfig->Resolution == ISI_RES_2592_1944P10) {
+	            	usFrameLengthLines = 0x0818;
+				}
+				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 584;
 	            break;
 	            
 	        }
@@ -939,15 +1026,31 @@ static RESULT Sensor_SetupOutputWindowInternal
 				if (pConfig->Resolution == ISI_RES_1296_972P30) {
 	            	usFrameLengthLines = 0x03e0;
 				}else if(pConfig->Resolution == ISI_RES_1296_972P25) {
-	            	usFrameLengthLines = 0x04a6; //hkw
+					usFrameLengthLines = 0x04a6;
 				}else if(pConfig->Resolution == ISI_RES_1296_972P20) {
-	            	usFrameLengthLines = 0x05d0; //hkw
+					#ifdef MIPI_210MBPS
+					usFrameLengthLines = 0x03e0;
+					#else
+					usFrameLengthLines = 0x05d0;
+					#endif
 				}else if(pConfig->Resolution == ISI_RES_1296_972P15) {
-	            	usFrameLengthLines = 0x07c0; //hkw
+					#ifdef MIPI_210MBPS
+					usFrameLengthLines = 0x052a;
+					#else
+					usFrameLengthLines = 0x07c0;
+					#endif
 				}else if(pConfig->Resolution == ISI_RES_1296_972P10) {
-	            	usFrameLengthLines = 0xba0; //hkw
+					#ifdef MIPI_210MBPS
+					usFrameLengthLines = 0x7c0;
+					#else
+					usFrameLengthLines = 0xba0;
+					#endif
 				}
+				#ifdef MIPI_210MBPS
+				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 210;
+				#else
 				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 420;
+				#endif
 	            break;
 	            
 	        }
@@ -974,11 +1077,19 @@ static RESULT Sensor_SetupOutputWindowInternal
 				}
 	            usLineLengthPck = 0x0b00;
 				if (pConfig->Resolution == ISI_RES_2592_1944P15) {
-	            	usFrameLengthLines = 0x07c0; //hkw
+	            	usFrameLengthLines = 0x07c0;
 				}else if(pConfig->Resolution == ISI_RES_2592_1944P7) {
-	            	usFrameLengthLines = 0x0f80; //hkw
+					#ifdef MIPI_210MBPS
+					usFrameLengthLines = 0x07c4;
+					#else
+					usFrameLengthLines = 0x0f80;
+					#endif
 				}
+				#ifdef MIPI_210MBPS
+				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 210;
+				#else
 				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 420;
+				#endif
 	            break;
 	            
 	        }
@@ -1315,10 +1426,9 @@ struct otp_struct {
     int light_bg;
 };
 
-//for test,just for compile
-#define  RG_Ratio_Typical (0x16f)
-#define  BG_Ratio_Typical (0x16f)
-
+static int  RG_Ratio_Typical = 0x0;
+static int  BG_Ratio_Typical = 0x0;
+static bool bOTP_switch = true;
 static struct otp_struct g_otp_info ={0};
 
 
@@ -1494,6 +1604,7 @@ static int read_otp(
 static int check_read_otp(
     sensor_i2c_write_t*  sensor_i2c_write_p,
     sensor_i2c_read_t*  sensor_i2c_read_p,
+    sensor_version_get_t* sensor_version_get_p,
     void* context,
     int camsys_fd
 )
@@ -1623,7 +1734,56 @@ static int update_otp(IsiSensorHandle_t   handle)
     }
     update_awb_gain(handle,R_gain, G_gain, B_gain);
     return 0;
-}/*****************************************************************************/
+}
+
+static RESULT Sensor_IsiSetOTPInfo
+(
+    IsiSensorHandle_t       handle,
+    uint32_t OTPInfo
+)
+{
+	RESULT result = RET_SUCCESS;
+
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
+
+    TRACE( Sensor_INFO, "%s (enter)\n", __FUNCTION__);
+
+    if ( pSensorCtx == NULL )
+    {
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        return ( RET_WRONG_HANDLE );
+    }
+
+	RG_Ratio_Typical = OTPInfo>>16;
+	BG_Ratio_Typical = OTPInfo&0xffff;
+
+	TRACE( Sensor_ERROR, "%s:  ----AWB(RG,BG)->(0x%x, 0x%x)----\n", __FUNCTION__ , RG_Ratio_Typical, BG_Ratio_Typical);
+	return (result);
+}
+
+static RESULT Sensor_IsiEnableOTP
+(
+    IsiSensorHandle_t       handle,
+    const bool_t enable
+)
+{
+	RESULT result = RET_SUCCESS;
+
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
+
+    TRACE( Sensor_INFO, "%s (enter)\n", __FUNCTION__);
+
+    if ( pSensorCtx == NULL )
+    {
+        TRACE( Sensor_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        return ( RET_WRONG_HANDLE );
+    }
+	bOTP_switch = enable;
+	return (result);
+}
+
+
+/*****************************************************************************/
 /**
  *          Sensor_IsiSetupSensorIss
  *
@@ -1749,10 +1909,14 @@ static RESULT Sensor_IsiSetupSensorIss
     {
         pSensorCtx->Configured = BOOL_TRUE;
     }
-
+	
+	char prop_value[PROPERTY_VALUE_MAX];
+	property_get("sys_graphic.cam_otp", prop_value, "true");
     if((g_otp_info.rg_ratio !=0) || (g_otp_info.bg_ratio != 0)){
-        TRACE( Sensor_INFO, "%s:  rg,bg(0x%x,0x%x)\n", __FUNCTION__,g_otp_info.rg_ratio,g_otp_info.bg_ratio);
-        update_otp(pSensorCtx);
+		if(bOTP_switch && !strcmp(prop_value,"true")){
+	        TRACE( Sensor_INFO, "%s:  rg,bg(0x%x,0x%x)\n", __FUNCTION__,g_otp_info.rg_ratio,g_otp_info.bg_ratio);
+	        update_otp(pSensorCtx);
+		}
     }
 
     TRACE( Sensor_INFO, "%s: (exit)\n", __FUNCTION__);
@@ -3073,7 +3237,22 @@ RESULT Sensor_IsiGetAfpsInfoIss(
 		{
 			case SUPPORT_MIPI_ONE_LANE:
 			{
-	
+				switch(Resolution){
+					case ISI_RES_1296_972P30:
+					case ISI_RES_1296_972P25:
+					case ISI_RES_1296_972P20:
+					case ISI_RES_1296_972P15:
+					case ISI_RES_1296_972P10:
+						AFPSCHECKANDADD( ISI_RES_1296_972P30);
+						AFPSCHECKANDADD( ISI_RES_1296_972P25);
+						AFPSCHECKANDADD( ISI_RES_1296_972P20);
+						AFPSCHECKANDADD( ISI_RES_1296_972P15);
+						AFPSCHECKANDADD( ISI_RES_1296_972P10);
+						break;
+					case ISI_RES_2592_1944P10:
+						AFPSCHECKANDADD( ISI_RES_2592_1944P10);
+						break;
+				}
 				break;
 			}
 	
@@ -3086,22 +3265,30 @@ RESULT Sensor_IsiGetAfpsInfoIss(
 			            TRACE( Sensor_ERROR,  "%s: Resolution %08x not supported by AFPS\n",  __FUNCTION__, Resolution );
 			            result = RET_NOTSUPP;
 			            break;
+					#ifndef MIPI_210MBPS
 					case ISI_RES_1296_972P30:
 					case ISI_RES_1296_972P25:
+					#endif
 					case ISI_RES_1296_972P20:
 					case ISI_RES_1296_972P15:
 					case ISI_RES_1296_972P10:
 						//TRACE( Sensor_ERROR, "%s: (99999exit)\n", __FUNCTION__);
+						#ifndef MIPI_210MBPS
 						AFPSCHECKANDADD( ISI_RES_1296_972P30);
 						AFPSCHECKANDADD( ISI_RES_1296_972P25);
+						#endif
 						AFPSCHECKANDADD( ISI_RES_1296_972P20);
 						AFPSCHECKANDADD( ISI_RES_1296_972P15);
 						AFPSCHECKANDADD( ISI_RES_1296_972P10);
 						break;
+					#ifndef MIPI_210MBPS
 					case ISI_RES_2592_1944P15:
+					#endif
 					case ISI_RES_2592_1944P7:
 						//TRACE( Sensor_ERROR, "%s: (88888exit)\n", __FUNCTION__);
+						#ifndef MIPI_210MBPS
 						AFPSCHECKANDADD( ISI_RES_2592_1944P15);
+						#endif
 						AFPSCHECKANDADD( ISI_RES_2592_1944P7);
 						break;
 						// check next series here...
@@ -4211,6 +4398,8 @@ RESULT Sensor_IsiGetSensorIss
 		pIsiSensor->pIsiGetSensorIsiVer					= Sensor_IsiGetSensorIsiVersion;//oyyf
 		pIsiSensor->pIsiGetSensorTuningXmlVersion		= Sensor_IsiGetSensorTuningXmlVersion;//oyyf
 		pIsiSensor->pIsiCheckOTPInfo                    = check_read_otp;//zyc
+		pIsiSensor->pIsiSetSensorOTPInfo				= Sensor_IsiSetOTPInfo;
+		pIsiSensor->pIsiEnableSensorOTP					= Sensor_IsiEnableOTP;
         pIsiSensor->pIsiCreateSensorIss                 = Sensor_IsiCreateSensorIss;
         pIsiSensor->pIsiReleaseSensorIss                = Sensor_IsiReleaseSensorIss;
         pIsiSensor->pIsiGetCapsIss                      = Sensor_IsiGetCapsIss;
@@ -4367,7 +4556,9 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationChk>*/   //ddl@rock-chips.com 
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationSet>*/   //ddl@rock-chips.com
-        0,                      /**< IsiSensor_t.pIsiCheckOTPInfo>*/  //zyc 
+        0,                      /**< IsiSensor_t.pIsiCheckOTPInfo>*/  //zyc
+        0,						/**< IsiSensor_t.pIsiSetSensorOTPInfo>*/  //zyl
+        0,						/**< IsiSensor_t.pIsiEnableSensorOTP>*/  //zyl
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

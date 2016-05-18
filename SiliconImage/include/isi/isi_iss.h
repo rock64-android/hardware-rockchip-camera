@@ -165,11 +165,15 @@ typedef RESULT (IsiActivateTestPattern_t)           ( IsiSensorHandle_t handle, 
 //add for OTP,zyc
 typedef int (sensor_i2c_write_t)(void* context,int camsys_fd,const uint32_t reg_address, const uint32_t  value, int* i2c_base_info);
 typedef int (sensor_i2c_read_t)(void* context,int camsys_fd,const uint32_t reg_address,int* i2c_base_info);
+typedef int (sensor_version_get_t)(void* context, int camsys_fd, int version, int verID);
+typedef RESULT (IsiSetSensorOTPInfo_t) ( IsiSensorHandle_t handle, uint32_t OTPInfo);
+typedef RESULT (IsiEnableSensorOTP_t) ( IsiSensorHandle_t handle, const bool_t enable);
 
 typedef RESULT (IsiCheckOTPInfo_t)
 (
     sensor_i2c_write_t*  sensor_i2c_write_p,
     sensor_i2c_read_t*  sensor_i2c_read_p,
+    sensor_version_get_t* sensor_version_get_p,
     void* context,
     int camsys_fd
 );
@@ -195,6 +199,8 @@ struct IsiSensor_s
 	IsiWhiteBalanceIlluminationChk_t    *pIsiWhiteBalanceIlluminationChk;//ddl@rock-chips.com
     IsiWhiteBalanceIlluminationSet_t    *pIsiWhiteBalanceIlluminationSet;//ddl@rock-chips.com
     IsiCheckOTPInfo_t                   *pIsiCheckOTPInfo;  //for OTP,zyc
+	IsiSetSensorOTPInfo_t				*pIsiSetSensorOTPInfo; //zyl
+	IsiEnableSensorOTP_t				*pIsiEnableSensorOTP; //zyl
 	
     IsiCreateSensorIss_t                *pIsiCreateSensorIss;           /**< create a sensor handle */
     IsiReleaseSensorIss_t               *pIsiReleaseSensorIss;          /**< release a sensor handle */

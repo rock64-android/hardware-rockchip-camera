@@ -499,59 +499,78 @@ namespace android {
      1) merge from mid, include following versions:
 			*v1.0x32.5:
 					Modify and unified rga interface.
-*V1.0x36.1:
-     1) TARGET_RK3288 had change to TARGET_RK32,fix it.
-*v1.0x36.2:
-     1) fix something to pass cts, especially testYuvAndJpeg item by huangjinghua.
-*v1.0x36.3:
-	 1) support rk3188 platform.
-*v1.0x36.4:
-     1) fix Luma value to 45 in auto flash mode.
-*v1.0x36.5:
-     1) support rk3188,android5.1.
-*v1.0x36.6:
-     1) fix rk3188 thumbnails
-*v1.0x36.7:
-     1) Support the query of iommu_enabled for usb camera.
-*v1.0x36.8:
-     1) bug exist in v1.0x36.7, fix it.
-*v1.0x36.9:
-     1) merge with 3368 camera branch,include follow versions:
-		*v1.0x30.1:
-			1) CameraHal_board_xml_parse.cpp: strncpy is not safer,replace it with strlncpy.
-		*v1.0x30.2:
-			1) risk exist in v1.0x30.1, fix it.
-		*v1.0x30.3:
-			1) enable neon for isp soc camera.
-		*v1.0x30.4:
-    		1) ensure that input size and offset is 2 alignment for rga.
-		*v1.0x30.5:
-    		1) src x_offset must be 32 alignment, rga's bug.
-*v1.0x36.a:
-	1) support rk3188 scale by ipp.
-*v1.0x36.b:
-	1) fix some bugs.
-*v1.0x36.c:
-	1) fix bugs in v1.0x36.b.
-	2) bug in rga_nv12_scale_crop func, fix it.
-	3) add some setting for usb camera.
-*v1.0x36.d:
-	1) fix risk in v1.0x36.c.
-*v1.0x36.e:
-	1) fix bug in v1.0x36.7:dynamic query iommu status for usb camera.
-	2) macro IOMMU is invalide, remove it.
-	3) avoid the access of mDisplayBufInfo when it is NULL.
-*v1.0x37.0:
-	compatible with android 6.0
-*v1.0x37.1:
-    compatible with 64bit
-*v1.0x37.2:
-    1) modify for RK3368 Android6.0
-    2) when sensor service doesn't start
-       sensor listener will return at time 
+*V1.0x37.0:
+	1) support OV8858 of different versions with the same lens but different calibration xmls.
+*V1.0x38.0:
+*	1) the judgment occasion of different OV8858 versions is wrong, correct it.
+*V1.0x39.0:
+*   1) CameraHal_board_xml_parse.cpp: strncpy is not safer,replace it with strlncpy.
+*V1.0x3a.0:
+*   1) risk exist in V1.0x39.0, fix it.
+*V1.0x3b.0:
+*	1) create callback thread for interactive with cameraservice.
+*	2) 1296x972 crop to 1280x720 used by isp to avoid edge shift.
+*V1.0x3c.0:        
+	1) support sensor powerup sequence configurable.
+*V1.0x3d.0:
+*	1) modify the matching method of raw-sensor's IQ file.
+*	2) add property 'sys_graphic.cam_otp'.
+*V1.0x3e.0:
+     1) merge from mid, include following versions:
+	 	*V1.0x36.1:
+	     1) TARGET_RK3288 had change to TARGET_RK32,fix it.
+		*v1.0x36.2:
+		     1) fix something to pass cts, especially testYuvAndJpeg item by huangjinghua.
+		*v1.0x36.3:
+			 1) support rk3188 platform.
+		*v1.0x36.4:
+		     1) fix Luma value to 45 in auto flash mode.
+		*v1.0x36.5:
+		     1) support rk3188,android5.1.
+		*v1.0x36.6:
+		     1) fix rk3188 thumbnails
+		*v1.0x36.7:
+		     1) Support the query of iommu_enabled for usb camera.
+		*v1.0x36.8:
+		     1) bug exist in v1.0x36.7, fix it.
+		*v1.0x36.9:
+		     1) merge with 3368 camera branch,include follow versions:
+				*v1.0x30.1:
+					1) CameraHal_board_xml_parse.cpp: strncpy is not safer,replace it with strlncpy.
+				*v1.0x30.2:
+					1) risk exist in v1.0x30.1, fix it.
+				*v1.0x30.3:
+					1) enable neon for isp soc camera.
+				*v1.0x30.4:
+		    		1) ensure that input size and offset is 2 alignment for rga.
+				*v1.0x30.5:
+		    		1) src x_offset must be 32 alignment, rga's bug.
+		*v1.0x36.a:
+			1) support rk3188 scale by ipp.
+		*v1.0x36.b:
+			1) fix some bugs.
+		*v1.0x36.c:
+			1) fix bugs in v1.0x36.b.
+			2) bug in rga_nv12_scale_crop func, fix it.
+			3) add some setting for usb camera.
+		*v1.0x36.d:
+			1) fix risk in v1.0x36.c.
+		*v1.0x36.e:
+			1) fix bug in v1.0x36.7:dynamic query iommu status for usb camera.
+			2) macro IOMMU is invalide, remove it.
+			3) avoid the access of mDisplayBufInfo when it is NULL.
+		*v1.0x37.0:
+			compatible with android 6.0
+		*v1.0x37.1:
+		    compatible with 64bit
+		*v1.0x37.2:
+		    1) modify for RK3368 Android6.0
+		    2) when sensor service doesn't start
+		       sensor listener will return at time 
+	 2)support rk3366,rk3399
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x37, 0x2)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x3e, 0)
 
 
 /*  */
@@ -602,6 +621,7 @@ namespace android {
 #define CAMERAHAL_ISI_PROPERTY_KEY                      "sys_graphic.cam_isi.ver"
 #define CAMERAHAL_CAMBOARDXML_PARSER_PROPERTY_KEY       "sys_graphic.cam_camboard.ver"
 #define CAMERAHAL_TRACE_LEVEL_PROPERTY_KEY              "sys_graphic.cam_trace"
+#define CAMERAHAL_CAM_OTP_PROPERTY_KEY					"sys_graphic.cam_otp"
 
 
 #define CAMERA_PMEM_NAME                     "/dev/pmem_cam"

@@ -33,8 +33,12 @@ using namespace android;
 *     1:add sensor lens config.
 *v.0.0x0d.0
 *     1:support sensor otp i2c info.
+*v.0.0x0e.0
+*     1:support sensor powerupsequence configurable.
+*v.0.0xf.0
+*	  1: rk_sensor_info add mModuleName.
 */
-#define ConfigBoardXmlVersion KERNEL_VERSION(0, 0xd, 0x00) 
+#define ConfigBoardXmlVersion KERNEL_VERSION(0, 0xf, 0x00) 
 
 #define UVC_CAM_NAME "UVC Camera"
 #define SOC_CAM_NAME "SOC Camera"//yzm
@@ -69,7 +73,7 @@ using namespace android;
 #endif
 
 #define RK_SENSOR_XML_PATH "/etc/"
-
+#define SENSOR_SPECIAL_TAG		(0xfefe5aa5)
 
 typedef enum sensor_interface_s{
     OUTPUT_MODE_MIN,
@@ -142,10 +146,12 @@ struct rk_sensor_info{
     rk_sensor_info():
                 mCamDevid(0),
                 mSensorI2cAddr(0),
+                mSensorPowerupSequence(0),
                 mMode(OUTPUT_MODE_MIN){};
     ~rk_sensor_info(){};
     
     char mSensorName[CAMSYS_NAME_LEN];
+	char mModuleName[CAMSYS_NAME_LEN];
     char mLensName[CAMSYS_NAME_LEN];
     char mCamsysDevPath[CAMSYS_NAME_LEN];
     char mSensorDriver[16];
@@ -172,11 +178,13 @@ struct rk_sensor_info{
     //gpio
     camsys_gpio_info_t mSensorGpioReset;
     camsys_gpio_info_t mSensorGpioPwdn;
+	camsys_gpio_info_t mSensorGpioPwdn0;
+	camsys_gpio_info_t mSensorGpioPwdn1;
     camsys_gpio_info_t SensorGpioPwen;
 
     //powerup_sequence
     unsigned int mSensorGpioFlag;
-    int mSensorPowerupSequence;
+    unsigned int mSensorPowerupSequence;
 
     //facing: front or back camera
     int mFacing;
@@ -201,11 +209,19 @@ struct rk_sensor_info{
 	float fov_v;
 
 	int awb_frame_skip;
-
+//delay
+	int mAvdd_delay;
+	int mDovdd_delay;
+	int mDvdd_delay;	
+	int mPwr_delay;	
+	int mRst_delay;
+	int mPwrdn_delay;	
+	int mClkin_delay;
 };
 
 struct rk_vcm_info{
-    rk_vcm_info():mVcmI2cAddr(0){};
+    rk_vcm_info():mVcmI2cAddr(0),
+					mVcmPowerupSequence(0){};
     ~rk_vcm_info(){};
 
     char mVcmDrvName[CAMSYS_NAME_LEN];
@@ -225,7 +241,10 @@ struct rk_vcm_info{
     
     camsys_gpio_info_t mVcmGpioPwdn;
     camsys_gpio_info_t mVcmGpioPower;
-
+	unsigned int mVcmPowerupSequence;
+	int mVcmvdd_delay;
+	int mVcmpwr_delay;
+	int mVcmpwrdn_delay;
 };
 
 struct rk_flash_info{

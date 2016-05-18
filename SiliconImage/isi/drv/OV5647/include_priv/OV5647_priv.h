@@ -16,8 +16,11 @@ extern "C"
 *   1).add senosr drv version in get sensor i2c info func
 *v0.2.0:
 *   1). support for isi v0.5.0
+*v0.3.0
+*   1). support for isi v0.0xc.0
+*   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 2, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 3, 0) 
 
 
 #define OV5647_DELAY_5MS                    (0x0000) //delay 5 ms

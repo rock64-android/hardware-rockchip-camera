@@ -52,11 +52,14 @@ extern "C"
 *v0.2.0 : groupA & groupB for AE, fps fall a little -- oyyf
 *
 *v0.3.0 : 
-*          1: 2lane bining ISI_RES_1632_1224P30 & ISI_RES_1632_1224P25 group change fail, then delete these two fps.
-*          2: support 4lane  --oyyf        
+*   1: 2lane bining ISI_RES_1632_1224P30 & ISI_RES_1632_1224P25 group change fail, then delete these two fps.
+*   2: support 4lane  --oyyf 
+*v0.4.0
+*   1). support for isi v0.0xc.0       
+*   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 3, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 4, 0x00) 
 
 
 #define Sensor_CHIP_ID_HIGH_BYTE            (0x0000) // r - 

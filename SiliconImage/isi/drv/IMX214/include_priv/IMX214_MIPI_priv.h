@@ -51,10 +51,13 @@ extern "C"
 *v0.2.0 : correct 4lane demo mistakes, but 4lane still not work
 *v0.3.0 : change imx214 2lane register setting from external to internal 
 *v0.4.0 : fix exposure and awb capture in setting -- oyyf
-*
+*v0.5.0 : add sensor_version_get_p callback func param in check_read_otp func.
+*v0.6.0
+*   1). support for isi v0.0xc.0
+*   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 4, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 6, 0x00)
 
 
 #define Sensor_CHIP_ID_HIGH_BYTE            (0x0000) // r - 

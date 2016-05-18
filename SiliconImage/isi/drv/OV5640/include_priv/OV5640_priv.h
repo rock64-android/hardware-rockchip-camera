@@ -25,9 +25,12 @@
 *   2). becaus fps's increasing,so the rate fps is increasing.
 *v0.9.0
 *   1)for preview pic err,set I2C write speed to 100K;
-*	  2)don't check sensor ID hight byte,it may fail sometimes;  
+*	  2)don't check sensor ID hight byte,it may fail sometimes;
+*v0.a.0
+*   1). support for isi v0.0xc.0 
+*   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 8, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xa, 0) 
 
 #ifdef __cplusplus
 extern "C"

@@ -786,7 +786,7 @@
 			<HardWareInfo>
 				<Sensor>
 					<SensorName name="GS8604"></SensorName>
-		`			<SensorLens name="9569A2"></SensorLens>
+					<SensorLens name="9569A2"></SensorLens>
 					<SensorDevID IDname="CAMSYS_DEVID_SENSOR_1B"></SensorDevID>
 					<SensorHostDevID busnum="CAMSYS_DEVID_MARVIN" ></SensorHostDevID>
 					<SensorI2cBusNum busnum="3"></SensorI2cBusNum>

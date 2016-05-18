@@ -137,6 +137,20 @@ typedef struct HalContext_s *HalHandle_t;
 typedef struct HalPara_s
 {
     uint32_t   mipi_lanes;
+	uint32_t   sensorpowerupseq;
+	uint32_t   vcmpowerupseq;	
+//delay
+	uint32_t avdd_delay;
+	uint32_t dovdd_delay;
+	uint32_t dvdd_delay;
+	uint32_t pwr_delay;
+	uint32_t rst_delay;
+	uint32_t pwrdn_delay;
+	uint32_t clkin_delay;
+
+	uint32_t vcmvdd_delay;
+	uint32_t vcmpwr_delay;
+	uint32_t vcmpwrdn_delay;
 	bool_t     is_new_ion;
 } HalPara_t;
 

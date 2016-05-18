@@ -274,9 +274,10 @@ static struct otp_struct_R2A g_otp_info_R2A ={0};
 #define OV8858_R2A	0xb2
 static int g_sensor_version;
 
-//for test,just for compile
-int  RG_Ratio_Typical=0x100;
-int  BG_Ratio_Typical=0x100;
+
+int  RG_Ratio_Typical=0x0;
+int  BG_Ratio_Typical=0x0;
+bool bOTP_switch = true;
 
 #define  RG_Ratio_Typical_tongju (0x15c)
 #define  BG_Ratio_Typical_tongju (0x13f)
@@ -294,6 +295,7 @@ int  BG_Ratio_Typical=0x100;
 static int check_read_otp(
     sensor_i2c_write_t*  sensor_i2c_write_p,
     sensor_i2c_read_t*  sensor_i2c_read_p,
+    sensor_version_get_t* sensor_version_get_p,
     void* context,
     int camsys_fd
 )
@@ -509,6 +511,7 @@ static int check_read_otp_R1A(
         TRACE( OV8858_ERROR, "%s awb info in module_integrator_id(0x%x) lens_id(0x%x) production_year_month_day(%d_%d_%d) !\n", 
 		__FUNCTION__,(*otp_ptr).module_integrator_id,(*otp_ptr).lens_id,(*otp_ptr).production_year,(*otp_ptr).production_month,(*otp_ptr).production_day);
         TRACE( OV8858_ERROR, "%s awb info in OTP(0x%x,0x%x)!\n", __FUNCTION__,(*otp_ptr).rg_ratio,(*otp_ptr).bg_ratio);
+#if 0 //awb data moved to tuning file
         if((*otp_ptr).module_integrator_id == 0x04 && (*otp_ptr).lens_id == 0x50)
         {
             RG_Ratio_Typical = RG_Ratio_Typical_guangzhen;
@@ -517,6 +520,7 @@ static int check_read_otp_R1A(
             RG_Ratio_Typical = RG_Ratio_Typical_tongju;
             BG_Ratio_Typical = BG_Ratio_Typical_tongju;
         }
+#endif
     }
     else {
         (*otp_ptr).flag = 0x00; // not info and AWB in OTP
@@ -665,7 +669,7 @@ static int check_read_otp_R2A(
 		__FUNCTION__,(*otp_ptr).module_integrator_id,(*otp_ptr).lens_id,(*otp_ptr).production_year,(*otp_ptr).production_month,(*otp_ptr).production_day);
         TRACE( OV8858_ERROR, "%s awb info in OTP(0x%x,0x%x)!\n", __FUNCTION__,(*otp_ptr).rg_ratio,(*otp_ptr).bg_ratio);		
 
-        #if 1
+        #if 0// awb data moved to tuning file
     	if((*otp_ptr).module_integrator_id == 0x07 && (*otp_ptr).lens_id == 0x00)
         {
             RG_Ratio_Typical = RG_Ratio_Typical_R2A_bbk;
@@ -762,6 +766,7 @@ static int check_read_otp_R2A(
 static int check_read_otp(
 	sensor_i2c_write_t*  sensor_i2c_write_p,
 	sensor_i2c_read_t*	sensor_i2c_read_p,
+	sensor_version_get_t* sensor_version_get_p,
 	void* context,
 	int camsys_fd
 )
@@ -799,6 +804,8 @@ static int check_read_otp(
 	
 	if(g_sensor_version == 0xb1)//one type of R1A, this reg value is oxb1.
 		g_sensor_version = OV8858_R1A;
+	
+	sensor_version_get_p(context,camsys_fd,g_sensor_version,SENSOR_SPECIAL_TAG);
 
 	if(g_sensor_version == OV8858_R2A)
 		return	check_read_otp_R2A(sensor_i2c_write_p, sensor_i2c_read_p, context, camsys_fd);
@@ -934,6 +941,52 @@ static int apply_otp_R2A(IsiSensorHandle_t   handle,struct otp_struct_R2A *otp_p
 	}
 	TRACE( OV8858_NOTICE0,  "%s: success!!!\n",  __FUNCTION__ );
 	return (*otp_ptr).flag;
+}
+
+static RESULT OV8858_IsiSetOTPInfo
+(
+    IsiSensorHandle_t       handle,
+    uint32_t OTPInfo
+)
+{
+	RESULT result = RET_SUCCESS;
+
+    OV8858_Context_t *pOV8858Ctx = (OV8858_Context_t *)handle;
+
+    TRACE( OV8858_INFO, "%s (enter)\n", __FUNCTION__);
+
+    if ( pOV8858Ctx == NULL )
+    {
+        TRACE( OV8858_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        return ( RET_WRONG_HANDLE );
+    }
+
+	RG_Ratio_Typical = OTPInfo>>16;
+	BG_Ratio_Typical = OTPInfo&0xffff;
+	TRACE( OV8858_ERROR, "%s:  ----AWB(RG,BG)->(0x%x, 0x%x)----\n", __FUNCTION__ , RG_Ratio_Typical, BG_Ratio_Typical);
+
+	return (result);
+}
+
+static RESULT OV8858_IsiEnableOTP
+(
+    IsiSensorHandle_t       handle,
+    const bool_t enable
+)
+{
+	RESULT result = RET_SUCCESS;
+
+    OV8858_Context_t *pOV8858Ctx = (OV8858_Context_t *)handle;
+
+    TRACE( OV8858_INFO, "%s (enter)\n", __FUNCTION__);
+
+    if ( pOV8858Ctx == NULL )
+    {
+        TRACE( OV8858_ERROR, "%s: Invalid sensor handle (NULL pointer detected)\n", __FUNCTION__ );
+        return ( RET_WRONG_HANDLE );
+    }
+	bOTP_switch = enable;
+	return (result);
 }
 
 
@@ -1249,7 +1302,7 @@ static RESULT OV8858_IsiGetCapsIssInternal
         pIsiSensorCaps->Conv422         = ISI_CONV422_NOCOSITED;
         pIsiSensorCaps->BPat            = ISI_BPAT_BGBGGRGR;
         pIsiSensorCaps->HPol            = ISI_HPOL_REFPOS; //hsync?
-        pIsiSensorCaps->VPol            = ISI_VPOL_NEG; //VPolarity
+        pIsiSensorCaps->VPol            = ISI_VPOL_POS; //VPolarity
         pIsiSensorCaps->Edge            = ISI_EDGE_FALLING; //?
         pIsiSensorCaps->Bls             = ISI_BLS_OFF; //close;
         pIsiSensorCaps->Gamma           = ISI_GAMMA_OFF;//close;
@@ -1319,7 +1372,7 @@ const IsiSensorCaps_t OV8858_g_IsiSensorDefaultConfig =
     ISI_CONV422_NOCOSITED,      // Conv422
     ISI_BPAT_BGBGGRGR,          // BPat
     ISI_HPOL_REFPOS,            // HPol
-    ISI_VPOL_NEG,               // VPol
+    ISI_VPOL_POS,               // VPol
     ISI_EDGE_RISING,            // Edge
     ISI_BLS_OFF,                // Bls
     ISI_GAMMA_OFF,              // Gamma
@@ -1465,9 +1518,13 @@ RESULT OV8858_SetupOutputFormat
     }
 
     /* vertical polarity */
-    switch ( pConfig->VPol )            /* only ISI_VPOL_NEG supported, no configuration needed */
+    switch ( pConfig->VPol )            /*no configuration needed */
     {
         case ISI_VPOL_NEG:
+        {
+            break;
+        }
+        case ISI_VPOL_POS:
         {
             break;
         }
@@ -1749,7 +1806,7 @@ static RESULT OV8858_SetupOutputWindowInternal
         		}
 
     			if(g_sensor_version == OV8858_R2A)
-    			    usTimeHts = 0x0f10; 
+    			    usTimeHts = 0x0788; 
     			else
                     usTimeHts = 0x0788; 
                     
@@ -2316,8 +2373,10 @@ static RESULT OV8858_IsiSetupSensorIss
         return ( result );
     }
 
+	char prop_value[PROPERTY_VALUE_MAX];
+	property_get("sys_graphic.cam_otp", prop_value, "true");
     //set OTP
-    {
+    if(bOTP_switch && !strcmp(prop_value,"true")){
         //struct otp_struct  otp_ptr;
         //read_otp(handle,&otp_ptr);
         if(g_sensor_version == OV8858_R1A){
@@ -2426,7 +2485,7 @@ static RESULT OV8858_IsiChangeSensorResolutionIss
         bool_t res_no_chg;
 
         if (!((ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pOV8858Ctx->Config.Resolution)) && 
-            (ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pOV8858Ctx->Config.Resolution))) ) {
+            (ISI_RES_H_GET(Resolution)==ISI_RES_H_GET(pOV8858Ctx->Config.Resolution))) ) {
 
             if (pOV8858Ctx->Streaming != BOOL_FALSE) {
                 TRACE( OV8858_ERROR, "%s: Sensor is streaming, Change resolution is not allow\n",__FUNCTION__);
@@ -3697,7 +3756,19 @@ RESULT OV8858_IsiGetAfpsInfoIss(
     {
         case SUPPORT_MIPI_ONE_LANE:
         {
-
+			switch(Resolution)
+			{
+				 default:
+                    TRACE( OV8858_DEBUG,  "%s: Resolution %08x not supported by AFPS\n",  __FUNCTION__, Resolution );
+                    result = RET_NOTSUPP;
+                    break;
+				case ISI_RES_1632_1224P15:
+					AFPSCHECKANDADD( ISI_RES_1632_1224P15 );
+					break;
+				case ISI_RES_3264_2448P7:
+					AFPSCHECKANDADD( ISI_RES_3264_2448P7 );
+					break;
+			}
             break;
         }
 
@@ -4842,6 +4913,8 @@ RESULT OV8858_IsiGetSensorIss
 		pIsiSensor->pIsiGetSensorIsiVer					= OV8858_IsiGetSensorIsiVersion;//oyyf
 		pIsiSensor->pIsiGetSensorTuningXmlVersion		= OV8858_IsiGetSensorTuningXmlVersion;//oyyf
 		pIsiSensor->pIsiCheckOTPInfo                    = check_read_otp;//zyc
+		pIsiSensor->pIsiSetSensorOTPInfo				= OV8858_IsiSetOTPInfo;
+		pIsiSensor->pIsiEnableSensorOTP					= OV8858_IsiEnableOTP;
         pIsiSensor->pIsiCreateSensorIss                 = OV8858_IsiCreateSensorIss;
         pIsiSensor->pIsiReleaseSensorIss                = OV8858_IsiReleaseSensorIss;
         pIsiSensor->pIsiGetCapsIss                      = OV8858_IsiGetCapsIss;
@@ -5011,6 +5084,8 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationChk>*/   //ddl@rock-chips.com 
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationSet>*/   //ddl@rock-chips.com
         0,                      /**< IsiSensor_t.pIsiCheckOTPInfo>*/  //zyc 
+        0,						/**< IsiSensor_t.pIsiSetSensorOTPInfo>*/  //zyl
+        0,						/**< IsiSensor_t.pIsiEnableSensorOTP>*/  //zyl
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

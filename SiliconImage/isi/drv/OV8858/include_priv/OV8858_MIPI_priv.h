@@ -82,10 +82,24 @@ extern "C"
 *   2). support different otp rg bg typetical value
 *v1.2.0
 *   1). support another type of R1A.
+*v1.3.0:
+*   1). support the same sensor but different versions with the same lens.
+*v1.4.0:
+*   1). move code added in v1.3.0 to new interface get_sensor_version.
+*v1.5.0:
+*   1). change R2A setting HTS fromt 0x0f10 to 0x0788.
+*v1.6.0:
+*   1). OV8858_IsiGetAfpsInfoIss support one lane.
+*v1.7.0
+*	1). sensor OTP data application can enable/disable by property setting.
+*	2). typical OTP rg/bg value moved to IQ file.
+*v1.8.0
+*   1). support for isi v0.0xc.0
+*   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(1, 2, 0)
+#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(1, 8, 0)
 
 /*****************************************************************************
  * System control registers
@@ -113,7 +127,7 @@ extern "C"
 #define OV8858_AEC_EXPO_M                   (0x3501) // rw- Bit[7:0] exposure[15:8]
 #define OV8858_AEC_EXPO_L                   (0x3502) // rw- Bit[7:0] exposure[7:0] low 4 bits are fraction bits which are not supportted and should always be 0.
 
-
+#define SENSOR_SPECIAL_TAG					(0xfefe5aa5)
 
 /*****************************************************************************
  * ov14825 context structure

@@ -101,6 +101,12 @@ typedef char                        sensor_sample_id_t[SENSOR_SAMPLE_ID_SIZE];
  * @brief   Global AWB calibration structure
  */
 /*****************************************************************************/
+typedef struct OTPInfo_s
+{
+    uint16_t				nRG_Ratio_Typical;                  /**wb rg value*/
+    uint16_t				nBG_Ratio_Typical;                  /**wb bg value*/
+} OTPInfo_t;
+
 typedef struct CamCalibDbMetaData_s
 {
     creation_date_t         cdate;                  /**< creation date */
@@ -108,6 +114,7 @@ typedef struct CamCalibDbMetaData_s
     creator_version_t       cversion;               /**< version of creation tool (matlab generator) */
     sensor_name_t           sname;                  /**< sensor name */
     sensor_sample_id_t      sid;                    /**< sensor sample id */
+	OTPInfo_t				OTPInfo;
 } CamCalibDbMetaData_t;
 
 

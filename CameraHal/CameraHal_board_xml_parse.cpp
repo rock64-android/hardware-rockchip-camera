@@ -35,6 +35,130 @@
 #include "CameraHal_board_xml_parse.h"
 #include "CameraHal_Tracer.h"
 
+static int rk_sensor_pwrseq(int dev, rk_cam_total_info* pCamInfo, int on)
+{
+    int err = RK_RET_SUCCESS,ret = RK_RET_SUCCESS;
+    int i,powerup_type;
+	camsys_sysctrl_t sysctl;
+    rk_sensor_info *pSensorInfo = &(pCamInfo->mHardInfo.mSensorInfo);
+	int camsys_fd = dev;
+
+    for (i=0; i<SENSOR_PWRSEQ_CNT; i++) {
+
+        if (on == 1)
+            powerup_type = POWERSEQ_GET(pSensorInfo->mSensorPowerupSequence,(SENSOR_PWRSEQ_CNT-1-i));
+        else
+            powerup_type = POWERSEQ_GET(pSensorInfo->mSensorPowerupSequence,i);
+        
+        switch (powerup_type)
+        {
+            case SENSOR_PWRSEQ_AVDD:
+			{
+			    sysctl.dev_mask = pSensorInfo->mCamDevid;
+			    sysctl.ops = CamSys_Avdd;
+			    sysctl.on = on;
+			    err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
+			    if (err<0) {
+			        ALOGE("CamSys_Avdd on failed!\n");
+			        ret = RK_RET_DEVICEERR;
+					goto end;
+			    }
+				usleep(pSensorInfo->mAvdd_delay);
+				break;
+        	}
+            case SENSOR_PWRSEQ_DOVDD:
+			{
+			    sysctl.dev_mask = pSensorInfo->mCamDevid;
+			    sysctl.ops = CamSys_Dovdd;
+			    sysctl.on = on;
+			    err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
+			    if (err<0) {
+			        ALOGE("CamSys_Dovdd on failed!\n");
+			        ret = RK_RET_DEVICEERR;
+			        goto end;
+			    }
+				usleep(pSensorInfo->mDovdd_delay);
+				break;
+        	}				
+            case SENSOR_PWRSEQ_DVDD:
+			{
+			    sysctl.dev_mask = pSensorInfo->mCamDevid;
+			    sysctl.ops = CamSys_Dvdd;
+			    sysctl.on = on;
+			    err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
+			    if (err<0) {
+			        ALOGE("CamSys_Dvdd on failed!\n");
+			        ret = RK_RET_DEVICEERR;
+			        goto end;
+			    }
+				usleep(pSensorInfo->mDvdd_delay);
+				break;
+        	}				
+            case SENSOR_PWRSEQ_PWR:
+			{
+				sysctl.dev_mask = pSensorInfo->mCamDevid;
+				sysctl.ops = CamSys_PwrEn;
+				sysctl.on = on;
+				err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
+				if (err<0) {
+					ALOGE("CamSys_PwrEn on failed!\n");
+					ret = RK_RET_DEVICEERR;
+					goto end;
+				}
+				usleep(pSensorInfo->mPwr_delay);
+				break;
+			}
+            case SENSOR_PWRSEQ_RST:
+			{
+				sysctl.dev_mask = pSensorInfo->mCamDevid;
+				sysctl.ops = CamSys_Rst;
+				sysctl.on = !on;
+				err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
+				if (err<0) {
+					ALOGE("CamSys_Rst on failed!\n");
+					ret = RK_RET_DEVICEERR;
+					goto end;
+				}
+				usleep(pSensorInfo->mRst_delay);
+				break;
+			}
+            case SENSOR_PWRSEQ_PWRDN:
+			{
+				sysctl.dev_mask = pSensorInfo->mCamDevid;
+				sysctl.ops = CamSys_PwrDn;
+				sysctl.on = !on;
+				err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
+				if (err<0) {
+					ALOGE("CamSys_PwrDn on failed!\n");
+					ret = RK_RET_DEVICEERR;
+					goto end;
+				}
+				usleep(pSensorInfo->mPwrdn_delay);
+				break;
+			}
+            case SENSOR_PWRSEQ_CLKIN:
+			{
+				sysctl.dev_mask = pSensorInfo->mCamDevid;
+				sysctl.ops = CamSys_ClkIn;
+				sysctl.on = on;
+				err = ioctl(camsys_fd, CAMSYS_SYSCTRL, &sysctl);
+				if (err<0) {
+					ALOGE("CamSys_ClkIn on failed!\n");
+					ret = RK_RET_DEVICEERR;
+					goto end;
+				}
+				usleep(pSensorInfo->mClkin_delay);
+				break;
+			}
+            default:
+                break;
+        }
+        
+    } 
+end:
+    return ret;
+}
+
 void camera_board_profiles::ParserSensorInfo(const char *name, const  char **atts, void *userData)
 {
 	camera_board_profiles *pCamInfoProfiles = (camera_board_profiles *) userData;
@@ -44,7 +168,10 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
     if (strcmp(name, "SensorName")==0) {
         strlcpy(pSensorInfo->mSensorName, atts[1], sizeof(pSensorInfo->mSensorName));
         ALOGD("%s(%d): SensorName(%s)\n", __FUNCTION__, __LINE__, pSensorInfo->mSensorName);
-    } else if (strcmp(name, "SensorLens")==0) {
+    }else if (strcmp(name, "ModuleName")==0) {
+        strlcpy(pSensorInfo->mModuleName, atts[1], sizeof(pSensorInfo->mModuleName));
+        ALOGD("%s(%d): ModuleName(%s)\n", __FUNCTION__, __LINE__, pSensorInfo->mModuleName);
+    }else if (strcmp(name, "SensorLens")==0) {
         strlcpy(pSensorInfo->mLensName, atts[1], sizeof(pSensorInfo->mLensName));
         ALOGD("%s(%d): lensName(%s)\n", __FUNCTION__, __LINE__, pSensorInfo->mLensName);
     } else if (strcmp(name, "SensorDevID")==0) {
@@ -87,33 +214,59 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
     } else if (strcmp(name,"SensorMclk")==0){
         ALOGD("%s(%d): SensorMclk(%s)\n", __FUNCTION__, __LINE__, atts[1]);
         pSensorInfo->mMclkRate = atoi(atts[1]);
+		pSensorInfo->mSensorPowerupSequence = pSensorInfo->mSensorPowerupSequence<<4 | SENSOR_PWRSEQ_CLKIN;
+		pSensorInfo->mClkin_delay = atoi(atts[3]);
     } else if (strcmp(name,"SensorAvdd")==0){
         ALOGD("%s(%d): SensorAvdd(%s) min(%s) max(%s)\n", __FUNCTION__, __LINE__, atts[1], atts[3], atts[5]);
         strlcpy((char*)pSensorInfo->mAvdd.name, (atts[1]), sizeof(pSensorInfo->mAvdd.name));
         pSensorInfo->mAvdd.min_uv = atoi(atts[3]);
         pSensorInfo->mAvdd.max_uv = atoi(atts[5]);
+		pSensorInfo->mSensorPowerupSequence = pSensorInfo->mSensorPowerupSequence<<4 | SENSOR_PWRSEQ_AVDD;
+		pSensorInfo->mAvdd_delay = atoi(atts[7]);	
     } else if (strcmp(name,"SensorDovdd")==0){
         ALOGD("%s(%d): SensorDovdd(%s) min(%s) max(%s)\n", __FUNCTION__, __LINE__, atts[1], atts[3], atts[5]);
         strlcpy((char*)pSensorInfo->mDovdd.name, (atts[1]), sizeof(pSensorInfo->mDovdd.name));
         pSensorInfo->mDovdd.min_uv = atoi(atts[3]);   
         pSensorInfo->mDovdd.max_uv = atoi(atts[5]);
+		pSensorInfo->mSensorPowerupSequence = pSensorInfo->mSensorPowerupSequence<<4 | SENSOR_PWRSEQ_DOVDD;
+		pSensorInfo->mDovdd_delay = atoi(atts[7]);
     } else if (strcmp(name,"SensorDvdd")==0){
         ALOGD("%s(%d): SensorDvdd(%s) min(%s) max(%s)\n", __FUNCTION__, __LINE__, atts[1], atts[3], atts[5]);
         strlcpy((char*)pSensorInfo->mDvdd.name, (atts[1]), sizeof(pSensorInfo->mDvdd.name));
         pSensorInfo->mDvdd.min_uv = atoi(atts[3]);  
         pSensorInfo->mDvdd.max_uv = atoi(atts[5]);
+		pSensorInfo->mSensorPowerupSequence = pSensorInfo->mSensorPowerupSequence<<4 | SENSOR_PWRSEQ_DVDD;
+		pSensorInfo->mDvdd_delay = atoi(atts[7]);
     } else if (strcmp(name,"SensorGpioPwdn")==0){
         ALOGD("%s(%d): SensorGpioPwdn(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
         strlcpy((char*)pSensorInfo->mSensorGpioPwdn.name, (atts[1]), sizeof(pSensorInfo->mSensorGpioPwdn.name));
         pSensorInfo->mSensorGpioPwdn.active = atoi(atts[3]);
-    } else if (strcmp(name,"SensorGpioRst")==0){
+		pSensorInfo->mSensorPowerupSequence = pSensorInfo->mSensorPowerupSequence<<4 | SENSOR_PWRSEQ_PWRDN;
+		pSensorInfo->mPwrdn_delay = atoi(atts[5]);
+    }else if (strcmp(name,"SensorGpioPwdn0")==0){
+        ALOGD("%s(%d): SensorGpioPwdn0(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
+        strlcpy((char*)pSensorInfo->mSensorGpioPwdn0.name, (atts[1]), sizeof(pSensorInfo->mSensorGpioPwdn0.name));
+        pSensorInfo->mSensorGpioPwdn0.active = atoi(atts[3]);
+		pSensorInfo->mSensorPowerupSequence = pSensorInfo->mSensorPowerupSequence<<4 | SENSOR_PWRSEQ_PWRDN;
+		pSensorInfo->mPwrdn_delay = atoi(atts[5]);
+    }else if (strcmp(name,"SensorGpioPwdn1")==0){
+        ALOGD("%s(%d): SensorGpioPwdn1(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
+        strlcpy((char*)pSensorInfo->mSensorGpioPwdn1.name, (atts[1]), sizeof(pSensorInfo->mSensorGpioPwdn1.name));
+        pSensorInfo->mSensorGpioPwdn1.active = atoi(atts[3]);
+		pSensorInfo->mSensorPowerupSequence = pSensorInfo->mSensorPowerupSequence<<4 | SENSOR_PWRSEQ_PWRDN;
+		pSensorInfo->mPwrdn_delay = atoi(atts[5]);
+    }else if (strcmp(name,"SensorGpioRst")==0){
         ALOGD("%s(%d): SensorGpioRst(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
         strlcpy((char*)pSensorInfo->mSensorGpioReset.name, (atts[1]), sizeof(pSensorInfo->mSensorGpioReset.name));
         pSensorInfo->mSensorGpioReset.active = atoi(atts[3]);
+		pSensorInfo->mSensorPowerupSequence = pSensorInfo->mSensorPowerupSequence<<4 | SENSOR_PWRSEQ_RST;
+		pSensorInfo->mRst_delay = atoi(atts[5]);
     } else if (strcmp(name,"SensorGpioPwen")==0){
         ALOGD("%s(%d): SensorGpioPwen(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
         strlcpy((char*)pSensorInfo->SensorGpioPwen.name, (atts[1]), sizeof(pSensorInfo->SensorGpioPwen.name));
         pSensorInfo->SensorGpioPwen.active = atoi(atts[3]);
+		pSensorInfo->mSensorPowerupSequence = pSensorInfo->mSensorPowerupSequence<<4 | SENSOR_PWRSEQ_PWR;
+		pSensorInfo->mPwr_delay = atoi(atts[5]);
     }else if (strcmp(name,"SensorFacing")==0){
         ALOGD("%s(%d): SensorFacing(%s) \n", __FUNCTION__, __LINE__, atts[1]);
         if(strcmp("front", atts[1])==0){
@@ -139,9 +292,6 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
     } else if (strcmp(name,"SensorMirrorFlip")==0){
         ALOGD("%s(%d): SensorMirrorFlip(%s) \n", __FUNCTION__, __LINE__, atts[1]);
         pSensorInfo->mMirrorFilp = atoi(atts[1]);
-    } else if (strcmp(name,"SensorPowerupSequence")==0){
-        ALOGD("%s(%d): SensorPowerupSequence(%s) \n", __FUNCTION__, __LINE__, atts[1]);
-        pSensorInfo->mSensorPowerupSequence = atoi(atts[1]);
     } else if(strcmp(name, "SensorOrientation")==0){
         ALOGD("%s(%d): SensorOrientation(%s) \n", __FUNCTION__, __LINE__, atts[1]);
         pSensorInfo->mOrientation = atoi(atts[1]);
@@ -205,7 +355,28 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
 				if(phyIndex>1)
 					phyIndex = 1;
 			}
-			
+
+			if(phyIndex == 1){
+				
+				if((*(pSensorInfo->mSensorGpioPwdn.name) == 0) && (*(pSensorInfo->mSensorGpioPwdn1.name) != 0)){
+					strlcpy((char*)pSensorInfo->mSensorGpioPwdn.name, (char*)pSensorInfo->mSensorGpioPwdn1.name,
+							sizeof(pSensorInfo->mSensorGpioPwdn1.name));
+					pSensorInfo->mSensorGpioPwdn.active = pSensorInfo->mSensorGpioPwdn1.active;
+				}
+				strcat(pSensorInfo->mCamsysDevPath,"1");
+				ALOGE("%s(%d): SensorPhy:  phyindex: %d,open %s	\n",
+					__FUNCTION__,__LINE__, phyIndex,pSensorInfo->mCamsysDevPath);
+			}else{
+				
+				if((*(pSensorInfo->mSensorGpioPwdn.name) == 0) && (*(pSensorInfo->mSensorGpioPwdn0.name) != 0)){
+					strlcpy((char*)pSensorInfo->mSensorGpioPwdn.name, (char*)pSensorInfo->mSensorGpioPwdn0.name,
+							sizeof(pSensorInfo->mSensorGpioPwdn0.name));
+					pSensorInfo->mSensorGpioPwdn.active = pSensorInfo->mSensorGpioPwdn0.active;
+				}
+			}			
+			ALOGD("%s(%d): SensorGpioPwdn(%s) active(%d) \n", __FUNCTION__, __LINE__,
+					pSensorInfo->mSensorGpioPwdn.name, pSensorInfo->mSensorGpioPwdn.active);
+
             pSensorInfo->mPhy.info.mipi.data_en_bit = data_en_bit;
 			pSensorInfo->mPhy.info.mipi.phy_index = phyIndex;
 			pSensorInfo->laneNum = atoi(atts[3]);
@@ -228,6 +399,10 @@ void camera_board_profiles::ParserSensorInfo(const char *name, const  char **att
 
             ALOGD("%s(%d): SensorPhy: CIF sensor_d0_to_cif_d: %s  cifnum: %d  fmt: 0x%x\n",
                 __FUNCTION__,__LINE__,atts[3], pSensorInfo->mPhy.info.cif.cif_num , fmt);
+
+			strcat(pSensorInfo->mCamsysDevPath,"1");
+			ALOGE("%s(%d): SensorPhy:  phyindex: %d,open %s \n",
+				__FUNCTION__,__LINE__, pSensorInfo->mPhy.info.mipi.phy_index,pSensorInfo->mCamsysDevPath);
             
         }else{
            ALOGE("%s(%d): unknown phy mode(%s) \n" ,__FUNCTION__,__LINE__, atts[1]); 
@@ -270,15 +445,21 @@ void camera_board_profiles::ParserVCMInfo(const char *name, const char **atts, v
         ALOGD("%s(%d): VCMGpioPwdn(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
         strlcpy((char*)pVcmInfo->mVcmGpioPwdn.name, (atts[1]), sizeof(pVcmInfo->mVcmGpioPwdn.name));
         pVcmInfo->mVcmGpioPwdn.active = atoi(atts[3]);
+		pVcmInfo->mVcmPowerupSequence = pVcmInfo->mVcmPowerupSequence<<4 | VCM_PWRSEQ_PWRDN;
+		pVcmInfo->mVcmpwrdn_delay = atoi(atts[5]);
     } else if (strcmp(name,"VCMGpioPower")==0){
         ALOGD("%s(%d): VCMGpioPower(%s) active(%s) \n", __FUNCTION__, __LINE__, atts[1], atts[3]);
         strlcpy((char*)pVcmInfo->mVcmGpioPower.name, (atts[1]), sizeof(pVcmInfo->mVcmGpioPower.name));
         pVcmInfo->mVcmGpioPower.active = atoi(atts[3]);
+		pVcmInfo->mVcmPowerupSequence = pVcmInfo->mVcmPowerupSequence<<4 | VCM_PWRSEQ_PWR;
+		pVcmInfo->mVcmpwr_delay = atoi(atts[5]);		
     } else if (strcmp(name,"VCMVdd")==0){
         ALOGD("%s(%d): VCMVdd(%s) min(%s) max(%s)\n", __FUNCTION__, __LINE__, atts[1], atts[3], atts[5]);
         strlcpy((char*)pVcmInfo->mVcmVdd.name, (atts[1]), sizeof(pVcmInfo->mVcmVdd.name));       
         pVcmInfo->mVcmVdd.min_uv= atoi(atts[3]);
         pVcmInfo->mVcmVdd.max_uv= atoi(atts[5]);
+		pVcmInfo->mVcmPowerupSequence = pVcmInfo->mVcmPowerupSequence<<4 | VCM_PWRSEQ_VDD;
+		pVcmInfo->mVcmvdd_delay = atoi(atts[7]);
     } else if (strcmp(name,"VCMCurrent") == 0) {        
         pVcmInfo->mStartCurrent = atoi(atts[1]);
         pVcmInfo->mRatedCurrent = atoi(atts[3]);
@@ -730,11 +911,14 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
 
     if(strcmp(name,"CamDevie")==0){
 	    rk_cam_total_info* pNewCamInfo = new rk_cam_total_info();
-	    if(pNewCamInfo){	        
+	    if(pNewCamInfo){
             pCamInfoProfiles->mCurDevice= pNewCamInfo;
             pCamInfoProfiles->mDevieVector.add(pNewCamInfo);
             pNewCamInfo->mDeviceIndex = (pCamInfoProfiles->mDevieVector.size()) - 1;
             memset(pNewCamInfo->mHardInfo.mSensorInfo.mLensName,0,CAMSYS_NAME_LEN);
+			memset(pNewCamInfo->mHardInfo.mSensorInfo.mSensorGpioPwdn.name,0,CAMSYS_NAME_LEN);
+			memset(pNewCamInfo->mHardInfo.mSensorInfo.mSensorGpioPwdn0.name,0,CAMSYS_NAME_LEN);
+			memset(pNewCamInfo->mHardInfo.mSensorInfo.mSensorGpioPwdn1.name,0,CAMSYS_NAME_LEN);
 	    }else{
             ALOGE("%s(%d): Warnimg camdevice malloc fail! \n", __FUNCTION__,__LINE__);
 	    }
@@ -980,16 +1164,76 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
         {
         	if(pIsiCamDrvConfig->IsiSensor.pIsiSensorCaps->SensorOutputMode == ISI_SENSOR_OUTPUT_MODE_RAW){
 	            CalibDb *pcalidb = &(pCamInfo->mLoadSensorInfo.calidb);
-                if(strlen(pSensorInfo->mLensName) == 0)
-	                sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName);
-                else
-	                sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s_lens_%s", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName,pSensorInfo->mLensName);
-                if(pCamInfo->mHardInfo.mIsOTP == true)
-                    strcat(pLoadSensorInfo->mSensorXmlFile,"_OTP.xml");
-                else
-                    strcat(pLoadSensorInfo->mSensorXmlFile,".xml");
-                    
-                LOGD("sensor xml file name : %s lens name %s",pLoadSensorInfo->mSensorXmlFile,pSensorInfo->mLensName);
+				do{
+					if ((!strlen(pSensorInfo->mModuleName)||!strcmp(pSensorInfo->mModuleName,"NC")) && !strlen(pSensorInfo->mLensName)) {
+						sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName);
+						if (0 == access(pLoadSensorInfo->mSensorXmlFile, R_OK)){
+							LOGD("sensor xml file name : [%s] lens name: [%s]",pLoadSensorInfo->mSensorXmlFile,pSensorInfo->mLensName);
+							break;
+						}
+					}else{
+						if(strlen(pSensorInfo->mModuleName) && strcmp(pSensorInfo->mModuleName,"NC")){
+							sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s_%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName,pSensorInfo->mModuleName);
+							if (0 == access(pLoadSensorInfo->mSensorXmlFile, R_OK)){
+								LOGD("sensor xml file name : [%s] lens name: [%s]",pLoadSensorInfo->mSensorXmlFile,pSensorInfo->mLensName);
+								break;
+							}
+						}
+				
+						if(strlen(pSensorInfo->mLensName)){
+							sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s_%s.xml", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName,pSensorInfo->mLensName);
+							if (0 == access(pLoadSensorInfo->mSensorXmlFile, R_OK)){
+								LOGD("sensor xml file name : [%s] lens name: [%s]",pLoadSensorInfo->mSensorXmlFile,pSensorInfo->mLensName);
+								break;
+							}
+						}
+					}
+				
+					char sensorVer[16] = "";
+					if(!ListEmpty(&(pI2cInfo->chipid_info))){
+						List* l = ListHead( &(pI2cInfo->chipid_info) );
+						while ( l )
+						{
+							sensor_chipid_info_t* pChipIDInfo = (sensor_chipid_info_t *)l;
+							if(pChipIDInfo->chipid_reg_addr == SENSOR_SPECIAL_TAG)
+							{
+								if(strcmp(pSensorInfo->mSensorName, "OV8858") == 0)
+								{
+									if(pChipIDInfo->chipid_reg_value == 0xb2)
+										strcpy(sensorVer, "R2A");
+									else
+										strcpy(sensorVer, "R1A");
+									
+									break;
+								}
+							}
+							l = l->p_next;
+						}
+					}
+					
+					if(strlen(pSensorInfo->mLensName) == 0)
+						sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName);
+					else{
+						if(strlen(sensorVer) == 0)
+							sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s_lens_%s", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName,pSensorInfo->mLensName);
+						else
+							sprintf(pLoadSensorInfo->mSensorXmlFile, "%s%s_%s_lens_%s", RK_SENSOR_XML_PATH, pSensorInfo->mSensorName,sensorVer,pSensorInfo->mLensName);
+
+						if(pCamInfo->mHardInfo.mIsOTP == true)
+							strcat(pLoadSensorInfo->mSensorXmlFile,"_OTP.xml");
+						else
+							strcat(pLoadSensorInfo->mSensorXmlFile,".xml");
+					}
+
+					if (0 == access(pLoadSensorInfo->mSensorXmlFile, R_OK)) {
+						LOGD("sensor xml file name : [%s] lens name: [%s]",pLoadSensorInfo->mSensorXmlFile,pSensorInfo->mLensName);
+						break;
+					}else{
+						LOGE("Fata error, tunning file %s is not exist!!", pLoadSensorInfo->mSensorXmlFile);
+						break;
+					}
+				}while(0);
+
 	            bool res = pcalidb->CreateCalibDb(pLoadSensorInfo->mSensorXmlFile);	           	
 			    if(res){	                
 	                pCamInfo->mIsConnect = 1;
@@ -1101,6 +1345,31 @@ static int sensor_read_i2c(
     return err;
 }
 
+static int sensor_version_get(
+    void* context,
+    int camsys_fd,    
+    int version,
+    int verID
+)
+{
+	rk_cam_total_info* pCamInfo = (rk_cam_total_info*)context;
+	sensor_i2c_info_t* pSensorI2cInfo;
+	pSensorI2cInfo = pCamInfo->mLoadSensorInfo.mpI2cInfo;
+
+	sensor_chipid_info_t* pChipIDInfo_SensorVer = (sensor_chipid_info_t *) malloc( sizeof(sensor_chipid_info_t) );
+	if ( !pChipIDInfo_SensorVer )
+	{
+		return RK_RET_FUNC_FAILED;
+	}
+	MEMSET( pChipIDInfo_SensorVer, 0, sizeof(*pChipIDInfo_SensorVer) ); 
+	pChipIDInfo_SensorVer->chipid_reg_addr = verID;
+	pChipIDInfo_SensorVer->chipid_reg_value = version;
+	ListPrepareItem( pChipIDInfo_SensorVer );
+	ListAddTail( &pSensorI2cInfo->chipid_info, pChipIDInfo_SensorVer );
+
+	return 0;
+}
+
 int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 {
     int err = RK_RET_SUCCESS,i; 
@@ -1125,13 +1394,28 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     rk_flash_info *pFlashInfo = &(pCamInfo->mHardInfo.mFlashInfo);
     sensor_i2c_info_t *pI2cInfo = pLoadInfo->mpI2cInfo;
     
-    camsys_fd = open(pSensorInfo->mCamsysDevPath, O_RDWR);
-    if (camsys_fd < 0) {
-        ALOGE("Open (%s) failed, error=(%s)\n", pSensorInfo->mCamsysDevPath,strerror(errno));
-        err = RK_RET_NOFILE;
-		ret = RK_RET_NOFILE;
-        goto end;
-    }    
+	
+	if(!strcmp(pSensorInfo->mCamsysDevPath,"camsys_marvin1")){
+		camsys_fd = open(pSensorInfo->mCamsysDevPath, O_RDWR);
+		if (camsys_fd < 0) {
+			ALOGE("Open (%s) failed, error=(%s),try to open /dev/camsys_marvin \n", pSensorInfo->mCamsysDevPath,strerror(errno));
+			camsys_fd = open("/dev/camsys_marvin", O_RDWR);
+			if (camsys_fd < 0) {
+				ALOGE("Open (%s) failed, error=(%s)\n", pSensorInfo->mCamsysDevPath,strerror(errno));
+				err = RK_RET_NOFILE;
+				ret = RK_RET_NOFILE;
+				goto end;
+			}
+		}	 
+	}else{
+		camsys_fd = open(pSensorInfo->mCamsysDevPath, O_RDWR);
+	    if (camsys_fd < 0) {
+	        ALOGE("Open (%s) failed, error=(%s)\n", pSensorInfo->mCamsysDevPath,strerror(errno));
+	        err = RK_RET_NOFILE;
+			ret = RK_RET_NOFILE;
+	        goto end;
+	    }
+	}
 
     memset(&extdev,0x00, sizeof(camsys_devio_name_t));
     pCamInfo->mLoadSensorInfo.mCamsysFd = camsys_fd;
@@ -1235,7 +1519,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
         ret = RK_RET_DEVICEERR;
         goto regist_err;
     }
-
+#if 0
     sysctl.dev_mask = pSensorInfo->mCamDevid;
     sysctl.ops = CamSys_Avdd;
     sysctl.on = 1;
@@ -1309,8 +1593,10 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
         ret = RK_RET_DEVICEERR;
         goto power_off;
     }
-    usleep(2000);
-    
+ #else
+ 	rk_sensor_pwrseq(camsys_fd, pCamInfo, 1);
+ #endif
+ 	usleep(2000);	
     i2cinfo.bus_num = pSensorInfo->mSensorI2cBusNum;
     i2cinfo.slave_addr = pLoadInfo->mpI2cInfo->i2c_addr;
     i2cinfo.reg_addr = pLoadInfo->mpI2cInfo->soft_reg_addr; 
@@ -1386,7 +1672,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 
         if(pLoadInfo->pCamDrvConfig->IsiSensor.pIsiCheckOTPInfo){
             ALOGD("%s:check and read otp info!!!!",__FUNCTION__); 
-            int tmp = pLoadInfo->pCamDrvConfig->IsiSensor.pIsiCheckOTPInfo(sensor_write_i2c,sensor_read_i2c,pCamInfo,camsys_fd);
+            int tmp = pLoadInfo->pCamDrvConfig->IsiSensor.pIsiCheckOTPInfo(sensor_write_i2c,sensor_read_i2c,sensor_version_get,pCamInfo,camsys_fd);
             if(tmp == RET_SUCCESS){
                 pCamInfo->mHardInfo.mIsOTP = true;
             }
@@ -1395,6 +1681,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
 
 //  power off
 power_off:
+#if 0
     sysctl.dev_mask = pSensorInfo->mCamDevid;
     sysctl.ops = CamSys_PwrDn;
     sysctl.on = 1;
@@ -1467,14 +1754,15 @@ power_off:
         ret = RK_RET_DEVICEERR;
         
     }
-
-
+#else
+rk_sensor_pwrseq(camsys_fd, pCamInfo, 0);
+#endif
 unmap_pos:
     
 regist_err: 
     if(regist_ret==0 && ret<0){
         // unregister device  need modify
-        err = ioctl(camsys_fd, CAMSYS_DEREGISTER_DEVIO, &sysctl);
+        err = ioctl(camsys_fd, CAMSYS_DEREGISTER_DEVIO, &extdev.dev_id);
         if(err<0){
             ALOGE("CAMSYS_DEREGISTER_DEVIO failed!\n");
             ret = RK_RET_DEVICEERR;

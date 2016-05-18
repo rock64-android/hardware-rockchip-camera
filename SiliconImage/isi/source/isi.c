@@ -2184,6 +2184,12 @@ RESULT IsiGetResolutionParam
         case ISI_RES_SVGAP60:
         case ISI_RES_SVGAP120:
 
+		case ISI_RES_1280_960P10:
+		case ISI_RES_1280_960P15:
+		case ISI_RES_1280_960P20:
+		case ISI_RES_1280_960P25:
+		case ISI_RES_1280_960P30:
+
         case ISI_RES_2592_1944P5:
         case ISI_RES_2592_1944P7:
         case ISI_RES_2592_1944P10:
@@ -2217,6 +2223,18 @@ RESULT IsiGetResolutionParam
         case ISI_RES_4416_3312P7:
         case ISI_RES_4416_3312P15:
         case ISI_RES_4416_3312P30:
+
+        case ISI_RES_1640_1232P10:
+        case ISI_RES_1640_1232P15:
+        case ISI_RES_1640_1232P20:
+        case ISI_RES_1640_1232P25:
+        case ISI_RES_1640_1232P30:
+
+        case ISI_RES_3280_2464P7:
+        case ISI_RES_3280_2464P15:
+        case ISI_RES_3280_2464P20:
+        case ISI_RES_3280_2464P25:
+        case ISI_RES_3280_2464P30:
 
         case ISI_RES_2208_1656P7:
         case ISI_RES_2208_1656P15:
@@ -2392,4 +2410,63 @@ RESULT IsiWhiteBalanceIlluminationSet
     return result;
 
 }
+
+RESULT IsiSetupSensorOTPInfoIss
+(
+    IsiSensorHandle_t   handle,
+    uint32_t OTPInfo
+)
+{
+    IsiSensorContext_t *pSensorCtx = (IsiSensorContext_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+    TRACE( ISI_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pSensorCtx == NULL )
+    {
+        return ( RET_WRONG_HANDLE );
+    }
+
+    if ( pSensorCtx->pSensor->pIsiSetSensorOTPInfo== NULL )
+    {
+        return ( RET_NOTSUPP );
+    }
+
+    result = pSensorCtx->pSensor->pIsiSetSensorOTPInfo( pSensorCtx, OTPInfo );
+
+    TRACE( ISI_INFO, "%s: (exit)\n", __FUNCTION__);
+
+    return ( result );
+}
+
+RESULT IsiEnableSensorOTPIss
+(
+    IsiSensorHandle_t   handle,
+    bool_t enable
+)
+{
+    IsiSensorContext_t *pSensorCtx = (IsiSensorContext_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+    TRACE( ISI_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pSensorCtx == NULL )
+    {
+        return ( RET_WRONG_HANDLE );
+    }
+
+    if ( pSensorCtx->pSensor->pIsiEnableSensorOTP== NULL )
+    {
+        return ( RET_NOTSUPP );
+    }
+
+    result = pSensorCtx->pSensor->pIsiEnableSensorOTP( pSensorCtx, enable );
+
+    TRACE( ISI_INFO, "%s: (exit)\n", __FUNCTION__);
+
+    return ( result );
+}
+
 

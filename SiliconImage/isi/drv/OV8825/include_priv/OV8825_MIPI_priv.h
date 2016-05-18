@@ -73,7 +73,8 @@ extern "C"
 *v0.a.0
 *   1). support for isi v0.7.0
 *v0.b.0
-*   1). support for isi v0.8.0
+*   1). support for isi v0.0xc.0
+*   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
 */
 
 

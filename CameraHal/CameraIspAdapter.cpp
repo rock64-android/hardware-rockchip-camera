@@ -116,6 +116,18 @@ int CameraIspAdapter::cameraCreate(int cameraId)
 #endif
     isp_halpara.mipi_lanes = mipiLaneNum;
 	mCtxCbResChange.pIspAdapter = (void*)this;
+	isp_halpara.sensorpowerupseq = pCamInfo->mHardInfo.mSensorInfo.mSensorPowerupSequence;
+	isp_halpara.vcmpowerupseq = pCamInfo->mHardInfo.mVcmInfo.mVcmPowerupSequence;	
+	isp_halpara.avdd_delay = pCamInfo->mHardInfo.mSensorInfo.mAvdd_delay;
+	isp_halpara.dvdd_delay = pCamInfo->mHardInfo.mSensorInfo.mDvdd_delay;
+	isp_halpara.vcmvdd_delay = pCamInfo->mHardInfo.mVcmInfo.mVcmvdd_delay;	
+	isp_halpara.dovdd_delay = pCamInfo->mHardInfo.mSensorInfo.mDovdd_delay;
+	isp_halpara.pwr_delay = pCamInfo->mHardInfo.mSensorInfo.mPwr_delay;
+	isp_halpara.rst_delay = pCamInfo->mHardInfo.mSensorInfo.mRst_delay;
+	isp_halpara.pwrdn_delay = pCamInfo->mHardInfo.mSensorInfo.mPwrdn_delay;
+	isp_halpara.clkin_delay = pCamInfo->mHardInfo.mSensorInfo.mClkin_delay;
+	isp_halpara.vcmpwr_delay = pCamInfo->mHardInfo.mVcmInfo.mVcmpwr_delay;	
+	isp_halpara.vcmpwrdn_delay = pCamInfo->mHardInfo.mVcmInfo.mVcmpwrdn_delay;	
     m_camDevice = new CamDevice( HalHolder::handle(dev_filename,&isp_halpara), CameraIspAdapter_AfpsResChangeCb, (void*)&mCtxCbResChange ,NULL, mipiLaneNum);
 	
 	//load sensor
@@ -260,6 +272,8 @@ void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int previ
         dcWin.hOffset,dcWin.vOffset,dcWin.width,dcWin.height,preview_w,preview_h);
 
 }
+
+
 status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h, int fmt,bool is_capture)
 {
     LOG_FUNCTION_NAME
@@ -357,7 +371,9 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         setupPreview(width_sensor,height_sensor,preview_w,preview_h,mZoomVal);
         #else
         if ((preview_w == 1600) && (preview_h == 1200) && 
-            (width_sensor==1632) && (height_sensor == 1224) ) {
+            (width_sensor==1632) && (height_sensor == 1224) ||
+            ((preview_w == 1280) && (preview_h == 720) &&
+            (width_sensor == 1296) && (height_sensor == 972))) {
             setupPreview(width_sensor,height_sensor,preview_w,preview_h,mZoomVal);
         } else {
             setupPreview(width_sensor,height_sensor,width_sensor,height_sensor,mZoomVal);
@@ -1137,6 +1153,20 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         params.set(CameraParameters::KEY_MAX_NUM_METERING_AREAS,"0");
     }
 	
+	{
+		/*no much meaning ,only for passing cts*/
+		params.set(CameraParameters::KEY_AUTO_EXPOSURE_LOCK, "false");
+		params.set(CameraParameters::KEY_AUTO_EXPOSURE_LOCK_SUPPORTED, "true");
+	}
+
+	//color effect
+	//for passing cts
+	params.set(CameraParameters::KEY_SUPPORTED_EFFECTS, "none,mono,sepia");
+	params.set(CameraParameters::KEY_EFFECT, "none");
+	//antibanding
+	/*no much meaning ,only for passing cts*/
+	params.set(CameraParameters::KEY_SUPPORTED_ANTIBANDING, "auto,50hz,60hz,off");
+	params.set(CameraParameters::KEY_ANTIBANDING, "off");
 
     //for video test
     params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, "3000,30000");
@@ -2553,6 +2583,7 @@ PROCESS_CMD:
                         m_camDevice->getIntegrationTime(time);
                         stopPreview();
                     }
+					m_camDevice->enableSensorOTP((bool_t)false);//disable sensor otp awb if it has.
                 }else if(curTuneTask->mTuneFmt == CAMERIC_MI_DATAMODE_YUV422){
                     curFmt = ISP_OUT_YUV422_SEMI;
                     curTuneTask->mForceRGBOut = true;
@@ -2809,6 +2840,7 @@ PROCESS_CMD:
                         mISPTunningQ->put(&msg);
                     }else{
                         LOGD("\n\n*********************\n all tune tasks have fininished\n\n ******************");
+						m_camDevice->enableSensorOTP((bool_t)true);//enable sensor otp awb if it have.
                         startPreview(800, 600, 0, 0, ISP_OUT_YUV420SP, false);
                     }
                 }

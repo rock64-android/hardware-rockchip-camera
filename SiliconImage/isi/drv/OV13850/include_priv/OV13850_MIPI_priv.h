@@ -65,10 +65,13 @@ v0.7.0
 *v0.9.0
 *	1). support mutil framerate and Afps;
 *	2). skip frames when resolution change in OV13850_IsiChangeSensorResolutionIss;
+*v0.a.0
+*   1). support for isi v0.0xc.0
+*   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 9, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xa, 0x00) 
 
 
 #define OV13850_CHIP_ID_HIGH_BYTE            (0x300a) // r - 

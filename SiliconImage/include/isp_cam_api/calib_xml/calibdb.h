@@ -87,7 +87,7 @@ private:
     // parse Header
     bool parseEntryHeader( const XMLElement*, void *param = NULL );
     bool parseEntryResolution( const XMLElement*, void *param = NULL );
-    
+	bool parseEntryOTPInfo( const XMLElement*, void *param = NULL );    
     bool parseEntryFramerates( const XMLElement*, void *param = NULL );
 
     // parse Sensor

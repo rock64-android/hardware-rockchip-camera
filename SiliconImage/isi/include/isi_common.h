@@ -204,13 +204,20 @@ extern "C"
 #define ISI_RES_VGAP60                         0x782801e0        /**<  1  640x480     */
 #define ISI_RES_VGAP120                        0xf02801e0        /**<  1  640x480     */
 
-#define ISI_RES_SVGAP5                         0x0a320258        /**< 16 1280x720@5   */
-#define ISI_RES_SVGAP10                        0x14320258        /**< 16 1280x720@5   */
-#define ISI_RES_SVGAP15                        0x1e320258        /**< 16 1280x720@5   */
-#define ISI_RES_SVGAP20                        0x28320258        /**< 16 1280x720@5   */
-#define ISI_RES_SVGAP30                        0x3c320258        /**< 16 1280x720@5   */
-#define ISI_RES_SVGAP60                        0x78320258        /**< 16 1280x720@5   */
-#define ISI_RES_SVGAP120                       0xf0320258        /**< 16 1280x720@5   */
+#define ISI_RES_SVGAP5                         0x0a320258        /**< 16 800x600@5   */
+#define ISI_RES_SVGAP10                        0x14320258        /**< 16 800x600@10   */
+#define ISI_RES_SVGAP15                        0x1e320258        /**< 16 800x600@15   */
+#define ISI_RES_SVGAP20                        0x28320258        /**< 16 800x600@20   */
+#define ISI_RES_SVGAP30                        0x3c320258        /**< 16 800x600@30   */
+#define ISI_RES_SVGAP60                        0x78320258        /**< 16 800x600@60   */
+#define ISI_RES_SVGAP120                       0xf0320258        /**< 16 800x600@120   */
+
+#define ISI_RES_1280_960P10                    0x145003c0        /**< 16 1280x960@10   */
+#define ISI_RES_1280_960P15                    0x1e5003c0        /**< 16 1280x960@15   */
+#define ISI_RES_1280_960P20                    0x285003c0        /**< 16 1280x960@20   */
+#define ISI_RES_1280_960P25                    0x325003c0        /**< 16 1280x960@25   */
+#define ISI_RES_1280_960P30                    0x3c5003c0        /**< 16 1280x960@30   */
+
 
 #define ISI_RES_2592_1944P5                    0x0aa20798      /**<  2 2592x1944    */
 #define ISI_RES_2592_1944P7                    0x0ea20798      /**<  2 2592x1944    */
@@ -241,6 +248,18 @@ extern "C"
 #define ISI_RES_1632_1224P20                   0x286604c8
 #define ISI_RES_1632_1224P25                   0x326604c8
 #define ISI_RES_1632_1224P30				   0x3c6604c8
+
+#define ISI_RES_1640_1232P10                   0x146684d0
+#define ISI_RES_1640_1232P15                   0x1e6684d0
+#define ISI_RES_1640_1232P20                   0x286684d0
+#define ISI_RES_1640_1232P25                   0x326684d0
+#define ISI_RES_1640_1232P30                   0x3c6684d0
+
+#define ISI_RES_3280_2464P7                    0x0ecd09a0
+#define ISI_RES_3280_2464P15                   0x1ecd09a0
+#define ISI_RES_3280_2464P20                   0x28cd09a0
+#define ISI_RES_3280_2464P25                   0x32cd09a0
+#define ISI_RES_3280_2464P30                   0x3ccd09a0
 
 #define ISI_RES_4416_3312P7                    0x0f140cf0      /**<  5 4416x3312    */
 #define ISI_RES_4416_3312P15                   0x1f140cf0

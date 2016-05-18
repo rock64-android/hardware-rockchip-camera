@@ -51,10 +51,19 @@ extern "C"
 *v0.2.0 : modify ov5648 driver --oyyf
 *v0.3.0 : support OTP
 *v0.4.0 : support OTP i2c info
+*v0.5.0 : support MIPI 210Mbps two lanes 20fps preview and 7.5fps capture settings.
+*v0.6.0 : support MIPI 420Mbps one lane.
+*v0.7.0
+	1) sensor OTP data application can enable/disable by property setting.
+	2) typical OTP rg/bg value moved to IQ file.
+*v0.8.0
+*   1). support for isi v0.0xc.0
+*   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 4, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 8, 0x00) 
 
+//#define MIPI_210MBPS
 
 #define Sensor_CHIP_ID_HIGH_BYTE            (0x300a) // r - 
 #define Sensor_CHIP_ID_LOW_BYTE          (0x300b) // r - 

@@ -323,7 +323,7 @@ static RESULT OV5640_IsiGetCapsIssInternal
         pIsiSensorCaps->Conv422         = ISI_CONV422_NOCOSITED;
         pIsiSensorCaps->BPat            = ISI_BPAT_RGRGGBGB ;
         pIsiSensorCaps->HPol            = ISI_HPOL_REFPOS;
-        pIsiSensorCaps->VPol            = ISI_VPOL_NEG;
+        pIsiSensorCaps->VPol            = ISI_VPOL_POS;
         pIsiSensorCaps->Edge            = ISI_EDGE_RISING;
         pIsiSensorCaps->Bls             = ISI_BLS_OFF;
         pIsiSensorCaps->Gamma           = ISI_GAMMA_ON;
@@ -391,7 +391,7 @@ const IsiSensorCaps_t OV5640_g_IsiSensorDefaultConfig =
     ISI_CONV422_NOCOSITED,      // Conv422
     ISI_BPAT_RGRGGBGB,//ISI_BPAT_BGBGGRGR,          // BPat
     ISI_HPOL_REFPOS,            // HPol
-    ISI_VPOL_NEG,               // VPol
+    ISI_VPOL_POS,               // VPol
     ISI_EDGE_RISING, //ISI_EDGE_RISING,            // Edge
     ISI_BLS_OFF,                // Bls
     ISI_GAMMA_ON,              // Gamma
@@ -546,9 +546,13 @@ RESULT OV5640_SetupOutputFormat
     }
 
     /* vertical polarity */
-    switch ( pConfig->VPol )            /* only ISI_VPOL_NEG supported, no configuration needed */
+    switch ( pConfig->VPol )            /*no configuration needed */
     {
         case ISI_VPOL_NEG:
+        {
+            break;
+        }
+        case ISI_VPOL_POS:
         {
             break;
         }
@@ -3118,7 +3122,9 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pIsiGetSensorTuningXmlVersion_t>*/   //oyyf add 
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationChk>*/   //ddl@rock-chips.com 
         0,                      /**< IsiSensor_t.pIsiWhiteBalanceIlluminationSet>*/   //ddl@rock-chips.com
-        0,                      /**< IsiSensor_t.pIsiCheckOTPInfo>*/  //zyc 
+        0,                      /**< IsiSensor_t.pIsiCheckOTPInfo>*/  //zyc
+        0,						/**< IsiSensor_t.pIsiSetSensorOTPInfo>*/  //zyl
+        0,						/**< IsiSensor_t.pIsiEnableSensorOTP>*/  //zyl
         0,                      /**< IsiSensor_t.pIsiCreateSensorIss */
         0,                      /**< IsiSensor_t.pIsiReleaseSensorIss */
         0,                      /**< IsiSensor_t.pIsiGetCapsIss */

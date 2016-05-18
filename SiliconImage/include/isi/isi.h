@@ -54,10 +54,15 @@
 *    1) support read OTP by transfer i2c info;
 *    2) support new resolutin 4208x3120 & 2104x1560
 *v0.0xa.0
-*    2) support new resolutin 1600x1200 
+*    2) support new resolutin 1600x1200
+*v0.0xb.0
+*	 1) support new resolution 1280x960
+*	 2) support new resolution 3280x2464 & 1640x1232
+*v0.0xc.0
+*	 1) add IsiSetupSensorOTPInfoIss and IsiEnableSensorOTPIss api.
 */
 
-#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 0x0a, 0x00) 
+#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 0x0c, 0x00) 
 
 
 #ifdef __cplusplus
@@ -1315,7 +1320,17 @@ RESULT IsiWhiteBalanceIlluminationSet
     char                *name
 );
 
+RESULT IsiSetupSensorOTPInfoIss
+(
+    IsiSensorHandle_t   handle,
+    uint32_t OTPInfo
+);
 
+RESULT IsiEnableSensorOTPIss
+(
+    IsiSensorHandle_t   handle,
+    bool_t enable
+);
 
 #ifdef __cplusplus
 }
