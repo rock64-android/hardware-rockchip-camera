@@ -365,7 +365,7 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
     Rga_Request.dst.y_offset = 0;
     Rga_Request.mmu_info.mmu_en    = 1;
     Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1;
-    Rga_Request.alpha_rop_flag |= (1 << 5);             /* ddl@rock-chips.com: v0.4.3 */
+    //Rga_Request.alpha_rop_flag |= (1 << 5);             /* ddl@rock-chips.com: v0.4.3 */
 
 	if((src_width!=dst_width) || ( src_height!=dst_height)){
 		Rga_Request.sina = 0;
@@ -533,7 +533,7 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 
 		    Rga_Request.mmu_info.mmu_en    = 1;
 		    Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1 | (1 << 8) | (1 << 10);
-		    Rga_Request.alpha_rop_flag |= (1 << 5);             /* ddl@rock-chips.com: v0.4.3 */
+		    //Rga_Request.alpha_rop_flag |= (1 << 5);             /* ddl@rock-chips.com: v0.4.3 */
 		    
 			#if defined(TARGET_RK312x)
 				/* wrong operation of nv12 to nv21 ,not scale */
