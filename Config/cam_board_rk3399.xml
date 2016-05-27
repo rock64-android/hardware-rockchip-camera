@@ -26,7 +26,7 @@
 					<SensorPowerupSequence seq="1234"></SensorPowerupSequence>					
 					<SensorFovParemeter h="60.0" v="60.0"></SensorFovParemeter>
 					<SensorAWB_Frame_Skip fps="15"></SensorAWB_Frame_Skip>					
-					<SensorPhy phyMode="CamSys_Phy_Mipi" lane="2"  phyIndex="1" sensorFmt="CamSys_Fmt_Raw_10b"></SensorPhy>
+					<SensorPhy phyMode="CamSys_Phy_Mipi" lane="2"  phyIndex="0" sensorFmt="CamSys_Fmt_Raw_10b"></SensorPhy>
 				</Sensor>
 				<VCM>
 					<VCMDrvName name="BuiltInSensor"></VCMDrvName>
@@ -265,7 +265,7 @@
 				</DV>
 			</SoftWareInfo>
 		</CamDevie>
-        		<CamDevie>
+        <CamDevie>
 			<HardWareInfo>
 				<Sensor>
 					<SensorName name="OV5648" ></SensorName>
@@ -396,7 +396,7 @@
 					<DV_1080P name="1080p" width="1920" height="1080" fps="10" support="1"></DV_1080P>
 				</DV>
 			</SoftWareInfo>
-		</CamDevie>
+		</CamDevie>		
 		<CamDevie>
 			<HardWareInfo>
 				<Sensor>
@@ -788,7 +788,7 @@
 			<HardWareInfo>
 				<Sensor>
 					<SensorName name="GS8604"></SensorName>
-					<SensorLens name="9569A2"></SensorLens>
+		`			<SensorLens name="9569A2"></SensorLens>
 					<SensorDevID IDname="CAMSYS_DEVID_SENSOR_1B"></SensorDevID>
 					<SensorHostDevID busnum="CAMSYS_DEVID_MARVIN" ></SensorHostDevID>
 					<SensorI2cBusNum busnum="1"></SensorI2cBusNum>

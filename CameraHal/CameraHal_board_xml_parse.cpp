@@ -1395,13 +1395,13 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
     sensor_i2c_info_t *pI2cInfo = pLoadInfo->mpI2cInfo;
     
 	
-	if(!strcmp(pSensorInfo->mCamsysDevPath,"camsys_marvin1")){
+	if(!strcmp(pSensorInfo->mCamsysDevPath,"/dev/camsys_marvin1")){
 		camsys_fd = open(pSensorInfo->mCamsysDevPath, O_RDWR);
 		if (camsys_fd < 0) {
 			ALOGE("Open (%s) failed, error=(%s),try to open /dev/camsys_marvin \n", pSensorInfo->mCamsysDevPath,strerror(errno));
 			camsys_fd = open("/dev/camsys_marvin", O_RDWR);
 			if (camsys_fd < 0) {
-				ALOGE("Open (%s) failed, error=(%s)\n", pSensorInfo->mCamsysDevPath,strerror(errno));
+				ALOGE("Open (%s) failed, error=(%s)\n", "/dev/camsys_marvin",strerror(errno));
 				err = RK_RET_NOFILE;
 				ret = RK_RET_NOFILE;
 				goto end;

@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <BoardFile>
-		<BoardXmlVersion version="v0.0xd.0">
+		<BoardXmlVersion version="v0.0xf.0">
 		</BoardXmlVersion>
 		<CamDevie>
 			<HardWareInfo>
@@ -11,13 +11,13 @@
 					<SensorI2cBusNum busnum="3"></SensorI2cBusNum>
 					<SensorI2cAddrByte byte="2"></SensorI2cAddrByte>
 					<SensorI2cRate rate="100000"></SensorI2cRate>
-					<SensorMclk mclk="24000000"></SensorMclk>
-					<SensorAvdd name="NC" min="0" max="0"></SensorAvdd>
-					<SensorDovdd name="NC" min="18000000" max="18000000"></SensorDovdd>
-					<SensorDvdd name="NC" min="0" max="0"></SensorDvdd>
-					<SensorGpioPwdn ioname="RK30_PIN1_PB5" active="0"></SensorGpioPwdn>
-					<SensorGpioRst ioname="NC" active="0"></SensorGpioRst>
-					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1"></SensorGpioPwen>
+					<SensorAvdd name="NC" min="0" max="0" delay="0"></SensorAvdd>
+					<SensorDvdd name="NC" min="0" max="0" delay="0"></SensorDvdd>
+					<SensorDovdd name="NC" min="18000000" max="18000000" delay="5000"></SensorDovdd>
+					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
+					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1" delay="1000"></SensorGpioPwen>
+					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
+					<SensorGpioPwdn ioname="RK30_PIN1_PB5" active="0" delay="2000"></SensorGpioPwdn>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -33,9 +33,9 @@
 					<VCMI2cBusNum busnum="3"></VCMI2cBusNum>
 					<VCMI2cAddrByte byte="0"></VCMI2cAddrByte>
 					<VCMI2cRate rate="0"></VCMI2cRate>
-					<VCMVdd name="NC" min="0" max="0"></VCMVdd>
-					<VCMGpioPwdn ioname="NC" active="0"></VCMGpioPwdn>
-					<VCMGpioPower ioname="NC" active="0"></VCMGpioPower>
+					<VCMVdd name="NC" min="0" max="0" delay="0"></VCMVdd>
+					<VCMGpioPower ioname="NC" active="0" delay="1000"></VCMGpioPower>
+					<VCMGpioPwdn ioname="NC" active="0" delay="0"></VCMGpioPwdn>
 					<VCMCurrent start="20" rated="80" vcmmax="100" stepmode="13"  drivermax="100"></VCMCurrent>
 				</VCM>
 				<Flash>
@@ -141,13 +141,13 @@
 					<SensorI2cBusNum busnum="3"></SensorI2cBusNum>
 					<SensorI2cAddrByte byte="2"></SensorI2cAddrByte>
 					<SensorI2cRate rate="100000"></SensorI2cRate>
-					<SensorMclk mclk="24000000"></SensorMclk>
-					<SensorAvdd name="NC" min="0" max="0"></SensorAvdd>
-					<SensorDovdd name="NC" min="18000000" max="18000000"></SensorDovdd>
-					<SensorDvdd name="NC" min="0" max="0"></SensorDvdd>
-					<SensorGpioPwdn ioname="RK30_PIN1_PB5" active="0"></SensorGpioPwdn>
-					<SensorGpioRst ioname="NC" active="0"></SensorGpioRst>
-					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1"></SensorGpioPwen>
+					<SensorAvdd name="NC" min="0" max="0" delay="0"></SensorAvdd>
+					<SensorDvdd name="NC" min="0" max="0" delay="0"></SensorDvdd>
+					<SensorDovdd name="NC" min="18000000" max="18000000"  delay="5000"></SensorDovdd>
+					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
+					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1" delay="1000"></SensorGpioPwen>
+					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
+					<SensorGpioPwdn ioname="RK30_PIN1_PB5" active="0" delay="2000"></SensorGpioPwdn>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -163,9 +163,9 @@
 					<VCMI2cBusNum busnum="3"></VCMI2cBusNum>
 					<VCMI2cAddrByte byte="0"></VCMI2cAddrByte>
 					<VCMI2cRate rate="0"></VCMI2cRate>
-					<VCMVdd name="NC" min="0" max="0"></VCMVdd>
-					<VCMGpioPwdn ioname="NC" active="0"></VCMGpioPwdn>
-					<VCMGpioPower ioname="NC" active="0"></VCMGpioPower>
+					<VCMVdd name="NC" min="0" max="0" delay="0"></VCMVdd>
+					<VCMGpioPower ioname="NC" active="0" delay="1000"></VCMGpioPower>
+					<VCMGpioPwdn ioname="NC" active="0" delay="0"></VCMGpioPwdn>
 					<VCMCurrent start="0" rated="100" vcmmax="100" stepmode="4"  drivermax="100"></VCMCurrent>
 				</VCM>
 				<Flash>
@@ -273,13 +273,13 @@
 					<SensorI2cBusNum busnum="3"></SensorI2cBusNum>
 					<SensorI2cAddrByte byte="2"></SensorI2cAddrByte>
 					<SensorI2cRate rate="100000"></SensorI2cRate>
-					<SensorMclk mclk="24000000"></SensorMclk>
-					<SensorAvdd name="NC" min="0" max="0"></SensorAvdd>
-					<SensorDovdd name="NC" min="18000000" max="18000000"></SensorDovdd>
-					<SensorDvdd name="NC" min="0" max="0"></SensorDvdd>
-					<SensorGpioPwdn ioname="RK30_PIN1_PB5" active="0"></SensorGpioPwdn>
-					<SensorGpioRst ioname="NC" active="0"></SensorGpioRst>
-					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1"></SensorGpioPwen>
+					<SensorAvdd name="NC" min="0" max="0" delay="0"></SensorAvdd>
+					<SensorDvdd name="NC" min="0" max="0" delay="0"></SensorDvdd>
+					<SensorDovdd name="NC" min="18000000" max="18000000" delay="5000"></SensorDovdd>
+					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
+					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1" delay="1000"></SensorGpioPwen>
+					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
+					<SensorGpioPwdn ioname="RK30_PIN1_PB5" active="0" delay="2000"></SensorGpioPwdn>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -295,9 +295,9 @@
 					<VCMI2cBusNum busnum="3"></VCMI2cBusNum>
 					<VCMI2cAddrByte byte="0"></VCMI2cAddrByte>
 					<VCMI2cRate rate="0"></VCMI2cRate>
-					<VCMVdd name="NC" min="0" max="0"></VCMVdd>
-					<VCMGpioPwdn ioname="NC" active="0"></VCMGpioPwdn>
-					<VCMGpioPower ioname="NC" active="0"></VCMGpioPower>
+					<VCMVdd name="NC" min="0" max="0" delay="0"></VCMVdd>
+					<VCMGpioPower ioname="NC" active="1" delay="1000"></VCMGpioPower>
+					<VCMGpioPwdn ioname="NC" active="0" delay="0"></VCMGpioPwdn>
 					<VCMCurrent start="0" rated="100" vcmmax="100" stepmode="4"  drivermax="100"></VCMCurrent>
 				</VCM>
 				<Flash>
@@ -383,7 +383,6 @@
 				<PreviewSize width="0" height="0"></PreviewSize>
 				<FaceDetect support="0" MaxNum="1"></FaceDetect>
 				<Cproc support="1" contrast="1.1" saturation="1.0" hue="0" brightness="0"></Cproc>
-
 				<DV>
 					<DV_QCIF name="qcif" width="176" height="144" fps="10" support="1"></DV_QCIF>
 					<DV_QVGA name="qvga" width="320" height="240" fps="10" support="1"></DV_QVGA>
@@ -404,13 +403,13 @@
 					<SensorI2cBusNum busnum="3"></SensorI2cBusNum>
 					<SensorI2cAddrByte byte="2"></SensorI2cAddrByte>
 					<SensorI2cRate rate="100000"></SensorI2cRate>
-					<SensorMclk mclk="24000000"></SensorMclk>
-					<SensorAvdd name="NC" min="0" max="0"></SensorAvdd>
-					<SensorDovdd name="NC" min="18000000" max="18000000"></SensorDovdd>
-					<SensorDvdd name="NC" min="0" max="0"></SensorDvdd>
-					<SensorGpioPwdn ioname="RK30_PIN1_PB4" active="1"></SensorGpioPwdn>
-					<SensorGpioRst ioname="NC" active="0"></SensorGpioRst>
-					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1"></SensorGpioPwen>
+					<SensorAvdd name="NC" min="0" max="0" delay="0"></SensorAvdd>
+					<SensorDvdd name="NC" min="0" max="0" delay="0"></SensorDvdd>
+					<SensorDovdd name="NC" min="18000000" max="18000000" delay="5000"></SensorDovdd>
+					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
+					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1" delay="1000"></SensorGpioPwen>
+					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
+					<SensorGpioPwdn ioname="RK30_PIN1_PB4" active="1" delay="2000"></SensorGpioPwdn>
 					<SensorFacing facing="front"></SensorFacing>
 					<SensorInterface mode="CCIR601"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -426,9 +425,9 @@
 					<VCMI2cBusNum busnum="0"></VCMI2cBusNum>
 					<VCMI2cAddrByte byte="0"></VCMI2cAddrByte>
 					<VCMI2cRate rate="0"></VCMI2cRate>
-					<VCMVdd name="NC" min="0" max="0"></VCMVdd>
-					<VCMGpioPwdn ioname="NC" active="0"></VCMGpioPwdn>
-					<VCMGpioPower ioname="NC" active="0"></VCMGpioPower>
+					<VCMVdd name="NC" min="0" max="0" delay="0"></VCMVdd>
+					<VCMGpioPower ioname="NC" active="0" delay="0"></VCMGpioPower>
+					<VCMGpioPwdn ioname="NC" active="0" delay="0"></VCMGpioPwdn>
 					<VCMCurrent start="20" rated="80" vcmmax="100" stepmode="13"  drivermax="100"></VCMCurrent>
 				</VCM>
 				<Flash>
@@ -533,13 +532,13 @@
 					<SensorI2cBusNum busnum="3"></SensorI2cBusNum>
 					<SensorI2cAddrByte byte="2"></SensorI2cAddrByte>
 					<SensorI2cRate rate="100000"></SensorI2cRate>
-					<SensorMclk mclk="24000000"></SensorMclk>
-					<SensorAvdd name="NC" min="0" max="0"></SensorAvdd>
-					<SensorDovdd name="NC" min="18000000" max="18000000"></SensorDovdd>
-					<SensorDvdd name="NC" min="0" max="0"></SensorDvdd>
-					<SensorGpioPwdn ioname="RK30_PIN1_PB4" active="1"></SensorGpioPwdn>
-					<SensorGpioRst ioname="NC" active="0"></SensorGpioRst>
-					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1"></SensorGpioPwen>
+					<SensorAvdd name="NC" min="0" max="0" delay="0"></SensorAvdd>
+					<SensorDvdd name="NC" min="0" max="0" delay="0"></SensorDvdd>
+					<SensorDovdd name="NC" min="18000000" max="18000000" delay="5000"></SensorDovdd>
+					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
+					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1" delay="1000"></SensorGpioPwen>
+					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
+					<SensorGpioPwdn ioname="RK30_PIN1_PB4" active="1" delay="2000"></SensorGpioPwdn>
 					<SensorFacing facing="front"></SensorFacing>
 					<SensorInterface mode="CCIR601"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -555,9 +554,9 @@
 					<VCMI2cBusNum busnum="0"></VCMI2cBusNum>
 					<VCMI2cAddrByte byte="0"></VCMI2cAddrByte>
 					<VCMI2cRate rate="0"></VCMI2cRate>
-					<VCMVdd name="NC" min="0" max="0"></VCMVdd>
-					<VCMGpioPwdn ioname="NC" active="0"></VCMGpioPwdn>
-					<VCMGpioPower ioname="NC" active="0"></VCMGpioPower>
+					<VCMVdd name="NC" min="0" max="0" delay="0"></VCMVdd>
+					<VCMGpioPower ioname="NC" active="0" delay="0"></VCMGpioPower>
+					<VCMGpioPwdn ioname="NC" active="0" delay="0"></VCMGpioPwdn>
 					<VCMCurrent start="20" rated="80" vcmmax="100" stepmode="13"  drivermax="100"></VCMCurrent>
 				</VCM>
 				<Flash>
@@ -662,13 +661,13 @@
 					<SensorI2cBusNum busnum="3"></SensorI2cBusNum>
 					<SensorI2cAddrByte byte="2"></SensorI2cAddrByte>
 					<SensorI2cRate rate="100000"></SensorI2cRate>
-					<SensorMclk mclk="24000000"></SensorMclk>
-					<SensorAvdd name="NC" min="0" max="0"></SensorAvdd>
-					<SensorDovdd name="NC" min="18000000" max="18000000"></SensorDovdd>
-					<SensorDvdd name="NC" min="0" max="0"></SensorDvdd>
-					<SensorGpioPwdn ioname="RK30_PIN1_PB4" active="1"></SensorGpioPwdn>
-					<SensorGpioRst ioname="NC" active="0"></SensorGpioRst>
-					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1"></SensorGpioPwen>
+					<SensorAvdd name="NC" min="0" max="0" delay="0"></SensorAvdd>
+					<SensorDvdd name="NC" min="0" max="0" delay="0"></SensorDvdd>
+					<SensorDovdd name="NC" min="18000000" max="18000000" delay="5000"></SensorDovdd>
+					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
+					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1" delay="1000"></SensorGpioPwen>
+					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
+					<SensorGpioPwdn ioname="RK30_PIN1_PB4" active="1" delay="2000"></SensorGpioPwdn>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface mode="CCIR601"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -684,9 +683,9 @@
 					<VCMI2cBusNum busnum="0"></VCMI2cBusNum>
 					<VCMI2cAddrByte byte="0"></VCMI2cAddrByte>
 					<VCMI2cRate rate="0"></VCMI2cRate>
-					<VCMVdd name="NC" min="0" max="0"></VCMVdd>
-					<VCMGpioPwdn ioname="NC" active="0"></VCMGpioPwdn>
-					<VCMGpioPower ioname="NC" active="0"></VCMGpioPower>
+					<VCMVdd name="NC" min="0" max="0" delay="0"></VCMVdd>
+					<VCMGpioPower ioname="NC" active="0" delay="0"></VCMGpioPower>
+					<VCMGpioPwdn ioname="NC" active="0" delay="0"></VCMGpioPwdn>
 					<VCMCurrent start="20" rated="80" vcmmax="100" stepmode="13"  drivermax="100"></VCMCurrent>
 				</VCM>
 				<Flash>
@@ -786,19 +785,19 @@
 			<HardWareInfo>
 				<Sensor>
 					<SensorName name="GS8604"></SensorName>
-					<SensorLens name="9569A2"></SensorLens>
+		`			<SensorLens name="9569A2"></SensorLens>
 					<SensorDevID IDname="CAMSYS_DEVID_SENSOR_1B"></SensorDevID>
 					<SensorHostDevID busnum="CAMSYS_DEVID_MARVIN" ></SensorHostDevID>
 					<SensorI2cBusNum busnum="3"></SensorI2cBusNum>
 					<SensorI2cAddrByte byte="2"></SensorI2cAddrByte>
 					<SensorI2cRate rate="100000"></SensorI2cRate>
-					<SensorMclk mclk="24000000"></SensorMclk>
-					<SensorAvdd name="NC" min="0" max="0"></SensorAvdd>
-					<SensorDovdd name="NC" min="18000000" max="18000000"></SensorDovdd>
-					<SensorDvdd name="NC" min="0" max="0"></SensorDvdd>
-					<SensorGpioPwdn ioname="RK30_PIN1_PB5" active="0"></SensorGpioPwdn>
-					<SensorGpioRst ioname="NC" active="0"></SensorGpioRst>
-					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1"></SensorGpioPwen>
+					<SensorAvdd name="NC" min="0" max="0" delay="0"></SensorAvdd>
+					<SensorDvdd name="NC" min="0" max="0" delay="0"></SensorDvdd>
+					<SensorDovdd name="NC" min="18000000" max="18000000" delay="5000"></SensorDovdd>
+					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
+					<SensorGpioPwen ioname="RK30_PIN0_PD0" active="1" delay="1000"></SensorGpioPwen>
+					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
+					<SensorGpioPwdn ioname="RK30_PIN1_PB5" active="0" delay="2000"></SensorGpioPwdn>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -814,9 +813,9 @@
 					<VCMI2cBusNum busnum="3"></VCMI2cBusNum>
 					<VCMI2cAddrByte byte="0"></VCMI2cAddrByte>
 					<VCMI2cRate rate="0"></VCMI2cRate>
-					<VCMVdd name="NC" min="0" max="0"></VCMVdd>
-					<VCMGpioPwdn ioname="NC" active="0"></VCMGpioPwdn>
-					<VCMGpioPower ioname="NC" active="0"></VCMGpioPower>
+					<VCMVdd name="NC" min="0" max="0" delay="0"></VCMVdd>
+					<VCMGpioPower ioname="NC" active="0" delay="1000"></VCMGpioPower>
+					<VCMGpioPwdn ioname="NC" active="0" delay="0"></VCMGpioPwdn>
 					<VCMCurrent start="0" rated="100" vcmmax="100" stepmode="4"  drivermax="100"></VCMCurrent>
 				</VCM>
 				<Flash>

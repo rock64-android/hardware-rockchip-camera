@@ -568,9 +568,11 @@ namespace android {
 		    2) when sensor service doesn't start
 		       sensor listener will return at time 
 	 2)support rk3366,rk3399
+*V1.0x3f.0:
+     1) modify the rule of sensor tuning file matching.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x3e, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x3f, 0)
 
 
 /*  */
@@ -1362,7 +1364,7 @@ private:
 	
 			return false;
 		}
-	};
+    };
 
 	friend class EncProcessThread;
 public:
@@ -1403,7 +1405,7 @@ public:
 	void callback_compressed_image(camera_memory_t* frame);
 	void callback_notify_error();
 	void callback_preview_metadata(camera_frame_metadata_t *facedata, struct RectFace *faces);
-	void callback_video_frame(camera_memory_t* video_frame);    
+	void callback_video_frame(camera_memory_t* video_frame);
     int enableMsgType(int32_t msgtype);
     int disableMsgType(int32_t msgtype);
     void setCallbacks(camera_notify_callback notify_cb,
@@ -1473,7 +1475,7 @@ private:
     sp<EncProcessThread> mEncProcessThread;
     sp<CameraAppFaceDetThread> mFaceDetThread;
     sp<CameraAppCallbackThread> mCallbackThread;
-    
+	
     BufferProvider* mRawBufferProvider;
     BufferProvider* mJpegBufferProvider;
     BufferProvider* mVideoBufferProvider;
@@ -1488,8 +1490,8 @@ private:
     MessageQueue encProcessThreadCommandQ;
     MessageQueue eventThreadCommandQ;
     MessageQueue faceDetThreadCommandQ;
-    MessageQueue callbackThreadCommandQ;
-
+	MessageQueue callbackThreadCommandQ;
+	
     camera_memory_t* mVideoBufs[CONFIG_CAMERA_VIDEO_BUF_CNT];
 
     char mPreviewDataFmt[30];

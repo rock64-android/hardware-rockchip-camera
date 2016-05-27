@@ -247,12 +247,14 @@
 *v1.0x33.0:
     1) add 0 cc offset in lowlight sence     //oyyf 
 *v1.0x34.0:
-    1) open camsys_marvin or camsys_marvin1 depend on phy config
+    1) open camsys_marvin or camsys_marvin1 depend on phy config 
+*v1.0x35.0:
+    1) fix something bug when open camsys_marvin1
 */
 
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x34, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x35, 0)
 
 
 class CamEngineItf;
