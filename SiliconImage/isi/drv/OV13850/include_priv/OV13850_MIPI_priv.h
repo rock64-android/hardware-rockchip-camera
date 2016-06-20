@@ -68,10 +68,12 @@ v0.7.0
 *v0.a.0
 *   1). support for isi v0.0xc.0
 *   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
+*v0.b.0
+*	1). add ov13850 R1A and R2A compatible
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xa, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xb, 0x00)
 
 
 #define OV13850_CHIP_ID_HIGH_BYTE            (0x300a) // r - 
