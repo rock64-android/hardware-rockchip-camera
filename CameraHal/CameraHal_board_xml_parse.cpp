@@ -991,7 +991,10 @@ camera_board_profiles* camera_board_profiles::createInstance()
 	FILE *fp = NULL;
 
     camera_board_profiles *profiles = new camera_board_profiles();
-    
+    #ifndef PRODUCT_HAS_CAMERA
+        LOGD("This machine does not have dvp/mipi camera!!\n");
+        return profiles;
+    #endif
     fp = fopen(RK_BOARD_XML_PATH, "r");
     if(!fp){
   	    LOGD("This machine have not dvp/mipi camera!!\n");

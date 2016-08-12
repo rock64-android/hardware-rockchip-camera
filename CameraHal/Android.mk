@@ -240,6 +240,10 @@ ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 6.0)))
 LOCAL_CFLAGS += -DANDROID_6_X
 endif
 
+ifeq ($(strip $(BOARD_HAS_CAMERA)), true)
+LOCAL_CFLAGS += -DPRODUCT_HAS_CAMERA
+endif
+
 #LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 ifneq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 5.0)))
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
