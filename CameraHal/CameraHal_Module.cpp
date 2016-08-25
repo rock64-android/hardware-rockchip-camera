@@ -627,7 +627,7 @@ int find_DV_resolution_index(int w, int h)
 int camera_get_number_of_cameras(void)
 {
     char cam_path[20];
-    char cam_num[3],i;
+    char cam_num[3],i, j;
     int cam_cnt=0,fd=-1,rk29_cam[CAMERAS_SUPPORT_MAX];
     struct v4l2_capability capability;
     rk_cam_info_t camInfoTmp[CAMERAS_SUPPORT_MAX];
@@ -640,6 +640,9 @@ int camera_get_number_of_cameras(void)
     char trace_level[PROPERTY_VALUE_MAX];
 	struct timeval t0, t1;
     ::gettimeofday(&t0, NULL);
+
+	struct v4l2_fmtdesc fmtdesc;
+	int availableNodeNum = 0;
 	
     if (gCamerasNumber > 0)
         goto camera_get_number_of_cameras_end;
@@ -682,6 +685,14 @@ int camera_get_number_of_cameras(void)
         delete camEngVerItf;
 
     }
+
+    unsigned long uvcPreFormat;
+    char preferredFormat[PROPERTY_VALUE_MAX];
+	property_get("sys_graphic.cam_uvc_prefmt.ver", preferredFormat, "MJPEG");
+	if (!strcmp(preferredFormat, "MJPEG"))
+		uvcPreFormat = V4L2_PIX_FMT_MJPEG;
+	else
+		uvcPreFormat = V4L2_PIX_FMT_H264;
     
     memset(&camInfoTmp[0],0x00,sizeof(rk_cam_info_t));
     memset(&camInfoTmp[1],0x00,sizeof(rk_cam_info_t));
@@ -732,7 +743,28 @@ int camera_get_number_of_cameras(void)
         }
     }
 
-   	if(cam_cnt<CAMERAS_SUPPORT_MAX){
+	availableNodeNum += cam_cnt;
+	for (i = 0; i < 10; i++) {
+		cam_path[0] = 0x00;
+		strcat(cam_path, CAMERA_DEVICE_NAME);
+        sprintf(cam_num, "%d", i);
+		strcat(cam_path, cam_num);
+		fd = open(cam_path, O_RDONLY);
+        if (fd < 0) {
+            LOGE("Open %s failed! strr: %s",cam_path,strerror(errno));
+            continue;
+        }
+        LOGD("Open %s success!",cam_path);
+
+		availableNodeNum++;
+        if (fd > 0) {
+            close(fd);
+            fd = -1;
+        }
+	}
+	LOGD("%s(%d): availableDeivce %d", __FUNCTION__, __LINE__, availableNodeNum);
+
+    if (cam_cnt < availableNodeNum) {
 		int i=0;
 		int element_count=0;
 		while(MediaProfile_Resolution[i][0]>0 && MediaProfile_Resolution[i][1]>0){
@@ -757,7 +789,42 @@ int camera_get_number_of_cameras(void)
             if (ioctl(fd, VIDIOC_QUERYCAP, &capability) < 0) {
             	LOGE("Video device(%s): query capability not supported.\n",cam_path);
                 goto loop_continue;
-            }
+            } else {
+				LOGD("video devicd(%s): capability card %s, bus_info %s, version %08x, device_caps %08x.",
+					cam_path, capability.card, capability.bus_info, capability.version, capability.device_caps);
+			}
+
+			memset(&fmtdesc, 0, sizeof(v4l2_fmtdesc));
+				fmtdesc.index = 0;
+				fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+				while (ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) == 0){
+					LOGD("%s(%d): Video device(%s): fmt = %d.", __FUNCTION__, __LINE__, cam_path, fmtdesc.pixelformat);
+					fmtdesc.index++;
+					if(fmtdesc.pixelformat == uvcPreFormat){
+						for(j = 0; j < cam_cnt; j++){
+							if(!strcmp(camInfoTmp[j].card, capability.card) && (camInfoTmp[j].pixelformat != uvcPreFormat)) {
+								//rk_cam_total_info* pNewCamInfo = new rk_cam_total_info();
+								memset(camInfoTmp[j].device_path,0x00, sizeof(camInfoTmp[j].device_path));
+								strcat(camInfoTmp[j].device_path,cam_path);
+								memset(camInfoTmp[j].fival_list,0x00, sizeof(camInfoTmp[j].fival_list));
+								memcpy(camInfoTmp[j].driver,capability.driver, sizeof(camInfoTmp[j].driver));
+								memcpy(camInfoTmp[j].card,capability.card, sizeof(camInfoTmp[j].card));
+								camInfoTmp[j].version = capability.version;
+								camInfoTmp[j].pixelformat = fmtdesc.pixelformat;
+								goto loop_continue;
+							}
+						}
+					}
+					if (cam_cnt > 0){
+						for (j = 0; j < cam_cnt; j++) {
+							if (!strcmp(camInfoTmp[j].card, capability.card)) {
+								LOGD("%s(%d): video %s and %s is the same camera.", __FUNCTION__, __LINE__,
+									cam_path, camInfoTmp[j].device_path);
+								goto loop_continue;
+							}
+						}
+					}
+				}
             
             if ((capability.capabilities & (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING)) != (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING)) {
         	    LOGD("Video device(%s): video capture not supported.\n",cam_path);
@@ -767,7 +834,9 @@ int camera_get_number_of_cameras(void)
                 strcat(camInfoTmp[cam_cnt&0x01].device_path,cam_path);
                 memset(camInfoTmp[cam_cnt&0x01].fival_list,0x00, sizeof(camInfoTmp[cam_cnt&0x01].fival_list));
                 memcpy(camInfoTmp[cam_cnt&0x01].driver,capability.driver, sizeof(camInfoTmp[cam_cnt&0x01].driver));
+				memcpy(camInfoTmp[cam_cnt&0x01].card,capability.card, sizeof(camInfoTmp[cam_cnt&0x01].card));
                 camInfoTmp[cam_cnt&0x01].version = capability.version;
+				camInfoTmp[cam_cnt&0x01].pixelformat= fmtdesc.pixelformat;
                 if (strstr((char*)&capability.card[0], "front") != NULL) {
                     camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_FRONT;
                 } else {
@@ -836,9 +905,9 @@ int camera_get_number_of_cameras(void)
 					CameraHal_SupportFmt[0] = V4L2_PIX_FMT_NV12;
 				    CameraHal_SupportFmt[1] = V4L2_PIX_FMT_NV16;
 				    #if CONFIG_CAMERA_UVC_MJPEG_SUPPORT
-				    CameraHal_SupportFmt[2] = V4L2_PIX_FMT_MJPEG;
-				    CameraHal_SupportFmt[3] = V4L2_PIX_FMT_YUYV;
-				    CameraHal_SupportFmt[4] = V4L2_PIX_FMT_RGB565;
+					CameraHal_SupportFmt[2] = V4L2_PIX_FMT_H264;
+				    CameraHal_SupportFmt[3] = V4L2_PIX_FMT_MJPEG;
+				    CameraHal_SupportFmt[4] = V4L2_PIX_FMT_YUYV;
 				    #else
 				    CameraHal_SupportFmt[2] = V4L2_PIX_FMT_YUYV;
 				    CameraHal_SupportFmt[3] = V4L2_PIX_FMT_RGB565;
@@ -858,7 +927,7 @@ int camera_get_number_of_cameras(void)
 										
 					i = 0;	  
 					while (CameraHal_SupportFmt[i]) {
-						LOG1("CameraHal_SupportFmt:fmt = %d,index = %d",CameraHal_SupportFmt[i],i);
+						LOGD("CameraHal_SupportFmt:fmt = %d,index = %d",CameraHal_SupportFmt[i],i);
 						j = 0;
 						while (mCamDriverSupportFmt[j]) {
 							if (mCamDriverSupportFmt[j] == CameraHal_SupportFmt[i]) {
@@ -930,7 +999,7 @@ int camera_get_number_of_cameras(void)
 								pDVResolution->mIsSupport = 1;
 								if (pDVResolution->mFps > maxfps)
 									maxfps = pDVResolution->mFps;
-								LOG1("%dx%d : %d	%d/%d",fival.width,fival.height, pDVResolution->mFps,fival.discrete.denominator,fival.discrete.numerator);
+								LOGD("%dx%d : %d	%d/%d",fival.width,fival.height, pDVResolution->mFps,fival.discrete.denominator,fival.discrete.numerator);
 							}else if (fival.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
 			                    break;
 			                } else if (fival.type == V4L2_FRMIVAL_TYPE_STEPWISE) {
@@ -1047,7 +1116,7 @@ int camera_get_number_of_cameras(void)
 				pNewCamInfo->mDeviceIndex = (profiles->mDevieVector.size()) - 1;
                 camInfoTmp[cam_cnt].pcam_total_info = pNewCamInfo;
                 cam_cnt++;
-                if (cam_cnt >= CAMERAS_SUPPORT_MAX)
+                if (cam_cnt >= availableNodeNum)
                     i = 10;
             }
     loop_continue:

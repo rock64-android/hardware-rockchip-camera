@@ -426,6 +426,7 @@ int AppMsgNotifier::startRecording(int w,int h)
     	if (mVideoBufs[i]) {
     		addr = (long*)mVideoBufs[i]->data;
     		*addr =  (long)mVideoBufferProvider->getBufPhyAddr(i);
+			*(addr + 1) = (long)mVideoBufferProvider->getBufVirAddr(i);
     	}
 	}
 
@@ -1251,10 +1252,11 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 		JpegInInfo.thumbqLvl = 9;
 	}
 #if defined(TARGET_RK3188)
-	if(0) {
+	if(0)
 #else
-	if(thumbwidth !=0 && thumbheight !=0) {
+	if(thumbwidth !=0 && thumbheight !=0)
 #endif
+    {
 		JpegInInfo.doThumbNail = 1; 		 //insert thumbnail at APP0 extension
 		JpegInInfo.thumbData = NULL;		 //if thumbData is NULL, do scale, the type above can not be 420_P or 422_UYVY
 		JpegInInfo.thumbDataLen = -1;
@@ -1420,7 +1422,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
     }
 
     mVideoBufferProvider->setBufferStatus(buf_index, 1);
-    if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
+    if((frame->frame_fmt_src !=V4L2_PIX_FMT_H264 && frame->frame_fmt == V4L2_PIX_FMT_NV12)){
         #if 0
         arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
             (char*)buf_vir,frame->frame_width, frame->frame_height,
@@ -1435,7 +1437,13 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
         //mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_index], 0, mCallbackCookie);
         callback_video_frame(mVideoBufs[buf_index]);
         LOG1("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
-    }
+    } else if(frame->frame_fmt_src == V4L2_PIX_FMT_H264) {
+		memcpy(buf_vir, &frame->frame_size_src, 4);
+		memcpy(buf_vir + 4, frame->vir_addr_src, frame->frame_size_src);
+		mVideoBufferProvider->flushBuffer(buf_index);
+
+		mVideoBufferProvider->setBufferStatus(mVideoBufs[buf_index],buf_index);
+	}
 	/*//fill video buffer
 	if(cameraFormatConvert(frame->frame_fmt, V4L2_PIX_FMT_NV12, NULL,
     (char*)frame->vir_addr,(char*)buf_vir,0,0,frame->frame_width*frame->frame_height*2,

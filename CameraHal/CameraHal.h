@@ -570,9 +570,13 @@ namespace android {
 	 2)support rk3366,rk3399
 *V1.0x3f.0:
      1) modify the rule of sensor tuning file matching.
+
+*v1.0x40.0:
+*	1) add support usb camera format for H264.
+*
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x3f, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x40, 0)
 
 
 /*  */
@@ -594,7 +598,7 @@ namespace android {
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL  0
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>,<com.tencent.mm>"
 #define CONFIG_CAMERA_FRONT_FLIP_MDATACB_APK  "<com.tencent.mm>,<com.xiaomi.channel>"
-#define CONFIG_CAMERA_SETVIDEOSIZE	0
+#define CONFIG_CAMERA_SETVIDEOSIZE	1
 
 #define CONFIG_CAMERA_PREVIEW_BUF_CNT 4
 #define CONFIG_CAMERA_DISPLAY_BUF_CNT		4
@@ -798,6 +802,29 @@ typedef struct mjpeg_interface {
     mjpegDecodeOneFrameFun      decode;
 } mjpeg_interface_t;
 
+/* avc decoder interface in libvpu.*/
+typedef void* (*getAvcDecoderFun)(void);
+typedef void* (*destroyAvcDecoderFun)(void* AvcDecoder);
+
+typedef int (*initAvcDecoderFun)(void* AvcDecoder);
+typedef int (*deInitAvcDecoderFun)(void* AvcDecoder);
+typedef int (*setPerformAvcDecoderFun)(void* AvcDecoder,VPU_API_CMD cmd,void *param);
+typedef int (*avcDecodeOneFrameFun)(void * AvcDecoder,uint8_t* aOutBuffer, uint32_t *aOutputLength,
+        uint8_t* aInputBuf, uint32_t* aInBufSize, ulong_t out_phyaddr);
+
+typedef struct avc_interface {
+    void*                       decoder;
+    int                         state;
+
+    getAvcDecoderFun          get;
+    destroyAvcDecoderFun      destroy;
+    initAvcDecoderFun         init;
+    deInitAvcDecoderFun       deInit;
+	setPerformAvcDecoderFun   setPerform;
+    avcDecodeOneFrameFun      decode;
+} avc_interface_t;
+
+
 /*************************
 CameraAdapter 负责与驱动通信，且为帧数据的提供者，为display及msgcallback提供数据。
 ***************************/
@@ -935,6 +962,7 @@ protected:
     unsigned int mCamDriverV4l2BufferLen;
 
     mjpeg_interface_t mMjpegDecoder;
+    avc_interface_t mAvcDecoder;
     void* mLibstageLibHandle;
 
     int mZoomVal;

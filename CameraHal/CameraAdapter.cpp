@@ -303,7 +303,8 @@ int CameraAdapter::cameraCreate(int cameraId)
     if (mLibstageLibHandle == NULL) {
         LOGE("%s(%d): open libstagefright.so fail",__FUNCTION__,__LINE__);
     } else {
-        mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");         
+        mMjpegDecoder.get = (getMjpegDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2JpegDecoder");
+        mAvcDecoder.get = (getAvcDecoderFun)dlsym(mLibstageLibHandle, "get_class_On2AvcDecoder");
     }
 
     if (mMjpegDecoder.get == NULL) {
@@ -352,6 +353,52 @@ int CameraAdapter::cameraCreate(int cameraId)
             }
         }
     }
+
+	if (mAvcDecoder.get == NULL) {/* benjo.zhou@rock-chips.com: 18th,Aug,2016 */
+		if (mLibstageLibHandle == NULL) {
+			LOGE("%s(%d): open librk_vpuapi.so fail",__FUNCTION__,__LINE__);
+			} else {
+			mAvcDecoder.get = (getAvcDecoderFun)dlsym(mLibstageLibHandle, "get_class_RkAvcDecoder");
+			if (mAvcDecoder.get == NULL) {
+				LOGE("%s(%d): dlsym get_class_RkAvcDecoder fail",__FUNCTION__,__LINE__);
+				}
+			}
+			}
+
+
+	if (mAvcDecoder.get != NULL) {
+		mAvcDecoder.decoder = mAvcDecoder.get();
+		if (mAvcDecoder.decoder==NULL) {
+			LOGE("%s(%d): get avc decoder failed",__FUNCTION__,__LINE__);
+		} else {
+			mAvcDecoder.destroy =(destroyAvcDecoderFun)dlsym(mLibstageLibHandle, "destroy_class_RkAvcDecoder");
+			if (mAvcDecoder.destroy == NULL)
+				LOGE("%s(%d): dlsym destroy_class_RkAvcDecoder fail",__FUNCTION__,__LINE__);
+
+			mAvcDecoder.init = (initAvcDecoderFun)dlsym(mLibstageLibHandle, "init_class_RkAvcDecoder");
+			if (mAvcDecoder.init == NULL)
+				LOGE("%s(%d): dlsym init_class_RkAvcDecoder fail",__FUNCTION__,__LINE__);
+
+			mAvcDecoder.deInit =(deInitAvcDecoderFun)dlsym(mLibstageLibHandle, "deinit_class_RkAvcDecoder");
+			if (mAvcDecoder.deInit == NULL)
+				LOGE("%s(%d): dlsym deinit_class_RkAvcDecoder fail",__FUNCTION__,__LINE__);
+
+			mAvcDecoder.setPerform = (setPerformAvcDecoderFun)dlsym(mLibstageLibHandle, "perform_seting_class_RkAvcDecoder");
+			if (mAvcDecoder.setPerform == NULL)
+				LOGE("%s(%d): dlsym %s fail",__FUNCTION__,__LINE__,"perform_seting_class_RkAvcDecoder");
+
+			mAvcDecoder.decode =(avcDecodeOneFrameFun)dlsym(mLibstageLibHandle, "dec_oneframe_class_RkAvcDecoder");
+			if (mAvcDecoder.decode == NULL)
+				LOGE("%s(%d): dlsym %s fail",__FUNCTION__,__LINE__,"dec_oneframe_class_RkAvcDecoder");
+
+			if ((mAvcDecoder.deInit != NULL) && (mAvcDecoder.init != NULL) &&
+				(mAvcDecoder.destroy != NULL) && (mAvcDecoder.decode != NULL)) {
+					mAvcDecoder.state = mAvcDecoder.init(mAvcDecoder.decoder);
+					int param = 1;
+					mAvcDecoder.setPerform(mAvcDecoder.decoder,VPU_API_SET_IMMEDIATE_OUT,&param);
+			}
+		}
+	}
 
 	
     cameraDevicePathCur = (char*)&gCamInfos[cameraId].device_path[0];
@@ -452,13 +499,24 @@ int CameraAdapter::cameraDestroy()
 
     LOG_FUNCTION_NAME
     if (mLibstageLibHandle && (mMjpegDecoder.state == 0)) {
-        mMjpegDecoder.deInit(mMjpegDecoder.decoder);
-        mMjpegDecoder.destroy(mMjpegDecoder.decoder);
-        mMjpegDecoder.decoder = NULL;
+		if (mMjpegDecoder.state == 0) {
+	        mMjpegDecoder.deInit(mMjpegDecoder.decoder);
+	        mMjpegDecoder.destroy(mMjpegDecoder.decoder);
+	        mMjpegDecoder.decoder = NULL;
+		}
+
+		if (mAvcDecoder.state == 0) {
+			mAvcDecoder.deInit(mAvcDecoder.decoder);
+			mAvcDecoder.destroy(mAvcDecoder.decoder);
+			mAvcDecoder.decoder = NULL;
+		}
 
         dlclose(mLibstageLibHandle);
-        mLibstageLibHandle = NULL;
-    }    LOG_FUNCTION_NAME_EXIT
+	    mLibstageLibHandle = NULL;
+    }
+
+
+    LOG_FUNCTION_NAME_EXIT
     return 0;
 }
 
@@ -670,6 +728,12 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
     mPreviewFrameInfos[cfilledbuffer1.index].used_flag = 0;
     mPreviewFrameInfos[cfilledbuffer1.index].frame_size = cfilledbuffer1.bytesused;
     mPreviewFrameInfos[cfilledbuffer1.index].res        = NULL;
+
+	/* for avc raw data: add by benjo.zhou@rock-chip.com 2016*/
+	mPreviewFrameInfos[cfilledbuffer1.index].vir_addr_src = mPreviewFrameInfos[cfilledbuffer1.index].vir_addr;
+	mPreviewFrameInfos[cfilledbuffer1.index].frame_fmt_src = mPreviewFrameInfos[cfilledbuffer1.index].frame_fmt;
+	mPreviewFrameInfos[cfilledbuffer1.index].vpumen = NULL;
+	/* end for avc raw data*/
         
     *tmpFrame = &(mPreviewFrameInfos[cfilledbuffer1.index]);
     LOG2("%s(%d): fill  frame info success",__FUNCTION__,__LINE__);
@@ -694,6 +758,17 @@ int CameraAdapter::adapterReturnFrame(long index,int cmd){
     buf_state = mPreviewBufProvider->getBufferStatus(index);
     LOG2("%s(%d):index(%d),cmd(%d),buf_state(%d)",__FUNCTION__,__LINE__,index,cmd,buf_state);
     if (buf_state == 0) {
+		/*for AVC raw data: add by benjo.zhou@rock-chip.com 2016*/
+		FramInfo_s *tmpFrame = &(mPreviewFrameInfos[index]);
+		if (tmpFrame->frame_fmt_src == V4L2_PIX_FMT_H264 && tmpFrame->vpumen) {
+			VPU_FRAME *pFrame = (VPU_FRAME *)tmpFrame->vpumen;
+			VPUFreeLinear((VPUMemLinear_t *)&pFrame->vpumem);
+			LOGD("vpu release %p",tmpFrame->res);
+
+			free(tmpFrame->vpumen);
+			tmpFrame->vpumen = NULL;
+		}
+		/*end for AVC raw data*/
         vb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         vb.memory = mCamDriverV4l2MemType;
         vb.index = index;                        
