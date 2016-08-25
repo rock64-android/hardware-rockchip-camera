@@ -69,6 +69,8 @@ CameraIspAdapter::CameraIspAdapter(int cameraId)
     mPicEncFrameLeak = 0;
 	mCtxCbResChange.res = 0;
 	mCtxCbResChange.pIspAdapter =NULL;
+	mCamDrvWidth = DEFAULTPREVIEWWIDTH;
+	mCamDrvHeight= DEFAULTPREVIEWHEIGHT;
 	LOG_FUNCTION_NAME_EXIT
 }
 CameraIspAdapter::~CameraIspAdapter()

@@ -884,6 +884,7 @@ get_command:
                             mEventNotifier->startReceiveFrame();
                         if(mEventNotifier->msgEnabled(CAMERA_MSG_PREVIEW_METADATA))
                             mEventNotifier->startFaceDection(drv_w,drv_h);
+
 						if(err != 0)
 							goto PREVIEW_START_OUT;
                     }

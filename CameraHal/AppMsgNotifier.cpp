@@ -160,6 +160,10 @@ AppMsgNotifier::~AppMsgNotifier()
 int AppMsgNotifier::startFaceDection(int width,int height)
 {
     int ret = 0;
+
+    LOGW("Don't open FaceDection function!");
+    return 0;
+
     Mutex::Autolock lock(mFaceDecLock);
     if(!(mRunningState & STA_RECEIVE_FACEDEC_FRAME)){
         if((ret = initializeFaceDetec(width, height)) == 0){
