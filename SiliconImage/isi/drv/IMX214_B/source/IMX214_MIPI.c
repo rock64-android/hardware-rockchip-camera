@@ -48,8 +48,8 @@ CREATE_TRACER( Sensor_DEBUG, "IMX214: ", INFO,     0U );
 CREATE_TRACER( Sensor_REG_INFO , "IMX214: ", INFO, 0);
 CREATE_TRACER( Sensor_REG_DEBUG, "IMX214: ", INFO, 0U );
 
-#define Sensor_SLAVE_ADDR       0x20U                           /**< i2c slave address of the IMX214 camera sensor */
-#define Sensor_SLAVE_ADDR2      0x20U
+#define Sensor_SLAVE_ADDR       0x34U                           /**< i2c slave address of the IMX214 camera sensor */
+#define Sensor_SLAVE_ADDR2      0x34U
 #define Sensor_SLAVE_AF_ADDR    0x18U                           /**< i2c slave address of the IMX214 integrated AD5820 */
 #define Sensor_OTP_SLAVE_ADDR   0xA0U
 #define Sensor_OTP_SLAVE_ADDR2   0xA2U
@@ -90,7 +90,7 @@ CREATE_TRACER( Sensor_REG_DEBUG, "IMX214: ", INFO, 0U );
 /******************************************************************************
  * local variable declarations
  *****************************************************************************/
-const char Sensor_g_acName[] = "IMX214_MIPI";
+const char Sensor_g_acName[] = "IMX214_MIPI_B";
 
 extern const IsiRegDescription_t Sensor_g_aRegDescription_fourlane[];
 extern const IsiRegDescription_t Sensor_g_fourlane_resolution_4208_3120[];
@@ -2036,6 +2036,15 @@ static RESULT Sensor_IsiCheckSensorConnectionIss
     RevId = Sensor_CHIP_ID_HIGH_BYTE_DEFAULT;
     RevId = (RevId << 8U) | (Sensor_CHIP_ID_LOW_BYTE_DEFAULT);
 
+   /* result = Sensor_IsiGetSensorRevisionIss( handle, &value );
+
+    TRACE( Sensor_ERROR, "%s RevId = 0x%08x, value = 0x%08x \n", __FUNCTION__, RevId, value );
+    if ( (result != RET_SUCCESS) || (RevId != value) )
+    {
+        TRACE( Sensor_ERROR, "%s RevId = 0x%08x, value = 0x%08x \n", __FUNCTION__, RevId, value );
+        return ( RET_FAILURE );
+    }
+*/
     result = RET_SUCCESS;
     TRACE( Sensor_INFO, "%s (exit)\n", __FUNCTION__);
 

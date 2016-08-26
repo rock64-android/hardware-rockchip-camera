@@ -55,19 +55,16 @@ extern "C"
 *v0.6.0
 *   1). support for isi v0.0xc.0
 *   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
-*v0.7.0
-*   1). ID Address: 0x1617 ID_num: 0x214
-*   2). don't Check Sensor Connection again
 */
 
 #define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 6, 0x00)
 
 
-#define Sensor_CHIP_ID_HIGH_BYTE            (0x0016) // r -
-#define Sensor_CHIP_ID_LOW_BYTE          (0x0017) // r -
+#define Sensor_CHIP_ID_HIGH_BYTE            (0x0016) // r - 
+#define Sensor_CHIP_ID_LOW_BYTE          (0x0017) // r - 
 
-#define Sensor_CHIP_ID_HIGH_BYTE_DEFAULT            (0x02) // r -
-#define Sensor_CHIP_ID_LOW_BYTE_DEFAULT          (0x14) // r -
+#define Sensor_CHIP_ID_HIGH_BYTE_DEFAULT            (0x02) // r - 
+#define Sensor_CHIP_ID_LOW_BYTE_DEFAULT          (0x14) // r - 
 
 #define Sensor_MODE_SELECT  (0x0100)
 

@@ -147,7 +147,13 @@ struct rk_sensor_info{
                 mCamDevid(0),
                 mSensorI2cAddr(0),
                 mSensorPowerupSequence(0),
-                mMode(OUTPUT_MODE_MIN){};
+                mMode(OUTPUT_MODE_MIN){
+                memset(mSensorName, 0x00, sizeof(mSensorName));
+				memset(mModuleName, 0x00, sizeof(mModuleName));
+				memset(mLensName, 0x00, sizeof(mLensName));
+				memset(mCamsysDevPath, 0x00, sizeof(mCamsysDevPath));
+				memset(mSensorDriver, 0x00, sizeof(mSensorDriver));
+                };
     ~rk_sensor_info(){};
     
     char mSensorName[CAMSYS_NAME_LEN];

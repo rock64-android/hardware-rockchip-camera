@@ -234,6 +234,7 @@ extern "C"
 #define ISI_RES_1296_972P25                    0x325103cc       /**<  3 3264x2448    */
 #define ISI_RES_1296_972P30                    0x3c5103cc       /**<  3 3264x2448    */
 
+#define ISI_RES_3120_3120P30                   0x3cc30c30      /**<  30 3120x3120    */
 #define ISI_RES_3264_2448P7                    0x0ecc0990      /**<  3 3264x2448    */
 #define ISI_RES_3264_2448P10                   0x14cc0990      /**<  3 3264x2448    */
 #define ISI_RES_3264_2448P15                   0x1ecc0990      /**<  3 3264x2448    */
@@ -311,6 +312,11 @@ extern "C"
 #define ISI_RES_2112_1568P40                   0x50840620      /**<  5 4416x3312    */
 #define ISI_RES_2112_1568P50                   0x64840620      /**<  5 4416x3312    */
 #define ISI_RES_2112_1568P60                   0x78840620      /**<  5 4416x3312    */
+
+#define ISI_RES_2112_1560P30                   0x3c840618      /**<  5 2112x1560    */
+#define ISI_RES_3120_3120P15                   0x1ec30c30      /**<  5 3120x3120    */
+#define ISI_RES_3120_3120P25                   0x32c30c30      /**<  5 3120x3120    */
+#define ISI_RES_4224_3120P15                   0x1e080c30      /**<  5 4224x3120    */
 
 #define ISI_RES_TV720P5                     0x0a5002d0      /**< 16 1280x720@5   */
 #define ISI_RES_TV720P15                    0x1e5002d0      /**< 17 1280x720@15  */

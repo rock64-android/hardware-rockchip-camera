@@ -250,11 +250,20 @@
     1) open camsys_marvin or camsys_marvin1 depend on phy config 
 *v1.0x35.0:
     1) fix something bug when open camsys_marvin1
+*v1.0x35.1:
+    1) protect variables EcmT0 and Tmax in ecm.c.
+    2) modify HUGE_VAL_GAIN from 0xffffffff to 65535.
+    3) modify expresion 'floorf' to 'roundf' in 'Tint=MIN(Tmax,roundf(Tc/pAecCtx->EcmTflicker)*pAecCtx->EcmTflicker)'.
+    4) support 3120x3120P30.
+*v1.0x36.0:
+    1) IMX214 ID address:0x1617 ID num:214.
+    2) OV13850 support r1a and r2a.
+    3) support 4224_3120P15\3120_3120P15\3120_3120P25\2112_1560P30.
 */
 
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x35, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x36, 0)
 
 
 class CamEngineItf;

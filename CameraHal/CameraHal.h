@@ -570,9 +570,16 @@ namespace android {
 	 2)support rk3366,rk3399
 *V1.0x3f.0:
      1) modify the rule of sensor tuning file matching.
+
+*v1.0x40.0:
+*	1) add support usb camera format for H264.
+*
+*V1.0x41.0:
+     1) rk_sensor_info memory release.
+	 2) remove macro MACHINE_HAS_CAMERA.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x3f, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x41, 0)
 
 
 /*  */

@@ -2246,6 +2246,7 @@ RESULT IsiGetResolutionParam
         case ISI_RES_1600_1200P20:
         case ISI_RES_1600_1200P30:
         
+	    case ISI_RES_3120_3120P30:
 		case ISI_RES_4224_3136P4:
         case ISI_RES_4224_3136P7:
         case ISI_RES_4224_3136P10:
@@ -2271,6 +2272,11 @@ RESULT IsiGetResolutionParam
         case ISI_RES_2112_1568P40:
         case ISI_RES_2112_1568P50:
         case ISI_RES_2112_1568P60:
+
+		case ISI_RES_4224_3120P15:
+		case ISI_RES_3120_3120P15:
+		case ISI_RES_3120_3120P25:
+		case ISI_RES_2112_1560P30:
 
         case ISI_RES_2104_1560P7:
         case ISI_RES_2104_1560P10:

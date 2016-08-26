@@ -268,7 +268,7 @@ void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int previ
         LOGE("%s:isp don't support this format %d now",__func__,mISPOutputFmt);
     }
 	m_camDevice->setIspBufferInfo(bufNum, bufSize);
-    LOG1("Sensor output: %dx%d --(%d,%d,%d,%d)--> User request: %dx%d",width_sensor,height_sensor,
+    LOGD("Sensor output: %dx%d --(%d,%d,%d,%d)--> User request: %dx%d",width_sensor,height_sensor,
         dcWin.hOffset,dcWin.vOffset,dcWin.width,dcWin.height,preview_w,preview_h);
 
 }
