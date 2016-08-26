@@ -16,6 +16,12 @@ typedef struct FramInfo
     int zoom_value;
     ulong_t used_flag;
     int frame_size;
+	/*for avc raw data*/
+	ulong_t vir_addr_src;
+	int frame_fmt_src;
+	int frame_size_src;
+	void* vpumen;
+	/*end for avc raw data*/
     void* res;
 }FramInfo_s;
 

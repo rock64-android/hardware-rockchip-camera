@@ -20,8 +20,10 @@ typedef struct rk_cam_info_s {
     char device_path[30];
     char driver[16];
     unsigned int version;
+	char card[32];
+	unsigned int pixelformat;
     struct camera_info facing_info;
-    struct v4l2_frmivalenum fival_list[10];   // default preview framerate, dc preview framerate, dv preview framerate(highe quality/low quality)   
+    struct v4l2_frmivalenum fival_list[10];   // default preview framerate, dc preview framerate, dv preview framerate(highe quality/low quality)
     struct rk_cam_total_info *pcam_total_info;
 }rk_cam_info_t;
 
@@ -31,10 +33,10 @@ typedef struct rk_camera_device {
     int cameraid;
 } rk_camera_device_t;
 
-#if CONFIG_AUTO_DETECT_FRAMERATE 
+#if CONFIG_AUTO_DETECT_FRAMERATE
 int camera_famerate_detect_loop(void);
 
-class CameraFpsDetectThread : public Thread {        
+class CameraFpsDetectThread : public Thread {
 public:
     CameraFpsDetectThread()
         : Thread(false){ }

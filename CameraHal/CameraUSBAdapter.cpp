@@ -3,6 +3,7 @@
 
 namespace android{
 
+int g_spsAndPpsLen = 0;
 
 CameraUSBAdapter::CameraUSBAdapter(int cameraId)
                    :CameraAdapter(cameraId)
@@ -12,9 +13,9 @@ CameraUSBAdapter::CameraUSBAdapter(int cameraId)
     CameraHal_SupportFmt[0] = V4L2_PIX_FMT_NV12;
     CameraHal_SupportFmt[1] = V4L2_PIX_FMT_NV16;
     #if CONFIG_CAMERA_UVC_MJPEG_SUPPORT
-    CameraHal_SupportFmt[2] = V4L2_PIX_FMT_MJPEG;
-    CameraHal_SupportFmt[3] = V4L2_PIX_FMT_YUYV;
-    CameraHal_SupportFmt[4] = V4L2_PIX_FMT_RGB565;
+	CameraHal_SupportFmt[2] = V4L2_PIX_FMT_H264;
+    CameraHal_SupportFmt[3] = V4L2_PIX_FMT_MJPEG;
+    CameraHal_SupportFmt[4] = V4L2_PIX_FMT_YUYV;
     #else
     CameraHal_SupportFmt[2] = V4L2_PIX_FMT_YUYV;
     CameraHal_SupportFmt[3] = V4L2_PIX_FMT_RGB565;
@@ -909,6 +910,137 @@ int CameraUSBAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
 end:  
     return err;
 }
+static int getNextNALUnit(const uint8_t **_data, size_t *_size, const uint8_t **nalStart, size_t *nalSize)
+{
+	const uint8_t *data = *_data;
+	size_t size = *_size;
+
+	*nalStart = NULL;
+	*nalSize = 0;
+
+	if (size < 3) {
+		return -1;
+	}
+
+	size_t offset = 0;
+
+	// A valid startcode consists of at least two 0x00 bytes followed by 0x01.
+	for (; offset + 2 < size; ++offset) {
+		if (data[offset + 2] == 0x01 && data[offset] == 0x00
+			&& data[offset + 1] == 0x00) {
+			break;
+		}
+	}
+	if (offset + 2 >= size) {
+		*_data = &data[offset];
+		*_size = 2;
+		return -1;
+	}
+	offset += 3;
+
+	size_t startOffset = offset;
+
+	for (;;) {
+		while (offset < size && data[offset] != 0x01) {
+			++offset;
+		}
+
+		if (offset == size) {
+			// ALOGI("-----error1");
+			// return -EAGAIN;
+			//just as the inputdate is : sps + pps + full frame
+			break;
+		}
+
+		if (data[offset - 1] == 0x00 && data[offset - 2] == 0x00) {
+			break;
+		}
+
+		++offset;
+	}
+
+	size_t endOffset = 0;
+	if (offset == size){
+		endOffset = offset;
+	} else {
+		endOffset = offset - 2;
+	}
+	while (endOffset > startOffset + 1 && data[endOffset - 1] == 0x00) {
+		--endOffset;
+	}
+
+	*nalStart = &data[startOffset];
+	*nalSize = endOffset - startOffset;
+
+	if (offset + 2 < size) {
+		*_data = &data[offset - 2];
+		*_size = size - offset + 2;
+	} else {
+		*_data = NULL;
+		*_size = 0;
+	}
+
+	return 0;
+}
+
+static int getSpsPpsLen(const uint8_t* pInBuffer, size_t inputLen)
+{
+	status_t err;
+	const uint8_t *data = pInBuffer;
+	size_t size = inputLen >100 ? 100:inputLen;//just check 100byte is enough.
+	const uint8_t *nalStart;
+	size_t nalSize;
+	bool spsFlag = false;
+	bool ppsFlag = false;
+
+	while ((err = getNextNALUnit(&data, &size, &nalStart, &nalSize)) == 0) {
+		if (nalSize <= 0)
+			continue;
+
+		unsigned int nalType = nalStart[0] & 0x1f;
+		if ((nalType == 7) && !spsFlag) {
+			if (nalSize + 4 > 1024) {
+				LOGE("%s(%d): sps is too big, may be something wrong!", __FUNCTION__, __LINE__);
+				continue;
+			}
+			g_spsAndPpsLen = nalSize + 4;
+			spsFlag = true;
+		}
+		if ((nalType == 8) && !ppsFlag) {
+			if (nalSize + 4 > 1024)
+				continue;
+
+			g_spsAndPpsLen += nalSize + 4;
+			ppsFlag = true;
+		}
+		//just pass the sps pps,send raw encoder data to vpu directly
+		if(size < 4 && nalType != 7 && nalType != 8){
+			return (nalStart - pInBuffer)-4;
+		}
+
+
+		//LOGD("%s(%d): avc frame sps and pps NALUnit len %d.", __FUNCTION__, __LINE__, g_spsAndPpsLen);
+	}
+	return 0;
+}
+
+static bool checkH264FrameType(const uint8_t *pInBuffer, size_t inputLen,size_t * offset)
+{
+	status_t err;
+	//if (g_spsAndPpsLen <= 0) {
+		*offset = getSpsPpsLen(pInBuffer, inputLen);
+	//}
+
+	//int32_t offset = g_spsAndPpsLen;
+	unsigned int nalType = pInBuffer[*offset + 4] & 0x1f;
+	if (nalType == 5){
+		* offset = 0;//I frame need spspps
+		return 1;
+	}
+	else{
+		return 0;
+	}
+}
 
 //define  the frame info ,such as w, h ,fmt 
 int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
@@ -953,6 +1085,48 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
         if (ret < 0){
             LOGE("%s(%d): yuyv convert to nv12 error!",__FUNCTION__,__LINE__);
         }
+
+
+
+	}else if(frame->frame_fmt == V4L2_PIX_FMT_H264){
+			VPU_FRAME outbuf;
+			uint32_t output_len;
+			uint32_t input_len;
+			output_len = 0;
+
+			int64_t inputTimeStamp = 0;
+			uint8_t *srcbuf = (uint8_t *)frame->vir_addr;
+			input_len = frame->frame_size;
+			const uint8_t *nalStart;
+			size_t nalSize;
+			bool foundSlice = false;
+
+			ret = mAvcDecoder.decode(mAvcDecoder.decoder,
+				srcbuf, &input_len,
+				(uint8_t*)&outbuf, &output_len,
+				&inputTimeStamp);
+
+			if (ret == -1 || output_len==0 ){
+				LOGE("%s(%d): H264 stream is error!",__FUNCTION__,__LINE__);
+				ret = -1;
+				}else if(output_len >0){
+				frame->vpumen= malloc(sizeof(VPU_FRAME));//&outbuf.vpumem;
+				memcpy(frame->vpumen,&outbuf,sizeof(VPU_FRAME));
+				frame->frame_width = ((outbuf.DisplayWidth+ 15) & (~15));
+				frame->frame_height = ((outbuf.DisplayHeight+ 15) & (~15));
+
+				//copy H264 data to phy_addr for video encoding. first 4 bytes save framesize. and the every frame with sps pps
+				ulong_t buf_addr = mPreviewBufProvider->getBufVirAddr(frame->frame_index);
+			  //keep the src buffer and size for recording
+			  frame->vir_addr_src =  frame->vir_addr;
+			  frame->frame_size_src = frame->frame_size;
+			  VPUMemLink((VPUMemLinear_t *)&outbuf.vpumem);
+			  //make the output vir_addr point to vpu output buffer
+			  frame->vir_addr = outbuf.vpumem.vir_addr;
+			  frame->phy_addr = outbuf.vpumem.phy_addr;
+				// ret = -1;
+				}
+	LOGE("ret %d outlen %d inlen %d v %p ",ret,output_len,input_len,outbuf.DisplayWidth,outbuf.DisplayHeight,frame->res);
 
     }else{
         LOGE("camerahal not support this format %d",frame->frame_fmt);
