@@ -206,6 +206,11 @@ PRODUCT_PACKAGES += \
     libisp_silicomimageisp_api
 endif
 
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk322x)
+PRODUCT_PACKAGES += \
+    libisp_silicomimageisp_api
+endif
+
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk3036)
 PRODUCT_PACKAGES += \
     libisp_silicomimageisp_api
