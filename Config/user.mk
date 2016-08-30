@@ -1,3 +1,5 @@
+ifeq ($(filter box vr, $(strip $(TARGET_BOARD_PLATFORM_PRODUCT))), )
+
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk3399)
 PRODUCT_PACKAGES += \
     libisp_isi_drv_OV2659 \
@@ -94,4 +96,6 @@ PRODUCT_PACKAGES += \
 	libisp_isi_drv_OV5645 \
 	libisp_isi_drv_TC358749XBG \
 	libisp_isi_drv_OV2685
+endif
+
 endif

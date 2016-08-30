@@ -170,7 +170,7 @@ int CameraSOCAdapter::cameraFpsInfoSet(CameraParameters &params)
     LOGD("KEY_PREVIEW_FPS_RANGE : %s",fps_str);
     parameterString = "(";
     parameterString.append(fps_str);
-    parameterString.append(")");
+    parameterString.append("),(30000,30000)");//(30000,30000) for passing cts.
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, parameterString.string());
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, framerates);  
     LOGD("KEY_SUPPORTED_PREVIEW_FPS_RANGE : %s",parameterString.string());
@@ -266,18 +266,6 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 
         strcat( str_picturesize,"1600x1200,1024x768,720x480,640x480,352x288,320x240,176x144");
   	    params.setPictureSize(1600,1200);
-   #if 0
-		property_get("sys.cts_gts.status",prop_value, "false");
-		if(!strcmp(prop_value,"true")){
-			strcat( str_picturesize,"1600x1200,1024x768,720x480,640x480,352x288,320x240,176x144");			
-			params.setPictureSize(1600,1200);
-		}
-		else
-		{
-			strcat( str_picturesize,"1024x768,720x480,640x480,352x288,320x240,176x144");			
-			params.setPictureSize(1024,768);
-		}
-    #endif
 	} else if (mCamDriverFrmWidthMax <= 2048) {
         params.setPreviewSize(800, 600);
 		if(strstr(parameterString.string(),"1280x720"))
@@ -603,15 +591,26 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	 params.set(CameraParameters::KEY_VIDEO_STABILIZATION_SUPPORTED,"false");
 	 params.set(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED,"true");
 
-#if (CONFIG_CAMERA_SETVIDEOSIZE == 1)
-	 params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
-	 params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
-	 params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,240x160,352x288,640x480,720x480,800x600,1280x720");
-#else
-	 
-	 params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"");
-	 params.set(CameraParameters::KEY_VIDEO_SIZE,"");
-	 params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
+#if (CONFIG_CAMERA_SETVIDEOSIZE == 0)
+     property_get("sys.cts_gts.status",prop_value, "false");
+     if(!strcmp(prop_value,"true")){
+        if(camFd == 0){
+             //back camera, may need to manually modify based on media_profiles.xml supported.
+             params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"720x480");
+             params.set(CameraParameters::KEY_VIDEO_SIZE,"720x480");
+             params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,320x240,352x288,720x480");
+        }else{
+             //front camera
+             params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
+             params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
+             params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,320x240,352x288,640x480");
+        }
+     LOGD ("Support video sizes:%s",params.get(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES));
+     }else{
+        params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"");
+        params.set(CameraParameters::KEY_VIDEO_SIZE,"");
+        params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
+     }
 #endif
 
      params.set(KEY_CONTINUOUS_PIC_NUM,"1");

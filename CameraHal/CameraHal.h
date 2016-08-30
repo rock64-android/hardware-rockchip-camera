@@ -125,6 +125,7 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int src_h,int dstbuf,int zoom_value);
 
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
+extern bool g_ctsV_flag;
 
 namespace android {
 
@@ -577,9 +578,12 @@ namespace android {
 *V1.0x41.0:
      1) rk_sensor_info memory release.
 	 2) remove macro MACHINE_HAS_CAMERA.
+*V1.0x41.1:
+    1) modify for passing most cts and verifier tests about camera.
+    2) box and vr platform no need to copy xml and driver library to out directory.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x41, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x41, 1)
 
 
 /*  */

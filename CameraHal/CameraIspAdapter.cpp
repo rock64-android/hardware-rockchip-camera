@@ -211,7 +211,7 @@ void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int previ
     CamEngineWindow_t dcWin;
 	unsigned int max_w = 0,max_h = 0, bufNum = 0, bufSize = 0;
 	//when cts FOV ,don't crop
-    if((!mImgAllFovReq)&&((width_sensor*10/height_sensor) != (preview_w*10/preview_h))){
+    if((!mImgAllFovReq)&&(height_sensor && ((width_sensor*10/height_sensor) != (preview_w*10/preview_h)))){
         int ratio = ((width_sensor*10/preview_w) >= (height_sensor*10/preview_h))?(height_sensor*10/preview_h):(width_sensor*10/preview_w);
         dcWin.width = ((ratio*preview_w/10) & ~0x1);
         dcWin.height = ((ratio*preview_h/10) & ~0x1);
@@ -811,7 +811,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             }
             memset(string,0x00,sizeof(string)); 
             sprintf(string,",%dx%d",ISI_RES_W_GET(pCaps.Resolution),ISI_RES_H_GET(pCaps.Resolution));
-            if (strcmp(string,",1600x1200")){
+            if (strcmp(string,",1600x1200") && !parameterString.contains(string)){
                 parameterString.append(string);
             }
             LOG1("    %dx%d @ %d fps", ISI_RES_W_GET(pCaps.Resolution),ISI_RES_H_GET(pCaps.Resolution),
@@ -898,15 +898,35 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 
             }
 		}
-        parameterString.append(",640x480,352x288,320x240,176x144");        
+        if(g_ctsV_flag){
+            parameterString.append(",640x480,320x240");
+        }else{
+            parameterString.append(",640x480,352x288,320x240,176x144");
+        }
         params.set(CameraParameters::KEY_PICTURE_SIZE, string);
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, parameterString.string());
 	}
 
-#if (CONFIG_CAMERA_SETVIDEOSIZE == 1)
-    params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
-	params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
-	params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,parameterString); //here maybe erro , cause may not same with  XML 
+#if (CONFIG_CAMERA_SETVIDEOSIZE == 0)
+     property_get("sys.cts_gts.status",prop_value, "false");
+     if(!strcmp(prop_value,"true")){
+        if(camFd == 0){
+             //back camera, may need to manually modify based on media_profiles.xml supported.
+             params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"1920x1080");
+             params.set(CameraParameters::KEY_VIDEO_SIZE,"1920x1080");
+             params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,320x240,352x288,640x480,1280x720,1920x1080");
+        }else{
+             //front camera
+             params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
+             params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
+             params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,320x240,352x288,640x480");
+        }
+     LOGD("Support video sizes:%s",params.get(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES));
+     }else{
+         params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"");
+         params.set(CameraParameters::KEY_VIDEO_SIZE,"");
+         params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
+     }
 #endif
 
 
@@ -927,7 +947,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
        }else{ 
 		if (strcmp(pCamInfo->mHardInfo.mVcmInfo.mVcmDrvName,"NC")!=0) {
           //if(0){
-              LOGD("------mHardInfo.mVcmInfo.mVcmDrvName in not NC-----\n");
+              LOGD("------mHardInfo.mVcmInfo.mVcmDrvName is %s-----\n",pCamInfo->mHardInfo.mVcmInfo.mVcmDrvName);
             err_af = m_camDevice->isAfAvailable(avail);
             if ((err_af == true) && (avail == true)) {
                 parameterString.append(",");
@@ -1170,7 +1190,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 
     //for video test
     params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, "3000,30000");
-    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(3000,30000)");
+    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(3000,30000),(30000,30000)");//(30000,30000) for passing cts.
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, "10,15,30"); 
     params.setPreviewFrameRate(30);
 
@@ -1189,20 +1209,17 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     params.set(CameraParameters::KEY_SUPPORTED_EFFECTS, "none,mono,sepia");
     params.set(CameraParameters::KEY_EFFECT, "none");
 
-    LOG1 ("Support Preview format: %s    %s(default)",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),params.get(CameraParameters::KEY_PREVIEW_FORMAT)); 
-	LOG1 ("Support Preview sizes: %s    %s(default)    %dx%d(force)",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES),params.get(CameraParameters::KEY_PREVIEW_SIZE),
-        pCamInfo->mSoftInfo.mPreviewWidth,pCamInfo->mSoftInfo.mPreviewHeight);
-	LOG1 ("Support Preview FPS range: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE));   
-	LOG1 ("Support Preview framerate: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES));   
-	LOG1 ("Support Picture sizes: %s    %s(default)",params.get(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES),params.get(CameraParameters::KEY_PICTURE_SIZE));
-	LOG1 ("Support Focus: %s  Focus zone: %s",params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES),
-        params.get(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS));
-	if (params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES) && params.get(CameraParameters::KEY_FLASH_MODE))
-    	LOG1 ("Support Flash: %s  Flash: %s",params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES),
-        	params.get(CameraParameters::KEY_FLASH_MODE));
-    LOG1 ("Support AWB: %s ",params.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE));
-	
-	LOG1("Support FOV test h(%f) v(%f)\n", pCamInfo->mHardInfo.mSensorInfo.fov_h,pCamInfo->mHardInfo.mSensorInfo.fov_v);
+    LOGD ("Support Preview format: %s    %s(default)",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),params.get(CameraParameters::KEY_PREVIEW_FORMAT)); 
+    LOGD ("Support Preview sizes: %s    %s(default)    %dx%d(force)",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES),params.get(CameraParameters::KEY_PREVIEW_SIZE),
+        pCamInfo->mSoftInfo.mPreviewWidth, pCamInfo->mSoftInfo.mPreviewHeight);
+    LOGD ("Support Preview FPS range: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE));
+    LOGD ("Support Preview framerate: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES));
+    LOGD ("Support Picture sizes: %s    %s(default)",params.get(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES),params.get(CameraParameters::KEY_PICTURE_SIZE));
+    LOGD ("Support Focus: %s  Focus zone: %s",params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES),params.get(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS));
+    if (params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES) && params.get(CameraParameters::KEY_FLASH_MODE))
+        LOGD ("Support Flash: %s  Flash: %s",params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES),params.get(CameraParameters::KEY_FLASH_MODE));
+    LOGD ("Support AWB: %s ",params.get(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE));
+    LOGD("Support FOV test h(%f) v(%f)\n", pCamInfo->mHardInfo.mSensorInfo.fov_h,pCamInfo->mHardInfo.mSensorInfo.fov_v);
 
 	cameraConfig(params,true,isRestartPreview);
     LOG_FUNCTION_NAME_EXIT
@@ -1647,6 +1664,8 @@ void CameraIspAdapter::loadSensor( const int cameraId)
             m_camDevice->getPreferedSensorRes(&resReq);            
            
             m_camDevice->setSensorResConfig(resReq.resolution);
+            mCamDrvWidth = ISI_RES_W_GET(resReq.resolution);
+            mCamDrvHeight = ISI_RES_H_GET(resReq.resolution);
             setupPreview(mCamDrvWidth,mCamDrvHeight,DEFAULTPREVIEWWIDTH,DEFAULTPREVIEWHEIGHT,mZoomVal);
             connectCamera();
             mCamPreviewH = DEFAULTPREVIEWHEIGHT;

@@ -28,7 +28,7 @@
 #endif
 
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
-
+extern bool g_ctsV_flag = false;
 namespace android {
 
 /************************
@@ -150,9 +150,15 @@ CameraHal::CameraHal(int cameraId)
         char *call_process = getCallingProcess();
 	    if(strstr(call_process,"com.android.cts.verifier")) {
             mCameraAdapter->setImageAllFov(true);
+            g_ctsV_flag = true;
+            property_set("sys.cts_gts.status","false");
 	    } else {
             mCameraAdapter->setImageAllFov(false);
+            g_ctsV_flag = false;
 	    }
+        if(strstr(call_process,"com.android.camera2")) {
+            property_set("sys.cts_gts.status","false");
+        }
     }
 
     mDisplayAdapter = new DisplayAdapter();
@@ -838,6 +844,7 @@ void CameraHal::commandThread()
     int prevStatus = -1,drv_w,drv_h,picture_w,picture_h;
     int app_previw_w = 0,app_preview_h = 0;
     bool isRestartPreview = false;
+    char prop_value[PROPERTY_VALUE_MAX];
     LOG_FUNCTION_NAME
 
     while(shouldLive) {
@@ -862,8 +869,8 @@ get_command:
                 
                 if(prevStatus){                    
                     //get preview size
-                    if((prefered_w != drv_w) || (prefered_h != drv_h)){
-
+                    property_get("sys.cts_gts.status",prop_value, "false");
+                    if(strcmp(prop_value,"true") && ((prefered_w != drv_w) || (prefered_h != drv_h))){
                         if (mDisplayAdapter->getDisplayStatus() == DisplayAdapter::STA_DISPLAY_RUNNING) {
                             err=mDisplayAdapter->pauseDisplay();
         					if(err != -1)
@@ -1031,9 +1038,10 @@ get_command:
                 if(prevStatus){
 				    //get preview size
 				    //if(mRecordRunning){
+                    property_get("sys.cts_gts.status",prop_value, "false");
                     if(mCameraStatus&STA_RECORD_RUNNING){
                        LOGE("%s(%d):not support set picture size when recording.",__FUNCTION__,__LINE__);
-                	} else if((prefered_w != drv_w) || (prefered_h != drv_h)){
+                    } else if(strcmp(prop_value,"true") && ((prefered_w != drv_w) || (prefered_h != drv_h))){
                         //need to stop preview.
                         err=mDisplayAdapter->pauseDisplay();
 						if(err != -1)

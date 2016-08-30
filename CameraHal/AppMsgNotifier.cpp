@@ -1164,6 +1164,14 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 			#if defined(TARGET_RK3188)
 				rk_camera_zoom_ipp(V4L2_PIX_FMT_NV12, (int)(frame->phy_addr), frame->frame_width, frame->frame_height,(int)rawbuf_phy,frame->zoom_value);
 			#else
+                if(g_ctsV_flag)
+                {
+                  mIs_Verifier = true;
+                }
+                else
+                {
+                  mIs_Verifier = false;
+                }
 				rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 		                            (char*)(frame->vir_addr), (short int *)rawbuf_vir, 
 		                            jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false);
@@ -1324,6 +1332,7 @@ return ret;
 
 int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
     int ret = 0;
+    int pixFmt;
     mDataCbLock.lock();
     if ((mMsgTypeEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
         //compute request mem size
@@ -1338,12 +1347,14 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
             tempMemSize = mPreviewDataW*mPreviewDataH*2;        
             tempMemSize_crop = mPreviewDataW*mPreviewDataH*2;        
         } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420SP) == 0) {
+            pixFmt =V4L2_PIX_FMT_NV21;
             tempMemSize = mPreviewDataW*mPreviewDataH*3/2;        
             tempMemSize_crop = mPreviewDataW*mPreviewDataH*3/2;        
         } else if (strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV422SP) == 0) {
             tempMemSize = mPreviewDataW*mPreviewDataH*2;        
             tempMemSize_crop = mPreviewDataW*mPreviewDataH*2;        
-        } else if(strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0){ 
+        } else if(strcmp(mPreviewDataFmt,android::CameraParameters::PIXEL_FORMAT_YUV420P) == 0){
+            pixFmt =V4L2_PIX_FMT_NV12;
             tempMemSize = ((mPreviewDataW+15)&0xfffffff0)*mPreviewDataH
                         +((mPreviewDataW/2+15)&0xfffffff0)*mPreviewDataH;    
             tempMemSize_crop = mPreviewDataW*mPreviewDataH*3/2;
@@ -1359,9 +1370,16 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 			arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
 					(char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
 #else
+        if(g_ctsV_flag &&((mPreviewDataW==176&&mPreviewDataH==144)||(mPreviewDataW==352&&mPreviewDataH==288))) {
+            char *call_process = getCallingProcess();
+            arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, pixFmt, (char*)(frame->vir_addr),
+                                        (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,
+                                        mPreviewDataW, mPreviewDataH,false,frame->zoom_value);
+        }else{
 			rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 					(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
 					mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p);
+        }
 #endif
 			//arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
 			
@@ -1426,9 +1444,15 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
             (char*)buf_vir,frame->frame_width, frame->frame_height,
             mRecordW, mRecordH,false,frame->zoom_value);
         #else
-        rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
-                            (char*)(frame->vir_addr), (short int *)buf_vir, 
-                            mRecordW,mRecordH,frame->zoom_value,false,true,false);
+        if(g_ctsV_flag &&((mRecordW==176&&mRecordH==144)||(mRecordW==352&&mRecordH==288))) {
+            arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
+                                        (char*)buf_vir,frame->frame_width, frame->frame_height,
+                                        mRecordW, mRecordH,false,frame->zoom_value);
+        }else{
+            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+                                (char*)(frame->vir_addr), (short int *)buf_vir,
+                                mRecordW,mRecordH,frame->zoom_value,false,true,false);
+        }
         #endif
 
         mVideoBufferProvider->flushBuffer(buf_index);

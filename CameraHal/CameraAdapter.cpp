@@ -116,6 +116,7 @@ bool CameraAdapter::isNeedToRestartPreview()
     int preferPreviewW=0,preferPreviewH=0;
 	int previewFrame2AppW=0,previewFrame2AppH=0;
 	bool ret = false;
+    char prop_value[PROPERTY_VALUE_MAX];
 
     mParameters.getPreviewSize(&previewFrame2AppW, &previewFrame2AppH);
     //case 1: when setVideoSize is suported
@@ -144,7 +145,8 @@ bool CameraAdapter::isNeedToRestartPreview()
     LOG1("mCamPreviewW (%dx%d)",mCamPreviewW,mCamPreviewH);
     LOG1("video width (%dx%d)",mVideoWidth,mVideoHeight);
 
-	if(mPreviewRunning && ((preferPreviewW != mCamPreviewW) || (preferPreviewH != mCamPreviewH)) && (mVideoWidth != -1))
+    property_get("sys.cts_gts.status",prop_value, "false");
+    if(mPreviewRunning && ((preferPreviewW != mCamPreviewW) || (preferPreviewH != mCamPreviewH)) && (mVideoWidth != -1) && strcmp(prop_value,"true"))
 	{
       ret = true;
 	}

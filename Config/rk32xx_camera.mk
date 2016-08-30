@@ -1,4 +1,4 @@
-ifneq ($(strip $(TARGET_BOARD_PLATFORM_PRODUCT)), box)
+ifeq ($(filter box vr, $(strip $(TARGET_BOARD_PLATFORM_PRODUCT))), )
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk3399)
 

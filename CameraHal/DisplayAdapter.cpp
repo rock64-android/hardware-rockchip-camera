@@ -294,6 +294,7 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
         goto fail;
     }    
     mDisplayBufInfo = (rk_displaybuf_info_t*)malloc(sizeof(rk_displaybuf_info_t)*total);
+    memset(mDisplayBufInfo, 0x00, sizeof(rk_displaybuf_info_t)*total);
     if(!mDisplayBufInfo){
         LOGE("%s(%d): malloc diaplay buffer structue failed!",__FUNCTION__,__LINE__);
         err = -1;
@@ -356,7 +357,7 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
     return err; 
  fail:
         for (i = 0; i<total; i++) {
-            if (mDisplayBufInfo && mDisplayBufInfo[i].buffer_hnd) {
+            if (mANativeWindow && mDisplayBufInfo && mDisplayBufInfo[i].buffer_hnd) {
                 err = mANativeWindow->cancel_buffer(mANativeWindow, (buffer_handle_t*)mDisplayBufInfo[i].buffer_hnd);
                 if (err != 0) {
                   LOGE("%s(%d): cancelBuffer failed w/ error 0x%08x",__FUNCTION__,__LINE__, err);                  
@@ -649,7 +650,7 @@ display_receive_cmd:
                     queue_display_index = CONFIG_CAMERA_DISPLAY_BUF_CNT;
                     //get a free buffer                        
                         for (i=0; i<CONFIG_CAMERA_DISPLAY_BUF_CNT; i++) {
-                            if (mDisplayBufInfo[i].buf_state == 0) 
+                            if (mDisplayBufInfo && mDisplayBufInfo[i].buf_state == 0)
                                 break;
                         }
                         if (i<CONFIG_CAMERA_DISPLAY_BUF_CNT) {
@@ -736,9 +737,17 @@ display_receive_cmd:
 						#if defined(TARGET_RK3188)
 							rk_camera_zoom_ipp(V4L2_PIX_FMT_NV12, (int)(frame->phy_addr), frame->frame_width, frame->frame_height,(int)(mDisplayBufInfo[queue_display_index].phy_addr),frame->zoom_value);
 						#else
-                        	rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
-                                            (char*)(frame->vir_addr), (short int *)(mDisplayBufInfo[queue_display_index].vir_addr), 
-                                            mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false);
+                            if(g_ctsV_flag &&((mDisplayWidth==176&&mDisplayHeight==144)||(mDisplayWidth==352&&mDisplayHeight==288))) {
+                                arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12,
+                                        (char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr,
+                                        frame->frame_width, frame->frame_height,
+                                        mDisplayWidth, mDisplayHeight,
+                                        false,frame->zoom_value);
+                            }else{
+                                rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+                                        (char*)(frame->vir_addr), (short int *)(mDisplayBufInfo[queue_display_index].vir_addr),
+                                        mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false);
+                            }
 						#endif
 
                     #endif
