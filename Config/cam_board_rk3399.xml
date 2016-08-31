@@ -787,7 +787,7 @@
 			<HardWareInfo>
 				<Sensor>
 					<SensorName name="GC2155" ></SensorName>
-					<SensorDevID IDname="CAMSYS_DEVID_SENSOR_1A"></SensorDevID>
+					<SensorDevID IDname="CAMSYS_DEVID_SENSOR_1B"></SensorDevID>
 					<SensorHostDevID busnum="CAMSYS_DEVID_MARVIN" ></SensorHostDevID>
 					<SensorI2cBusNum busnum="1"></SensorI2cBusNum>
 					<SensorI2cAddrByte byte="2"></SensorI2cAddrByte>
