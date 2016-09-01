@@ -257,6 +257,8 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
         }
         goto fail;
     }
+    if (undequeued < 2)
+        undequeued = 2;
     mDispBufUndqueueMin = undequeued;
     ///Set the number of buffers needed for camera preview
     
