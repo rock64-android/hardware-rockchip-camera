@@ -581,9 +581,11 @@ namespace android {
 *V1.0x41.1:
     1) modify for passing most cts and verifier tests about camera.
     2) box and vr platform no need to copy xml and driver library to out directory.
+*V1.0x41.2:
+    1) UVC camera statu detect.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x41, 1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x41, 2)
 
 
 /*  */

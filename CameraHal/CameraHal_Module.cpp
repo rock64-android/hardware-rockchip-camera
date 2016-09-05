@@ -28,7 +28,7 @@
 #include "CameraHal_Module.h"
 #include "CameraHal_MediaProfile.cpp"
 #include <time.h>
-
+#include "vpu.h"
 #include "cam_api/cam_engine_interface.h"
 
 rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
@@ -803,7 +803,7 @@ int camera_get_number_of_cameras(void)
 					rk_DV_info *pDVResolution = new rk_DV_info();
 					memset(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, 0x00, sizeof(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName));
 					strcpy(pNewCamInfo->mHardInfo.mSensorInfo.mSensorName, UVC_CAM_NAME);
-					pNewCamInfo->mIsIommuEnabled = capability.reserved[0];
+					pNewCamInfo->mIsIommuEnabled = VPUClientGetIOMMUStatus();
 					#if 0
 					//DV
 					strcpy(pDVResolution->mName, "480p");
