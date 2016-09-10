@@ -169,14 +169,14 @@
 					<VCMCurrent start="20" rated="80" vcmmax="100" stepmode="13"  drivermax="100"></VCMCurrent>
 				</VCM>
 				<Flash>
-					<FlashName name="Internal"></FlashName>
+					<FlashName name="rt8547"></FlashName>
 					<FlashI2cBusNum busnum="0"></FlashI2cBusNum>
 					<FlashI2cAddrByte byte="0"></FlashI2cAddrByte>
 					<FlashI2cRate rate="0"></FlashI2cRate>
-					<FlashTrigger ioname="NC" active="0"></FlashTrigger>
-					<FlashEn ioname="NC" active="0"></FlashEn>
+					<FlashTrigger ioname="RK30_PIN1_PA3" active="1"></FlashTrigger>
+					<FlashEn ioname="RK30_PIN1_PA0" active="1"></FlashEn>
 					<FlashModeType mode="1"></FlashModeType>
-					<FlashLuminance luminance="0"></FlashLuminance>
+					<FlashLuminance luminance="100"></FlashLuminance>
 					<FlashColorTemp colortemp="0"></FlashColorTemp>
 				</Flash>
 			</HardWareInfo>
