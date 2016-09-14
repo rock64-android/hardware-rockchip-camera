@@ -571,7 +571,7 @@ int camera_device_open(const hw_module_t* module, const char* name,
         
         camera = new android::CameraHal(cameraid);
 
-        if(!camera) {
+        if(!camera || !camera->mInitState) {
             LOGE("Couldn't create instance of CameraHal class");
             rv = -ENOMEM;
             goto fail;

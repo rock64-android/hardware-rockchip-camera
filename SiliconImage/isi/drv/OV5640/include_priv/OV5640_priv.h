@@ -29,8 +29,10 @@
 *v0.a.0
 *   1). support for isi v0.0xc.0 
 *   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
+*v0.b.0
+*   1). support isi v0.0xd.0
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xa, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xb, 0) 
 
 #ifdef __cplusplus
 extern "C"
@@ -90,6 +92,7 @@ typedef struct OV5640_Context_s
     uint16_t            OldGain;               /**< gain multiplier */
     uint32_t            OldCoarseIntegrationTime;
     uint32_t            OldFineIntegrationTime;
+	uint32_t			preview_minimum_framerate;
 
     IsiSensorMipiInfo   IsiSensorMipiInfo;
 } OV5640_Context_t;

@@ -2197,7 +2197,10 @@ RESULT IsiGetResolutionParam
         case ISI_RES_2592_1944P20:
         case ISI_RES_2592_1944P25:
         case ISI_RES_2592_1944P30:
-            
+
+		case ISI_RES_2104_1184P40:
+		case ISI_RES_1396_788P40:
+			
         case ISI_RES_1296_972P7:
         case ISI_RES_1296_972P10:			
         case ISI_RES_1296_972P15:
@@ -2475,4 +2478,30 @@ RESULT IsiEnableSensorOTPIss
     return ( result );
 }
 
+RESULT IsiSensorFrameRateLimitSet
+(
+    IsiSensorHandle_t   handle,
+    uint32_t		framerate
+)
+{
 
+    IsiSensorContext_t *pSensorCtx = (IsiSensorContext_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+    TRACE( ISI_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pSensorCtx == NULL )
+    {
+        return ( RET_WRONG_HANDLE );
+    }
+
+    if ( pSensorCtx->pSensor->pIsiSetSensorFrameRateLimit == NULL )
+    {
+        return ( RET_NOTSUPP );
+    }
+
+    result = pSensorCtx->pSensor->pIsiSetSensorFrameRateLimit(handle, framerate);
+    return result;
+
+}

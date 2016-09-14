@@ -90,6 +90,31 @@ extern "C" char* getCallingProcess()
 
 }
 
+static float hwcGetBytesPerPixelForRga(int fmt)
+{ 
+	float bpp = 4;
+	switch(fmt){
+	case RK_FORMAT_RGB_565:
+		bpp = 2;
+		break;
+	case RK_FORMAT_RGB_888:
+		bpp = 3;
+		break;
+	case RK_FORMAT_RGBA_8888:
+	case RK_FORMAT_RGBX_8888:
+	case RK_FORMAT_BGRA_8888:
+		bpp = 4;
+		break;
+	case RK_FORMAT_YCbCr_420_SP:
+	case RK_FORMAT_YCrCb_420_SP:
+		bpp = 1.5;
+		break;
+	default:
+		break;
+	}
+	return bpp;
+}
+
 extern "C" int cameraPixFmt2HalPixFmt(const char *fmt)
 {
     int hal_pixel_format=HAL_PIXEL_FORMAT_YCrCb_NV12;
@@ -365,7 +390,10 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
     Rga_Request.dst.y_offset = 0;
     Rga_Request.mmu_info.mmu_en    = 1;
     Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1;
-    //Rga_Request.alpha_rop_flag |= (1 << 5);             /* ddl@rock-chips.com: v0.4.3 */
+    if (hwcGetBytesPerPixelForRga(Rga_Request.src.format) !=
+    	hwcGetBytesPerPixelForRga(Rga_Request.dst.format)){/*avoid dither: dalon.zhang@rock-chips.com*/
+    	Rga_Request.alpha_rop_flag |= (1 << 5); /* ddl@rock-chips.com: v0.4.3 */
+	}
 
 	if((src_width!=dst_width) || ( src_height!=dst_height)){
 		Rga_Request.sina = 0;
@@ -413,14 +441,14 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 	#if defined(TARGET_RK312x)
 		if(mirror){
 			return arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, (isDstNV21 ? V4L2_PIX_FMT_NV21:V4L2_PIX_FMT_NV12), 
-				src, (char *)dst,src_width, src_height,dst_width, dst_height,true,zoom_val);
+				src, (char *)dst,src_width, src_height,dst_width, dst_height,mirror,zoom_val);
 		}
 	#endif 
 	/*rk3188 do not support yuv to yuv scale by rga*/
 	#if defined(TARGET_RK3188)
 		return arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, (isDstNV21 ? V4L2_PIX_FMT_NV21:V4L2_PIX_FMT_NV12), 
-			src, (char *)dst,src_width, src_height,dst_width, dst_height,true,zoom_val);
-	#endif 
+			src, (char *)dst,src_width, src_height,dst_width, dst_height,mirror,zoom_val);
+	#endif
 	
 	if((dst_width > RGA_VIRTUAL_W) || (dst_height > RGA_VIRTUAL_H)){
 		LOGE("%s(%d):(dst_width > RGA_VIRTUAL_W) || (dst_height > RGA_VIRTUAL_H), switch to arm ",__FUNCTION__,__LINE__);
@@ -533,8 +561,11 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 
 		    Rga_Request.mmu_info.mmu_en    = 1;
 		    Rga_Request.mmu_info.mmu_flag  = ((2 & 0x3) << 4) | 1 | (1 << 8) | (1 << 10);
-		    //Rga_Request.alpha_rop_flag |= (1 << 5);             /* ddl@rock-chips.com: v0.4.3 */
-		    
+		    if (hwcGetBytesPerPixelForRga(Rga_Request.src.format) !=
+		    	hwcGetBytesPerPixelForRga(Rga_Request.dst.format)){/*avoid dither: dalon.zhang@rock-chips.com*/
+		    	Rga_Request.alpha_rop_flag |= (1 << 5); /* ddl@rock-chips.com: v0.4.3 */
+	    	}
+
 			#if defined(TARGET_RK312x)
 				/* wrong operation of nv12 to nv21 ,not scale */
 				if(1/*(cropW != dst_width) || ( cropH != dst_height)*/){

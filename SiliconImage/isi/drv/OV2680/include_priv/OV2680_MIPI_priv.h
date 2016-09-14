@@ -52,9 +52,11 @@ extern "C"
 *v0.3.0
 *   1). support for isi v0.0xc.0
 *   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
+*v0.4.0
+*   1). support isi v0.0xd.0
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 3, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 4, 0x00) 
 
 
 #define Sensor_CHIP_ID_HIGH_BYTE            (0x300a) // r - 
@@ -110,7 +112,8 @@ typedef struct Sensor_Context_s
     uint32_t            OldFineIntegrationTime;
 
     IsiSensorMipiInfo   IsiSensorMipiInfo;
-	Sensor_VcmInfo_t    VcmInfo; 
+	Sensor_VcmInfo_t    VcmInfo;
+	uint32_t			preview_minimum_framerate;
 } Sensor_Context_t;
 
 #ifdef __cplusplus

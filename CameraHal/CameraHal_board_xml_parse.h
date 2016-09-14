@@ -10,6 +10,7 @@
 #include <isp_cam_api/calib_xml/calibdb.h>
 #include <isi/isi_iss.h>
 #include "camsys_head.h"
+#include "common_head.h"
 
 using namespace android;
 /*
@@ -74,6 +75,16 @@ using namespace android;
 
 #define RK_SENSOR_XML_PATH "/etc/"
 #define SENSOR_SPECIAL_TAG		(0xfefe5aa5)
+
+#define CAMERAHAL_BACKCAM_IQFILE_VER_PROPERTY_KEY		"sys_graphic.cam_back.iq.ver"
+#define CAMERAHAL_BACKCAM_IQFILE_PROPERTY_KEY			"sys_graphic.cam_back.iq"
+#define CAMERAHAL_BACKCAM_LENNAME_PROPERTY_KEY			"sys_graphic.cam_back.len"
+#define CAMERAHAL_BACKCAM_MODULE_PROPERTY_KEY			"sys_graphic.cam_back.modulename"
+#define CAMERAHAL_FRONTCAM_IQFILE_VER_PROPERTY_KEY		"sys_graphic.cam_front.iq.ver"
+#define CAMERAHAL_FRONTCAM_IQFILE_PROPERTY_KEY			"sys_graphic.cam_front.iq"
+#define CAMERAHAL_FRONTCAM_LENNAME_PROPERTY_KEY			"sys_graphic.cam_front.len"
+#define CAMERAHAL_FRONTCAM_MODULE_PROPERTY_KEY			"sys_graphic.cam_front.modulename"
+
 
 typedef enum sensor_interface_s{
     OUTPUT_MODE_MIN,
@@ -385,7 +396,8 @@ struct rk_camera_softinfo_config{
                     mPreviewWidth(800),
                     mPreviewHeight(600),
                     mHDRConfig(0),
-                    mInterpolationRes(0){};
+                    mInterpolationRes(0),
+                    mFrameRate(0){};
     ~rk_camera_softinfo_config(){};               
                     
                     
@@ -406,13 +418,16 @@ struct rk_camera_softinfo_config{
     int mPreviewHeight;
     int mHDRConfig;
     int mInterpolationRes;
-    
+    int mFrameRate;
     
     Vector<rk_DV_info*> mDV_vector;
 };
 
 struct camsys_load_sensor_info{
-    camsys_load_sensor_info(){};
+    camsys_load_sensor_info(){
+    	memset(mSensorLibName, 0x0, sizeof(mSensorLibName));
+    	memset(mSensorXmlFile, 0x0, sizeof(mSensorXmlFile));
+    };
     ~camsys_load_sensor_info(){};
 
     CalibDb calidb;           
