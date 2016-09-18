@@ -153,7 +153,7 @@
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
 					<SensorOrientation orientation="90"></SensorOrientation>
 					<SensorPowerupSequence seq="1234"></SensorPowerupSequence>
-					<SensorFovParemeter h="60.0" v="60.0"></SensorFovParemeter>
+					<SensorFovParemeter h="63.8" v="63.8"></SensorFovParemeter>
 					<SensorAWB_Frame_Skip fps="15"></SensorAWB_Frame_Skip>
 					<SensorPhy phyMode="CamSys_Phy_Mipi" lane="2"  phyIndex="0" sensorFmt="CamSys_Fmt_Raw_10b"></SensorPhy>
 				</Sensor>
@@ -934,7 +934,7 @@
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
 					<SensorOrientation orientation="90"></SensorOrientation>
 					<SensorPowerupSequence seq="1234"></SensorPowerupSequence>					
-					<SensorFovParemeter h="60.0" v="60.0"></SensorFovParemeter>
+					<SensorFovParemeter h="70.0" v="70.0"></SensorFovParemeter>
 					<SensorAWB_Frame_Skip fps="15"></SensorAWB_Frame_Skip>					
 					<SensorPhy phyMode="CamSys_Phy_Cif" sensor_d0_to_cif_d ="0" cif_num="0" sensorFmt="CamSys_Fmt_Yuv422_8b"></SensorPhy>
 				</Sensor>
