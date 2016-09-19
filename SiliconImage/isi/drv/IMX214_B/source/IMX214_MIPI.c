@@ -1799,7 +1799,7 @@ static RESULT Sensor_IsiChangeSensorResolutionIss
 		bool_t res_no_chg;
 		//TRACE( Sensor_ERROR, "%s (2222222222enter)  \n", __FUNCTION__);
         if (!((ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pSensorCtx->Config.Resolution)) && 
-            (ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pSensorCtx->Config.Resolution))) ) {
+            (ISI_RES_H_GET(Resolution)==ISI_RES_H_GET(pSensorCtx->Config.Resolution))) ) {
 
             if (pSensorCtx->Streaming != BOOL_FALSE) {
                 TRACE( Sensor_ERROR, "%s: Sensor is streaming, Change resolution is not allow\n",__FUNCTION__);
@@ -3050,14 +3050,10 @@ RESULT Sensor_IsiGetAfpsInfoIss(
 					case ISI_RES_2104_1560P30:
 					case ISI_RES_2104_1560P25:
 					case ISI_RES_2104_1560P20:
-					case ISI_RES_2104_1560P15:
-					case ISI_RES_2104_1560P10:
 						//TRACE( Sensor_ERROR, "%s: (99999exit)\n", __FUNCTION__);
 						AFPSCHECKANDADD( ISI_RES_2104_1560P30);
 						AFPSCHECKANDADD( ISI_RES_2104_1560P25);
 						AFPSCHECKANDADD( ISI_RES_2104_1560P20);
-						AFPSCHECKANDADD( ISI_RES_2104_1560P15);
-						AFPSCHECKANDADD( ISI_RES_2104_1560P10);
 						break;
 					case ISI_RES_4208_3120P15:
 					case ISI_RES_4208_3120P10:

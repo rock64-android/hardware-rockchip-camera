@@ -388,6 +388,8 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         m_camDevice->getPathConfig(CHAIN_MASTER,CAM_ENGINE_PATH_SELF,selfPathConfig);
         m_camDevice->setPathConfig( CHAIN_MASTER, mainPathConfig, selfPathConfig  );
 
+        mCamPreviewH = preview_h;
+        mCamPreviewW = preview_w;
 		//start streaming
         if(-1 == start())
 			goto startPreview_end;
@@ -569,9 +571,9 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isR
 
                     //ddl@rock-chips.com v1.0x1d.0
                     if (hOff || vOff || w || h){                           
-                        m_camDevice->setAecHistMeasureWinAndMode(hOff,vOff,w,h,AverageMetering);
+                       m_camDevice->setAecHistMeasureWinAndMode(hOff,vOff,w,h,AfWeightMetering);
                     } else {
-                        m_camDevice->setAecHistMeasureWinAndMode(hOff,vOff,w,h,CentreWeightMetering);
+                       m_camDevice->setAecHistMeasureWinAndMode(hOff,vOff,w,h,AverageMetering);
                     }
     	    	}
 

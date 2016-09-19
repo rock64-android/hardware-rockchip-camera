@@ -1002,7 +1002,7 @@ get_command:
                     ((Semaphore*)(msg.arg1))->Signal();
 
                 LOG1("%s(%d): CMD_SET_PARAMETERS out",__FUNCTION__,__LINE__);
-                if(isRestartPreview){
+                if((isRestartPreview) && (mCameraStatus & STA_PREVIEW_CMD_RECEIVED)) {
                     LOGD("%s:setparameter demand restart preview!",__FUNCTION__);
                     msg.arg1 = NULL;
                     goto RESTART_PREVIEW_INTERNAL;
