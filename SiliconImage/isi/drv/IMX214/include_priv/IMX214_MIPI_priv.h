@@ -58,9 +58,11 @@ extern "C"
 *v0.7.0
 *   1). ID Address: 0x1617 ID_num: 0x214
 *   2). don't Check Sensor Connection again
+*v0.8.0:
+*   1). support isi v0.0xd.0
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 6, 0x00)
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 8, 0x00)
 
 
 #define Sensor_CHIP_ID_HIGH_BYTE            (0x0016) // r -
@@ -117,6 +119,7 @@ typedef struct Sensor_Context_s
 
     IsiSensorMipiInfo   IsiSensorMipiInfo;
 	Sensor_VcmInfo_t    VcmInfo; 
+	uint32_t			preview_minimum_framerate;
 } Sensor_Context_t;
 
 #ifdef __cplusplus

@@ -70,10 +70,12 @@ v0.7.0
 *   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
 *v0.b.0
 *	1). add ov13850 R1A and R2A compatible
+*v0.c.0
+*   1). support isi v0.0xd.0
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xb, 0x00)
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xc, 0x00)
 
 
 #define OV13850_CHIP_ID_HIGH_BYTE            (0x300a) // r - 
@@ -130,6 +132,7 @@ typedef struct OV13850_Context_s
 
     IsiSensorMipiInfo   IsiSensorMipiInfo;
 	OV13850_VcmInfo_t    VcmInfo; 
+	uint32_t			preview_minimum_framerate;
 } OV13850_Context_t;
 
 #ifdef __cplusplus

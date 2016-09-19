@@ -499,7 +499,7 @@ static RESULT Sensor_IsiGetCapsIssInternal
         pIsiSensorCaps->BPat            = ISI_BPAT_BGBGGRGR;
         pIsiSensorCaps->HPol            = ISI_HPOL_REFPOS;
         pIsiSensorCaps->VPol            = ISI_VPOL_POS;
-        pIsiSensorCaps->Edge            = ISI_EDGE_FALLING;
+        pIsiSensorCaps->Edge            = ISI_EDGE_RISING;
         pIsiSensorCaps->Bls             = ISI_BLS_OFF;
         pIsiSensorCaps->Gamma           = ISI_GAMMA_OFF;
         pIsiSensorCaps->CConv           = ISI_CCONV_OFF;
@@ -1426,6 +1426,8 @@ struct otp_struct {
     int light_bg;
 };
 
+#define  RG_Ratio_Typical_Default (0x16f)
+#define  BG_Ratio_Typical_Default (0x16f)
 static int  RG_Ratio_Typical = 0x0;
 static int  BG_Ratio_Typical = 0x0;
 static bool bOTP_switch = true;
@@ -1757,7 +1759,12 @@ static RESULT Sensor_IsiSetOTPInfo
 	RG_Ratio_Typical = OTPInfo>>16;
 	BG_Ratio_Typical = OTPInfo&0xffff;
 
-	TRACE( Sensor_ERROR, "%s:  ----AWB(RG,BG)->(0x%x, 0x%x)----\n", __FUNCTION__ , RG_Ratio_Typical, BG_Ratio_Typical);
+	TRACE( Sensor_ERROR, "%s:  --AWB(RG,BG) in IQ file is (0x%x, 0x%x)\n", __FUNCTION__ , RG_Ratio_Typical, BG_Ratio_Typical);
+	if((RG_Ratio_Typical==0) && (BG_Ratio_Typical==0)){
+		RG_Ratio_Typical = RG_Ratio_Typical_Default;
+		BG_Ratio_Typical = BG_Ratio_Typical_Default;
+		TRACE( Sensor_ERROR, "%s:  --Finally, AWB(RG,BG) is (0x%x, 0x%x)\n", __FUNCTION__ , RG_Ratio_Typical, BG_Ratio_Typical);
+	}
 	return (result);
 }
 
@@ -4603,6 +4610,7 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pIsiGetSensorMipiInfoIss */
 
         0,                      /**< IsiSensor_t.pIsiActivateTestPattern */
+        0,
     },
     Sensor_IsiGetSensorI2cInfo,
 };

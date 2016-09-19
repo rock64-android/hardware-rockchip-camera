@@ -31,7 +31,7 @@ CameraAdapter::CameraAdapter(int cameraId):mPreviewRunning(0),
     CameraHal_SupportFmt[3] = V4L2_PIX_FMT_RGB565;
     CameraHal_SupportFmt[4] = 0x00;
     CameraHal_SupportFmt[5] = 0x00;
-
+	memset(mCamDriverSupportFmt, 0, sizeof(mCamDriverSupportFmt));
 	cif_driver_iommu = false;
    LOG_FUNCTION_NAME_EXIT   
 }
@@ -141,9 +141,9 @@ bool CameraAdapter::isNeedToRestartPreview()
         mVideoHeight = preferPreviewH;
     }
 	
-    LOG1("mPreviewFrame2AppW (%dx%d)",previewFrame2AppW,previewFrame2AppH);
-    LOG1("mCamPreviewW (%dx%d)",mCamPreviewW,mCamPreviewH);
-    LOG1("video width (%dx%d)",mVideoWidth,mVideoHeight);
+    LOGD("mPreviewFrame2AppW (%dx%d)",previewFrame2AppW,previewFrame2AppH);
+    LOGD("mCamPreviewW (%dx%d)",mCamPreviewW,mCamPreviewH);
+    LOGD("video width (%dx%d)",mVideoWidth,mVideoHeight);
 
     property_get("sys.cts_gts.status",prop_value, "false");
     if(mPreviewRunning && ((preferPreviewW != mCamPreviewW) || (preferPreviewH != mCamPreviewH)) && (mVideoWidth != -1) && strcmp(prop_value,"true"))
@@ -592,6 +592,14 @@ fail_reqbufs:
 }
 int CameraAdapter::cameraStop()
 {
+	int i, buffer_count;
+	if (mCamDriverV4l2MemType==V4L2_MEMORY_MMAP) {
+		buffer_count = mPreviewBufProvider->getBufCount();
+		for (i=0; i<buffer_count; i++) {
+			munmap(mCamDriverV4l2Buffer[i], mCamDriverV4l2BufferLen);
+		}
+	}
+
     return 0;
 }
 int CameraAdapter::cameraAutoFocus(bool auto_trig_only)

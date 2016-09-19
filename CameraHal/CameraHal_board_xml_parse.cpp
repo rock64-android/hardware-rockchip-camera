@@ -972,7 +972,10 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
         pCamInfo->mSoftInfo.mPreviewWidth = atoi(atts[1]);
         pCamInfo->mSoftInfo.mPreviewHeight = atoi(atts[3]);
         ALOGD("%s(%d): PreviewSize(%dx%d)! \n", __FUNCTION__,__LINE__,pCamInfo->mSoftInfo.mPreviewWidth,pCamInfo->mSoftInfo.mPreviewHeight);
-    } else if (strstr(name,"DV")){
+    }else if (strstr(name,"Preview_Minimum_FrameRate")){
+        pCamInfo->mSoftInfo.mFrameRate = atoi(atts[1]);
+        ALOGD("%s(%d): Preview_Minimum_FrameRate(%d)! \n", __FUNCTION__,__LINE__,pCamInfo->mSoftInfo.mFrameRate);
+    }else if (strstr(name,"DV")){
         ParserDVConfig(name, atts, userData);
     } else if (strstr(name,"Continue_SnapShot")){
         support = atoi(atts[1]);
@@ -1235,7 +1238,22 @@ int camera_board_profiles::OpenAndRegistOneSensor(rk_cam_total_info *pCamInfo)
 				}while(0);
 
 	            bool res = pcalidb->CreateCalibDb(pLoadSensorInfo->mSensorXmlFile);	           	
-			    if(res){	                
+			    if(res){
+					if(pSensorInfo->mFacing == RK_CAM_FACING_BACK){
+						char xmlver[100];
+						pcalidb->GetCalibXMLVersion(xmlver, sizeof(xmlver));
+						property_set(CAMERAHAL_BACKCAM_IQFILE_VER_PROPERTY_KEY,xmlver);
+						property_set(CAMERAHAL_BACKCAM_IQFILE_PROPERTY_KEY,pLoadSensorInfo->mSensorXmlFile);
+						property_set(CAMERAHAL_BACKCAM_LENNAME_PROPERTY_KEY,pSensorInfo->mLensName);
+						property_set(CAMERAHAL_BACKCAM_MODULE_PROPERTY_KEY,pSensorInfo->mModuleName);
+					}else if(pSensorInfo->mFacing == RK_CAM_FACING_FRONT){
+						char xmlver[100];
+						pcalidb->GetCalibXMLVersion(xmlver, sizeof(xmlver));
+						property_set(CAMERAHAL_FRONTCAM_IQFILE_VER_PROPERTY_KEY,xmlver);
+						property_set(CAMERAHAL_FRONTCAM_IQFILE_PROPERTY_KEY,pLoadSensorInfo->mSensorXmlFile);
+						property_set(CAMERAHAL_FRONTCAM_LENNAME_PROPERTY_KEY,pSensorInfo->mLensName);
+						property_set(CAMERAHAL_FRONTCAM_MODULE_PROPERTY_KEY,pSensorInfo->mModuleName);
+					}
 	                pCamInfo->mIsConnect = 1;
 	                return RK_RET_SUCCESS;
 	            }else{

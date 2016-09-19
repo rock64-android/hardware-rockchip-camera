@@ -227,6 +227,9 @@ extern "C"
 #define ISI_RES_2592_1944P25                   0x32a20798      /**<  2 2592x1944    */
 #define ISI_RES_2592_1944P30                   0x3ca20798      /**<  2 2592x1944    */
 
+#define ISI_RES_2104_1184P40				   0x508384a0       /**<  40 2104x1184    */
+#define ISI_RES_1396_788P40					   0x50574314		/**<  40 1396x788    */
+
 #define ISI_RES_1296_972P7                     0x0e5103cc       /**<  3 3264x2448    */
 #define ISI_RES_1296_972P10                    0x145103cc       /**<  3 3264x2448    */
 #define ISI_RES_1296_972P15                    0x1e5103cc       /**<  3 3264x2448    */

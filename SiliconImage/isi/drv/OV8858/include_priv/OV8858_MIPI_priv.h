@@ -96,10 +96,12 @@ extern "C"
 *v1.8.0
 *   1). support for isi v0.0xc.0
 *   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
+*v1.9.0
+*   1). support isi v0.0xd.0
 */
 
 
-#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(1, 8, 0)
+#define CONFIG_SENSOR_DRV_VERSION  KERNEL_VERSION(1, 9, 0)
 
 /*****************************************************************************
  * System control registers
@@ -174,7 +176,8 @@ typedef struct OV8858_Context_s
     uint32_t            OldFineIntegrationTime;
 
     IsiSensorMipiInfo   IsiSensorMipiInfo;
-	OV8858_VcmInfo_t    VcmInfo; 
+	OV8858_VcmInfo_t    VcmInfo;
+	uint32_t			preview_minimum_framerate;
 } OV8858_Context_t;
 
 #ifdef __cplusplus

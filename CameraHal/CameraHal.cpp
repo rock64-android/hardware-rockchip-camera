@@ -78,7 +78,7 @@ CameraHal::CameraHal(int cameraId)
         setTracerLevel(level);
 
 	}
-
+	mInitState = true;
     mCamId = cameraId;
     mCamFd = -1;
     mCommandRunning = -1;
@@ -165,7 +165,11 @@ CameraHal::CameraHal(int cameraId)
     mEventNotifier = new AppMsgNotifier(mCameraAdapter);
     
     mCameraAdapter->setEventNotifierRef(*mEventNotifier);
-    mCameraAdapter->initialize();
+    if(mCameraAdapter->initialize() < 0){
+		mInitState = false;
+		LOGE("Error: camera initialize failed.");
+		return;
+	}
     updateParameters(mParameters);
     mCameraAdapter->setPreviewBufProvider(mPreviewBuf);
     mCameraAdapter->setDisplayAdapterRef(*mDisplayAdapter);

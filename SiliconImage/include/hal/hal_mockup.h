@@ -39,6 +39,7 @@ extern "C"
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include "camsys_head.h"
+#include "common_head.h"
 #include <common/list.h>
 
 

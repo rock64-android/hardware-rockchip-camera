@@ -583,9 +583,11 @@ namespace android {
     2) box and vr platform no need to copy xml and driver library to out directory.
 *V1.0x41.2:
     1) UVC camera statu detect.
+*V1.0x41.3:
+	1) merged from camera develop project.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x41, 2)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x41, 3)
 
 
 /*  */
@@ -674,12 +676,6 @@ namespace android {
 #define RGA_ACTIVE_H (2048)
 #define RGA_VIRTUAL_H (2048)
 
-#endif
-
-#if (defined(TARGET_RK312x)) /*dalon.zhang@rock-chips.com: V1.0x29.7*/
-#define IOMMU_ENABLED   (1)
-#else
-#define IOMMU_ENABLED   (0)
 #endif
 
 #define JPEG_BUFFER_DYNAMIC		(1)
@@ -1731,7 +1727,8 @@ public:
     BufferProvider* mRawBuf;
     BufferProvider* mJpegBuf;
     MemManagerBase* mCamMemManager;
-
+public:
+	bool mInitState;
 
 private:
     int selectPreferedDrvSize(int *width,int * height,bool is_capture);

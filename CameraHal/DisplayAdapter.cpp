@@ -257,9 +257,10 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
         }
         goto fail;
     }
-    if (undequeued < 2)
-        undequeued = 2;
-    mDispBufUndqueueMin = undequeued;
+	if(undequeued < 2)//one buf may reduce frame rate.
+		mDispBufUndqueueMin = 2;
+	else
+    	mDispBufUndqueueMin = undequeued;
     ///Set the number of buffers needed for camera preview
     
     //total = numBufs+undequeued;
@@ -383,7 +384,8 @@ int DisplayAdapter::cameraDisplayBufferDestory(void)
             // unlock buffer before giving it up
             if (mDisplayBufInfo[i].priv_hnd && (mDisplayBufInfo[i].buf_state == 0) ) {
                 mapper.unlock((buffer_handle_t)mDisplayBufInfo[i].priv_hnd);
-                mANativeWindow->cancel_buffer(mANativeWindow, (buffer_handle_t*)mDisplayBufInfo[i].buffer_hnd);
+				if(mDisplayBufInfo[i].buffer_hnd)
+                	mANativeWindow->cancel_buffer(mANativeWindow, (buffer_handle_t*)mDisplayBufInfo[i].buffer_hnd);
             }
             mDisplayBufInfo[i].buffer_hnd = NULL;
             mDisplayBufInfo[i].priv_hnd = NULL;

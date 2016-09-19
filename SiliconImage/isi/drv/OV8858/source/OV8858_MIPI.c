@@ -196,7 +196,7 @@ static RESULT OV8858_IsiMdiFocusCalibrate( IsiSensorHandle_t handle );
 static RESULT OV8858_IsiGetSensorMipiInfoIss( IsiSensorHandle_t handle, IsiSensorMipiInfo *ptIsiSensorMipiInfo);
 static RESULT OV8858_IsiGetSensorIsiVersion(  IsiSensorHandle_t   handle, unsigned int* pVersion);
 static RESULT OV8858_IsiGetSensorTuningXmlVersion(  IsiSensorHandle_t   handle, char** pTuningXmlVersion);
-
+static RESULT OV8858_IsiSetSensorFrameRateLimit(IsiSensorHandle_t handle, uint32_t minimum_framerate);
 
 static float dctfloor( const float f )
 {
@@ -510,17 +510,8 @@ static int check_read_otp_R1A(
         (*otp_ptr).production_day = sensor_i2c_read_p(context,camsys_fd,addr + 4, i2c_base_info);
         TRACE( OV8858_ERROR, "%s awb info in module_integrator_id(0x%x) lens_id(0x%x) production_year_month_day(%d_%d_%d) !\n", 
 		__FUNCTION__,(*otp_ptr).module_integrator_id,(*otp_ptr).lens_id,(*otp_ptr).production_year,(*otp_ptr).production_month,(*otp_ptr).production_day);
-        TRACE( OV8858_ERROR, "%s awb info in OTP(0x%x,0x%x)!\n", __FUNCTION__,(*otp_ptr).rg_ratio,(*otp_ptr).bg_ratio);
-#if 0 //awb data moved to tuning file
-        if((*otp_ptr).module_integrator_id == 0x04 && (*otp_ptr).lens_id == 0x50)
-        {
-            RG_Ratio_Typical = RG_Ratio_Typical_guangzhen;
-            BG_Ratio_Typical = BG_Ratio_Typical_guangzhen;
-        }else{
-            RG_Ratio_Typical = RG_Ratio_Typical_tongju;
-            BG_Ratio_Typical = BG_Ratio_Typical_tongju;
-        }
-#endif
+        //TRACE( OV8858_NOTICE0, "%s awb info in OTP(0x%x,0x%x)!\n", __FUNCTION__,(*otp_ptr).rg_ratio,(*otp_ptr).bg_ratio);
+
     }
     else {
         (*otp_ptr).flag = 0x00; // not info and AWB in OTP
@@ -669,17 +660,7 @@ static int check_read_otp_R2A(
 		__FUNCTION__,(*otp_ptr).module_integrator_id,(*otp_ptr).lens_id,(*otp_ptr).production_year,(*otp_ptr).production_month,(*otp_ptr).production_day);
         TRACE( OV8858_ERROR, "%s awb info in OTP(0x%x,0x%x)!\n", __FUNCTION__,(*otp_ptr).rg_ratio,(*otp_ptr).bg_ratio);		
 
-        #if 0// awb data moved to tuning file
-    	if((*otp_ptr).module_integrator_id == 0x07 && (*otp_ptr).lens_id == 0x00)
-        {
-            RG_Ratio_Typical = RG_Ratio_Typical_R2A_bbk;
-            BG_Ratio_Typical = BG_Ratio_Typical_R2A_bbk;
-        }else if((*otp_ptr).module_integrator_id == 0x0d && (*otp_ptr).lens_id == 0x12)
-        {
-            RG_Ratio_Typical = RG_Ratio_Typical_tongju;
-            BG_Ratio_Typical = BG_Ratio_Typical_tongju;
-        }
-        #endif
+
 	}
 	else {
 		(*otp_ptr).flag = 0x00; // not info and AWB in OTP
@@ -963,7 +944,31 @@ static RESULT OV8858_IsiSetOTPInfo
 
 	RG_Ratio_Typical = OTPInfo>>16;
 	BG_Ratio_Typical = OTPInfo&0xffff;
-	TRACE( OV8858_ERROR, "%s:  ----AWB(RG,BG)->(0x%x, 0x%x)----\n", __FUNCTION__ , RG_Ratio_Typical, BG_Ratio_Typical);
+	TRACE( OV8858_ERROR, "%s:  --(RG,BG) in IQ file:(0x%x, 0x%x)\n", __FUNCTION__ , RG_Ratio_Typical, BG_Ratio_Typical);
+	if((RG_Ratio_Typical==0) && (BG_Ratio_Typical==0)){
+		TRACE( OV8858_ERROR, "%s:  --OTP typical value in IQ file is zero, we will try another match rule.\n", __FUNCTION__);
+		if(g_sensor_version == OV8858_R2A){
+			if(g_otp_info_R2A.module_integrator_id == 0x07 && g_otp_info_R2A.lens_id == 0x00)
+	        {
+	            RG_Ratio_Typical = RG_Ratio_Typical_R2A_bbk;
+	            BG_Ratio_Typical = BG_Ratio_Typical_R2A_bbk;
+	        }else if(g_otp_info_R2A.module_integrator_id == 0x0d && g_otp_info_R2A.lens_id == 0x12)
+	        {
+	            RG_Ratio_Typical = RG_Ratio_Typical_tongju;
+	            BG_Ratio_Typical = BG_Ratio_Typical_tongju;
+	        }
+		}else if(g_sensor_version == OV8858_R1A){
+			if(g_otp_info_R1A.module_integrator_id == 0x04 && g_otp_info_R1A.lens_id == 0x50)
+	        {
+	            RG_Ratio_Typical = RG_Ratio_Typical_guangzhen;
+	            BG_Ratio_Typical = BG_Ratio_Typical_guangzhen;
+	        }else{
+	            RG_Ratio_Typical = RG_Ratio_Typical_tongju;
+	            BG_Ratio_Typical = BG_Ratio_Typical_tongju;
+	        }
+		}
+		TRACE( OV8858_ERROR, "%s:  --Finally, the (RG,BG) is (0x%x, 0x%x)\n", __FUNCTION__ , RG_Ratio_Typical, BG_Ratio_Typical);
+	}
 
 	return (result);
 }
@@ -1303,7 +1308,7 @@ static RESULT OV8858_IsiGetCapsIssInternal
         pIsiSensorCaps->BPat            = ISI_BPAT_BGBGGRGR;
         pIsiSensorCaps->HPol            = ISI_HPOL_REFPOS; //hsync?
         pIsiSensorCaps->VPol            = ISI_VPOL_POS; //VPolarity
-        pIsiSensorCaps->Edge            = ISI_EDGE_FALLING; //?
+        pIsiSensorCaps->Edge            = ISI_EDGE_RISING; //?
         pIsiSensorCaps->Bls             = ISI_BLS_OFF; //close;
         pIsiSensorCaps->Gamma           = ISI_GAMMA_OFF;//close;
         pIsiSensorCaps->CConv           = ISI_CCONV_OFF;//close;<
@@ -3786,17 +3791,24 @@ RESULT OV8858_IsiGetAfpsInfoIss(
                 case ISI_RES_1632_1224P20:
                 case ISI_RES_1632_1224P15:
                 case ISI_RES_1632_1224P10:
-                    AFPSCHECKANDADD( ISI_RES_1632_1224P30 );
-                    AFPSCHECKANDADD( ISI_RES_1632_1224P25 );
-                    AFPSCHECKANDADD( ISI_RES_1632_1224P20 );
-                    AFPSCHECKANDADD( ISI_RES_1632_1224P15 );
-                    AFPSCHECKANDADD( ISI_RES_1632_1224P10 );
+					if(ISI_FPS_GET(ISI_RES_1632_1224P30) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_1632_1224P30 );
+					if(ISI_FPS_GET(ISI_RES_1632_1224P25) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_1632_1224P25 );
+					if(ISI_FPS_GET(ISI_RES_1632_1224P20) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_1632_1224P20 );
+					if(ISI_FPS_GET(ISI_RES_1632_1224P15) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_1632_1224P15 );
+					if(ISI_FPS_GET(ISI_RES_1632_1224P10) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_1632_1224P10 );
                     break;
 
                 case ISI_RES_3264_2448P15:
                 case ISI_RES_3264_2448P7:
-                    AFPSCHECKANDADD( ISI_RES_3264_2448P15 );
-                    AFPSCHECKANDADD( ISI_RES_3264_2448P7 );
+					if(ISI_FPS_GET(ISI_RES_3264_2448P15) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_3264_2448P15 );
+					if(ISI_FPS_GET(ISI_RES_3264_2448P7) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_3264_2448P7 );
                     break;
 
                 // check next series here...
@@ -3820,11 +3832,16 @@ RESULT OV8858_IsiGetAfpsInfoIss(
                 case ISI_RES_1632_1224P20:
                 case ISI_RES_1632_1224P15:
                 case ISI_RES_1632_1224P10:
-                    AFPSCHECKANDADD( ISI_RES_1632_1224P30 );
-                    AFPSCHECKANDADD( ISI_RES_1632_1224P25 );
-                    AFPSCHECKANDADD( ISI_RES_1632_1224P20 );
-                    AFPSCHECKANDADD( ISI_RES_1632_1224P15 );
-                    AFPSCHECKANDADD( ISI_RES_1632_1224P10 );
+					if(ISI_FPS_GET(ISI_RES_1632_1224P30) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_1632_1224P30 );
+					if(ISI_FPS_GET(ISI_RES_1632_1224P25) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_1632_1224P25 );
+					if(ISI_FPS_GET(ISI_RES_1632_1224P20) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_1632_1224P20 );
+					if(ISI_FPS_GET(ISI_RES_1632_1224P15) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_1632_1224P15 );
+					if(ISI_FPS_GET(ISI_RES_1632_1224P10) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_1632_1224P10 );
                     break;
                     
                 case ISI_RES_3264_2448P30:
@@ -3833,12 +3850,18 @@ RESULT OV8858_IsiGetAfpsInfoIss(
                 case ISI_RES_3264_2448P15:
                 case ISI_RES_3264_2448P10:
                 case ISI_RES_3264_2448P7:
-                    AFPSCHECKANDADD( ISI_RES_3264_2448P30 );
-                    AFPSCHECKANDADD( ISI_RES_3264_2448P25 );
-                    AFPSCHECKANDADD( ISI_RES_3264_2448P20 );
-                    AFPSCHECKANDADD( ISI_RES_3264_2448P15 );
-                    AFPSCHECKANDADD( ISI_RES_3264_2448P10 );
-                    AFPSCHECKANDADD( ISI_RES_3264_2448P7 );
+					if(ISI_FPS_GET(ISI_RES_3264_2448P30) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_3264_2448P30 );
+					if(ISI_FPS_GET(ISI_RES_3264_2448P25) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_3264_2448P25 );
+					if(ISI_FPS_GET(ISI_RES_3264_2448P20) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_3264_2448P20 );
+					if(ISI_FPS_GET(ISI_RES_3264_2448P15) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_3264_2448P15 );
+					if(ISI_FPS_GET(ISI_RES_3264_2448P10) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_3264_2448P10 );
+					if(ISI_FPS_GET(ISI_RES_3264_2448P7) >= pOV8858Ctx->preview_minimum_framerate)
+                    	AFPSCHECKANDADD( ISI_RES_3264_2448P7 );
                     break;
 
                 // check next series here...
@@ -4964,6 +4987,7 @@ RESULT OV8858_IsiGetSensorIss
 
         /* Testpattern */
         pIsiSensor->pIsiActivateTestPattern             = OV8858_IsiActivateTestPattern;
+		pIsiSensor->pIsiSetSensorFrameRateLimit			= OV8858_IsiSetSensorFrameRateLimit;
     }
     else
     {
@@ -5062,6 +5086,25 @@ static RESULT OV8858_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
     return RET_SUCCESS;
 }
 
+static RESULT OV8858_IsiSetSensorFrameRateLimit(IsiSensorHandle_t handle, uint32_t minimum_framerate)
+{
+    OV8858_Context_t *pOV8858Ctx = (OV8858_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+    TRACE( OV8858_INFO, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pOV8858Ctx == NULL )
+    {
+    	TRACE( OV8858_ERROR, "%s: pOV8858Ctx IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+    }
+	
+	pOV8858Ctx->preview_minimum_framerate = minimum_framerate;
+	return RET_SUCCESS;
+}
+
+
 /******************************************************************************
  * See header file for detailed comment.
  *****************************************************************************/
@@ -5130,6 +5173,7 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pIsiGetSensorMipiInfoIss */
 
         0,                      /**< IsiSensor_t.pIsiActivateTestPattern */
+        0,
     },
     OV8858_IsiGetSensorI2cInfo,
 };

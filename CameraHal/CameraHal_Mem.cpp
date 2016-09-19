@@ -189,7 +189,7 @@ void IonMemManager::destroyIonBuffer(buffer_type_enum buftype)
  			    if (mPreviewData == NULL) {
 				  //  LOGE("%s(%d): mPreviewData is NULL",__FUNCTION__,__LINE__);
                 } else {
-				    LOGE("mPreviewData->virt:0x%x mPreviewBufferInfo.mVirBaseAddr:0x%x",(long)mPreviewData->virt,mPreviewBufferInfo->mVirBaseAddr);
+				    LOGE("mPreviewData->virt:0x%x mPreviewBufferInfo->mVirBaseAddr:0x%x",(long)mPreviewData->virt,mPreviewBufferInfo->mVirBaseAddr);
                 }
 			}
 			memset(&mPreviewBufferInfo,0,sizeof(mPreviewBufferInfo));
@@ -204,7 +204,7 @@ void IonMemManager::destroyIonBuffer(buffer_type_enum buftype)
 				if (mRawData == NULL) {
 				 //   LOGE("%s(%d): mRawData is NULL",__FUNCTION__,__LINE__);
                 } else {
-				    LOGE("mRawData->virt:0x%x mRawBufferInfo.mVirBaseAddr:0x%x",(long)mRawData->virt,mRawBufferInfo->mVirBaseAddr);
+				    LOGE("mRawData->virt:0x%x mRawBufferInfo->mVirBaseAddr:0x%x",(long)mRawData->virt,mRawBufferInfo->mVirBaseAddr);
                 }
 			}
 			memset(&mRawBufferInfo,0,sizeof(mRawBufferInfo));
@@ -219,7 +219,7 @@ void IonMemManager::destroyIonBuffer(buffer_type_enum buftype)
 				if (mJpegData == NULL) {
 				//    LOGE("%s(%d): mJpegData is NULL",__FUNCTION__,__LINE__);
                 } else {
-				    LOGE("mJpegData->virt:0x%x mRawBufferInfo.mVirBaseAddr:0x%x",(long)mJpegData->virt,mJpegBufferInfo->mVirBaseAddr);
+				    LOGE("mJpegData->virt:0x%x mRawBufferInfo->mVirBaseAddr:0x%x",(long)mJpegData->virt,mJpegBufferInfo->mVirBaseAddr);
                 }
 			}
 			memset(&mJpegBufferInfo,0,sizeof(mJpegBufferInfo));
@@ -234,7 +234,7 @@ void IonMemManager::destroyIonBuffer(buffer_type_enum buftype)
 				if (mVideoEncData == NULL) {
 				//	LOGE("%s(%d): mVideoEncData is NULL",__FUNCTION__,__LINE__);
 				} else {
-					LOGE("mVideoEncData->virt:0x%x mVideoEncBufferInfo.mVirBaseAddr:0x%x",(long)mVideoEncData->virt,mVideoEncBufferInfo->mVirBaseAddr);
+					LOGE("mVideoEncData->virt:0x%x mVideoEncBufferInfo->mVirBaseAddr:0x%x",(long)mVideoEncData->virt,mVideoEncBufferInfo->mVirBaseAddr);
 				}
 			}
 			memset(&mVideoEncBufferInfo,0,sizeof(mVideoEncBufferInfo));

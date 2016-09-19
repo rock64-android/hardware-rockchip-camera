@@ -259,13 +259,14 @@
     1) IMX214 ID address:0x1617 ID num:214.
     2) OV13850 support r1a and r2a.
     3) support 4224_3120P15\3120_3120P15\3120_3120P25\2112_1560P30.
-*v1.0x36.1:
-    1) NUM_I2C from 4 to 6.
+*v1.0x37.0:
+    1) I2C_NUM up to six.
+    2) support frame rates limition set when preview. 
 */
 
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x36, 1)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x37, 0)
 
 
 class CamEngineItf;
