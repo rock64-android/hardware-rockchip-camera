@@ -262,11 +262,13 @@
 *v1.0x37.0:
     1) I2C_NUM up to six.
     2) support frame rates limition set when preview. 
+*v1.0x38.0:
+    1) iFive_F516 IMX214 tuning. 
 */
 
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x37, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x38, 0)
 
 
 class CamEngineItf;

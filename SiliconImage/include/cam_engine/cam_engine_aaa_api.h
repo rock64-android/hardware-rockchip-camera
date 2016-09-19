@@ -190,7 +190,8 @@ typedef struct CamEngineAfEvtQue_s
 typedef enum CamEngineAecHistMeasureMode_e
 {
     AverageMetering = 0,
-    CentreWeightMetering = 1
+    CentreWeightMetering = 1,
+    AfWeightMetering = 2
 } CamEngineAecHistMeasureMode_t;
 
 typedef enum CamEngine3aLock_e

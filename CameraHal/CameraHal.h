@@ -585,9 +585,17 @@ namespace android {
     1) UVC camera statu detect.
 *V1.0x41.3:
 	1) merged from camera develop project.
+*V1.0x42.0:
+	1)add iFive_F516 IMX214 tuning
+	2)merge conflict 69 server
+		*V1.0x40.0:
+	     1) add camera info property.
+		 2) add judgement of camera initialize.
+		 3) fix bug of divided by zero.
+		 4) munmap buffers in cameraStop func.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x41, 3)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x42, 0)
 
 
 /*  */
