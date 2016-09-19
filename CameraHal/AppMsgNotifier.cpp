@@ -9,7 +9,7 @@ namespace android {
 
 static char ExifMaker[32];
 static char ExifModel[32];
-static char ExifSelfDefine[512];
+static char ExifSelfDefine[640];
 #define FACEDETECT_INIT_BIAS (-20)
 #define FACEDETECT_BIAS_INERVAL (5)
 #define FACEDETECT_FRAME_INTERVAL (2)
@@ -296,14 +296,14 @@ void AppMsgNotifier::setPictureRawBufProvider(BufferProvider* bufprovider)
 {
     mRawBufferProvider = bufprovider;
 	#if (JPEG_BUFFER_DYNAMIC == 0)
-    mRawBufferProvider->createBuffer(1, 0xd00000, RAWBUFFER,mRawBufferProvider->is_cif_driver);
+    mRawBufferProvider->createBuffer(1, 0x1500000, RAWBUFFER,mRawBufferProvider->is_cif_driver);
 	#endif
  }
 void AppMsgNotifier::setPictureJpegBufProvider(BufferProvider* bufprovider)
 {
     mJpegBufferProvider = bufprovider;
 	#if (JPEG_BUFFER_DYNAMIC == 0)
-    mJpegBufferProvider->createBuffer(1, 0x700000,JPEGBUFFER,mJpegBufferProvider->is_cif_driver);
+    mJpegBufferProvider->createBuffer(1, 0x1600000,JPEGBUFFER,mJpegBufferProvider->is_cif_driver);
 	#endif
 }
 void AppMsgNotifier::setFrameProvider(FrameProvider * framepro)
@@ -737,34 +737,20 @@ int AppMsgNotifier::copyAndSendRawImage(void *raw_image, int size)
     void *dest = NULL, *src = NULL;
 
     if(mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE) {
-		#if 0
-        if(mPicture == NULL){
-            mPicture = mRequestMemory(-1, size, 1, NULL);
-            mPicSize = size;
-        }else if(mPicSize != size){
-            mPicture->release(mPicture);
-            mPicture = mRequestMemory(-1, size, 1, NULL);
-            mPicSize = size;
-        }
-		#endif
+
         mPicture = mRequestMemory(-1, size, 1, NULL);
         mPicSize = size;		
         picture = mPicture;
-      //  picture = mRequestMemory(-1, size, 1, NULL);
         if (NULL != picture) {
             dest = picture->data;
             if (NULL != dest) {
                 memcpy(dest, raw_image, size);
-                //mDataCb(CAMERA_MSG_RAW_IMAGE, picture, 0, NULL, mCallbackCookie);
                 callback_raw_image(picture);
             }
-      //      picture->release(picture);
         } else if (mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE_NOTIFY) {
-            //mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
             callback_notify_raw_image();
         }
     } else if (mMsgTypeEnabled & CAMERA_MSG_RAW_IMAGE_NOTIFY) {
-        //mNotifyCb(CAMERA_MSG_RAW_IMAGE_NOTIFY, 0, 0, mCallbackCookie);
         callback_notify_raw_image();
     }
     return 0;
@@ -776,28 +762,15 @@ int AppMsgNotifier::copyAndSendCompressedImage(void *compressed_image, int size)
     void *dest = NULL, *src = NULL;
 
     if(mMsgTypeEnabled & CAMERA_MSG_COMPRESSED_IMAGE) {
-		#if 0
-        if(mPicture == NULL){
-            mPicture = mRequestMemory(-1, size, 1, NULL);
-            mPicSize = size;
-        }else if(mPicSize != size){
-            mPicture->release(mPicture);
-            mPicture = mRequestMemory(-1, size, 1, NULL);
-            mPicSize = size;
-        }
-		#endif
 		mPicture = mRequestMemory(-1, size, 1, NULL);
 		mPicSize = size;
         picture = mPicture;
-      //  picture = mRequestMemory(-1, size, 1, NULL);
         if (NULL != picture) {
             dest = picture->data;
             if (NULL != dest) {
                 memcpy(dest, compressed_image, size);
-               // mDataCb(CAMERA_MSG_COMPRESSED_IMAGE, picture, 0, NULL, mCallbackCookie);
                callback_compressed_image(picture);
             }
-        //    picture->release(picture);
         }
     }
     return 0;
@@ -1102,7 +1075,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 		pictureSize = (pictureSize & 0xfffff000) + 0x1000;
 	}
 
-    jpegbuf_size = 0x700000; //pictureSize;
+    jpegbuf_size = 0x1400000; //pictureSize;
     #if (JPEG_BUFFER_DYNAMIC == 1)
     //create raw & jpeg buffer
     ret = mRawBufferProvider->createBuffer(1, pictureSize, RAWBUFFER,mRawBufferProvider->is_cif_driver);
@@ -1139,13 +1112,8 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     output_vir_addr = jpegbuf_vir;
 	LOG1("rawbuf_phy:%x,rawbuf_vir:%x;jpegbuf_phy = %x,jpegbuf_vir = %x",rawbuf_phy,rawbuf_vir,jpegbuf_phy,jpegbuf_vir);
 
-	#if 0
-	if (mMsgTypeEnabled & CAMERA_MSG_SHUTTER)
-		mNotifyCb(CAMERA_MSG_SHUTTER, 0, 0, mCallbackCookie);
-	#else
 	if (mMsgTypeEnabled & CAMERA_MSG_SHUTTER)
 		callback_notify_shutter();
-	#endif
 
 	LOGD("captureEncProcessPicture,rotation = %d,jpeg_w = %d,jpeg_h = %d",rotation,jpeg_w,jpeg_h);
 
@@ -1321,7 +1289,6 @@ captureEncProcessPicture_exit:
 	if(err < 0) {
 		LOGE("%s(%d) take picture erro!!!,",__FUNCTION__,__LINE__);
 		if (mNotifyCb && (mMsgTypeEnabled & CAMERA_MSG_ERROR)) {						
-			//mNotifyCb(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED,0,mCallbackCookie);
 			callback_notify_error();
 		}
 	} 
@@ -1402,21 +1369,8 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
                YuvData_Mirror_Flip(V4L2_PIX_FMT_NV12, (char*) tmpPreviewMemory->data,
                                (char*)frame->vir_addr,mPreviewDataW, mPreviewDataH);
             }			
-			//callback
-			#if 0
-			/* ddl@rock-chips.com:  v1.0x1b.0 */
-			if (mMainThreadLockRef->tryLock() == NO_ERROR) {
-			    mDataCb(CAMERA_MSG_PREVIEW_FRAME, tmpPreviewMemory, 0,NULL,mCallbackCookie);  
-                mMainThreadLockRef->unlock();
-			} else {
-                LOGD("Try lock mMainThreadLockRef failed, mDataCb cancel!!");
-			}
 
-			//release buffer
-			tmpPreviewMemory->release(tmpPreviewMemory);
-			#else
 			callback_preview_frame(tmpPreviewMemory);
-			#endif
 		} else {
 			LOGE("%s(%d): mPreviewMemory create failed",__FUNCTION__,__LINE__);
 		}
@@ -1456,22 +1410,9 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
         #endif
 
         mVideoBufferProvider->flushBuffer(buf_index);
-        //mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_index], 0, mCallbackCookie);
         callback_video_frame(mVideoBufs[buf_index]);
         LOG1("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
     }
-	/*//fill video buffer
-	if(cameraFormatConvert(frame->frame_fmt, V4L2_PIX_FMT_NV12, NULL,
-    (char*)frame->vir_addr,(char*)buf_vir,0,0,frame->frame_width*frame->frame_height*2,
-    frame->frame_width, frame->frame_height,frame->frame_width,frame->frame_width, frame->frame_height,frame->frame_width,false)==0)
-//	arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
-
-    {
-		//LOGD("%s(%d):send frame to video encode,index(%d)",__FUNCTION__,__LINE__,buf_index);
-		mVideoBufferProvider->flushBuffer(buf_index);
-
-		mDataCbTimestamp(systemTime(CLOCK_MONOTONIC), CAMERA_MSG_VIDEO_FRAME, mVideoBufs[buf_index], 0, mCallbackCookie);												    	
-	}*/
 	
     return ret;
 }
@@ -1496,7 +1437,6 @@ int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
 
             if(num > 0){
                 num = 1 ;//just report one face to app
-                //camera_frame_metadata_t tmpMetadata;
                 pMetadata->number_of_faces = num;
                 camera_face_t* pFace = (camera_face_t*)malloc(sizeof(camera_face_t)*num);
                 pMetadata->faces = pFace;

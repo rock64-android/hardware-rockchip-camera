@@ -211,7 +211,7 @@ void CameraIspAdapter::setupPreview(int width_sensor,int height_sensor,int previ
     CamEngineWindow_t dcWin;
 	unsigned int max_w = 0,max_h = 0, bufNum = 0, bufSize = 0;
 	//when cts FOV ,don't crop
-    if((!mImgAllFovReq)&&(height_sensor && ((width_sensor*10/height_sensor) != (preview_w*10/preview_h)))){
+    if((!mImgAllFovReq)&&(width_sensor != 0)&&(height_sensor != 0)&&((width_sensor*10/height_sensor) != (preview_w*10/preview_h))){
         int ratio = ((width_sensor*10/preview_w) >= (height_sensor*10/preview_h))?(height_sensor*10/preview_h):(width_sensor*10/preview_w);
         dcWin.width = ((ratio*preview_w/10) & ~0x1);
         dcWin.height = ((ratio*preview_h/10) & ~0x1);
@@ -283,6 +283,7 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
     bool enable_flash = false;
     bool low_illumin = false;
     bool is_video = false;
+    rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
     
     property_set("sys.hdmiin.display", "0");//just used by hdmi-in
     if ( ( !m_camDevice->hasSensor() ) &&
@@ -339,8 +340,11 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         } else if (is_capture) {
             resReq.request_fps = 0;
             resReq.request_exp_t = curExp*curGain;
-        } else { 
-            resReq.request_fps = 10; 
+        } else {
+        	if(pCamInfo->mSoftInfo.mFrameRate > 0)
+				resReq.request_fps = pCamInfo->mSoftInfo.mFrameRate;
+			else
+            	resReq.request_fps = 10; 
             resReq.request_exp_t = curExp;
         }
         
@@ -389,7 +393,8 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
 			goto startPreview_end;
 		
 		//set mannual exposure and mannual whitebalance
-		setMe(mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION));
+		if(strcmp((mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION)), "0"))
+			setMe(mParameters.get(CameraParameters::KEY_EXPOSURE_COMPENSATION));
 		setMwb(mParameters.get(CameraParameters::KEY_WHITE_BALANCE));		
 		//
         mCamDrvWidth = width_sensor;
@@ -881,7 +886,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             if (max_w*10/max_h == 40/3) {          //  4:3 Sensor
                 if (pixels > 12800000) {
                     if ((max_w != 4128)&&(max_h != 3096))
-                        parameterString.append(",4128x3096");
+                        parameterString.append(",4096x3096");
                     parameterString.append(",3264x2448,2592x1944,1600x1200");
                 } else if (pixels > 7900000) {
                     if ((max_w != 3264)&&(max_h != 2448))

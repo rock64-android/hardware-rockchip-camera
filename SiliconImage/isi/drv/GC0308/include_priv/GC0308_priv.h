@@ -25,8 +25,10 @@ extern "C"
 *v0.6.0
 *   1). support for isi v0.0xc.0
 *   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
+*v0.7.0
+*   1). support isi v0.0xd.0
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 6, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 7, 0) 
 
 
 #define GC0308_DELAY_5MS                    (0x0000) //delay 5 ms
@@ -83,6 +85,7 @@ typedef struct GC0308_Context_s
     uint32_t            OldFineIntegrationTime;
 
     IsiSensorMipiInfo   IsiSensorMipiInfo;
+	uint32_t			preview_minimum_framerate;
 } GC0308_Context_t;
 
 #ifdef __cplusplus

@@ -23,8 +23,10 @@
 *v0.7.0
 *   1). support for isi v0.0xc.0 
 *   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
+*v0.8.0
+*   1). support isi v0.0xd.0
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 7, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 8, 0) 
 
 #ifdef __cplusplus
 extern "C"
@@ -83,6 +85,7 @@ typedef struct OV2659_Context_s
     uint16_t            OldGain;               /**< gain multiplier */
     uint32_t            OldCoarseIntegrationTime;
     uint32_t            OldFineIntegrationTime;
+	uint32_t			preview_minimum_framerate;
 
     IsiSensorMipiInfo   IsiSensorMipiInfo;
 } OV2659_Context_t;

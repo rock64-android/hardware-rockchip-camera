@@ -500,7 +500,7 @@ static RESULT OV5647_IsiGetCapsIss
         pIsiSensorCaps->BPat            = ISI_BPAT_RGRGGBGB ;//ISI_BPAT_BGBGGRGR;
         pIsiSensorCaps->HPol            = ISI_HPOL_REFPOS;
         pIsiSensorCaps->VPol            = ISI_VPOL_POS;
-        pIsiSensorCaps->Edge            = ISI_EDGE_FALLING;
+        pIsiSensorCaps->Edge            = ISI_EDGE_RISING;
         pIsiSensorCaps->Bls             = ISI_BLS_OFF;
         pIsiSensorCaps->Gamma           = ISI_GAMMA_OFF;
         pIsiSensorCaps->CConv           = ISI_CCONV_OFF;
@@ -3534,6 +3534,7 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pIsiGetSensorMipiInfoIss */
 
         0,                      /**< IsiSensor_t.pIsiActivateTestPattern */
+        0,
     },
     OV5647_IsiGetSensorI2cInfo,
 };

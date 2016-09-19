@@ -491,7 +491,7 @@ static RESULT Sensor_IsiGetCapsIssInternal
         pIsiSensorCaps->BPat            = ISI_BPAT_BGBGGRGR;
         pIsiSensorCaps->HPol            = ISI_HPOL_REFPOS;
         pIsiSensorCaps->VPol            = ISI_VPOL_POS;
-        pIsiSensorCaps->Edge            = ISI_EDGE_FALLING;
+        pIsiSensorCaps->Edge            = ISI_EDGE_RISING;
         pIsiSensorCaps->Bls             = ISI_BLS_OFF;
         pIsiSensorCaps->Gamma           = ISI_GAMMA_OFF;
         pIsiSensorCaps->CConv           = ISI_CCONV_OFF;
@@ -1799,7 +1799,7 @@ static RESULT Sensor_IsiChangeSensorResolutionIss
 		bool_t res_no_chg;
 		//TRACE( Sensor_ERROR, "%s (2222222222enter)  \n", __FUNCTION__);
         if (!((ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pSensorCtx->Config.Resolution)) && 
-            (ISI_RES_W_GET(Resolution)==ISI_RES_W_GET(pSensorCtx->Config.Resolution))) ) {
+            (ISI_RES_H_GET(Resolution)==ISI_RES_H_GET(pSensorCtx->Config.Resolution))) ) {
 
             if (pSensorCtx->Streaming != BOOL_FALSE) {
                 TRACE( Sensor_ERROR, "%s: Sensor is streaming, Change resolution is not allow\n",__FUNCTION__);
@@ -4415,6 +4415,7 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
         0,                      /**< IsiSensor_t.pIsiGetSensorMipiInfoIss */
 
         0,                      /**< IsiSensor_t.pIsiActivateTestPattern */
+        0,
     },
     Sensor_IsiGetSensorI2cInfo,
 };

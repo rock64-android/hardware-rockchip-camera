@@ -60,9 +60,11 @@
 *	 2) support new resolution 3280x2464 & 1640x1232
 *v0.0xc.0
 *	 1) add IsiSetupSensorOTPInfoIss and IsiEnableSensorOTPIss api.
+*v0.0xd.0
+*    1) add IsiSensorFrameRateLimitSet interface.
 */
 
-#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 0x0c, 0x00) 
+#define CONFIG_ISI_VERSION KERNEL_VERSION(0, 0x0d, 0x00) 
 
 
 #ifdef __cplusplus
@@ -1332,6 +1334,11 @@ RESULT IsiEnableSensorOTPIss
     bool_t enable
 );
 
+RESULT IsiSensorFrameRateLimitSet
+(
+    IsiSensorHandle_t   handle,
+    uint32_t            framerate
+);
 #ifdef __cplusplus
 }
 #endif

@@ -76,7 +76,7 @@ public:
         MEMCPY(&m_CalibInfo, pCalibInfo, sizeof(struct sensor_calib_info));
         return true;
     }
-
+	bool GetCalibXMLVersion(char *XMLVerBuf, int buflen);
 private:
 
     typedef bool (CalibDb::*parseCellContent)(const XMLElement*, void *param);

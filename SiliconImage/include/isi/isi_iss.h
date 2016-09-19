@@ -178,6 +178,7 @@ typedef RESULT (IsiCheckOTPInfo_t)
     int camsys_fd
 );
 
+typedef RESULT (IsiSetSensorFrameRateLimitIss_t)         ( IsiSensorHandle_t handle, uint32_t minimum_framerate);
 
 /*****************************************************************************/
 /**
@@ -252,6 +253,7 @@ struct IsiSensor_s
 
     /* Testpattern */
     IsiActivateTestPattern_t            *pIsiActivateTestPattern;       /**< enable/disable test-pattern */
+    IsiSetSensorFrameRateLimitIss_t     *pIsiSetSensorFrameRateLimit;
 };
 
 
