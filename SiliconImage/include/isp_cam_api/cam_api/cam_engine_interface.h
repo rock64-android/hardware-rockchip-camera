@@ -264,11 +264,13 @@
     2) support frame rates limition set when preview. 
 *v1.0x38.0:
     1) iFive_F516 IMX214 tuning. 
+*v1.0x39.0:
+    1) support two cameras preview at the same time.
 */
 
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x38, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x39, 0)
 
 
 class CamEngineItf;
