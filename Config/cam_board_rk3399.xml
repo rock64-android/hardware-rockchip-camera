@@ -169,7 +169,7 @@
 					<VCMCurrent start="20" rated="80" vcmmax="100" stepmode="13"  drivermax="100"></VCMCurrent>
 				</VCM>
 				<Flash>
-					<FlashName name="rt8547"></FlashName>
+					<FlashName name="Internal"></FlashName>
 					<FlashI2cBusNum busnum="0"></FlashI2cBusNum>
 					<FlashI2cAddrByte byte="0"></FlashI2cAddrByte>
 					<FlashI2cRate rate="0"></FlashI2cRate>
