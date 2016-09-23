@@ -29,6 +29,7 @@
 
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 extern bool g_ctsV_flag = false;
+
 namespace android {
 
 /************************
@@ -152,7 +153,10 @@ CameraHal::CameraHal(int cameraId)
             mCameraAdapter->setImageAllFov(true);
             g_ctsV_flag = true;
             property_set("sys.cts_gts.status","false");
-	    } else {
+	    }else if(strstr(call_process,"android.camera.cts")) {
+			g_ctsV_flag = false;
+			property_set("sys.cts_gts.status","true");
+		}else {
             mCameraAdapter->setImageAllFov(false);
             g_ctsV_flag = false;
 	    }

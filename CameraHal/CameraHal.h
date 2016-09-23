@@ -599,9 +599,11 @@ V1.0x42.2:
    1) add FIXED focus mode support.
 V1.0x43.0:
    1) isLowIllumin and minus_level_2 parameter.
+V1.0x43.1:
+   1) fix some cts problem and set preview minimum fps to 15.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x43, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x43, 1)
 
 
 /*  */

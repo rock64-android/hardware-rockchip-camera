@@ -778,7 +778,13 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     bool isRestartPreview = false;
     char string[100];
     char prop_value[PROPERTY_VALUE_MAX];
+	bool iscts = false;
 
+	property_get("sys.cts_gts.status",prop_value, "false");
+    if(!strcmp(prop_value,"true"))
+		iscts = true;
+	else
+		iscts = false;
 	LOG_FUNCTION_NAME
     //previwe size and picture size
     {
@@ -824,9 +830,11 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             }
             memset(string,0x00,sizeof(string)); 
             sprintf(string,",%dx%d",ISI_RES_W_GET(pCaps.Resolution),ISI_RES_H_GET(pCaps.Resolution));
-            if (strcmp(string,",1600x1200") && !parameterString.contains(string)){
-                parameterString.append(string);
-            }
+			if(!iscts || ISI_RES_W_GET(pCaps.Resolution) <= 2104) {
+            	if (strcmp(string,",1600x1200") && !parameterString.contains(string)){
+                	parameterString.append(string);
+            	}
+			}
             LOG1("    %dx%d @ %d fps", ISI_RES_W_GET(pCaps.Resolution),ISI_RES_H_GET(pCaps.Resolution),
                 ISI_FPS_GET(pCaps.Resolution));
 
@@ -870,7 +878,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         
         memset(string,0x00,sizeof(string));
         sprintf(string,"%dx%d",max_w,max_h);
-       // parameterString = string;
+        parameterString = string;
 		int interpolationRes = pCamInfo->mSoftInfo.mInterpolationRes;
 		if(interpolationRes){			
 	        if (max_w*10/max_h == 40/3) {          //  4:3 Sensor
@@ -912,17 +920,26 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             }
 		}
         if(g_ctsV_flag){
-            parameterString.append(",640x480,320x240");
+            parameterString.append(",640x480,320x240");		
         }else{
             parameterString.append(",640x480,352x288,320x240,176x144");
         }
+
+		if(iscts) {
+			if(max_w >= 1280 && max_h >= 720) {
+				parameterString.append(",1280x720");
+			}
+			if(max_w >= 1920 && max_h >= 1080){
+				parameterString.append(",1920x1080,1920x1088");
+			}
+		}
+		
         params.set(CameraParameters::KEY_PICTURE_SIZE, string);
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, parameterString.string());
 	}
 
 #if (CONFIG_CAMERA_SETVIDEOSIZE == 0)
-     property_get("sys.cts_gts.status",prop_value, "false");
-     if(!strcmp(prop_value,"true")){
+     if(iscts){
         if(camFd == 0){
              //back camera, may need to manually modify based on media_profiles.xml supported.
              params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"1920x1080");
@@ -951,9 +968,6 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         parameterString = CameraParameters::FOCUS_MODE_FIXED;
         params.set(CameraParameters::KEY_FOCUS_MODE, CameraParameters::FOCUS_MODE_FIXED);
 
-        //char prop_value[PROPERTY_VALUE_MAX];
-        property_get("sys.cts_gts.status",prop_value, "false");
-       //if(!strcmp(prop_value,"true")){
        if(0){
            params.set(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS,"0");
            params.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES, CameraParameters::FOCUS_MODE_FIXED);
@@ -1652,12 +1666,16 @@ void CameraIspAdapter::openImage( const char* fileName)
 }
 void CameraIspAdapter::loadSensor( const int cameraId)
 {
+	char prop_value[PROPERTY_VALUE_MAX];
     // open sensor
     if(cameraId>=0)
     {
         disconnectCamera();
 
         rk_cam_total_info *pCamInfo = gCamInfos[cameraId].pcam_total_info;
+		property_get("sys.cts_gts.status",prop_value, "false");
+     	if(!strcmp(prop_value,"true"))
+			pCamInfo->mSoftInfo.mFrameRate = 30;
         if ( true == m_camDevice->openSensor( pCamInfo, mSensorItfCur ) )
         {
         	bool res = m_camDevice->checkVersion(pCamInfo);
