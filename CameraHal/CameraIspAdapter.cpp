@@ -870,7 +870,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         
         memset(string,0x00,sizeof(string));
         sprintf(string,"%dx%d",max_w,max_h);
-        parameterString = string;        
+       // parameterString = string;
 		int interpolationRes = pCamInfo->mSoftInfo.mInterpolationRes;
 		if(interpolationRes){			
 	        if (max_w*10/max_h == 40/3) {          //  4:3 Sensor
@@ -1389,7 +1389,7 @@ int CameraIspAdapter::cameraConfig(const CameraParameters &tmpparams,bool isInit
     				manExpConfig.minus_level_1 = (manExpConfig.level_0/(1+tolerance))-manExpConfig.clmtolerance*1.5;
     				if(manExpConfig.minus_level_1 < 0)
     					manExpConfig.minus_level_1 = 0;
-    				manExpConfig.minus_level_2 = (manExpConfig.minus_level_1/(1+tolerance))-manExpConfig.clmtolerance*1.5;
+					manExpConfig.minus_level_2 = (manExpConfig.minus_level_1/(0.6+tolerance))-manExpConfig.clmtolerance*1.5;
     				if(manExpConfig.minus_level_2 < 0)
     					manExpConfig.minus_level_2 = 0;				
     				manExpConfig.minus_level_3 = (manExpConfig.minus_level_2/(1+tolerance))-manExpConfig.clmtolerance*1.5;	
@@ -2399,7 +2399,7 @@ bool CameraIspAdapter::isLowIllumin()
     float gain,mingain,maxgain,step,time,mintime,maxtime,sharpness,meanluma = 0 ;
     bool enabled;
     CamEngineAfSearchAlgorithm_t searchAlgorithm;
-    const float lumaThreshold = 45;
+    const float lumaThreshold = 15;
     const float sharpThreshold = 300;
     
     m_camDevice->getGain(gain);

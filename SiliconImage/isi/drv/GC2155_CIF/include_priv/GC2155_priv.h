@@ -23,8 +23,10 @@
 *   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
 *v0.7.0
 *   1). support isi v0.0xd.0
+*v0.8.0
+*   1). sensor image mirror and flip
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 7, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 8, 0)
 
 #ifdef __cplusplus
 extern "C"

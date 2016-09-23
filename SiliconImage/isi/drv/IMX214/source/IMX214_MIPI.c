@@ -184,6 +184,7 @@ static RESULT Sensor_IsiMdiFocusCalibrate( IsiSensorHandle_t handle );
 static RESULT Sensor_IsiGetSensorMipiInfoIss( IsiSensorHandle_t handle, IsiSensorMipiInfo *ptIsiSensorMipiInfo);
 static RESULT Sensor_IsiGetSensorIsiVersion(  IsiSensorHandle_t   handle, unsigned int* pVersion);
 static RESULT Sensor_IsiGetSensorTuningXmlVersion(  IsiSensorHandle_t   handle, char** pTuningXmlVersion);
+static RESULT Sensor_IsiSetSensorFrameRateLimit(IsiSensorHandle_t handle, uint32_t minimum_framerate);
 
 
 static float dctfloor( const float f )
@@ -2898,7 +2899,7 @@ static RESULT Sensor_IsiGetAfpsInfoHelperIss(
 {
     RESULT result = RET_SUCCESS;
 
-    TRACE( Sensor_ERROR, "%s: (-----------oyyf enter) pAfpsInfo->AecMaxIntTime(%f) pSensorCtx->AecMaxIntegrationTime(%f)\n", __FUNCTION__, pAfpsInfo->AecMaxIntTime,pSensorCtx->AecMaxIntegrationTime);
+    TRACE( Sensor_INFO, "%s: (-----------oyyf enter) pAfpsInfo->AecMaxIntTime(%f) pSensorCtx->AecMaxIntegrationTime(%f)\n", __FUNCTION__, pAfpsInfo->AecMaxIntTime,pSensorCtx->AecMaxIntegrationTime);
 
     DCT_ASSERT(pSensorCtx != NULL);
     DCT_ASSERT(pAfpsInfo != NULL);
@@ -2932,7 +2933,7 @@ static RESULT Sensor_IsiGetAfpsInfoHelperIss(
     pAfpsInfo->AecMaxIntTime        = pSensorCtx->AecMaxIntegrationTime;
     pAfpsInfo->AecSlowestResolution = Resolution;
 
-    TRACE( Sensor_ERROR, "%s: (-----------oyyf exit) pAfpsInfo->AecMaxIntTime(%f) pSensorCtx->AecMaxIntegrationTime(%f)\n", __FUNCTION__, pAfpsInfo->AecMaxIntTime,pSensorCtx->AecMaxIntegrationTime);
+    TRACE( Sensor_INFO, "%s: (-----------oyyf exit) pAfpsInfo->AecMaxIntTime(%f) pSensorCtx->AecMaxIntegrationTime(%f)\n", __FUNCTION__, pAfpsInfo->AecMaxIntTime,pSensorCtx->AecMaxIntegrationTime);
 
     return ( result );
 }
@@ -3042,10 +3043,12 @@ RESULT Sensor_IsiGetAfpsInfoIss(
 					case ISI_RES_2104_1560P25:
 					case ISI_RES_2104_1560P20:
 						//TRACE( Sensor_ERROR, "%s: (99999exit)\n", __FUNCTION__);
-						AFPSCHECKANDADD( ISI_RES_2104_1560P30);
-						AFPSCHECKANDADD( ISI_RES_2104_1560P25);
-						AFPSCHECKANDADD( ISI_RES_2104_1560P20);
-
+						if(ISI_FPS_GET(ISI_RES_2104_1560P30) >= pSensorCtx->preview_minimum_framerate)
+							AFPSCHECKANDADD( ISI_RES_2104_1560P30);
+						if(ISI_FPS_GET(ISI_RES_2104_1560P25) >= pSensorCtx->preview_minimum_framerate)
+							AFPSCHECKANDADD( ISI_RES_2104_1560P25);
+						if(ISI_FPS_GET(ISI_RES_2104_1560P20) >= pSensorCtx->preview_minimum_framerate)
+							AFPSCHECKANDADD( ISI_RES_2104_1560P20);
 						break;
 					case ISI_RES_4208_3120P15:
 					case ISI_RES_4208_3120P10:
@@ -3080,12 +3083,18 @@ RESULT Sensor_IsiGetAfpsInfoIss(
 					case ISI_RES_2104_1560P20:
 					case ISI_RES_2104_1560P10:
 						//TRACE( Sensor_ERROR, "%s: (99999exit)\n", __FUNCTION__);
-						AFPSCHECKANDADD( ISI_RES_2104_1560P60);
-						AFPSCHECKANDADD( ISI_RES_2104_1560P50);
-						AFPSCHECKANDADD( ISI_RES_2104_1560P40);
-						AFPSCHECKANDADD( ISI_RES_2104_1560P30);
-						AFPSCHECKANDADD( ISI_RES_2104_1560P20);
-						AFPSCHECKANDADD( ISI_RES_2104_1560P10);
+						if(ISI_FPS_GET(ISI_RES_2104_1560P60) >= pSensorCtx->preview_minimum_framerate)
+							AFPSCHECKANDADD( ISI_RES_2104_1560P60);
+						if(ISI_FPS_GET(ISI_RES_2104_1560P50) >= pSensorCtx->preview_minimum_framerate)
+							AFPSCHECKANDADD( ISI_RES_2104_1560P50);
+						if(ISI_FPS_GET(ISI_RES_2104_1560P40) >= pSensorCtx->preview_minimum_framerate)
+							AFPSCHECKANDADD( ISI_RES_2104_1560P40);
+						if(ISI_FPS_GET(ISI_RES_2104_1560P30) >= pSensorCtx->preview_minimum_framerate)
+							AFPSCHECKANDADD( ISI_RES_2104_1560P30);
+						if(ISI_FPS_GET(ISI_RES_2104_1560P20) >= pSensorCtx->preview_minimum_framerate)
+							AFPSCHECKANDADD( ISI_RES_2104_1560P20);
+						if(ISI_FPS_GET(ISI_RES_2104_1560P10) >= pSensorCtx->preview_minimum_framerate)
+							AFPSCHECKANDADD( ISI_RES_2104_1560P10);
 						break;
 					case ISI_RES_4208_3120P30:
 					case ISI_RES_4208_3120P20:
@@ -4258,6 +4267,7 @@ RESULT Sensor_IsiGetSensorIss
 
         /* Testpattern */
         pIsiSensor->pIsiActivateTestPattern             = Sensor_IsiActivateTestPattern;
+		pIsiSensor->pIsiSetSensorFrameRateLimit			= Sensor_IsiSetSensorFrameRateLimit;
     }
     else
     {
@@ -4343,6 +4353,24 @@ static RESULT Sensor_IsiGetSensorI2cInfo(sensor_i2c_info_t** pdata)
     *pdata = pSensorI2cInfo;
     return RET_SUCCESS;
 }
+
+static RESULT Sensor_IsiSetSensorFrameRateLimit(IsiSensorHandle_t handle, uint32_t minimum_framerate)
+{
+    Sensor_Context_t *pSensorCtx = (Sensor_Context_t *)handle;
+
+    RESULT result = RET_SUCCESS;
+
+    TRACE( Sensor_ERROR, "%s: (enter)\n", __FUNCTION__);
+
+    if ( pSensorCtx == NULL ){
+		TRACE( Sensor_ERROR, "%s: pSensorCtx IS NULL\n", __FUNCTION__);
+        return ( RET_WRONG_HANDLE );
+    }
+
+	pSensorCtx->preview_minimum_framerate = minimum_framerate;
+	return RET_SUCCESS;
+}
+
 
 /******************************************************************************
  * See header file for detailed comment.
