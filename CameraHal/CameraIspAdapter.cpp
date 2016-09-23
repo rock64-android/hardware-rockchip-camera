@@ -616,6 +616,12 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isR
         				LOG1("Continues-video focus is fixd focus now!");
                     }
                 }                
+            } else if (strcmp(params_set.get(CameraParameters::KEY_FOCUS_MODE), CameraParameters::FOCUS_MODE_FIXED) == 0
+                || params_set.get(CameraParameters::KEY_FOCUS_MODE) == NULL) {
+                if (mPreviewRunning == 1) {
+                    LOG1("Focus mode is fixed or null,stop af!!!!!!!!");
+                    m_camDevice->stopAf();
+                }
             }
             
             if (mParameters.getInt(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS) == 1) {

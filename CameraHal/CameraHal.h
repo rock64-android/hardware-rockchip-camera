@@ -595,9 +595,11 @@ namespace android {
 		 4) munmap buffers in cameraStop func.
 V1.0x42.1:
    1) set CAMERAS_SUPPORTED_SIMUL_MAX to 2, since two cameras works at the same time.
+V1.0x42.2:
+   1) add FIXED focus mode support.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x42, 1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x42, 2)
 
 
 /*  */
