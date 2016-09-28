@@ -859,6 +859,13 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             sprintf(string,"%dx%d",ISI_RES_W_GET(maxfps_res),ISI_RES_H_GET(maxfps_res));
         }
 
+		if (max_w*10/max_h == 40/3) {
+			if(max_w > 4096 && max_h > 3072) {
+				max_w = 4096;
+				max_h = 3072;
+			}	
+		}
+		
         pixels = max_w*max_h;
         if (max_w*10/max_h == 40/3) {          //  4:3 Sensor
             if (pixels > 12800000) {

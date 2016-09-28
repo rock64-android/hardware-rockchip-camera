@@ -601,9 +601,12 @@ V1.0x43.0:
    1) isLowIllumin and minus_level_2 parameter.
 V1.0x43.1:
    1) fix some cts problem and set preview minimum fps to 15.
+V1.0x43.2:
+   1) change 13M resolution to 12.5M because the rga only support max 4096 vir_width.
+   2) change preview minimum fps to 20.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x43, 1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x43, 2)
 
 
 /*  */

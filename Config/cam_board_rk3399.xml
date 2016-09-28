@@ -249,7 +249,7 @@
 				<Continue_SnapShot support="1"></Continue_SnapShot>
 				<InterpolationRes resolution="0"></InterpolationRes>
 				<PreviewSize width="1920" height="1080"></PreviewSize>
-				<Preview_Minimum_FrameRate framerate="15"></Preview_Minimum_FrameRate>
+				<Preview_Minimum_FrameRate framerate="20"></Preview_Minimum_FrameRate>
 				<FaceDetect support="0" MaxNum="1"></FaceDetect>
 				<DV>
 					<DV_QCIF name="qcif" width="176" height="144" fps="10" support="1"></DV_QCIF>
