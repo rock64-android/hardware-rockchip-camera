@@ -8,7 +8,7 @@
 /*
 *v0.1.0x00 : Create file;
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 1, 0) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 2, 0)
 
 
 
