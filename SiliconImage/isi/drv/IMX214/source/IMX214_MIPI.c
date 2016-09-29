@@ -57,7 +57,7 @@ CREATE_TRACER( Sensor_REG_DEBUG, "IMX214: ", INFO, 0U );
 #define Sensor_OTP_VALUE_SIZE     1U
 
 #define Sensor_MIN_GAIN_STEP   ( 1.0f /512.0f); /**< min gain step size used by GUI ( 32/(32-7) - 32/(32-6); min. reg value is 6 as of datasheet; depending on actual gain ) */
-#define Sensor_MAX_GAIN_AEC    ( 8.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
+#define Sensor_MAX_GAIN_AEC    ( 16.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
 
 
 /*!<

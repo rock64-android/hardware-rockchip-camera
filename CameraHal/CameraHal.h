@@ -604,9 +604,11 @@ V1.0x43.1:
 V1.0x43.2:
    1) change 13M resolution to 12.5M because the rga only support max 4096 vir_width.
    2) change preview minimum fps to 20.
+V1.0x43.3:
+   1) fix the bug can't switch to front camera.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x43, 2)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x43, 3)
 
 
 /*  */

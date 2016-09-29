@@ -927,7 +927,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             }
 		}
         if(g_ctsV_flag){
-            parameterString.append(",640x480,320x240");		
+            parameterString.append(",640x480,320x240");
         }else{
             parameterString.append(",640x480,352x288,320x240,176x144");
         }

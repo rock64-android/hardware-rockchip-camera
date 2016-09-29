@@ -47,7 +47,7 @@ const IsiRegDescription_t GC2155_g_aRegDescription[] =
 	{0x0f , 0x06,"",eReadWrite,},
 	{0x10 , 0x50,"",eReadWrite,},
 	{0x12 , 0x2e,"",eReadWrite,},
-	{0x17 , 0x03,"",eReadWrite,}, // mirror
+	{0x17 , 0x17,"",eReadWrite,}, // mirror
 	{0x18 , 0x02,"",eReadWrite,},
 	{0x19 , 0x0e,"",eReadWrite,},
 	{0x1a , 0x01,"",eReadWrite,},

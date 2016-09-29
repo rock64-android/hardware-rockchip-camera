@@ -62,9 +62,11 @@ extern "C"
 *   1). support isi v0.0xd.0
 *v0.9.0:
 *   1). limit frame rate.
+*v0.a.0:
+*   1).gain change to 16.
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 9, 0x00)
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xa, 0x00)
 
 
 #define Sensor_CHIP_ID_HIGH_BYTE            (0x0016) // r -

@@ -25,8 +25,10 @@
 *   1). support isi v0.0xd.0
 *v0.8.0
 *   1). sensor image mirror and flip
+*v0.9.0
+*   1).fix the bug color is red
 */
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 8, 0)
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 9, 0)
 
 #ifdef __cplusplus
 extern "C"
