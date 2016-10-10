@@ -1,13 +1,9 @@
 #ifndef ANDROID_HARDWARE_CAMERA_ISP_HARDWARE_H
 #define ANDROID_HARDWARE_CAMERA_ISP_HARDWARE_H
-
-//usb camera adapter
-#include "CameraHal.h"
+//usb camera adapter#include "CameraHal.h"
 #include "cam_api/camdevice.h"
-#include "oslayer/oslayer.h"
-#include <string>
-#include <utils/KeyedVector.h>
-
+#include "oslayer/oslayer.h"#include <string>#include <utils/KeyedVector.h>
+#include "CameraGL.h"
 
 
 namespace android{
@@ -34,7 +30,17 @@ typedef struct manExpConfig{
 class CameraIspTunning;
 class CameraIspAdapter: public CameraAdapter,public BufferCb
 {
+private:
+    float mISO;
 public:
+    enum GPUProcessCommands {
+               // Comands
+               CMD_GPU_PROCESS_INIT,
+        CMD_GPU_PROCESS_UPDATE,
+        CMD_GPU_PROCESS_RENDER,
+        CMD_GPU_PROCESS_GETRESULT,
+        CMD_GPU_PROCESS_DEINIT
+    };
 	static int preview_frame_inval;
     static int DEFAULTPREVIEWWIDTH;
     static int DEFAULTPREVIEWHEIGHT;
@@ -58,6 +64,30 @@ public:
 	virtual bool getFlashStatus();
 	virtual void getSensorMaxRes(unsigned int &max_w, unsigned int &max_h);
 	virtual int faceNotify(struct RectFace* faces, int* num);
+
+    enum GPU_COMMAND_STATUS{
+        STA_GPUCMD_IDLE,
+        STA_GPUCMD_RUNNING,
+        STA_GPUCMD_STOP,
+    };
+
+    int mGPUCommandThreadState;
+    class GPUCommandThread : public Thread {
+        CameraIspAdapter* mCameraIspAdapter;
+    public:
+        GPUCommandThread(CameraIspAdapter* disadap)
+            : Thread(false), mCameraIspAdapter(disadap){}
+
+        virtual bool threadLoop() {
+            mCameraIspAdapter->gpuCommandThread();
+
+            return false;
+        }
+    };
+
+       void sendBlockedMsg(int message);
+       CameraGL* mCameraGL;
+       struct cv_fimc_buffer* m_buffers_capture;
 private:
     //talk to driver
     virtual int cameraCreate(int cameraId);
@@ -84,12 +114,18 @@ private:
 
     int afListenerThread(void);
     int cameraConfig(const CameraParameters &tmpparams,bool isInit,bool &isRestartValue);
-    bool isLowIllumin();
+    bool isLowIllumin(const float lumaThreshold);
     void flashControl(bool on);
     bool isNeedToEnableFlash();
 	void setMwb(const char *white_balance);
 	void setMe(const char *exposure);
+    Mutex mGpuOPLock;
+    Condition mGpuOPCond;
 
+    int mGpuFBOWidth, mGpuFBOHeight;
+    sp<GPUCommandThread> mGPUCommandThread;
+    MessageQueue gpuCmdThreadCommandQ;
+    void gpuCommandThread();
 	
 protected:
     CamDevice       *m_camDevice;

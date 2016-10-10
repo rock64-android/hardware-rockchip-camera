@@ -1,12 +1,8 @@
 //IMX214_MIPI_priv.h
-/*****************************************************************************/
-/*!
- *  \file        IMX214_priv.h \n
- *  \version     1.0 \n
+/*****************************************************************************//*!
+ *  \file        IMX214_priv.h \n *  \version     1.0 \n
  *  \author      Meinicke \n
- *  \brief       Private header file for sensor specific code of the OV13850. \n
- *
- *  \revision    $Revision: 432 $ \n
+ *  \brief       Private header file for sensor specific code of the OV13850. \n * *  \revision    $Revision: 432 $ \n
  *               $Author: neugebaa $ \n
  *               $Date: 2009-06-30 11:48:59 +0200 (Di, 30 Jun 2009) $ \n
  *               $Id: OV13850_priv.h 432 2009-06-30 09:48:59Z neugebaa $ \n
@@ -64,9 +60,11 @@ extern "C"
 *   1). limit frame rate.
 *v0.a.0:
 *   1).gain change to 16.
+*v0.b.0:
+*   1).change usFrameLengthLines.
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xa, 0x00)
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 0xb, 0x00)
 
 
 #define Sensor_CHIP_ID_HIGH_BYTE            (0x0016) // r -

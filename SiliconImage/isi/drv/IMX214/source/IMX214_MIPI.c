@@ -413,11 +413,13 @@ static RESULT Sensor_IsiGetCapsIssInternal
                     pIsiSensorCaps->Resolution = ISI_RES_2104_1560P15;
                     break;
                 }
+				#if 0
 				case 7:
                 {
                     pIsiSensorCaps->Resolution = ISI_RES_2104_1560P10;
                     break;
                 }
+				#endif
                 #endif
                 default:
                 {
@@ -954,11 +956,11 @@ static RESULT Sensor_SetupOutputWindowInternal
 				
 	            usLineLengthPck = 0x1390;
 				if(pConfig->Resolution == ISI_RES_4208_3120P15) {
-	            	usFrameLengthLines = 0x0c58; 
+					usFrameLengthLines = 0x0c7a;
 				}else if(pConfig->Resolution == ISI_RES_4208_3120P10) {
-	            	usFrameLengthLines = 0x1284; 
+					usFrameLengthLines = 0x12c0;
 				}else if(pConfig->Resolution == ISI_RES_4208_3120P7) {
-	            	usFrameLengthLines = 0x1a73; 
+					usFrameLengthLines = 0x1ac9;
 				}
     		    osSleep( 10 );
 				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 1200;
@@ -1308,7 +1310,7 @@ static RESULT Sensor_AecSetModeParameters
     //exposed way too dark from time to time)
     // (formula is usually MaxIntTime = (CoarseMax * LineLength + FineMax) / Clk
     //                     MinIntTime = (CoarseMin * LineLength + FineMin) / Clk )
-    pSensorCtx->AecMaxIntegrationTime = ( ((float)(pSensorCtx->FrameLengthLines - 4)) * ((float)pSensorCtx->LineLengthPck) ) / pSensorCtx->VtPixClkFreq;
+    pSensorCtx->AecMaxIntegrationTime = ( ((float)(pSensorCtx->FrameLengthLines)) * ((float)pSensorCtx->LineLengthPck) ) / pSensorCtx->VtPixClkFreq;
     pSensorCtx->AecMinIntegrationTime = 0.0001f;    
 
     pSensorCtx->AecMaxGain = Sensor_MAX_GAIN_AEC;
@@ -3042,13 +3044,16 @@ RESULT Sensor_IsiGetAfpsInfoIss(
 					case ISI_RES_2104_1560P30:
 					case ISI_RES_2104_1560P25:
 					case ISI_RES_2104_1560P20:
-						//TRACE( Sensor_ERROR, "%s: (99999exit)\n", __FUNCTION__);
+					case ISI_RES_2104_1560P15:
+						TRACE( Sensor_ERROR, "%s: preview_minimum_framerate(%d)\n", __FUNCTION__,pSensorCtx->preview_minimum_framerate);
 						if(ISI_FPS_GET(ISI_RES_2104_1560P30) >= pSensorCtx->preview_minimum_framerate)
 							AFPSCHECKANDADD( ISI_RES_2104_1560P30);
 						if(ISI_FPS_GET(ISI_RES_2104_1560P25) >= pSensorCtx->preview_minimum_framerate)
 							AFPSCHECKANDADD( ISI_RES_2104_1560P25);
 						if(ISI_FPS_GET(ISI_RES_2104_1560P20) >= pSensorCtx->preview_minimum_framerate)
 							AFPSCHECKANDADD( ISI_RES_2104_1560P20);
+						if(ISI_FPS_GET(ISI_RES_2104_1560P15) >= pSensorCtx->preview_minimum_framerate)
+							AFPSCHECKANDADD( ISI_RES_2104_1560P15);
 						break;
 					case ISI_RES_4208_3120P15:
 					case ISI_RES_4208_3120P10:

@@ -606,9 +606,13 @@ V1.0x43.2:
    2) change preview minimum fps to 20.
 V1.0x43.3:
    1) fix the bug can't switch to front camera.
+V1.0x44.0:
+   1) support UVNR.
+   1) Touch AE support cam_board switch off/on.
+   1) support isLowIllumin set.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x43, 3)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x44, 0)
 
 
 /*  */
@@ -650,7 +654,7 @@ V1.0x43.3:
 #define CONFIG_CAMERA_BACK_PREVIEW_FPS_MIN     3000        
 #define CONFIG_CAMERA_BACK_PREVIEW_FPS_MAX     40000
 
-#define CONFIG_CAMERA_SCALE_CROP_ISP           0
+#define CONFIG_CAMERA_SCALE_CROP_ISP           1
 
 #define CAMERAHAL_VERSION_PROPERTY_KEY                  "sys_graphic.cam_hal.ver"
 #define CAMERAHAL_CAMSYS_VERSION_PROPERTY_KEY           "sys_graphic.cam_drv_camsys.ver"

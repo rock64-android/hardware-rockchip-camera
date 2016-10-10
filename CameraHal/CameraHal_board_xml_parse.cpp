@@ -975,6 +975,9 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
     }else if (strstr(name,"Preview_Minimum_FrameRate")){
         pCamInfo->mSoftInfo.mFrameRate = atoi(atts[1]);
         ALOGD("%s(%d): Preview_Minimum_FrameRate(%d)! \n", __FUNCTION__,__LINE__,pCamInfo->mSoftInfo.mFrameRate);
+	}else if (strstr(name,"Touch_AE")){
+		pCamInfo->mSoftInfo.touchAE = atoi(atts[1]);
+		ALOGD("%s(%d): Touch_AE(%d)! \n", __FUNCTION__,__LINE__,pCamInfo->mSoftInfo.touchAE);
     }else if (strstr(name,"DV")){
         ParserDVConfig(name, atts, userData);
     } else if (strstr(name,"Continue_SnapShot")){

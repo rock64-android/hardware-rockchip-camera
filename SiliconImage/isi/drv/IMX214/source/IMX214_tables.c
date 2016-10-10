@@ -973,21 +973,21 @@ const IsiRegDescription_t Sensor_g_twolane_resolution_4208_3120[] =
 const IsiRegDescription_t Sensor_g_4208x3120P15_twolane_fpschg[] =
 {
 	{0x0340,   0x0c, "0x0100", eReadWrite}, 
-	{0x0341,   0x58, "0x0100", eReadWrite},
+	{0x0341,   0x7a, "0x0100", eReadWrite},
 	{0x0000,   0x00, "eTableEnd",eTableEnd}
 };
 
 const IsiRegDescription_t Sensor_g_4208x3120P10_twolane_fpschg[] =
 {
 	{0x0340,   0x12, "0x0100", eReadWrite}, 
-	{0x0341,   0x84, "0x0100", eReadWrite},
+	{0x0341,   0xb8, "0x0100", eReadWrite},
 	{0x0000,   0x00, "eTableEnd",eTableEnd}
 };
 
 const IsiRegDescription_t Sensor_g_4208x3120P7_twolane_fpschg[] =
 {
 	{0x0340,   0x1A, "0x0100", eReadWrite}, 
-	{0x0341,   0x73, "0x0100", eReadWrite},
+	{0x0341,   0xbd, "0x0100", eReadWrite},
 	{0x0000,   0x00, "eTableEnd",eTableEnd}
 };
 

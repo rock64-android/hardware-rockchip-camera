@@ -5,8 +5,36 @@ LOCAL_PATH:= $(call my-dir)
 include $(call all-subdir-makefiles)
 
 include $(CLEAR_VARS)
+LOCAL_MODULE := libcameragl
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+LOCAL_MODULE_STEM := $(LOCAL_MODULE)
+LOCAL_MODULE_SUFFIX := .so
+ifneq ($(strip $(TARGET_2ND_ARCH)), )
+LOCAL_MULTILIB := both
+LOCAL_SRC_FILES_$(TARGET_ARCH) := lib/$(TARGET_ARCH)/$(LOCAL_MODULE)$(LOCAL_MODULE_SUFFIX)
+LOCAL_SRC_FILES_$(TARGET_2ND_ARCH) := lib/$(TARGET_2ND_ARCH)/$(LOCAL_MODULE)$(LOCAL_MODULE_SUFFIX)
+else
+LOCAL_SRC_FILES := lib/$(TARGET_ARCH)/$(LOCAL_MODULE)$(LOCAL_MODULE_SUFFIX)
+endif
+include $(BUILD_PREBUILT)
 
+include $(CLEAR_VARS)
+LOCAL_MODULE := libopencv_java3
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+LOCAL_MODULE_STEM := $(LOCAL_MODULE)
+LOCAL_MODULE_SUFFIX := .so
+ifneq ($(strip $(TARGET_2ND_ARCH)), )
+LOCAL_MULTILIB := both
+LOCAL_SRC_FILES_$(TARGET_ARCH) := lib/$(TARGET_ARCH)/$(LOCAL_MODULE)$(LOCAL_MODULE_SUFFIX)
+LOCAL_SRC_FILES_$(TARGET_2ND_ARCH) := lib/$(TARGET_2ND_ARCH)/$(LOCAL_MODULE)$(LOCAL_MODULE_SUFFIX)
+else
+LOCAL_SRC_FILES := lib/$(TARGET_ARCH)/$(LOCAL_MODULE)$(LOCAL_MODULE_SUFFIX)
+endif
+include $(BUILD_PREBUILT)
 
+include $(CLEAR_VARS)
 LOCAL_SRC_FILES:=\
 	CameraHalUtil.cpp\
 	MessageQueue.cpp\
@@ -73,6 +101,8 @@ LOCAL_SHARED_LIBRARIES:= \
 	libisp_silicomimageisp_api \
 	libexpat \
 	libskia \
+	libcameragl \
+	libopencv_java3 \
 
 #has no "external/stlport" from Android 6.0 on                         
 ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \< 6.0)))

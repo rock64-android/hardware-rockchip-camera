@@ -397,7 +397,8 @@ struct rk_camera_softinfo_config{
                     mPreviewHeight(600),
                     mHDRConfig(0),
                     mInterpolationRes(0),
-                    mFrameRate(0){};
+                    mFrameRate(0),
+					touchAE(0){};
     ~rk_camera_softinfo_config(){};               
                     
                     
@@ -419,7 +420,7 @@ struct rk_camera_softinfo_config{
     int mHDRConfig;
     int mInterpolationRes;
     int mFrameRate;
-    
+    int touchAE;
     Vector<rk_DV_info*> mDV_vector;
 };
 
