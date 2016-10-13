@@ -123,7 +123,7 @@ extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 							
 extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21);
 extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int src_h,int dstbuf,int zoom_value);
-
+extern "C" void generateJPEG(uint8_t* data,int w, int h,char* outbuf,int* outSize);
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 extern bool g_ctsV_flag;
 
@@ -608,11 +608,14 @@ V1.0x43.3:
    1) fix the bug can't switch to front camera.
 V1.0x44.0:
    1) support UVNR.
-   1) Touch AE support cam_board switch off/on.
-   1) support isLowIllumin set.
+   2) Touch AE support cam_board switch off/on.
+   3) support isLowIllumin set.
+*v1.0x44.1:
+   1) support rk322x jpeg software encode,add a new file Jpeg_soft_encode.cpp.
+   2) board_xml_parse: modify ioctl lose cifio value.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x44, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x44, 1)
 
 
 /*  */

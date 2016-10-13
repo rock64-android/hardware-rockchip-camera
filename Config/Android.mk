@@ -63,18 +63,7 @@ LOCAL_MODULE_SUFFIX := .so
 include $(BUILD_PREBUILT)
 endif
 
-ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk312x)
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := libisp_silicomimageisp_api
-LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE_CLASS := SHARED_LIBRARIES
-LOCAL_MODULE_STEM := $(LOCAL_MODULE)
-#LOCAL_SRC_FILES := $(LOCAL_MODULE)_32bit.so
-LOCAL_MODULE_SUFFIX := .so
-include $(BUILD_PREBUILT)
-endif
-
-ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk322x)
+ifneq ($(filter rk322x rk312x , $(strip $(TARGET_BOARD_PLATFORM))), )
 #include $(CLEAR_VARS)
 #LOCAL_MODULE := libisp_silicomimageisp_api
 LOCAL_MODULE_TAGS := optional

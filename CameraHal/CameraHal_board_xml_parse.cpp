@@ -1494,6 +1494,7 @@ int camera_board_profiles::RegisterSensorDevice(rk_cam_total_info* pCamInfo)
         extdev.phy.type = CamSys_Phy_Cif;
         extdev.phy.info.cif.fmt = pSensorInfo->mPhy.info.cif.fmt;
         extdev.phy.info.cif.cif_num = pSensorInfo->mPhy.info.cif.cif_num;
+        extdev.phy.info.cif.cifio = pSensorInfo->mPhy.info.cif.cifio;
     }else if(pSensorInfo->mPhy.type == CamSys_Phy_Mipi){
         extdev.phy.type = CamSys_Phy_Mipi;
         extdev.phy.info.mipi.data_en_bit = pSensorInfo->mPhy.info.mipi.data_en_bit;

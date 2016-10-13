@@ -1270,7 +1270,11 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	JpegOutInfo.jpegFileLen = 0x00;
 	JpegOutInfo.cacheflush= /*jpegEncFlushBufferCb*/NULL;
 	LOG1("input_phy_addr %d,JpegOutInfo.outBufPhyAddr:%x,JpegOutInfo.outBufVirAddr:%p,jpegbuf_size:%d",input_phy_addr,JpegOutInfo.outBufPhyAddr,JpegOutInfo.outBufVirAddr,jpegbuf_size);
-	
+
+#if defined(TARGET_RK322x)
+    generateJPEG((uint8_t*)input_vir_addr,jpeg_w,jpeg_h,JpegOutInfo.outBufVirAddr,&(JpegOutInfo.jpegFileLen));
+    copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);
+#else
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
 	
 	if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
@@ -1280,6 +1284,8 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
 	} else {
 		copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);
 	}
+#endif
+
 captureEncProcessPicture_exit: 
  //destroy raw and jpeg buffer
  #if (JPEG_BUFFER_DYNAMIC == 1)

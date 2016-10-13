@@ -201,12 +201,7 @@ PRODUCT_PACKAGES += \
     libisp_silicomimageisp_api
 endif
 
-ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk312x)
-PRODUCT_PACKAGES += \
-    libisp_silicomimageisp_api
-endif
-
-ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk322x)
+ifneq ($(filter rk322x rk312x , $(strip $(TARGET_BOARD_PLATFORM))), )
 PRODUCT_PACKAGES += \
     libisp_silicomimageisp_api
 endif
