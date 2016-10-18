@@ -862,7 +862,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             }
             memset(string,0x00,sizeof(string)); 
             sprintf(string,",%dx%d",ISI_RES_W_GET(pCaps.Resolution),ISI_RES_H_GET(pCaps.Resolution));
-			if(!iscts || ISI_RES_W_GET(pCaps.Resolution) <= 2104) {
+			if(ISI_RES_W_GET(pCaps.Resolution) <= 4096 &&(!iscts || ISI_RES_W_GET(pCaps.Resolution) <= 2104)) {
             	if (strcmp(string,",1600x1200") && !parameterString.contains(string)){
                 	parameterString.append(string);
             	}
@@ -890,19 +890,12 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             memset(string,0x00,sizeof(string)); 
             sprintf(string,"%dx%d",ISI_RES_W_GET(maxfps_res),ISI_RES_H_GET(maxfps_res));
         }
-
-		if (max_w*10/max_h == 40/3) {
-			if(max_w > 4096 && max_h > 3072) {
-				max_w = 4096;
-				max_h = 3072;
-			}	
-		}
 		
         pixels = max_w*max_h;
         if (max_w*10/max_h == 40/3) {          //  4:3 Sensor
             if (pixels > 12800000) {
-                if ((max_w != 4128)&&(max_h != 3096))
-                    parameterString.append(",2064x1548");                
+                //if ((max_w != 4128)&&(max_h != 3096))
+                    //parameterString.append(",2064x1548");  
             } else if (pixels > 7900000) {
                 if ((max_w != 3264)&&(max_h != 2448))
                     parameterString.append(",1632x1224");                
@@ -984,7 +977,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 		if(uvnr_enable) {
 			if(max_w >= 4096 && max_h >= 3072)
 			{
-				parameterString.removeAll("4208x3120");
+				parameterString.removeAll(",4208x3120");
 				ALOGD("PICSIZE: %s", parameterString.string());
 				sprintf(string,"%dx%d", 4096, 3096);
 			}

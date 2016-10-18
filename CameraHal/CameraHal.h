@@ -613,9 +613,11 @@ V1.0x44.0:
 *v1.0x44.1:
    1) support rk322x jpeg software encode,add a new file Jpeg_soft_encode.cpp.
    2) board_xml_parse: modify ioctl lose cifio value.
+*v1.0x44.2:
+   remove 4208*3120 from support preview size.and suggust preview size chose 2104*1560.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x44, 1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x44, 2)
 
 
 /*  */
