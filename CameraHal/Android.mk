@@ -60,18 +60,24 @@ LOCAL_SRC_FILES:=\
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)	 
 LOCAL_C_INCLUDES += \
 	frameworks/base/include/ui \
-  external/jpeg \
-  external/jhead\
-  hardware/rockchip/hwcomposer\
-	hardware/rockchip/libgralloc_ump/ump/include\
-	hardware/rockchip/librkvpu\
-  $(LOCAL_PATH)/../SiliconImage/include\
-  $(LOCAL_PATH)/../SiliconImage/include/isp_cam_api\
-  bionic\
-  external/tinyxml2\
-  system/media/camera/include\
-  system/core/libion/include/ion\
-  system/core/libion/kernel-headers/linux
+	frameworks/av/include \
+	frameworks/native/include \
+	frameworks/native/include/media/hardware \
+	frameworks/native/include/media/openmax \
+	external/jpeg \
+	external/jhead \
+	hardware/rockchip/hwcomposer \
+	hardware/rockchip/libgralloc_ump/ump/include \
+	hardware/rockchip/librkvpu \
+	hardware/rockchip/libgralloc \
+	hardware/libhardware/include \
+	$(LOCAL_PATH)/../SiliconImage/include \
+	$(LOCAL_PATH)/../SiliconImage/include/isp_cam_api \
+	bionic \
+	external/tinyxml2 \
+	system/media/camera/include \
+	system/core/libion/include/ion \
+	system/core/libion/kernel-headers/linux
 
 #has no "external/stlport" from Android 6.0 on                         
 ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \< 6.0)))
@@ -84,7 +90,8 @@ LOCAL_C_INCLUDES += \
     external/skia/include/effects \
     external/skia/include/images \
     external/skia/src/ports \
-    external/skia/include/utils
+    external/skia/include/utils \
+    external/expat/lib
 
 LOCAL_SHARED_LIBRARIES:= \
     libui \
@@ -95,14 +102,15 @@ LOCAL_SHARED_LIBRARIES:= \
     libgui\
     libjpeg\
     libjpeghwenc\
-	libion\
+    libion\
     libvpu\
     libdl\
-	libisp_silicomimageisp_api \
-	libexpat \
-	libskia \
-	libcameragl \
-	libopencv_java3 \
+    libisp_silicomimageisp_api \
+    libexpat \
+    libskia \
+    libhardware \
+    libcameragl \
+    libopencv_java3
 
 #has no "external/stlport" from Android 6.0 on                         
 ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \< 6.0)))
@@ -273,6 +281,10 @@ endif
 
 ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 6.0)))
 LOCAL_CFLAGS += -DANDROID_6_X
+endif
+
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 7.0)))
+LOCAL_CFLAGS += -DANDROID_7_X
 endif
 
 #LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw

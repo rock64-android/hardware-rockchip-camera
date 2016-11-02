@@ -602,7 +602,8 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
             --tmpalloc;
             --tmp_buf;
             munmap((void *)tmpalloc->vir_addr, tmpalloc->size);
-            ion_free(client_fd, tmpalloc->ion_hdl);
+            temp_handle = (long)tmpalloc->ion_hdl;
+            ion_free(client_fd, (ion_user_handle_t)temp_handle);
         }
         free(tmpalloc);
         free(tmp_buf);
@@ -615,7 +616,7 @@ void IonDmaMemManager::destroyIonBuffer(buffer_type_enum buftype)
 	camera_ionbuf_t* tmpalloc = NULL;
     int err = 0;
 	struct bufferinfo_s* tmp_buf = NULL;
-
+	long temp_handle = 0;
    
 	switch(buftype)
 	{
@@ -651,7 +652,8 @@ void IonDmaMemManager::destroyIonBuffer(buffer_type_enum buftype)
             }
 
             close(tmpalloc->map_fd);
-            err = ion_free(client_fd, tmpalloc->ion_hdl);
+            temp_handle = (long)tmpalloc->ion_hdl;
+            err = ion_free(client_fd, (ion_user_handle_t)temp_handle);
         }
         tmpalloc++;
     }

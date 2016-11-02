@@ -56,12 +56,14 @@ int createSourceImage(unsigned char* output, int width, int height)
     newbmp.eraseColor(SK_ColorWHITE);
 
     SkCanvas* canvas = new SkCanvas(newbmp);
-    SkIRect srcR = { 0, 0, SkIntToScalar(srcW), SkIntToScalar(srcH) };
+    SkIRect srcR = { 0, 0, (int)SkIntToScalar(srcW), (int)SkIntToScalar(srcH) };
     SkRect  dstR = { SkIntToScalar((width-srcW) / 2), SkIntToScalar((height - srcH) / 2),
                                            SkIntToScalar((width + srcW) / 2), SkIntToScalar(height + srcH) / 2 };
-
-    canvas->drawBitmapRect(bitmap, /*&srcR*/ NULL, dstR, NULL);
-
+	#if defined(ANDROID_7_X)
+    canvas->drawBitmapRect(bitmap, srcR, dstR, NULL);
+	#else
+	canvas->drawBitmapRect(bitmap, /*&srcR*/ NULL, dstR, NULL);
+	#endif
     //RGBA8888 -> RGB888
     int r, g, b, a;
     SkAutoLockPixels alp(newbmp);
@@ -71,7 +73,7 @@ int createSourceImage(unsigned char* output, int width, int height)
     {
         for(int j=0; j<width; j++)
         {
-             memcpy(output + i*width*3 + j*3, pixels+((width)*(i + 1) - j)*4, sizeof(char)*3);
+             memcpy(output + i*width*3 + j*3, (char *)pixels+((width)*(i + 1) - j)*4, sizeof(char)*3);
         }
     }
 
@@ -87,12 +89,12 @@ bool RGB2YUV420SPFast(void* RgbBuf, void* yuvBuf, int nWidth, int nHeight)
 
     int i, j; 
 	unsigned char*bufY, *bufUV, *bufRGB, *bufYuv; 
-	bufY = yuvBuf; 
+	bufY = (unsigned char*)yuvBuf; 
 	bufUV = (unsigned char*)((long)yuvBuf + nWidth * nHeight); 
 	unsigned char y, u, v, r, g, b; 
 	for (j = 0; j<nHeight; j++)
 	{
-		bufRGB = RgbBuf + nWidth * (nHeight - 1 - j) * 3 ; 
+		bufRGB = (unsigned char*)RgbBuf + nWidth * (nHeight - 1 - j) * 3 ; 
 		for (i = 0;i < nWidth; i++)
 		{
 			int pos = nWidth * i + j;

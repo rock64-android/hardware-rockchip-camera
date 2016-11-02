@@ -1,5 +1,6 @@
 #include "CameraHal.h"
-
+#include <MetadataBufferType.h>
+#include <media/hardware/HardwareAPI.h>
 namespace android {
 
 
@@ -57,13 +58,16 @@ AppMsgNotifier::AppMsgNotifier(CameraAdapter *camAdp)
     mFaceContext = NULL;
     mRecPrevCbDataEn = true;
     mRecMetaDataEn = true;
+	mIsStoreMD = false;
     memset(&mFaceDetectorFun,0,sizeof(struct face_detector_func_s));
     int i ;
     //request mVideoBufs
 	for (i=0; i<CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++) {
 		mVideoBufs[i] = NULL;
+		mGrallocVideoBuf[i] = NULL;
 	}
-    
+    mGrallocAllocDev = NULL;
+	mGrallocModule = NULL;
     //create thread 
     mCameraAppMsgThread = new CameraAppMsgThread(this);
     mCameraAppMsgThread->run("CamHalAppEventThread",ANDROID_PRIORITY_DISPLAY);
@@ -196,7 +200,7 @@ void AppMsgNotifier::stopFaceDection()
     LOG_FUNCTION_NAME_EXIT
 }
 int AppMsgNotifier::initializeFaceDetec(int width,int height){
-
+	return 0;
     if(!mFaceDetecInit){
         //load face detection lib 
         mFaceDetectorFun.mLibFaceDetectLibHandle = dlopen("libFFTEm.so", RTLD_NOW);    
@@ -399,6 +403,173 @@ bool AppMsgNotifier::isNeedSendToPicture()
     }else
         return false;
 }
+
+int AppMsgNotifier::grallocDevInit()
+{
+	int ret;
+
+	LOG_FUNCTION_NAME
+	ret = hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (const hw_module_t **)&mGrallocModule);
+	if (ret < 0) {
+	   LOGE("%s: Unable to get gralloc module (error %d)", __func__, ret);
+	}
+	else {
+	   ret = gralloc_open((const struct hw_module_t*)mGrallocModule, &mGrallocAllocDev);
+	   if (ret < 0) {
+		  LOGE("%s: Unable to open gralloc alloc device (error %d)", __func__, ret);
+	   }
+	}
+	LOG_FUNCTION_NAME_EXIT
+	return ret;
+}
+
+int AppMsgNotifier::grallocDevDeinit()
+{
+	int ret=0;
+	LOG_FUNCTION_NAME
+	if (mGrallocAllocDev != NULL) {
+	   ret = gralloc_close(mGrallocAllocDev);
+	   if (ret < 0)
+		  LOGE("%s: gralloc_close failed (error %d)", __func__, ret);
+	   else
+	   	  mGrallocAllocDev = NULL;
+	}
+	mGrallocModule = NULL;
+	LOG_FUNCTION_NAME_EXIT
+	return ret;
+}
+
+void AppMsgNotifier::grallocVideoBufAlloc(
+	const char *camPixFmt,
+	unsigned int width,
+	unsigned int height)
+{
+	int ret,i;
+	NATIVE_HANDLE_TYPE *buffHandle;
+	int stride;
+	rk_videobuf_info_t *pVideoBuf;
+	unsigned int grallocFlags = CAMHAL_GRALLOC_USAGE;
+	unsigned int halPixFmt;
+	void *virtAddr;
+	LOG1("grallocVideoBufAlloc: format %s %dx%d, usage 0x%08x", camPixFmt, width, height, grallocFlags);
+	
+	if (!mGrallocModule) {
+	   LOGE("%s: No gralloc module, cannot allocate buffer", __func__);
+	   return;
+	}
+	
+	if (!mGrallocAllocDev) {
+	   LOGE("%s: No gralloc alloc device, cannot allocate buffer", __func__);
+	   return;
+	}
+	
+	halPixFmt = cameraPixFmt2HalPixFmt(camPixFmt);
+	if ((int)halPixFmt < 0) {
+	   LOGE("%s: Invalid pixel format", __func__);
+	   return;
+	}
+	
+	 LOG1("alloc %dX%d,format=0x%x,flags=0x%x",width,height,halPixFmt,grallocFlags);
+	 for (i=0; i<CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++){
+	 	virtAddr = NULL;
+		buffHandle = NULL;
+	    pVideoBuf = (rk_videobuf_info_t*)malloc(sizeof(rk_videobuf_info_t));
+	    if(!pVideoBuf){
+	        LOGE("%s(%d): malloc video buffer structue failed!",__FUNCTION__,__LINE__);
+			goto FAIL;
+	    }
+		memset(pVideoBuf, 0x0, sizeof(rk_videobuf_info_t));
+		mGrallocVideoBuf[i] = pVideoBuf;
+		ret = mGrallocAllocDev->alloc(mGrallocAllocDev,
+		   width,
+		   height,
+		   halPixFmt,
+		   grallocFlags,
+		   (buffer_handle_t*)&buffHandle,
+		   &stride);
+		
+		if (ret < 0) {
+		   LOGE("%s: gralloc buffer allocation failed (error %d)", __func__, ret);
+		   goto FAIL;
+		}
+	    pVideoBuf->lock = new Mutex();
+	    pVideoBuf->buffer_hnd = (buffer_handle_t*)&buffHandle;
+	    pVideoBuf->priv_hnd= (NATIVE_HANDLE_TYPE*)(buffHandle);
+	    pVideoBuf->stride = stride;
+		pVideoBuf->phy_addr = 0x00;
+
+		ret = mGrallocModule->lock(mGrallocModule,
+			(buffer_handle_t)buffHandle,
+			grallocFlags, 0, 0,
+			width, height,
+			&virtAddr);
+		if(ret < 0){
+			LOGE("%s: gralloc buffer lock failed (error %d)", __func__, ret);
+			goto FAIL;
+		}
+        #if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928)
+            pVideoBuf->vir_addr = (long)buffHandle->base;
+        #elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368)
+            pVideoBuf->vir_addr = (long)virtAddr;
+        #endif				
+        LOG1("pVideoBuf->vir_addr= %p,buffer_hnd=0x%x,priv_hnd=0x%x",pVideoBuf->vir_addr,pVideoBuf->buffer_hnd,pVideoBuf->priv_hnd);
+ 	}
+	return;
+FAIL:
+	for(i=0; i<CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++){
+		if(mGrallocVideoBuf[i] && mGrallocVideoBuf[i]->buffer_hnd){
+			mGrallocModule->unlock(mGrallocModule, (buffer_handle_t)(mGrallocVideoBuf[i]->priv_hnd));
+			mGrallocAllocDev->free(mGrallocAllocDev, (buffer_handle_t)(mGrallocVideoBuf[i]->priv_hnd));
+			delete mGrallocVideoBuf[i]->lock;
+			free(mGrallocVideoBuf[i]);
+			mGrallocVideoBuf[i] = NULL;
+		}
+	}
+}
+
+void AppMsgNotifier::grallocVideoBufFree()
+{
+	int ret,i;
+
+	LOG_FUNCTION_NAME	
+	if (mGrallocAllocDev == NULL)
+		LOGE("%s: No gralloc alloc device, cannot free buffer", __func__);
+	else {
+		for (i = 0; i < CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++){
+			if(mGrallocVideoBuf[i] && mGrallocVideoBuf[i]->buffer_hnd){
+				mGrallocModule->unlock(mGrallocModule, (buffer_handle_t)(mGrallocVideoBuf[i]->priv_hnd));
+				ret = mGrallocAllocDev->free(mGrallocAllocDev, (buffer_handle_t)(mGrallocVideoBuf[i]->priv_hnd));
+				if (ret != 0)
+				   LOGE("%s: gralloc free buffer failed (error %d)", __func__, ret);
+				delete mGrallocVideoBuf[i]->lock;
+				free(mGrallocVideoBuf[i]);
+				mGrallocVideoBuf[i] = NULL;
+			}
+		}
+   }
+	LOG_FUNCTION_NAME_EXIT
+}
+
+void AppMsgNotifier::grallocVideoBufLock()
+{
+}
+
+void AppMsgNotifier::grallocVideoBufUnlock()
+{
+}
+
+int AppMsgNotifier::grallocVideoBufGetAvailable()
+{
+	int i=-1;
+
+	for (i=0; i<CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++)
+	{
+		if(mGrallocVideoBuf[i]->buf_state == 0)
+			break;
+	}
+
+	return i;
+}
 int AppMsgNotifier::startRecording(int w,int h)
 {
    LOG_FUNCTION_NAME
@@ -411,22 +582,64 @@ int AppMsgNotifier::startRecording(int w,int h)
     //video enc just support yuv420 format
     //w,h align up to 16
     frame_size = PAGE_ALIGN(((w+15) & (~15))*((h+15) & (~15))*3/2);
+	if(mIsStoreMD == false){
+	    //release video buffer
+	    mVideoBufferProvider->freeBuffer();
+	    mVideoBufferProvider->createBuffer(CONFIG_CAMERA_VIDEOENC_BUF_CNT, frame_size, VIDEOENCBUFFER,mVideoBufferProvider->is_cif_driver);
 
-    //release video buffer
-    mVideoBufferProvider->freeBuffer();
-    mVideoBufferProvider->createBuffer(CONFIG_CAMERA_VIDEOENC_BUF_CNT, frame_size, VIDEOENCBUFFER,mVideoBufferProvider->is_cif_driver);
+		for (int i=0; i < CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++) {
+	    	if(!mVideoBufs[i])
+	    		mVideoBufs[i] = mRequestMemory(-1, sizeof(long), 1, NULL);
+	    	if( (NULL == mVideoBufs[i]) || ( NULL == mVideoBufs[i]->data)) {
+	    		mVideoBufs[i] = NULL;
+	    		LOGE("%s(%d): video buffer %d create failed",__FUNCTION__,__LINE__,i);
+	    	}
+	    	if (mVideoBufs[i]) {
+	    		addr = (long*)mVideoBufs[i]->data;
+	    		*addr =  (long)mVideoBufferProvider->getBufPhyAddr(i);
+			}
+		}
+	}else{
+		if(!mGrallocAllocDev){ 
+			if(grallocDevInit() < 0)
+			{
+				grallocDevDeinit();
+			}
+			grallocVideoBufAlloc(CAMERA_DISPLAY_FORMAT_YUV420SP, w, h);
+		}
+		#if 0
+		for (int i=0; i < CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++) {
+			if(!mVideoBufs[i])
+				mVideoBufs[i] = mRequestMemory(-1, sizeof(long)*2, 1, NULL);
+			if( (NULL == mVideoBufs[i]) || ( NULL == mVideoBufs[i]->data)) {
+				mVideoBufs[i] = NULL;
+				LOGE("%s(%d): video buffer %d create failed",__FUNCTION__,__LINE__,i);
+			}
 
-	for (int i=0; i < CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++) {
-    	if(!mVideoBufs[i])
-    		mVideoBufs[i] = mRequestMemory(-1, 4, 1, NULL);
-    	if( (NULL == mVideoBufs[i]) || ( NULL == mVideoBufs[i]->data)) {
-    		mVideoBufs[i] = NULL;
-    		LOGE("%s(%d): video buffer %d create failed",__FUNCTION__,__LINE__,i);
-    	}
-    	if (mVideoBufs[i]) {
-    		addr = (long*)mVideoBufs[i]->data;
-    		*addr =  (long)mVideoBufferProvider->getBufPhyAddr(i);
-    	}
+			addr = (long*)mVideoBufs[i]->data;
+			addr[0] = kMetadataBufferTypeGrallocSource;
+			addr[1] = (/*buffer_handle_t*/long)(mGrallocVideoBuf[i]->priv_hnd);
+		}
+
+		#else
+		for (int i=0; i < CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++) {
+			if(!mVideoBufs[i]) {
+				#if defined(ANDROID_7_X)
+				mVideoBufs[i] = mRequestMemory(-1, sizeof(VideoNativeHandleMetadata), 1, NULL);
+				#endif
+			}
+			if( (NULL == mVideoBufs[i]) || ( NULL == mVideoBufs[i]->data)) {
+				mVideoBufs[i] = NULL;
+				LOGE("%s(%d): video buffer %d create failed",__FUNCTION__,__LINE__,i);
+			}
+
+			addr = (long*)mVideoBufs[i]->data;
+			#if defined(ANDROID_7_X)
+			addr[0] = kMetadataBufferTypeNativeHandleSource;
+			addr[1] = (long)&mGrallocVideoBuf[i]->priv_hnd->base;
+			#endif
+		}
+		#endif
 	}
 
    
@@ -439,6 +652,20 @@ int AppMsgNotifier::startRecording(int w,int h)
 
     return 0;
 }
+
+int AppMsgNotifier::storeMetadataInBuffer(bool meta)
+{
+	#if defined(ANDROID_7_X)
+	LOG_FUNCTION_NAME
+	Mutex::Autolock lock(mRecordingLock);
+	mIsStoreMD = meta;
+	LOG_FUNCTION_NAME_EXIT
+	return NO_ERROR;
+	#else
+	return INVALID_OPERATION;
+	#endif
+}
+
 int AppMsgNotifier::stopRecording()
 {
     Message_cam msg;
@@ -458,6 +685,9 @@ int AppMsgNotifier::stopRecording()
     if(msg.arg1){
         sem.Wait();
     }
+	mIsStoreMD = false;
+	grallocVideoBufFree();
+	grallocDevDeinit();
     LOG_FUNCTION_NAME_EXIT
     return 0;
 }
@@ -479,20 +709,35 @@ void AppMsgNotifier::releaseRecordingFrame(const void *opaque)
     ssize_t offset;
     size_t  size;
     int index = -1,i;
-//   LOG_FUNCTION_NAME
- 
-	for(i=0; i<mVideoBufferProvider->getBufCount(); i++) {
-		if (mVideoBufs[i]->data == opaque) {
-			index = i;
-			break;
+	LOG_FUNCTION_NAME
+	if(mIsStoreMD == false){
+		for(i=0; i<mVideoBufferProvider->getBufCount(); i++) {
+			if (mVideoBufs[i]->data == opaque) {
+				index = i;
+				break;
+			}
 		}
+		if (index == -1) {
+			LOGE("%s(%d): this video buffer is invaildate",__FUNCTION__,__LINE__);
+			 LOG_FUNCTION_NAME_EXIT
+			return;
+		}
+		mVideoBufferProvider->setBufferStatus(index, 0, 0);		
+ 	}else{
+		for(i=0; i<CONFIG_CAMERA_VIDEOENC_BUF_CNT; i++) {
+			if (mVideoBufs[i]->data == opaque) {
+				index = i;
+				break;
+			}
+		}
+		if (index == -1) {
+			LOGE("%s(%d): this video buffer is invaildate",__FUNCTION__,__LINE__);
+			LOG_FUNCTION_NAME_EXIT
+			return;
+		}
+		mGrallocVideoBuf[index]->buf_state = 0;
 	}
-	if (index == -1) {
-		LOGE("%s(%d): this video buffer is invaildate",__FUNCTION__,__LINE__);
-		return;
-	}
-	mVideoBufferProvider->setBufferStatus(index, 0, 0);		
-//    LOG_FUNCTION_NAME_EXIT
+    LOG_FUNCTION_NAME_EXIT
 
 }
 //must call this when PREVIEW DATACB MSG is disabled,and before enableMsgType
@@ -993,7 +1238,6 @@ int AppMsgNotifier::Jpegfillgpsinfo(RkGPSInfo *gpsInfo,picture_info_s &params)
 	return 0;
 }
 
-
 int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     int ret = 0;
 	int jpeg_w,jpeg_h,i,jpeg_buf_w,jpeg_buf_h;
@@ -1386,39 +1630,66 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 	}
 	return ret;
 }
+
 int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
     int ret = 0,buf_index = -1;
 	long buf_phy = 0,buf_vir = 0;
-	
-    //get one available buffer
-    if((buf_index = mVideoBufferProvider->getOneAvailableBuffer(&buf_phy,&buf_vir)) == -1){
-        ret = -1;
-        LOGE("%s(%d):no available buffer",__FUNCTION__,__LINE__);
-        return ret;
-    }
 
-    mVideoBufferProvider->setBufferStatus(buf_index, 1);
-    if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
+	if(mIsStoreMD == false){	
+	    //get one available buffer
+	    if((buf_index = mVideoBufferProvider->getOneAvailableBuffer(&buf_phy,&buf_vir)) == -1){
+	        ret = -1;
+	        LOGE("%s(%d):no available buffer",__FUNCTION__,__LINE__);
+	        return ret;
+	    }
+
+	    mVideoBufferProvider->setBufferStatus(buf_index, 1);
+	    if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
+	        #if 0
+	        arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
+	            (char*)buf_vir,frame->frame_width, frame->frame_height,
+	            mRecordW, mRecordH,false,frame->zoom_value);
+	        #else
+	        if(g_ctsV_flag &&((mRecordW==176&&mRecordH==144)||(mRecordW==352&&mRecordH==288))) {
+	            arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
+	                                        (char*)buf_vir,frame->frame_width, frame->frame_height,
+	                                        mRecordW, mRecordH,false,frame->zoom_value);
+	        }else{
+	            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+	                                (char*)(frame->vir_addr), (short int *)buf_vir,
+	                                mRecordW,mRecordH,frame->zoom_value,false,true,false);
+	        }
+	        #endif
+
+	        mVideoBufferProvider->flushBuffer(buf_index);
+	        callback_video_frame(mVideoBufs[buf_index]);
+	        LOG1("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
+	    }
+	}else{
+		buf_index = grallocVideoBufGetAvailable();
+		if(buf_index >= CONFIG_CAMERA_VIDEOENC_BUF_CNT)
+		{
+			LOGE("%s(%d):no available buffer",__FUNCTION__,__LINE__);
+			ret = -1;
+			return ret;
+		}
+		mGrallocVideoBuf[buf_index]->buf_state = 1;
+
+		if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
         #if 0
         arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
             (char*)buf_vir,frame->frame_width, frame->frame_height,
             mRecordW, mRecordH,false,frame->zoom_value);
         #else
-        if(g_ctsV_flag &&((mRecordW==176&&mRecordH==144)||(mRecordW==352&&mRecordH==288))) {
-            arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
-                                        (char*)buf_vir,frame->frame_width, frame->frame_height,
-                                        mRecordW, mRecordH,false,frame->zoom_value);
-        }else{
-            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
-                                (char*)(frame->vir_addr), (short int *)buf_vir,
-                                mRecordW,mRecordH,frame->zoom_value,false,true,false);
-        }
+	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+	                (char*)(frame->vir_addr), (short int*)(mGrallocVideoBuf[buf_index]->vir_addr),
+	                mRecordW,mRecordH,frame->zoom_value,false,true,false);
         #endif
 
-        mVideoBufferProvider->flushBuffer(buf_index);
         callback_video_frame(mVideoBufs[buf_index]);
-        LOG1("EncPicture:V4L2_PIX_FMT_NV12,arm_camera_yuv420_scale_arm");
-    }
+		}
+
+	}
 	
     return ret;
 }

@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 #include <utils/Log.h>
-#include <libexpat/expat.h>
+#include <expat.h>
 #include <dlfcn.h>
 #include <isi/isi_iss.h>
 

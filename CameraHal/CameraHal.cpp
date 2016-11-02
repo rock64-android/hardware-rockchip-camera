@@ -12,7 +12,6 @@
 #include <binder/IPCThreadState.h>
 
 #include <utils/CallStack.h>
-#include <camera/ICameraService.h>
 #include <binder/IServiceManager.h>
 #include <binder/IMemory.h>
 
@@ -491,10 +490,11 @@ int CameraHal::previewEnabled()
 }
 int CameraHal::storeMetaDataInBuffers(int enable)
 {
+	LOG1("%s: enable = %d",__FUNCTION__, enable);
     LOG_FUNCTION_NAME
     Mutex::Autolock lock(mLock);
-    LOG_FUNCTION_NAME_EXIT
-    return INVALID_OPERATION;
+
+    return mEventNotifier->storeMetadataInBuffer((enable != 0));
 }
 int CameraHal::startRecording()
 {

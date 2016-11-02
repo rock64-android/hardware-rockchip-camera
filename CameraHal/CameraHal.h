@@ -47,7 +47,7 @@
 #include <ui/GraphicBufferMapper.h>
 #include <ui/GraphicBuffer.h>
 #include <system/window.h>
-#include <camera/Camera.h>
+#include <hardware/hardware.h>
 #include <hardware/camera.h>
 #include <camera/CameraParameters.h>
 #include "Semaphore.h"
@@ -615,9 +615,12 @@ V1.0x44.0:
    2) board_xml_parse: modify ioctl lose cifio value.
 *v1.0x44.2:
    remove 4208*3120 from support preview size.and suggust preview size chose 2104*1560.
+*v1.0x45.0:
+  include from 69 server:V1.0x44.1:  1) atuo ae CentreWeightMetering.
+  1) support android Nougat.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x44, 2)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x45, 0)
 
 
 /*  */
@@ -645,7 +648,7 @@ V1.0x44.0:
 #define CONFIG_CAMERA_DISPLAY_BUF_CNT		4
 #define CONFIG_CAMERA_VIDEO_BUF_CNT 4
 #define CONFIG_CAMERA_VIDEOENC_BUF_CNT		3
-#define CONFIG_CAMERA_ISP_BUF_REQ_CNT		4
+#define CONFIG_CAMERA_ISP_BUF_REQ_CNT		6
 
 #define CONFIG_CAMERA_UVC_MJPEG_SUPPORT 1
 #define CONFIG_CAMERA_UVC_MANEXP 1
@@ -1311,6 +1314,16 @@ private:
 		STA_RECEIVE_PREVIEWCB_FRAME         = 0x10000,
 		STA_RECEIVE_FACEDEC_FRAME         = 0x20000,
 	};
+    typedef struct rk_videobuf_info {
+        Mutex* lock;
+        buffer_handle_t* buffer_hnd;
+        NATIVE_HANDLE_TYPE *priv_hnd;
+        long phy_addr;
+        long vir_addr;
+        int buf_state;
+        int stride;
+    } rk_videobuf_info_t;
+
 	
     //¥¶¿Ìpreview data cbº∞video enc
     class CameraAppMsgThread :public Thread
@@ -1422,6 +1435,7 @@ public:
     int stopRecording();
     void releaseRecordingFrame(const void *opaque);
     int msgEnabled(int32_t msg_type);
+	int storeMetadataInBuffer(bool meta);
     void notifyCbMsg(int msg,int ret);
     
     int startFaceDection(int width,int height);
@@ -1462,6 +1476,14 @@ public:
 	void setDatacbFrontMirrorFlipState(bool mirror,bool mirrorFlip);
 	picture_info_s&  getPictureInfoRef();
 	vpu_display_mem_pool *pool;
+	int grallocDevInit();
+	int grallocDevDeinit();
+	void grallocVideoBuf();
+	void grallocVideoBufAlloc(const char *camPixFmt, unsigned int width, unsigned int height);
+	void grallocVideoBufFree();
+	void grallocVideoBufLock();
+	void grallocVideoBufUnlock();
+	int grallocVideoBufGetAvailable();
 private:
 
    void encProcessThread();
@@ -1493,6 +1515,7 @@ private:
 //    bool mRecordingRunning;
     int mRecordW;
     int mRecordH;
+	bool mIsStoreMD;
 
     Mutex mDataCbLock;
     Mutex mFaceDecLock;
@@ -1543,6 +1566,10 @@ private:
     camera_memory_t* mPicture;
     face_detector_func_s mFaceDetectorFun;
     FaceDector_nofity_func mFaceDectNotify;
+
+	const gralloc_module_t *mGrallocModule;
+	struct alloc_device_t *mGrallocAllocDev;
+	rk_videobuf_info_t *mGrallocVideoBuf[CONFIG_CAMERA_VIDEO_BUF_CNT];
 };
 
 

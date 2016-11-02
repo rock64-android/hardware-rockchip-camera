@@ -268,11 +268,13 @@
     1) support two cameras preview at the same time.
 *v1.0x40.0:
     1) support limit frame rate.
+*v1.0x41.0:
+    1) support android Nougat.
 */
 
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x40, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x41, 0)
 
 
 class CamEngineItf;

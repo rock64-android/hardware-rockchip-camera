@@ -31,8 +31,8 @@ class CameraGL {
 		~CameraGL();
 		void init(alloc_device_t *m_alloc_dev, int width, int height, int buf_cnt = 1);
 		void update(struct cv_fimc_buffer *m_buffers_capture);
-		long process(int* targetAddr, int mode = OUTPUT_NONE);
-		int getResult(int targetAddr);
+		long process(long* targetAddr, int mode = OUTPUT_NONE, int ratio = 10, float distance = 5.0f);
+		int getResult(long targetAddr);
 		void destroy();
 	private:
 		void getImageUnderDir(char *path, char *suffix);

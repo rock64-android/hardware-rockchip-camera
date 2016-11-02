@@ -48,10 +48,12 @@ extern "C"
 *              SILICONIMAGE LIBISP VERSION NOTE
 *
 *v0.1.0 : init driver -- xhh
-
+*v0.2.0 : modify ov5695 driver
+*v0.3.0 : support OTP
+*v0.4.0 : support OTP i2c info -- xhh
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 1, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 4, 0x00) 
 
 
 #define Sensor_CHIP_ID_HIGH_BYTE            (0x300b) // r - 
@@ -63,6 +65,9 @@ extern "C"
 #define Sensor_MODE_SELECT  (0x0100)
 
 #define Sensor_SOFTWARE_RST                 (0x0103) // rw - Bit[7:1]not used  Bit[0]software_reset
+
+#define SENSOR_SPECIAL_TAG					(0xfefe5aa5)
+
 
 typedef struct Sensor_VcmInfo_s                 /* ddl@rock-chips.com: v0.3.0 */
 {

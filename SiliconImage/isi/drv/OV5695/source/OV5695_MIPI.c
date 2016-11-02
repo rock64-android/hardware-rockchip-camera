@@ -50,6 +50,7 @@ CREATE_TRACER( Sensor_REG_DEBUG, "OV5695: ", INFO, 0U );
 #define Sensor_SLAVE_ADDR2      0x6cU
 #define Sensor_SLAVE_AF_ADDR    0x18U                           /**< i2c slave address of the OV5695 integrated AD5820 */
 #define Sensor_OTP_SLAVE_ADDR   0x6cU
+#define Sensor_OTP_SLAVE_ADDR2   0x20U
 
 #define Sensor_MIN_GAIN_STEP   ( 1.0f / 16.0f); /**< min gain step size used by GUI ( 32/(32-7) - 32/(32-6); min. reg value is 6 as of datasheet; depending on actual gain ) */
 #define Sensor_MAX_GAIN_AEC    ( 8.0f )            /**< max. gain used by the AEC (arbitrarily chosen, recommended by Omnivision) */
@@ -928,7 +929,7 @@ static RESULT Sensor_SetupOutputWindowInternal
 			   }else if(pConfig->Resolution == ISI_RES_1296_972P10) {
 				   usFrameLengthLines = 0x1a28;
 			   }
-			   pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 420;
+			   pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 840;
 			   break;
 			   
 		   }
@@ -964,7 +965,7 @@ static RESULT Sensor_SetupOutputWindowInternal
 				}else if(pConfig->Resolution == ISI_RES_2592_1944P7) {
 	            	usFrameLengthLines = 0x1fa0;
 				}
-				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 420;
+				pSensorCtx->IsiSensorMipiInfo.ulMipiFreq = 840;
 	            break;
 	            
 	        }
@@ -1253,8 +1254,12 @@ static RESULT OV5695_write_i2c(
     return result;
 }
 struct otp_struct {
+	int flag; // bit[7]: info, bit[6]:wb, bit[5]:vcm, bit[4]:lenc
     int module_integrator_id;
     int lens_id;
+    int production_year;
+    int production_month;
+    int production_day;
     int rg_ratio;
     int bg_ratio;
     int user_data[2];
@@ -1274,169 +1279,72 @@ static struct otp_struct g_otp_info ={0};
 // return:0, group index is empty
 //  1, group index has invalid data
 // 2, group index has valid data
-static int check_otp(
-    sensor_i2c_write_t*  sensor_i2c_write_p,
-    sensor_i2c_read_t*  sensor_i2c_read_p,
-    void* context,
-    int camsys_fd,
-    int index
-)
-{
-    int flag, i;
-    int rg, bg;
-    int i2c_base_info[3];
-
-    i2c_base_info[0] = Sensor_OTP_SLAVE_ADDR;
-    i2c_base_info[1] = 2;
-    i2c_base_info[2] = 1;
-    
-    if (index == 1)
-    {
-        // read otp --Bank 0
-        sensor_i2c_write_p(context,camsys_fd,0x3d84, 0xc0, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d85, 0x00, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d86, 0x0f, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d81, 0x01, i2c_base_info);
-        osSleep(5);
-        flag = sensor_i2c_read_p(context,camsys_fd,0x3d05, i2c_base_info);
-        rg = sensor_i2c_read_p(context,camsys_fd,0x3d07, i2c_base_info);
-        bg = sensor_i2c_read_p(context,camsys_fd,0x3d08, i2c_base_info);
-
-    }
-    else if (index == 2)
-    {
-        // read otp --Bank 0
-        sensor_i2c_write_p(context,camsys_fd,0x3d84, 0xc0, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d85, 0x00, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d86, 0x0f, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d81, 0x01, i2c_base_info);
-        osSleep(5);
-        flag = sensor_i2c_read_p(context,camsys_fd,0x3d0e, i2c_base_info);
-        // read otp --Bank 1
-        sensor_i2c_write_p(context,camsys_fd,0x3d84, 0xc0, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d85, 0x10, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d86, 0x1f, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d81, 0x01, i2c_base_info);
-        osSleep(5);
-        rg = sensor_i2c_read_p(context,camsys_fd,0x3d00, i2c_base_info);
-        bg = sensor_i2c_read_p(context,camsys_fd,0x3d01, i2c_base_info);
-    }
-    else if (index == 3)
-    {
-        // read otp --Bank 1
-        sensor_i2c_write_p(context,camsys_fd,0x3d84, 0xc0, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d85, 0x10, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d86, 0x1f, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d81, 0x01, i2c_base_info);
-        osSleep(5);
-        flag = sensor_i2c_read_p(context,camsys_fd,0x3d07, i2c_base_info);
-        rg = sensor_i2c_read_p(context,camsys_fd,0x3d09, i2c_base_info);
-        bg = sensor_i2c_read_p(context,camsys_fd,0x3d0a, i2c_base_info);
-    }
-    flag = flag & 0x80;
-    // clear otp buffer
-    for (i=0;i<16;i++) {
-        sensor_i2c_write_p(context,camsys_fd,0x3d00 + i, 0x01, i2c_base_info);
-    }
-    if (flag) {
-        return 1;
-    }
-    else
-    {
-        if (rg == 0 && bg == 0) 
-        {
-            return 0;
-        }
-        else
-        {
-            return 2;
-        }
-    }
-}
-// index: index of otp group. (1, 2, 3)
-// return:0, 
 static int read_otp(
     sensor_i2c_write_t*  sensor_i2c_write_p,
     sensor_i2c_read_t*  sensor_i2c_read_p,
     void* context,
-    int camsys_fd,
-    int index
+    int camsys_fd
 )
 {
-    int i, temp;
     struct otp_struct *otp_ptr = &g_otp_info ;
+	int otp_flag=0x0, addr, temp, temp1, i;
     int i2c_base_info[3];
 
-    i2c_base_info[0] = Sensor_OTP_SLAVE_ADDR;
-    i2c_base_info[1] = 2;
-    i2c_base_info[2] = 1;
-    
-    // read otp into buffer 
-    if (index == 1)
-    {
-        // read otp --Bank 0
-        sensor_i2c_write_p(context,camsys_fd,0x3d84, 0xc0, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d85, 0x00, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d86, 0x0f, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d81, 0x01, i2c_base_info);
-        osSleep(5);
-        (*otp_ptr).module_integrator_id = (sensor_i2c_read_p(context,camsys_fd,0x3d05, i2c_base_info) & 0x7f);
-        (*otp_ptr).lens_id = sensor_i2c_read_p(context,camsys_fd,0x3d06, i2c_base_info);
-        temp = sensor_i2c_read_p(context,camsys_fd,0x3d0b, i2c_base_info);
-        (*otp_ptr).rg_ratio = (sensor_i2c_read_p(context,camsys_fd,0x3d07, i2c_base_info)<<2) + ((temp>>6) & 0x03);
-        (*otp_ptr).bg_ratio = (sensor_i2c_read_p(context,camsys_fd,0x3d08, i2c_base_info)<<2) + ((temp>>4) & 0x03);
-        (*otp_ptr).light_rg = (sensor_i2c_read_p(context,camsys_fd,0x3d0c, i2c_base_info)<<2) + ((temp>>2) & 0x03);
-        (*otp_ptr).light_bg = (sensor_i2c_read_p(context,camsys_fd,0x3d0d, i2c_base_info)<<2) + (temp & 0x03);
-        (*otp_ptr).user_data[0] = sensor_i2c_read_p(context,camsys_fd,0x3d09, i2c_base_info);
-        (*otp_ptr).user_data[1] = sensor_i2c_read_p(context,camsys_fd,0x3d0a, i2c_base_info);
-    }
-    else if (index == 2)
-    {
-        // read otp --Bank 0
-        sensor_i2c_write_p(context,camsys_fd,0x3d84, 0xc0, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d85, 0x00, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d86, 0x0f, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d81, 0x01, i2c_base_info);
-        osSleep(5);
-        (*otp_ptr).module_integrator_id = (sensor_i2c_read_p(context,camsys_fd,0x3d0e, i2c_base_info) & 0x7f);
-        (*otp_ptr).lens_id = sensor_i2c_read_p(context,camsys_fd,0x3d0f, i2c_base_info);
-        // read otp --Bank 1
-        sensor_i2c_write_p(context,camsys_fd,0x3d84, 0xc0, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d85, 0x10, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d86, 0x1f, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d81, 0x01, i2c_base_info);
-        osSleep(5);
-        temp = sensor_i2c_read_p(context,camsys_fd,0x3d04, i2c_base_info);
-        (*otp_ptr).rg_ratio = (sensor_i2c_read_p(context,camsys_fd,0x3d00, i2c_base_info)<<2) + ((temp>>6) & 0x03);
-        (*otp_ptr).bg_ratio = (sensor_i2c_read_p(context,camsys_fd,0x3d01, i2c_base_info)<<2) + ((temp>>4) & 0x03);
-        (*otp_ptr).light_rg = (sensor_i2c_read_p(context,camsys_fd,0x3d05, i2c_base_info)<<2) + ((temp>>2) & 0x03);
-        (*otp_ptr).light_bg = (sensor_i2c_read_p(context,camsys_fd,0x3d06, i2c_base_info)<<2) + (temp & 0x03);
-        (*otp_ptr).user_data[0] = sensor_i2c_read_p(context,camsys_fd,0x3d02, i2c_base_info);
-        (*otp_ptr).user_data[1] = sensor_i2c_read_p(context,camsys_fd,0x3d03, i2c_base_info);
-    }
-    else if (index == 3)
-    {
-        // read otp --Bank 1
-        sensor_i2c_write_p(context,camsys_fd,0x3d84, 0xc0, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d85, 0x10, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d86, 0x1f, i2c_base_info);
-        sensor_i2c_write_p(context,camsys_fd,0x3d81, 0x01, i2c_base_info);
-        osSleep(5);
-        (*otp_ptr).module_integrator_id = (sensor_i2c_read_p(context,camsys_fd,0x3d07, i2c_base_info) & 0x7f);
-        (*otp_ptr).lens_id = sensor_i2c_read_p(context,camsys_fd,0x3d08, i2c_base_info);
-        temp = sensor_i2c_read_p(context,camsys_fd,0x3d0d, i2c_base_info);
-        (*otp_ptr).rg_ratio = (sensor_i2c_read_p(context,camsys_fd,0x3d09, i2c_base_info)<<2) + ((temp>>6) & 0x03);
-        (*otp_ptr).bg_ratio = (sensor_i2c_read_p(context,camsys_fd,0x3d0a, i2c_base_info)<<2) + ((temp>>4) & 0x03);
-        (*otp_ptr).light_rg = (sensor_i2c_read_p(context,camsys_fd,0x3d0e, i2c_base_info)<<2) + ((temp>>2) & 0x03);
-        (*otp_ptr).light_bg = (sensor_i2c_read_p(context,camsys_fd,0x3d0f, i2c_base_info)<<2) + (temp & 0x03);
-        (*otp_ptr).user_data[0] = sensor_i2c_read_p(context,camsys_fd,0x3d0b, i2c_base_info);
-        (*otp_ptr).user_data[1] = sensor_i2c_read_p(context,camsys_fd,0x3d0c, i2c_base_info);
-    }
-    // clear otp buffer
-    for (i=0;i<16;i++) {
-        sensor_i2c_write_p(context,camsys_fd,0x3d00 + i, 0x00, i2c_base_info);
-    }
-    return 0; 
+    i2c_base_info[0] = Sensor_OTP_SLAVE_ADDR; //otp i2c addr
+    i2c_base_info[1] = 2; //otp i2c reg size
+    i2c_base_info[2] = 1; //otp i2c value size
+
+	// OTP base information and WB calibration data
+	otp_flag = sensor_i2c_read_p(context,camsys_fd, 0x700C, i2c_base_info);
+	addr = 0;
+	if((otp_flag & 0xc0) == 0x40) {
+		addr = 0x700D; // base address of info group 1
+	}
+	else if((otp_flag & 0x30) == 0x10) {
+		addr = 0x7012; // base address of info group 2
+	}
+	else if((otp_flag & 0x0C) == 0x04) {
+		addr = 0x7017; // base address of info group 2
+	}
+	if(addr != 0) {
+		(*otp_ptr).flag = 0x80; // valid info and AWB in OTP
+		(*otp_ptr).module_integrator_id = sensor_i2c_read_p(context,camsys_fd,addr, i2c_base_info);
+		(*otp_ptr).lens_id = sensor_i2c_read_p(context,camsys_fd, addr + 1, i2c_base_info);
+		temp = sensor_i2c_read_p(context,camsys_fd, addr + 4, i2c_base_info);
+		(*otp_ptr).rg_ratio = (sensor_i2c_read_p(context,camsys_fd, addr + 2, i2c_base_info)<<2) + ((temp>>6) & 0x03);
+		(*otp_ptr).bg_ratio = (sensor_i2c_read_p(context,camsys_fd, addr + 3, i2c_base_info)<<2) + ((temp>>4) & 0x03);
+		TRACE( Sensor_DEBUG, "%s awb info in module_integrator_id(0x%x) lens_id(0x%x)  !\n", 
+		__FUNCTION__,(*otp_ptr).module_integrator_id,(*otp_ptr).lens_id);
+        TRACE( Sensor_DEBUG, "%s awb info in OTP(0x%x,0x%x)!\n", __FUNCTION__,(*otp_ptr).rg_ratio,(*otp_ptr).bg_ratio);		
+
+
+	}
+	else {
+		(*otp_ptr).flag = 0x00; // not info and AWB in OTP
+		(*otp_ptr).module_integrator_id = 0;
+		(*otp_ptr).lens_id = 0;
+		(*otp_ptr).production_year = 0;
+		(*otp_ptr).production_month = 0;
+		(*otp_ptr).production_day = 0;
+		(*otp_ptr).rg_ratio = 0;
+		(*otp_ptr).bg_ratio = 0;
+		TRACE( Sensor_ERROR, "%s no awb info in OTP!\n", __FUNCTION__);
+	}  
+
+	for(i=0x700C;i<=0x701B;i++) {
+		sensor_i2c_write_p(context,camsys_fd,i,0, i2c_base_info); // clear OTP buffer, recommended use continuous write to accelarate
+	}
+	//set 0x5002[3] to "1"
+	temp1 = sensor_i2c_read_p(context,camsys_fd,0x5001, i2c_base_info);
+	sensor_i2c_write_p(context,camsys_fd,0x5001, (0x08 & 0x08) | (temp1 & (~0x08)), i2c_base_info);
+
+	//stream off 
+	sensor_i2c_write_p(context,camsys_fd, Sensor_MODE_SELECT, 0x00, i2c_base_info);
+	if((*otp_ptr).flag != 0)
+		return RET_SUCCESS;
+	else
+		return RET_NOTSUPP;
+
 }
 
 static int check_read_otp(
@@ -1447,131 +1355,91 @@ static int check_read_otp(
     int camsys_fd
 )
 {
-    int i = 0,temp,otp_index;
-    int err = RET_SUCCESS;
-    int i2c_base_info[3];
+	int i2c_base_info[3];
+	int temp1;
+	int ret=0;
+		
+    i2c_base_info[0] = Sensor_OTP_SLAVE_ADDR; //otp i2c addr
+    i2c_base_info[1] = 2; //otp i2c reg size
+    i2c_base_info[2] = 1; //otp i2c value size
+    //stream on 
+    ret = sensor_i2c_write_p(context,camsys_fd, Sensor_MODE_SELECT, 0x01, i2c_base_info );
 
-    i2c_base_info[0] = Sensor_OTP_SLAVE_ADDR;
-    i2c_base_info[1] = 2;
-    i2c_base_info[2] = 1;
-    sensor_i2c_write_p( context,camsys_fd, Sensor_MODE_SELECT, 0x01, i2c_base_info );
-    //stream on
-    // R/G and B/G of current camera module is read out from sensor OTP
-    // check first OTP with valid data
-    for(i=1;i<=3;i++) {
-        temp = check_otp(sensor_i2c_write_p,sensor_i2c_read_p,context,camsys_fd,i);
-        if (temp == 2) {
-            otp_index = i;
-            break;
-        }
-    }
-    if (i>3) {
-        // no valid wb OTP data
-        TRACE( Sensor_ERROR, "%s no wb OTP data!\n", __FUNCTION__);
-        err = RET_NOTSUPP;
-    }else{
-        err = RET_SUCCESS;
-        TRACE( Sensor_INFO, "%s  wb OTP data in group %d !\n", __FUNCTION__,i);
-    }
-    read_otp(sensor_i2c_write_p,sensor_i2c_read_p,context,camsys_fd,i);
-    
-    sensor_i2c_write_p( context,camsys_fd, Sensor_MODE_SELECT, 0x00, i2c_base_info);
-    return err;
+    if(ret < 0){
+		TRACE( Sensor_ERROR, "%s: Don't worry, we will try OTP slave addr2!\n", __FUNCTION__);
+		i2c_base_info[0] = Sensor_OTP_SLAVE_ADDR2; //otp i2c addr
+		ret = sensor_i2c_write_p(context,camsys_fd, Sensor_MODE_SELECT, 0x01, i2c_base_info );
+		if(ret < 0)
+			return RET_NOTSUPP;
+		TRACE( Sensor_ERROR, "%s: OTP slave addr2 works!\n", __FUNCTION__);
+	}
+
+    temp1 = sensor_i2c_read_p(context,camsys_fd,0x5001,i2c_base_info);
+	//TRACE( Sensor_ERROR, "%s: temp1 = 0x%x !\n", __FUNCTION__,temp1);
+    sensor_i2c_write_p(context,camsys_fd,0x5001, (0x00 & 0x08) | (temp1 & (~0x08)), i2c_base_info);
+    // read OTP into buffer
+    sensor_i2c_write_p(context,camsys_fd,0x3d84, 0xC0, i2c_base_info);
+    sensor_i2c_write_p(context,camsys_fd,0x3d88, 0x70, i2c_base_info); // OTP start address
+    sensor_i2c_write_p(context,camsys_fd,0x3d89, 0x0C, i2c_base_info);
+    sensor_i2c_write_p(context,camsys_fd,0x3d8A, 0x70, i2c_base_info); // OTP end address
+    sensor_i2c_write_p(context,camsys_fd,0x3d8B, 0x1B, i2c_base_info);
+    sensor_i2c_write_p(context,camsys_fd,0x3d81, 0x01, i2c_base_info); // load otp into buffer
+    osSleep(5);
+
+	sensor_version_get_p(context,camsys_fd,0x01,SENSOR_SPECIAL_TAG);
+
+	return	read_otp(sensor_i2c_write_p, sensor_i2c_read_p, context, camsys_fd);
+
 }
 
-// R_gain, sensor red gain of AWB, 0x400 =1
-// G_gain, sensor green gain of AWB, 0x400 =1
-// B_gain, sensor blue gain of AWB, 0x400 =1
-// return 0;
-static int update_awb_gain(IsiSensorHandle_t   handle,int R_gain, int G_gain, int B_gain)
-{
-    TRACE( Sensor_INFO, "%s update wb OTP data!\n", __FUNCTION__);
-    if (R_gain>0x400) {
-        OV5695_write_i2c(handle,0x5186, R_gain>>8);
-        OV5695_write_i2c(handle,0x5187, R_gain & 0x00ff);
-    }
-    if (G_gain>0x400) {
-        OV5695_write_i2c(handle,0x5188, G_gain>>8);
-        OV5695_write_i2c(handle,0x5189, G_gain & 0x00ff);
-    }
-    if (B_gain>0x400) {
-        OV5695_write_i2c(handle,0x518a, B_gain>>8);
-        OV5695_write_i2c(handle,0x518b, B_gain & 0x00ff);
-    }
-    return 0;
-}
+
 // call this function after OV5695 initialization
 // return:0 update success
 // 1, no OTP
-static int update_otp(IsiSensorHandle_t   handle)
+
+static int apply_otp(IsiSensorHandle_t   handle,struct otp_struct *otp_ptr)
 {
-    int i;
-    int otp_index;
-    int temp;
-    int R_gain, G_gain, B_gain, G_gain_R, G_gain_B;
-    int rg,bg;
-    if(g_otp_info.light_rg==0) {
-        // no light source information in OTP
-        rg = g_otp_info.rg_ratio;
-    }
-    else {
-        // light source information found in OTP
-        rg = g_otp_info.rg_ratio * (g_otp_info.light_rg +512) / 1024;
-    }
-    if(g_otp_info.light_bg==0) {
-        // no light source information in OTP
-        bg = g_otp_info.bg_ratio;
-    }
-    else {
-        // light source information found in OTP
-        bg = g_otp_info.bg_ratio * (g_otp_info.light_bg +512) / 1024;
-    }
-    TRACE( Sensor_INFO, "%s  rg 0x%x bg 0x%x  !\n", __FUNCTION__,rg,bg);
-    //calculate G gain
-    //0x400 = 1x gain
-    if(bg < BG_Ratio_Typical) {
-        if (rg< RG_Ratio_Typical) {
-            // current_otp.bg_ratio < BG_Ratio_typical &&  
-            // current_otp.rg_ratio < RG_Ratio_typical
-            G_gain = 0x400;
-            B_gain = 0x400 * BG_Ratio_Typical / bg;
-            R_gain = 0x400 * RG_Ratio_Typical / rg; 
-        }
-        else {
-            // current_otp.bg_ratio < BG_Ratio_typical &&  
-            // current_otp.rg_ratio >= RG_Ratio_typical
-            R_gain = 0x400;
-            G_gain = 0x400 * rg / RG_Ratio_Typical;
-            B_gain = G_gain * BG_Ratio_Typical /bg;
-        }
-    }
-    else {
-        if (rg < RG_Ratio_Typical) {
-            // current_otp.bg_ratio >= BG_Ratio_typical &&  
-            // current_otp.rg_ratio < RG_Ratio_typical
-            B_gain = 0x400;
-            G_gain = 0x400 * bg / BG_Ratio_Typical;
-            R_gain = G_gain * RG_Ratio_Typical / rg;
-        }
-        else {
-            // current_otp.bg_ratio >= BG_Ratio_typical &&  
-            // current_otp.rg_ratio >= RG_Ratio_typical
-            G_gain_B = 0x400 * bg / BG_Ratio_Typical;
-            G_gain_R = 0x400 * rg / RG_Ratio_Typical;
-            if(G_gain_B > G_gain_R ) {
-            B_gain = 0x400;
-            G_gain = G_gain_B;
-            R_gain = G_gain * RG_Ratio_Typical /rg;
-            }
-            else {
-            R_gain = 0x400;
-            G_gain = G_gain_R;
-            B_gain = G_gain * BG_Ratio_Typical / bg;
-            }
-        }
-    }
-    update_awb_gain(handle,R_gain, G_gain, B_gain);
-    return 0;
+	int rg, bg, R_gain, G_gain, B_gain, Base_gain, temp, i;
+	
+	// apply OTP WB Calibration
+	if ((*otp_ptr).flag & 0x80) {
+		rg = (*otp_ptr).rg_ratio;
+		bg = (*otp_ptr).bg_ratio;
+		//calculate G gain
+		R_gain = (RG_Ratio_Typical*1000) / rg;
+		B_gain = (BG_Ratio_Typical*1000) / bg;
+		G_gain = 1000;
+		if (R_gain < 1000 || B_gain < 1000)
+		{
+			if (R_gain < B_gain)
+			Base_gain = R_gain;
+			else
+			Base_gain = B_gain;
+		}
+		else
+		{
+			Base_gain = G_gain;
+		}
+		R_gain = 0x400 * R_gain / (Base_gain);
+		B_gain = 0x400 * B_gain / (Base_gain);
+		G_gain = 0x400 * G_gain / (Base_gain);
+		// update sensor WB gain
+		if (R_gain>0x400) {
+			Sensor_IsiRegWriteIss(handle, 0x5019, R_gain>>8);
+			Sensor_IsiRegWriteIss(handle, 0x501A, R_gain & 0x00ff);
+		}
+		if(G_gain>0x400) {
+			Sensor_IsiRegWriteIss(handle, 0x501B, G_gain>>8);
+			Sensor_IsiRegWriteIss(handle, 0x501C, G_gain & 0x00ff);
+		}
+		if(B_gain>0x400) {
+			Sensor_IsiRegWriteIss(handle, 0x501D, B_gain>>8);
+			Sensor_IsiRegWriteIss(handle, 0x501E, B_gain & 0x00ff);
+		}
+	}
+
+	TRACE( Sensor_DEBUG,  "%s: success!!!\n",  __FUNCTION__ );
+	return (*otp_ptr).flag;
 }
 
 static RESULT Sensor_IsiSetOTPInfo
@@ -1755,10 +1623,22 @@ static RESULT Sensor_IsiSetupSensorIss
 
 	char prop_value[PROPERTY_VALUE_MAX];
 	property_get("sys_graphic.cam_otp", prop_value, "true");
-    if((g_otp_info.rg_ratio !=0) || (g_otp_info.bg_ratio != 0)){
+    if(g_otp_info.flag != 0){
 		if(bOTP_switch && !strcmp(prop_value,"true")){
-        TRACE( Sensor_INFO, "%s:  rg,bg(0x%x,0x%x)\n", __FUNCTION__,g_otp_info.rg_ratio,g_otp_info.bg_ratio);
-        update_otp(pSensorCtx);
+			result = Sensor_IsiRegWriteIss( pSensorCtx, Sensor_MODE_SELECT, 0x01 );
+			if ( result != RET_SUCCESS )
+			{
+				TRACE( Sensor_ERROR, "%s: Can't write OV5695 Image System Register (disable streaming failed)\n", __FUNCTION__ );
+        		return ( result );
+			}
+        	TRACE( Sensor_DEBUG, "%s: apply OTP info !!\n", __FUNCTION__);
+        	apply_otp(handle,&g_otp_info);
+			result = Sensor_IsiRegWriteIss( pSensorCtx, Sensor_MODE_SELECT, 0x00 );
+			if ( result != RET_SUCCESS )
+			{
+        		TRACE( Sensor_ERROR, "%s: Can't write OV5695 Image System Register (disable streaming failed)\n", __FUNCTION__ );
+        		return ( result );
+			}
 		}
     }
 
@@ -2508,9 +2388,8 @@ RESULT Sensor_IsiSetGainIss
     //if( (usGain != pSensorCtx->OldGain) )
     if(1)
     {
-        result = Sensor_IsiRegWriteIss( pSensorCtx, 0x350a, (usGain>>8)&0x03);
-        RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
-        result = Sensor_IsiRegWriteIss( pSensorCtx, 0x350b, (usGain&0xff));
+
+        result = Sensor_IsiRegWriteIss( pSensorCtx, 0x3509, (usGain&0xff));
         RETURN_RESULT_IF_DIFFERENT( RET_SUCCESS, result );
 
         pSensorCtx->OldGain = usGain;

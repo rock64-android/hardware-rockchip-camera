@@ -1,5 +1,5 @@
 #include "CameraIspTunning.h"
-#include <libexpat/expat.h>
+#include <expat.h>
 #include "CameraHal_Tracer.h"
 
 

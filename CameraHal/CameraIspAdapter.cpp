@@ -194,7 +194,7 @@ int CameraIspAdapter::cameraDestroy()
         CamEngineAfEvt_t cmd;
         int ret;
 
-        cmd.evnt_id = (CamEngineAfEvtId_t)0xfefe5aa5;
+        cmd.evnt_id = (CamEngineAfEvtId_t)0xfefe5aa;//change from 0xfefe5aa5 to 0xfefe5aa for android Nougat
         
         osQueueWrite(&mAfListenerQue.queue, &cmd);
         
@@ -336,7 +336,7 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
     if (is_capture) {
         enable_flash = isNeedToEnableFlash();
 
-        m_camDevice->lock3a((Lock_awb|Lock_aec)); 
+        m_camDevice->lock3a((CamEngine3aLock_t)(Lock_awb|Lock_aec)); 
     }
     low_illumin = isLowIllumin(15);
 
@@ -484,7 +484,7 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
             }
         }
 
-        m_camDevice->unlock3a((Lock_awb|Lock_aec));
+        m_camDevice->unlock3a((CamEngine3aLock_t)(Lock_awb|Lock_aec));
         
     } 
     flashControl(enable_flash);
@@ -604,7 +604,7 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isR
 	                    if ((hOff || vOff || w || h) && (pCamInfo->mSoftInfo.touchAE == 0x01)){
 	                       m_camDevice->setAecHistMeasureWinAndMode(hOff,vOff,w,h,AfWeightMetering);
 	                    } else {
-	                       m_camDevice->setAecHistMeasureWinAndMode(hOff,vOff,w,h,AverageMetering);
+	                       m_camDevice->setAecHistMeasureWinAndMode(hOff,vOff,w,h,CentreWeightMetering);
 	                    }
                     }
     	    	}
@@ -1266,7 +1266,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     //for video test
     params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, "3000,30000");
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(3000,30000),(30000,30000)");//(30000,30000) for passing cts.
-    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, "10,15,30"); 
+    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, "10,15,20,30"); 
     params.setPreviewFrameRate(30);
 
     params.set(KEY_CONTINUOUS_PIC_NUM,"1");
@@ -2038,8 +2038,6 @@ void CameraIspAdapter::gpuCommandThread()
                 case CMD_GPU_PROCESS_UPDATE:
                 {
                     if (mCameraGL->initialized) {
-                        //ALOGD("fill buffer capture, start: %.8x, dat0: %d, fd: %d, length: %d", m_buffers_capture->start, (void*)(m_buffers_capture->start),             m_buffers_capture->share_fd, m_buffers_capture->length);
-					// m_camDevice->getGain(mISO);
                         mCameraGL->update(m_buffers_capture);
                     }
                     if(msg.arg1)
@@ -2422,7 +2420,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 				if (uvnr_enable) {
 					sendBlockedMsg(CMD_GPU_PROCESS_UPDATE);
 					sendBlockedMsg(CMD_GPU_PROCESS_RENDER);
-					mCameraGL->getResult(y_addr_vir);
+					mCameraGL->getResult((long)y_addr_vir);
 				}
                 mRefEventNotifier->notifyNewPicFrame(tmpFrame);	
             }
@@ -2543,7 +2541,7 @@ int CameraIspAdapter::afListenerThread(void)
                 break;
             }
 
-            case 0xfefe5aa5:
+            case 0xfefe5aa://change from 0xfefe5aa5 to 0xfefe5aa for android Nougat
             {
                 LOG1("receive exit command for af thread handle!");
                 bExit = true;

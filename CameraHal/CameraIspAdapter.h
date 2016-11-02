@@ -1,5 +1,6 @@
 #ifndef ANDROID_HARDWARE_CAMERA_ISP_HARDWARE_H
 #define ANDROID_HARDWARE_CAMERA_ISP_HARDWARE_H
+
 //usb camera adapter#include "CameraHal.h"
 #include "cam_api/camdevice.h"
 #include "oslayer/oslayer.h"#include <string>#include <utils/KeyedVector.h>
