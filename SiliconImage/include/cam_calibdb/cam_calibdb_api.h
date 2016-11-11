@@ -372,7 +372,25 @@ RESULT CamCalibDbAddAecGlobal
     CamCalibAecGlobal_t     *pAddAecGlobal
 );
 
+/*****************************************************************************/
+/**
+ * @brief   This function adds the Gamma out configuration to the CamCalibDb instance.
+ *
+ * @param   hCamCalibDb         Handle to the CamCalibDb instance.
+ * @param   pAddGammaOut       Reference of Gamma out configuration to add
+ *
+ * @return  Return the result of the function call.
+ * @retval  RET_SUCCESS         function succeed
+ * @retval  RET_WRONG_HANDLE    invalid instance handle
+ * @retval  RET_INVALID_PARM    invalid parameter
+ *
+ *****************************************************************************/
+RESULT CamCalibDbAddGammaOut
+(
+    CamCalibDbHandle_t  hCamCalibDb,   
+    CamCalibGammaOut_t *pAddGammaOut
 
+);
 
 /*****************************************************************************/
 /**
@@ -393,6 +411,26 @@ RESULT CamCalibDbGetAecGlobal
     CamCalibAecGlobal_t     **ppAecGlobal
 );
 
+
+/*****************************************************************************/
+/**
+ * @brief   This function returns the global Gamma Out configuration from the CamCalibDb instance.
+ *
+ * @param   hCamCalibDb         Handle to the CamCalibDb instance.
+ * @param   ppGammaOut        Reference of pointer to Gamma Out  global configuration
+ *
+ * @return  Return the result of the function call.
+ * @retval  RET_SUCCESS         function succeed
+ * @retval  RET_WRONG_HANDLE    invalid instance handle
+ * @retval  RET_INVALID_PARM    invalid parameter
+ *
+ *****************************************************************************/
+
+RESULT CamCalibDbGetGammaOut
+(
+    CamCalibDbHandle_t  hCamCalibDb,
+    CamCalibGammaOut_t **ppGammaOut
+);
 
 
 /*****************************************************************************/

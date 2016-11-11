@@ -1804,29 +1804,14 @@ bool CameraIspAdapter::connectCamera(){
             m_camDevice->cProcEnable( &cproc_config);
         }
     }
-    {
-    	rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
-        int tmp_gamma = 0;
-        float gamma = pCamInfo->mSoftInfo.mGammaOutConfig.mGamma,maxval = 1024;
-        int offset = pCamInfo->mSoftInfo.mGammaOutConfig.mOffSet;
 
-        CamEngineGammaOutCurve_t gamma_curve = {
-            CAM_ENGINE_GAMMAOUT_XSCALE_EQU,
-            {0}
-        };
-        
-        for(int i = 0;i < (CAMERIC_ISP_GAMMA_CURVE_SIZE);i++){
-            tmp_gamma = (int)((pow((64*i/maxval),gamma))*1024)+offset;
-            tmp_gamma = (tmp_gamma > 1023)?1023:tmp_gamma;
-            tmp_gamma = (tmp_gamma < 0)?0:tmp_gamma;
-            gamma_curve.GammaY[i] = (uint16_t)(tmp_gamma);
-            TRACE_D(1,"gamma_curve.GammaY[%d]:%d ",i,gamma_curve.GammaY[i]);
-        }
-        if(pCamInfo->mSoftInfo.mGammaOutConfig.mSupported == true){
-            m_camDevice->gamCorrectEnable();
-            m_camDevice->gamCorrectSetCurve(gamma_curve);
-        }
+	rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
+
+    if(pCamInfo->mSoftInfo.mGammaOutConfig.mSupported == true){
+        m_camDevice->gamCorrectEnable();
+        m_camDevice->gamCorrectSetCurve();
     }
+
     return result;
 }
 

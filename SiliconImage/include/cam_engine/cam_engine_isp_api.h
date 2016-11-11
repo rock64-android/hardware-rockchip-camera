@@ -153,7 +153,7 @@ typedef struct CamEngineWdrCurve_s
     uint8_t             dY[33];
 } CamEngineWdrCurve_t;
 
-
+#if 0//below has been moved to cam_types.h
 /******************************************************************************/
 /**
  * @brief   Enumeration type for x scaling of the gamma curve 
@@ -185,6 +185,7 @@ typedef struct CamEngineGammaOutCurve_s
     uint16_t                    GammaY[CAMERIC_ISP_GAMMA_CURVE_SIZE];
 } CamEngineGammaOutCurve_t;
 
+#endif
 
 /*****************************************************************************/
 /**

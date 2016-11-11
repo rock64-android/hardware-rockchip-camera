@@ -104,7 +104,8 @@ private:
     bool parseEntryAec( const XMLElement*, void *param = NULL );
     bool parseEntryAecEcm( const XMLElement*, void *param = NULL );
     bool parseEntryAecEcmPriorityScheme( const XMLElement*, void *param = NULL );
-
+	// parse Sensor-GammaOut
+	bool parseEntryGammaOut( const XMLElement*, void *param = NULL );
     // parse Sensor-LSC
     bool parseEntryLsc( const XMLElement*, void *param = NULL );
 

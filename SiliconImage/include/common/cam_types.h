@@ -92,6 +92,25 @@ typedef enum Cam4ChColorComponent_e
     CAM_4CH_COLOR_COMPONENT_MAX
 } Cam4ChColorComponent_t;
 
+/******************************************************************************/
+/**
+ * @brief   A structure to represent a 5x5 matrix.
+ *
+ *          The 25 values are laid out as follows (zero based index):
+ *
+ *               | 00 01 02 03 04 | \n
+ *               | 05 06 07 08 09 | \n
+ *               | 10 11 12 13 14 | \n
+ *               | 15 16 17 18 19 | \n
+ *               | 20 21 22 23 24 | \n
+ *         
+ * @note    The 25 values are represented as unsigned char numbers.
+ *
+ *****************************************************************************/
+typedef struct Cam5x5UCharMatrix_s
+{
+        uint8_t uCoeff[5*5];              /**< array of 5x5 unsigned char values */
+} Cam5x5UCharMatrix_t;
 
 
 /*****************************************************************************/
@@ -691,6 +710,75 @@ typedef struct CamCacProfile_s
     int16_t                 vCenterOffset;
 } CamCacProfile_t;
 
+/**
+ * @brief   Enumeration type to configure de-noising level.
+ *
+ */
+typedef enum CamerIcIspFltDeNoiseLevel_e
+{
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_INVALID   = 0,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_0         = 1,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_1         = 2,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_2         = 3,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_3         = 4,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_4         = 5,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_5         = 6,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_6         = 7,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_7         = 8,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_8         = 9,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_9         = 10,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_10        = 11,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_TEST      = 12,
+    CAMERIC_ISP_FLT_DENOISE_LEVEL_MAX
+} CamerIcIspFltDeNoiseLevel_t;
+
+
+
+/**
+ * @brief   Enumeration type to configure sharpening level.
+ *
+ */
+typedef enum CamerIcIspFltSharpeningLevel_e
+{
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_INVALID   = 0,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_0         = 1,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_1         = 2,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_2         = 3,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_3         = 4,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_4         = 5,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_5         = 6,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_6         = 7,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_7         = 8,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_8         = 9,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_9         = 10,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_10        = 11,
+    CAMERIC_ISP_FLT_SHARPENING_LEVEL_MAX
+} CamerIcIspFltSharpeningLevel_t;
+
+
+/*****************************************************************************/
+/**
+ * @brief   parameters for a sensorgain to saturation interpolation
+ */
+/*****************************************************************************/
+typedef struct CamDenoiseLevelCurve_s
+{
+    uint16_t    ArraySize;
+    float       *pSensorGain;
+    CamerIcIspFltDeNoiseLevel_t        *pDlevel;
+} CamDenoiseLevelCurve_t;
+
+/*****************************************************************************/
+/**
+ * @brief   parameters for a sensorgain to saturation interpolation
+ */
+/*****************************************************************************/
+typedef struct CamSharpeningLevelCurve_s
+{
+    uint16_t    ArraySize;
+    float       *pSensorGain;
+    CamerIcIspFltSharpeningLevel_t      *pSlevel;
+} CamSharpeningLevelCurve_t;
 
 
 /*****************************************************************************/
@@ -713,6 +801,10 @@ typedef struct CamDpfProfile_s
     float                   fGradient;          /**< */
     float                   fOffset;            /**< */
     Cam1x4FloatMatrix_t     NfGains;            /**< */
+
+    CamDenoiseLevelCurve_t        DenoiseLevelCurve;   
+    CamSharpeningLevelCurve_t     SharpeningLevelCurve;    
+	float FilterEnable;
 } CamDpfProfile_t;
 
 
@@ -808,6 +900,15 @@ typedef struct CamAwbFade2Parm_s
     float*      pCbMinRegionMin;
     float*      pCrMinRegionMin;
     float*      pMaxCSumRegionMin;
+	float*		pMinCRegionMax;
+	float*    	pMinCRegionMin;
+	float*		pMaxYRegionMax;
+	float*		pMaxYRegionMin;
+	float*		pMinYMaxGRegionMax;
+	float*		pMinYMaxGRegionMin;
+	float*  	pRefCb;
+	float*		pRefCr;
+	uint16_t	regionAdjustEnable;
     uint16_t    ArraySize;
 } CamAwbFade2Parm_t;
 
@@ -889,6 +990,8 @@ typedef struct CamCalibAwbGlobal_s
     float                   fRegionSize;
     float                   fRegionSizeInc;
     float                   fRegionSizeDec;
+    float                   awbMeasWinWidthScale;
+    float                   awbMeasWinHeightScale;
 
     CamCalibIIR_t           IIR;
 } CamCalibAwbGlobal_t;
@@ -926,6 +1029,19 @@ typedef struct CamEcmProfile_s
     List                    ecm_scheme;                 /**< list of ECM schemes; at least one item is expected */
 } CamEcmProfile_t;
 
+/*****************************************************************************/
+/**
+ * @brief   Matrix coefficients
+ *
+ *          | 0 | 1 |  2 |3| 4 |  5 |
+ *
+ * @note    Coefficients are represented as float numbers
+ */
+/*****************************************************************************/
+typedef struct Cam6x1FloatMatrix
+{
+	float fCoeff[6];
+} Cam6x1FloatMatrix_t;
 
 
 /*****************************************************************************/
@@ -942,8 +1058,66 @@ typedef struct CamCalibAecGlobal_s
     float                   DampOverVideo;              /**< damping coefficient for video mode */
     float                   DampUnderVideo;             /**< damping coefficient for video mode */
     float                   AfpsMaxGain;
+    Cam5x5UCharMatrix_t     GridWeights;//cxf
+    float					EcmDotEnable;
+    Cam6x1FloatMatrix_t     EcmTimeDot;
+    Cam6x1FloatMatrix_t     EcmGainDot;
+    float                   MeasuringWinWidthScale;//cxf
+    float                   MeasuringWinHeightScale;//cxf
 } CamCalibAecGlobal_t;
+#if 1
+/******************************************************************************/
+/**
+ * @brief   Enumeration type for x scaling of the gamma curve 
+ *
+ * @note    This structure needs to be converted to driver structure
+ *
+ *****************************************************************************/
+typedef enum CamEngineGammaOutXScale_e
+{
+    CAM_ENGINE_GAMMAOUT_XSCALE_INVALID  = 0,    /**< lower border (only for an internal evaluation) */
+    CAM_ENGINE_GAMMAOUT_XSCALE_LOG      = 1,    /**< logarithmic segmentation from 0 to 4095 
+                                                     (64,64,64,64,128,128,128,128,256,256,256,512,512,512,512,512) */
+    CAM_ENGINE_GAMMAOUT_XSCALE_EQU      = 2,    /**< equidistant segmentation from 0 to 4095
+                                                     (256, 256, ... ) */
+    CAM_ENGINE_GAMMAOUT_XSCALE_MAX              /**< upper border (only for an internal evaluation) */
+} CamEngineGammaOutXScale_t;
 
+ /******************************************************************************/
+ /**
+ * @brief   This macro defines the number of elements in a gamma-curve.
+ *
+ *****************************************************************************/
+#define CAMERIC_ISP_GAMMA_CURVE_SIZE        17
+/* @endcond */
+
+
+/******************************************************************************/
+/**
+ * @brief   Structure to configure the gamma curve.
+ *
+ * @note    This structure needs to be converted to driver structure
+ *
+ *****************************************************************************/
+typedef struct CamEngineGammaOutCurve_s
+{
+    CamEngineGammaOutXScale_t   xScale;
+    uint16_t                    GammaY[CAMERIC_ISP_GAMMA_CURVE_SIZE];
+} CamEngineGammaOutCurve_t;
+
+
+
+/*****************************************************************************/
+/**
+ * @brief   Gamma calibration structure
+ */
+/*****************************************************************************/
+typedef struct CamCalibGammaOut_s
+{
+	CamEngineGammaOutCurve_t Curve;
+
+} CamCalibGammaOut_t;
+#endif
 
 
 /*****************************************************************************/

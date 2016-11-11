@@ -616,6 +616,11 @@ RESULT AecUnLock
     AecHandle_t handle
 );
 
+RESULT AecGetGridWeights
+(
+	AecHandle_t handle,
+	CamerIcHistWeights_t pWeights
+);
 
 
 

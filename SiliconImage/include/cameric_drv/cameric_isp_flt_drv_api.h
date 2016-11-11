@@ -43,56 +43,12 @@
 
 #include <ebase/types.h>
 #include <common/return_codes.h>
+#include <common/cam_types.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-/**
- * @brief   Enumeration type to configure de-noising level.
- *
- */
-typedef enum CamerIcIspFltDeNoiseLevel_e
-{
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_INVALID   = 0,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_0         = 1,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_1         = 2,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_2         = 3,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_3         = 4,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_4         = 5,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_5         = 6,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_6         = 7,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_7         = 8,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_8         = 9,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_9         = 10,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_10        = 11,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_TEST      = 12,
-    CAMERIC_ISP_FLT_DENOISE_LEVEL_MAX
-} CamerIcIspFltDeNoiseLevel_t;
-
-
-
-/**
- * @brief   Enumeration type to configure sharpening level.
- *
- */
-typedef enum CamerIcIspFltSharpeningLevel_e
-{
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_INVALID   = 0,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_0         = 1,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_1         = 2,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_2         = 3,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_3         = 4,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_4         = 5,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_5         = 6,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_6         = 7,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_7         = 8,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_8         = 9,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_9         = 10,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_10        = 11,
-    CAMERIC_ISP_FLT_SHARPENING_LEVEL_MAX
-} CamerIcIspFltSharpeningLevel_t;
 
 
 

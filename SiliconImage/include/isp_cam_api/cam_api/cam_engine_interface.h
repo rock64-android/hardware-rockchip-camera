@@ -270,11 +270,20 @@
     1) support limit frame rate.
 *v1.0x41.0:
     1) support android Nougat.
+*v1.0x42.0:
+    1) Gammaout can config in IQ xml.
+    2) AEC/Histogram region weights can config in IQ xml.
+    3) AEC measuring window can config in IQ xml.
+    4) Denosise/sharpen level can config under different gains in IQ xml.
+    5) AEC exposure curve can config in IQ xml.
+	6) AWB measuring window can config in IQ xml.
+*v1.0x43.0:
+    1) fix ion handle compile error when compatible with android marshallow and nougat.
 */
 
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x41, 0)
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x43, 0)
 
 
 class CamEngineItf;
@@ -605,7 +614,7 @@ public:
     void gamCorrectStatus( bool& running );
     void gamCorrectEnable();
     void gamCorrectDisable();
-    void gamCorrectSetCurve( CamEngineGammaOutCurve_t GammaCurve );
+    void gamCorrectSetCurve();
 
 	
 	void ColorConversionSetRange(CamerIcColorConversionRange_t YConvRange,CamerIcColorConversionRange_t CrConvRange);

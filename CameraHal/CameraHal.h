@@ -618,9 +618,13 @@ V1.0x44.0:
 *v1.0x45.0:
   include from 69 server:V1.0x44.1:  1) atuo ae CentreWeightMetering.
   1) support android Nougat.
+V1.0x46.0:
+  1) gammaout curve configuration moved to IQ xml.
+V1.0x47.0:
+  1) update cameragl library(support android nougat).
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x45, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x47, 0)
 
 
 /*  */
