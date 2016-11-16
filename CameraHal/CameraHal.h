@@ -622,9 +622,11 @@ V1.0x46.0:
   1) gammaout curve configuration moved to IQ xml.
 V1.0x47.0:
   1) update cameragl library(support android nougat).
+V1.0x47.1:
+  1) fix get support picture sizes error.
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x47, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x47, 1)
 
 
 /*  */

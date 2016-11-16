@@ -919,7 +919,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         
         memset(string,0x00,sizeof(string));
         sprintf(string,"%dx%d",max_w,max_h);
-        //parameterString = string;
+        parameterString = string;
 		int interpolationRes = pCamInfo->mSoftInfo.mInterpolationRes;
 		if(interpolationRes){			
 	        if (max_w*10/max_h == 40/3) {          //  4:3 Sensor
