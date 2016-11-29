@@ -1,6 +1,11 @@
 #include "CameraHal.h"
 #include <MetadataBufferType.h>
 #include <media/hardware/HardwareAPI.h>
+
+#include <binder/IMemory.h>
+#include <binder/MemoryBase.h>
+#include <binder/MemoryHeapBase.h>
+
 namespace android {
 
 
@@ -404,6 +409,7 @@ bool AppMsgNotifier::isNeedSendToPicture()
         return false;
 }
 
+static struct alloc_device_t *g_mGrallocAllocDev = NULL; 
 int AppMsgNotifier::grallocDevInit()
 {
 	int ret;
@@ -414,10 +420,13 @@ int AppMsgNotifier::grallocDevInit()
 	   LOGE("%s: Unable to get gralloc module (error %d)", __func__, ret);
 	}
 	else {
-	   ret = gralloc_open((const struct hw_module_t*)mGrallocModule, &mGrallocAllocDev);
-	   if (ret < 0) {
-		  LOGE("%s: Unable to open gralloc alloc device (error %d)", __func__, ret);
-	   }
+		if (!g_mGrallocAllocDev) {	
+		   ret = gralloc_open((const struct hw_module_t*)mGrallocModule, &g_mGrallocAllocDev);
+		   if (ret < 0) {
+			  LOGE("%s: Unable to open gralloc alloc device (error %d)", __func__, ret);
+		   }
+		}
+		mGrallocAllocDev = g_mGrallocAllocDev;
 	}
 	LOG_FUNCTION_NAME_EXIT
 	return ret;
@@ -428,11 +437,19 @@ int AppMsgNotifier::grallocDevDeinit()
 	int ret=0;
 	LOG_FUNCTION_NAME
 	if (mGrallocAllocDev != NULL) {
+#if defined(RK_DRM_GRALLOC) 
+	//DRM gralloc has a crash bug now  when closed,
+	//so not closed temporarily.here will lead gralloc device 
+	//memory leak everytime when cameraservice restart
+#else
 	   ret = gralloc_close(mGrallocAllocDev);
 	   if (ret < 0)
 		  LOGE("%s: gralloc_close failed (error %d)", __func__, ret);
-	   else
+	   else {
 	   	  mGrallocAllocDev = NULL;
+		  g_mGrallocAllocDev = NULL;
+	   }
+#endif
 	}
 	mGrallocModule = NULL;
 	LOG_FUNCTION_NAME_EXIT
@@ -511,7 +528,11 @@ void AppMsgNotifier::grallocVideoBufAlloc(
             pVideoBuf->vir_addr = (long)buffHandle->base;
         #elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368)
             pVideoBuf->vir_addr = (long)virtAddr;
-        #endif				
+        #endif
+		//get fd
+		#if defined(RK_DRM_GRALLOC)
+		util_get_gralloc_buf_fd((buffer_handle_t)buffHandle,(int*)(&pVideoBuf->phy_addr));
+		#endif
         LOG1("pVideoBuf->vir_addr= %p,buffer_hnd=0x%x,priv_hnd=0x%x",pVideoBuf->vir_addr,pVideoBuf->buffer_hnd,pVideoBuf->priv_hnd);
  	}
 	return;
@@ -1339,12 +1360,21 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
         LOGE("mRawBufferProvider->getOneAvailableBuffer FAILED");
         goto 	captureEncProcessPicture_exit;
     }
+
+	#if	defined(RK_DRM_GRALLOC) // should use fd
+	rawbuf_phy = mRawBufferProvider->getBufShareFd(bufindex);
+	#endif
+	
 	//mRawBufferProvider->setBufferStatus(bufindex, 1);		
     bufindex=mJpegBufferProvider->getOneAvailableBuffer(&jpegbuf_phy, &jpegbuf_vir);
     if(bufindex < 0){
         LOGE("mJpegBufferProvider->getOneAvailableBuffer FAILED");
         goto 	captureEncProcessPicture_exit;
     }
+
+	#if defined(RK_DRM_GRALLOC) // should use fd
+	jpegbuf_phy = mJpegBufferProvider->getBufShareFd(bufindex);
+	#endif
     
     g_rawbufProvider = mRawBufferProvider;
     g_jpegbufProvider = mJpegBufferProvider;
@@ -1384,9 +1414,15 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
                 {
                   mIs_Verifier = false;
                 }
+				#if defined(RK_DRM_GRALLOC)
+				rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+		                            (char*)(frame->phy_addr), (short int *)rawbuf_phy, 
+		                            jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false);
+				#else
 				rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 		                            (char*)(frame->vir_addr), (short int *)rawbuf_vir, 
 		                            jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false);
+				#endif
 			#endif
         #endif
         input_phy_addr = output_phy_addr;
@@ -1550,6 +1586,7 @@ return ret;
 int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
     int ret = 0;
     int pixFmt;
+	sp<MemoryHeapBase> mHeap;
     mDataCbLock.lock();
     if ((mMsgTypeEnabled & CAMERA_MSG_PREVIEW_FRAME) && mDataCb) {
         //compute request mem size
@@ -1580,7 +1617,13 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
             LOGE("%s(%d): pixel format %s is unknow!",__FUNCTION__,__LINE__,mPreviewDataFmt);        
         }
         mDataCbLock.unlock();
+		
+		#if defined(RK_DRM_GRALLOC)
+		mHeap = new MemoryHeapBase(tempMemSize_crop * 1);
+        tmpPreviewMemory = mRequestMemory(mHeap->getHeapID(), tempMemSize_crop, 1, NULL);
+		#else
         tmpPreviewMemory = mRequestMemory(-1, tempMemSize_crop, 1, NULL);
+		#endif
         if (tmpPreviewMemory) {
 #if 0
 			//QQ voip need NV21
@@ -1593,9 +1636,22 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
                                         (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,
                                         mPreviewDataW, mPreviewDataH,false,frame->zoom_value);
         }else{
+        	
+			#if defined(RK_DRM_GRALLOC)
+			#if 0
 			rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+					(char*)(frame->phy_addr), (short int *)(mHeap->getHeapID()), 
+					mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p);
+			#else
+			arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, pixFmt, (char*)(frame->vir_addr),
+					(char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,
+					mPreviewDataW, mPreviewDataH,false,frame->zoom_value);
+			#endif
+			#else
+            rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 					(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
 					mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p);
+			#endif
         }
 #endif
 			//arm_yuyv_to_nv12(frame->frame_width, frame->frame_height,(char*)(frame->vir_addr), (char*)buf_vir);
@@ -1655,9 +1711,16 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 	                                        (char*)buf_vir,frame->frame_width, frame->frame_height,
 	                                        mRecordW, mRecordH,false,frame->zoom_value);
 	        }else{
+				#if defined(RK_DRM_GRALLOC)
+				long fd = mVideoBufferProvider->getBufShareFd(buf_index);
+	            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+	                                (char*)(frame->phy_addr), (short int *)fd,
+	                                mRecordW,mRecordH,frame->zoom_value,false,true,false);
+				#else
 	            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                                (char*)(frame->vir_addr), (short int *)buf_vir,
 	                                mRecordW,mRecordH,frame->zoom_value,false,true,false);
+				#endif
 	        }
 	        #endif
 
@@ -1681,9 +1744,16 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
             (char*)buf_vir,frame->frame_width, frame->frame_height,
             mRecordW, mRecordH,false,frame->zoom_value);
         #else
+		
+		#if defined(RK_DRM_GRALLOC)
+	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+	                (char*)(frame->phy_addr), (short int*)(mGrallocVideoBuf[buf_index]->phy_addr),
+	                mRecordW,mRecordH,frame->zoom_value,false,true,false);
+		#else
 	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                (char*)(frame->vir_addr), (short int*)(mGrallocVideoBuf[buf_index]->vir_addr),
 	                mRecordW,mRecordH,frame->zoom_value,false,true,false);
+		#endif
         #endif
 
         callback_video_frame(mVideoBufs[buf_index]);

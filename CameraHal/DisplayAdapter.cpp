@@ -748,9 +748,17 @@ display_receive_cmd:
                                         mDisplayWidth, mDisplayHeight,
                                         false,frame->zoom_value);
                             }else{
+								#if defined(RK_DRM_GRALLOC)
+								int mem_fd = -1;
+								util_get_gralloc_buf_fd(*(mDisplayBufInfo[queue_display_index].buffer_hnd),&mem_fd);
+                                rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+                                        (char*)(frame->phy_addr), (short int *)((long)(mem_fd)),
+                                        mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false);
+								#else
                                 rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
                                         (char*)(frame->vir_addr), (short int *)(mDisplayBufInfo[queue_display_index].vir_addr),
                                         mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false);
+								#endif
                             }
 						#endif
 

@@ -124,6 +124,7 @@ extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21);
 extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int src_h,int dstbuf,int zoom_value);
 extern "C" void generateJPEG(uint8_t* data,int w, int h,char* outbuf,int* outSize);
+extern "C" int util_get_gralloc_buf_fd(buffer_handle_t handle,int* fd);
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 extern bool g_ctsV_flag;
 
@@ -626,9 +627,15 @@ V1.0x47.1:
   1) fix get support picture sizes error.
 V1.0x47.2
   1) support rk3328, compile ok now.
+v1.0x48.0:
+  1) support gralloc drm buffer allocation 
+v1.0x49.0:
+  1) support drm rga
+
 */
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x47, 2)
+
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 0)
 
 
 /*  */

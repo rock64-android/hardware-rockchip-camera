@@ -250,10 +250,14 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 m_camDevice->getYCSequence();
                 arm_isp_yuyv_12bit_to_8bit(width,height,(char*)y_addr_vir,m_camDevice->getYCSequence(),mIs10bit0To0);
                 y_addr += width*height*2;
+#if defined(RK_DRM_GRALLOC) // should use fd
+				phy_addr = -1;
+#else
                 if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
                     phy_addr = -1; //fd mode can't get offset,so must be copied when pic taken,ugly now
                 else
                     phy_addr = y_addr;
+#endif				
                 y_addr_vir= (void*)((unsigned long)y_addr_vir + width*height*2);
                 
 

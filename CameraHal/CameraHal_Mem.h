@@ -4,12 +4,15 @@
 #define CAMERA_MEM_PMEM 0
 #define CAMERA_MEM_ION  1
 #define CAMERA_MEM_IONDMA  2
+#define CAMERA_MEM_GRALLOC_DRM 3
 /* 
 *NOTE: 
 *   configuration macro 
 *      
 */
-#if  (defined(TARGET_RK32) || defined(TARGET_RK312x) || defined(TARGET_RK3188))
+#if	defined(RK_DRM_GRALLOC)
+#define CONFIG_CAMERA_MEM               CAMERA_MEM_GRALLOC_DRM
+#elif  (defined(TARGET_RK32) || defined(TARGET_RK312x) || defined(TARGET_RK3188))
 #define CONFIG_CAMERA_MEM               CAMERA_MEM_IONDMA
 #elif	defined(TARGET_RK30)
 #define CONFIG_CAMERA_MEM               CAMERA_MEM_ION
@@ -27,6 +30,9 @@
 #elif (CONFIG_CAMERA_MEM == CAMERA_MEM_IONDMA)
 #include <rockchip_ion.h>
 #include <ion.h>
+
+#elif (CONFIG_CAMERA_MEM == CAMERA_MEM_GRALLOC_DRM)
+#include "camera_mem.h"
 #endif
 #include <binder/IMemory.h>
 namespace android {
@@ -189,6 +195,40 @@ class IonDmaMemManager:public MemManagerBase{
 	    int client_fd;
 	    bool mIommuEnabled;
 
+};
+#endif
+
+#if (CONFIG_CAMERA_MEM == CAMERA_MEM_GRALLOC_DRM)
+class GrallocDrmMemManager:public MemManagerBase{
+	public :
+		GrallocDrmMemManager(bool iommuEnabled);
+		~GrallocDrmMemManager();
+
+		virtual int createPreviewBuffer(struct bufferinfo_s* previewbuf);
+		virtual int createRawBuffer(struct bufferinfo_s* rawbuf);
+		virtual int createJpegBuffer(struct bufferinfo_s* jpegbuf);
+		virtual int createVideoEncBuffer(struct bufferinfo_s* videoencbuf) ;
+
+		virtual int destroyPreviewBuffer();
+		virtual int destroyRawBuffer();
+		virtual int destroyJpegBuffer();
+		virtual int destroyVideoEncBuffer();
+		virtual int flushCacheMem(buffer_type_enum buftype,unsigned int offset, unsigned int len);
+
+		//map
+
+		//unmap
+
+		//share
+	private:
+		int createGrallocDrmBuffer(struct bufferinfo_s* grallocbuf);
+		void destroyGrallocDrmBuffer(buffer_type_enum buftype);
+		cam_mem_info_t** mPreviewData;
+		cam_mem_info_t** mRawData;
+		cam_mem_info_t** mJpegData;
+		cam_mem_info_t** mVideoEncData;
+		cam_mem_handle_t* mHandle;
+		cam_mem_ops_t* mOps;
 };
 #endif
 

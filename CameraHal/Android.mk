@@ -63,7 +63,13 @@ LOCAL_SRC_FILES:=\
 	CameraHal_board_xml_parse.cpp\
 	CameraHal_Tracer.c\
 	CameraIspTunning.cpp \
-	SensorListener.cpp
+	SensorListener.cpp\
+
+ifeq ($(strip $(BOARD_USE_DRM)), true)
+LOCAL_SRC_FILES += \
+	camera_mem_gralloc.cpp\
+	camera_mem.cpp
+endif	
 	
   
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)	 
@@ -176,6 +182,12 @@ LOCAL_SHARED_LIBRARIES:= \
     libjpeghwenc\
     libjpeg\
     libyuvtorgb
+endif
+
+ifeq ($(strip $(BOARD_USE_DRM)), true)
+LOCAL_C_INCLUDES += hardware/rockchip/librga
+LOCAL_SHARED_LIBRARIES +=librga
+LOCAL_SHARED_LIBRARIES +=libdrm
 endif
 
 LOCAL_CPPFLAGS := -fpermissive
@@ -301,6 +313,11 @@ endif
 ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 7.0)))
 LOCAL_CFLAGS += -DANDROID_7_X
 endif
+
+ifeq ($(strip $(BOARD_USE_DRM)), true)
+LOCAL_CFLAGS +=-DRK_DRM_GRALLOC=1	
+endif	
+
 
 #LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 ifneq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 5.0)))

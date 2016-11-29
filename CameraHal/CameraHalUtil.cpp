@@ -28,6 +28,9 @@
 
 #include "../jpeghw/release/encode_release/rk29-ipp.h"
 #include <utils/CallStack.h> 
+#if defined(RK_DRM_GRALLOC)
+#include <gralloc_drm.h>
+#endif
 
 #define MIN(x,y)   ((x<y) ? x: y)
 #define MAX(x,y)    ((x>y) ? x: y)
@@ -425,6 +428,119 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
 extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst, 
 									char *srcbuf, char *dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool mirror,int zoom_val);
 
+extern "C" int util_get_gralloc_buf_fd(buffer_handle_t handle,int* fd){
+	int err = 0;
+#if defined(RK_DRM_GRALLOC)
+	gralloc_module_t *gralloc_module = NULL;
+	hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (const hw_module_t **)&gralloc_module);
+	if (!gralloc_module)
+		ALOGE("error gralloc_module !!!!!");
+	int mem_fd = -1;
+	err = gralloc_module->perform(
+		gralloc_module, 
+		GRALLOC_MODULE_PERFORM_GET_HADNLE_PRIME_FD, 
+		handle, fd);
+	if (err)
+		LOGE("%s:get buffer fd error %d!",__func__,err);
+#else
+	err = -1;
+	LOGE("%s:not support !",__func__);
+#endif
+	return err;
+}
+
+
+#if defined(RK_DRM_GRALLOC)
+#include <RockchipRga.h>
+
+extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src_fd, short int *dst_fd, 
+										int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21)
+{
+    int ret = 0;
+	rga_info_t src,dst;
+	int src_cropW,src_cropH,dst_cropW,dst_cropH,zoom_cropW,zoom_cropH;
+	int ratio = 0;
+	int src_top_offset=0,src_left_offset=0,dst_top_offset=0,dst_left_offset=0,zoom_top_offset=0,zoom_left_offset=0;
+	
+	RockchipRga& rkRga(RockchipRga::get());
+	
+	memset(&src, 0, sizeof(rga_info_t));
+	src.fd = (unsigned long)src_fd;
+	src.mmuFlag = ((2 & 0x3) << 4) | 1 | (1 << 8) | (1 << 10);
+	memset(&dst, 0, sizeof(rga_info_t));
+	dst.fd = (unsigned long)dst_fd;
+	dst.mmuFlag = ((2 & 0x3) << 4) | 1 | (1 << 8) | (1 << 10);
+	
+	//src.hnd = NULL;
+	//dst.hnd = NULL;
+
+	/*has something wrong with rga of rk312x mirror operation*/
+#if defined(TARGET_RK312x)
+		if(mirror){
+			 LOGE("%s:rk312x rga not support mirror",__func__);
+			 ret = -1;
+			 goto failed;
+		}
+#endif 
+	/*rk3188 do not support yuv to yuv scale by rga*/
+#if defined(TARGET_RK3188)
+		{
+			LOGE("%s:rk3188 rga not yuv scale",__func__);
+			ret = -1;
+			goto failed;
+		}
+#endif
+	
+	if((dst_width > RGA_VIRTUAL_W) || (dst_height > RGA_VIRTUAL_H)){
+			LOGE("%s(%d):(dst_width > RGA_VIRTUAL_W) || (dst_height > RGA_VIRTUAL_H), switch to arm ",__FUNCTION__,__LINE__);
+			ret = -1;
+			goto failed;
+	}
+
+	//2) use rga
+
+	//need crop ? when cts FOV,don't crop
+	if(isNeedCrop && (src_width*100/src_height) != (dst_width*100/dst_height)){
+		ratio = ((src_width*100/dst_width) >= (src_height*100/dst_height))?(src_height*100/dst_height):(src_width*100/dst_width);
+		zoom_cropW = ratio*dst_width/100;
+		zoom_cropH = ratio*dst_height/100;
+		
+		zoom_left_offset=((src_width-zoom_cropW)>>1) & (~0x01);
+		zoom_top_offset=((src_height-zoom_cropH)>>1) & (~0x01);
+	}else{
+		zoom_cropW = src_width;
+		zoom_cropH = src_height;
+		zoom_left_offset=0;
+		zoom_top_offset=0;
+	}
+
+	if(zoom_val > 100){
+		zoom_cropW = zoom_cropW*100/zoom_val;
+		zoom_cropH = zoom_cropH*100/zoom_val;
+		zoom_left_offset = ((src_width-zoom_cropW)>>1) & (~0x01);
+		zoom_top_offset= ((src_height-zoom_cropH)>>1) & (~0x01);
+	}
+	
+	rga_set_rect(&src.rect, zoom_left_offset,zoom_top_offset,
+		zoom_cropW,zoom_cropH,src_width,src_height,HAL_PIXEL_FORMAT_YCrCb_NV12);
+	if (isDstNV21)
+		rga_set_rect(&dst.rect, 0,0,dst_width,dst_height,dst_width,dst_height,HAL_PIXEL_FORMAT_YCrCb_420_SP);
+	else
+		rga_set_rect(&dst.rect, 0,0,dst_width,dst_height,dst_width,dst_height,HAL_PIXEL_FORMAT_YCrCb_NV12);
+	if (mirror)
+		src.rotation = DRM_RGA_TRANSFORM_FLIP_H;
+	//TODO:sina,cosa,scale_mode,render_mode
+	ret = rkRga.RkRgaBlit(&src, &dst, NULL);
+	if (ret) {
+		LOGE("%s:rga blit failed",__func__);
+		goto failed;
+	}
+	
+	return ret;
+failed:
+	return ret;
+}
+#else
 extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, 
 										int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21)
 {
@@ -595,6 +711,7 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 	
     return err;
 }
+#endif
 
 extern "C"  int arm_camera_yuv420_scale_arm(int v4l2_fmt_src, int v4l2_fmt_dst, 
 									char *srcbuf, char *dstbuf,int src_w, int src_h,int dst_w, int dst_h,bool mirror,int zoom_val)

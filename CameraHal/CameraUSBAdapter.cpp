@@ -916,11 +916,14 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
     int ret = 0;
 	long phy_addr;
 
+#if defined(RK_DRM_GRALLOC) // should use fd
+	phy_addr = mPreviewBufProvider->getBufShareFd(frame->frame_index);
+#else
 	if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
 		phy_addr = mPreviewBufProvider->getBufShareFd(frame->frame_index);
 	else
 		phy_addr = mPreviewBufProvider->getBufPhyAddr(frame->frame_index);
-
+#endif
     if( frame->frame_fmt == V4L2_PIX_FMT_MJPEG){
     	   char *srcbuf = (char*)frame->vir_addr;
     	   if((srcbuf[0] == 0xff) && (srcbuf[1] == 0xd8) && (srcbuf[2] == 0xff)){

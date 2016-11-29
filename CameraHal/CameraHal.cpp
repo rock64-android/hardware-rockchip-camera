@@ -90,6 +90,9 @@ CameraHal::CameraHal(int cameraId)
 	#elif(CONFIG_CAMERA_MEM == CAMERA_MEM_IONDMA)
 		mCamMemManager = new IonDmaMemManager(gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled);
         LOG1("%s(%d): Camera Hal memory is alloced from ION device",__FUNCTION__,__LINE__);
+	#elif(CONFIG_CAMERA_MEM == CAMERA_MEM_GRALLOC_DRM)
+			mCamMemManager = new GrallocDrmMemManager(gCamInfos[cameraId].pcam_total_info->mIsIommuEnabled);
+			LOG1("%s(%d): Camera Hal memory is alloced from GRALLOC device",__FUNCTION__,__LINE__);
     #elif(CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)
         if(access(CAMERA_PMEM_NAME, O_RDWR) < 0) {
             LOGE("%s(%d): %s isn't registered, CameraHal_Mem current configuration isn't support ION memory!!!",

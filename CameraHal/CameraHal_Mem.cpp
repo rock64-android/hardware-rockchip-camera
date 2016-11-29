@@ -865,6 +865,404 @@ int IonDmaMemManager::flushCacheMem(buffer_type_enum buftype,unsigned int offset
 
 /******************ION BUFFER END*******************/
 
+/******************GRALLOC DRM BUFFER START*******************/
+
+#if (CONFIG_CAMERA_MEM == CAMERA_MEM_GRALLOC_DRM)
+GrallocDrmMemManager::GrallocDrmMemManager(bool iommuEnabled)
+			     :MemManagerBase(),
+			      mPreviewData(NULL),
+			      mRawData(NULL),
+			      mJpegData(NULL),
+				mVideoEncData(NULL),
+				mHandle(NULL),
+				mOps(NULL)
+{
+	mOps = get_cam_ops(CAM_MEM_TYPE_GRALLOC);
+	
+	if (mOps)
+		mHandle = mOps->init(iommuEnabled ? 1:0,
+					CAM_MEM_FLAG_HW_WRITE | CAM_MEM_FLAG_HW_READ | CAM_MEM_FLAG_SW_WRITE | CAM_MEM_FLAG_SW_READ,
+					0);
+}
+
+GrallocDrmMemManager::~GrallocDrmMemManager()
+{
+	if (mPreviewData) {
+		destroyPreviewBuffer();
+		free(mPreviewData);
+        mPreviewData = NULL;
+	}
+	if(mRawData) {
+		destroyRawBuffer();
+		free(mRawData);
+        mRawData = NULL;
+	}
+	if(mJpegData) {
+		destroyJpegBuffer();
+		free(mJpegData);
+        mJpegData = NULL;
+	}
+	if(mVideoEncData) {
+		destroyVideoEncBuffer();
+		free(mVideoEncData);
+		mVideoEncData = NULL;
+	}
+	if(mHandle)
+		mOps->deInit(mHandle);
+
+}
+
+int GrallocDrmMemManager::createGrallocDrmBuffer(struct bufferinfo_s* grallocbuf)
+{
+	int ret =0,i = 0;
+	int numBufs;
+	int frame_size;
+	cam_mem_info_t** tmpalloc = NULL;
+	struct bufferinfo_s* tmp_buf = NULL;
+
+	if (!grallocbuf) {
+		LOGE("gralloc_alloc malloc buffer failed");
+		return -1;
+	}
+    
+	numBufs = grallocbuf->mNumBffers;
+	frame_size = grallocbuf->mPerBuffersize;
+	grallocbuf->mBufferSizes = numBufs*PAGE_ALIGN(frame_size);
+	switch(grallocbuf->mBufType)
+	{
+		case PREVIEWBUFFER:
+            tmpalloc = mPreviewData ;
+			if((tmp_buf  = (struct bufferinfo_s*)malloc(numBufs*sizeof(struct bufferinfo_s))) != NULL){
+                mPreviewBufferInfo = tmp_buf;
+            }else{
+        		LOGE("gralloc_alloc malloc buffer failed");
+        		return -1;
+            }
+			break;
+		case RAWBUFFER:
+            tmpalloc =  mRawData;
+			if((tmp_buf = (struct bufferinfo_s*)malloc(numBufs*sizeof(struct bufferinfo_s))) != NULL){
+                mRawBufferInfo = tmp_buf;
+            }else{
+        		LOGE("gralloc_alloc malloc buffer failed");
+        		return -1;
+            }
+			break;
+		case JPEGBUFFER:
+            tmpalloc = mJpegData;
+			if((tmp_buf  = (struct bufferinfo_s*)malloc(numBufs*sizeof(struct bufferinfo_s))) != NULL ){
+                mJpegBufferInfo = tmp_buf;
+            }else{
+        		LOGE("gralloc_alloc malloc buffer failed");
+        		return -1;
+            }
+			break;
+		case VIDEOENCBUFFER:
+            tmpalloc =  mVideoEncData ;
+
+            if((tmp_buf = (struct bufferinfo_s*)malloc(numBufs*sizeof(struct bufferinfo_s))) != NULL){
+                mVideoEncBufferInfo = tmp_buf;
+            }else{
+        		LOGE("gralloc_alloc malloc buffer failed");
+        		return -1;
+            }
+			break;
+        default:
+            return -1;
+    }
+
+    for(i = 0;i < numBufs;i++){
+		*tmpalloc = mOps->alloc(mHandle,grallocbuf->mPerBuffersize);
+		if (*tmpalloc) {
+			#if 0
+			//if iommu needed,should get camsys_fd first
+			//get phy and iommu address
+			if (mOps->iommu_map(mHandle,*tmpalloc)) {
+				mOps->free(mHandle,*tmpalloc);
+				LOGE("gralloc mOps->iommu_map failed");
+				ret = -1;
+				break;
+			}
+			#endif
+			
+		} else {
+			LOGE("gralloc mOps->alloc failed");
+			ret = -1;
+			break;
+		}
+    	grallocbuf->mPhyBaseAddr = (unsigned long)((*tmpalloc)->phy_addr);
+    	grallocbuf->mVirBaseAddr = (unsigned long)((*tmpalloc)->vir_addr);
+    	grallocbuf->mPerBuffersize = PAGE_ALIGN(frame_size);
+    	grallocbuf->mShareFd     = (unsigned int)((*tmpalloc)->fd);
+		*tmp_buf = *grallocbuf;
+		tmp_buf++;
+        tmpalloc++;
+		
+    }
+    if(ret < 0){
+        LOGE(" failed !");
+        while(--i >= 0){
+            --tmpalloc;
+            --tmp_buf;
+#if 0
+			//if iommu needed,should get camsys_fd first
+            mOps->iommu_map(mHandle,*tmpalloc);
+#endif
+			mOps->free(mHandle,*tmpalloc);
+        }
+        free(*tmpalloc);
+        free(tmp_buf);
+    }
+    return ret;
+}
+
+void GrallocDrmMemManager::destroyGrallocDrmBuffer(buffer_type_enum buftype)
+{
+	cam_mem_info_t** tmpalloc = NULL;
+    int err = 0;
+	struct bufferinfo_s* tmp_buf = NULL;
+	long temp_handle = 0;
+   
+	switch(buftype)
+	{
+		case PREVIEWBUFFER:
+			tmpalloc = mPreviewData;
+            tmp_buf = mPreviewBufferInfo;
+			break;
+		case RAWBUFFER:
+			tmpalloc = mRawData;
+            tmp_buf = mRawBufferInfo;
+			break;
+		case JPEGBUFFER:
+			tmpalloc = mJpegData;
+            tmp_buf = mJpegBufferInfo;
+			break;
+		case VIDEOENCBUFFER:
+			tmpalloc = mVideoEncData;
+            tmp_buf = mVideoEncBufferInfo;
+			break;
+
+        default:
+		   	LOGE("buffer type is wrong !");
+            break;
+	}
+
+
+    for(unsigned int i = 0;(tmp_buf && (i < tmp_buf->mNumBffers));i++){
+    	if(*tmpalloc && (*tmpalloc)->vir_addr) {
+#if 0
+			//if iommu needed,should get camsys_fd first
+            mOps->iommu_map(mHandle,*tmpalloc);
+#endif
+			mOps->free(mHandle,*tmpalloc);
+        }
+        tmpalloc++;
+    }
+
+	switch(buftype)
+	{
+		case PREVIEWBUFFER:
+			free(mPreviewData);
+			mPreviewData = NULL;
+            free(mPreviewBufferInfo);
+            mPreviewBufferInfo = NULL;
+			break;
+		case RAWBUFFER:
+			free(mRawData);
+            mRawData = NULL;
+            free(mRawBufferInfo);
+            mRawBufferInfo = NULL;
+			break;
+		case JPEGBUFFER:
+			free(mJpegData);
+            mJpegData = NULL;
+            free(mJpegBufferInfo);
+            mJpegBufferInfo = NULL;
+			break;
+		case VIDEOENCBUFFER:
+			free(mVideoEncData);
+            mVideoEncData = NULL;
+            free(mVideoEncBufferInfo);
+            mVideoEncBufferInfo = NULL;
+			break;
+
+        default:
+		   	LOGE("buffer type is wrong !");
+            break;
+	}
+
+    
+}
+
+
+int GrallocDrmMemManager::createVideoEncBuffer(struct bufferinfo_s* videoencbuf)
+{
+	LOG_FUNCTION_NAME
+	int ret;
+	Mutex::Autolock lock(mLock);
+	
+	if(videoencbuf->mBufType != VIDEOENCBUFFER)
+		LOGE("the type is not VIDEOENCBUFFER");
+	
+	if(!mVideoEncData) {
+		mVideoEncData = (cam_mem_info_t**)malloc(sizeof(cam_mem_info_t*) * videoencbuf->mNumBffers);
+	} else if((*mVideoEncData)->vir_addr) {
+		LOG1("FREE the video buffer alloced before firstly");
+		destroyVideoEncBuffer();
+	}
+	
+	memset(mVideoEncData,0,sizeof(cam_mem_info_t*)* videoencbuf->mNumBffers);
+	
+	ret = createGrallocDrmBuffer(videoencbuf);
+	if (ret == 0) {
+		LOG1("Video buffer information(phy:0x%x vir:0x%x size:0x%x)",
+			mVideoEncBufferInfo->mPhyBaseAddr,mVideoEncBufferInfo->mVirBaseAddr,mVideoEncBufferInfo->mBufferSizes);
+	} else {
+		LOGE("Video buffer alloc failed");
+	}
+	LOG_FUNCTION_NAME_EXIT
+	return ret;
+}
+int GrallocDrmMemManager::destroyVideoEncBuffer()
+{
+	LOG_FUNCTION_NAME
+	Mutex::Autolock lock(mLock);
+
+	destroyGrallocDrmBuffer(VIDEOENCBUFFER);
+
+	LOG_FUNCTION_NAME_EXIT
+	return 0;
+
+}
+
+int GrallocDrmMemManager::createPreviewBuffer(struct bufferinfo_s* previewbuf)
+{
+	LOG_FUNCTION_NAME
+    int ret;
+	Mutex::Autolock lock(mLock);
+    
+	if(previewbuf->mBufType != PREVIEWBUFFER)
+		LOGE("the type is not PREVIEWBUFFER");
+    
+	if(!mPreviewData) {
+		mPreviewData = (cam_mem_info_t**)malloc(sizeof(cam_mem_info_t*) * previewbuf->mNumBffers);
+		if(!mPreviewData){
+			LOGE("malloc mPreviewData failed!");
+			ret = -1;
+			return ret;
+		}
+	} else if((*mPreviewData)->vir_addr) {
+		LOG1("FREE the preview buffer alloced before firstly");
+		destroyPreviewBuffer();
+	}
+    
+	memset(mPreviewData,0,sizeof(cam_mem_info_t*)* previewbuf->mNumBffers);
+    
+    ret = createGrallocDrmBuffer(previewbuf);
+    if (ret == 0) {
+        LOG1("Preview buffer information(phy:0x%x vir:0x%x size:0x%x)",
+            mPreviewBufferInfo->mPhyBaseAddr,mPreviewBufferInfo->mVirBaseAddr,mPreviewBufferInfo->mBufferSizes);
+    } else {
+        LOGE("Preview buffer alloc failed");
+    }
+    LOG_FUNCTION_NAME_EXIT
+	return ret;
+}
+int GrallocDrmMemManager::destroyPreviewBuffer()
+{
+	LOG_FUNCTION_NAME
+	Mutex::Autolock lock(mLock);
+
+	destroyGrallocDrmBuffer(PREVIEWBUFFER);
+
+	LOG_FUNCTION_NAME_EXIT
+	return 0;
+
+}
+
+int GrallocDrmMemManager::createRawBuffer(struct bufferinfo_s* rawbuf)
+{
+	LOG_FUNCTION_NAME
+    int ret;
+	Mutex::Autolock lock(mLock);
+    
+	if (rawbuf->mBufType != RAWBUFFER)
+		LOGE("the type is not RAWBUFFER");
+
+    if (!mRawData) {
+		mRawData = (cam_mem_info_t**)malloc(sizeof(cam_mem_info_t*) * rawbuf->mNumBffers);
+	} else if((*mRawData)->vir_addr) {
+		LOG1("FREE the raw buffer alloced before firstly");
+		destroyRawBuffer();
+	}
+	memset(mRawData,0,sizeof(cam_mem_info_t*)* rawbuf->mNumBffers);
+
+    ret = createGrallocDrmBuffer(rawbuf);
+    if (ret == 0) {
+        LOG1("Raw buffer information(phy:0x%x vir:0x%x size:0x%x)",
+            mRawBufferInfo->mPhyBaseAddr,mRawBufferInfo->mVirBaseAddr,mRawBufferInfo->mBufferSizes);
+    } else {
+        LOGE("Raw buffer alloc failed");
+    }
+    LOG_FUNCTION_NAME_EXIT
+	return ret;
+
+}
+int GrallocDrmMemManager::destroyRawBuffer()
+{
+	LOG_FUNCTION_NAME
+	Mutex::Autolock lock(mLock);
+	destroyGrallocDrmBuffer(RAWBUFFER);
+	LOG_FUNCTION_NAME_EXIT
+	return 0;
+}
+
+ int GrallocDrmMemManager::createJpegBuffer(struct bufferinfo_s* jpegbuf)
+ {
+    LOG_FUNCTION_NAME
+    int ret;
+    Mutex::Autolock lock(mLock);
+
+    if(jpegbuf->mBufType != JPEGBUFFER)
+        LOGE("the type is not JPEGBUFFER");
+
+    if(!mJpegData) {
+        mJpegData = (cam_mem_info_t**)malloc(sizeof(cam_mem_info_t*) * jpegbuf->mNumBffers);
+    } else if((*mJpegData)->vir_addr) {
+        LOG1("FREE the jpeg buffer alloced before firstly");
+        destroyJpegBuffer();
+    }
+    memset(mJpegData,0,sizeof(cam_mem_info_t*)* jpegbuf->mNumBffers);
+    
+    ret = createGrallocDrmBuffer(jpegbuf);
+    if (ret == 0) {
+        LOG1("Jpeg buffer information(phy:0x%x vir:0x%x size:0x%x)",
+            mJpegBufferInfo->mPhyBaseAddr,mJpegBufferInfo->mVirBaseAddr,mJpegBufferInfo->mBufferSizes);
+    } else {
+        LOGE("Jpeg buffer alloc failed");
+    }
+    LOG_FUNCTION_NAME_EXIT
+	return ret;
+
+ }
+int GrallocDrmMemManager::destroyJpegBuffer()
+{
+	 LOG_FUNCTION_NAME
+	 Mutex::Autolock lock(mLock);
+	 destroyGrallocDrmBuffer(JPEGBUFFER);
+	 LOG_FUNCTION_NAME_EXIT
+	 return 0;
+
+}
+int GrallocDrmMemManager::flushCacheMem(buffer_type_enum buftype,unsigned int offset, unsigned int len)
+{
+    Mutex::Autolock lock(mLock);
+
+    return 0;
+}
+#endif
+/******************GRALLOC DRM BUFFER END*******************/
+
 /*****************pmem buffer start*******************/
 #if (CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)
 PmemManager::PmemManager(char* devpath)

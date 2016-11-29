@@ -152,6 +152,8 @@ typedef struct HalPara_s
 	uint32_t vcmpwr_delay;
 	uint32_t vcmpwrdn_delay;
 	bool_t     is_new_ion;
+	//mem_ops type is cam_mem_ops_t*
+	void* mem_ops;
 } HalPara_t;
 
 /*****************************************************************************/

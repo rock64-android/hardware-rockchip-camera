@@ -127,7 +127,7 @@ int CameraIspAdapter::cameraCreate(int cameraId)
     LOG_FUNCTION_NAME
 	rk_cam_total_info *pCamInfo = gCamInfos[cameraId].pcam_total_info;
 	char* dev_filename = pCamInfo->mHardInfo.mSensorInfo.mCamsysDevPath;
-    HalPara_t isp_halpara;
+    HalPara_t isp_halpara = {0};
 	int mipiLaneNum = 0;
 	int i =0;
 
@@ -144,6 +144,13 @@ int CameraIspAdapter::cameraCreate(int cameraId)
 #else
 	isp_halpara.is_new_ion = (bool_t)false;
 #endif
+
+#if defined(RK_DRM_GRALLOC) // should use fd
+	isp_halpara.mem_ops = get_cam_ops(CAM_MEM_TYPE_GRALLOC);
+#else
+	isp_halpara.mem_ops = NULL;
+#endif
+
     isp_halpara.mipi_lanes = mipiLaneNum;
 	mCtxCbResChange.pIspAdapter = (void*)this;
 	isp_halpara.sensorpowerupseq = pCamInfo->mHardInfo.mSensorInfo.mSensorPowerupSequence;
@@ -2151,11 +2158,17 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
             //get vir addr
             HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
             HalMapMemory( tmpHandle, uv_addr, 100, HAL_MAPMEM_READWRITE, &uv_addr_vir );
+
+			
+#if defined(RK_DRM_GRALLOC) // should use fd
+			HalGetMemoryMapFd(tmpHandle, y_addr,(int*)&phy_addr);
+#else
             if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
                 HalGetMemoryMapFd(tmpHandle, y_addr,(int*)&phy_addr);
             else
                 phy_addr = y_addr;
-            
+#endif
+           
             /* ddl@rock-chips.com:  v1.3.0 */
             y_size = pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicWidthPixel*pPicBufMetaData->Data.YCbCr.semiplanar.Y.PicHeightPixel;
             if (uv_addr > (y_addr+y_size)) {
@@ -2167,10 +2180,14 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
             width = pPicBufMetaData->Data.YCbCr.combined.PicWidthPixel>>1;
             height = pPicBufMetaData->Data.YCbCr.combined.PicHeightPixel;
             HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
+#if defined(RK_DRM_GRALLOC) // should use fd
+			HalGetMemoryMapFd(tmpHandle, y_addr,(int*)&phy_addr);
+#else
             if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
                 HalGetMemoryMapFd(tmpHandle, y_addr,(int*)&phy_addr);
             else
                 phy_addr = y_addr;
+#endif
         }
 
     } else if(pPicBufMetaData->Type == PIC_BUF_TYPE_RAW16) {
@@ -2180,10 +2197,14 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
         height = pPicBufMetaData->Data.raw.PicHeightPixel;
         fmt = V4L2_PIX_FMT_SBGGR10;
         HalMapMemory( tmpHandle, y_addr, 100, HAL_MAPMEM_READWRITE, &y_addr_vir );
+#if defined(RK_DRM_GRALLOC) // should use fd
+		HalGetMemoryMapFd(tmpHandle, y_addr,(int*)&phy_addr);
+#else
         if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
             HalGetMemoryMapFd(tmpHandle, y_addr,(int*)&phy_addr);
         else
             phy_addr = y_addr;
+#endif		
     } else {
         LOGE("not support this type(%dx%d)  ,just support  yuv20 now",width,height);
         return ;
