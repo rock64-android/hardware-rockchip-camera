@@ -441,6 +441,7 @@ int AppMsgNotifier::grallocDevDeinit()
 	//DRM gralloc has a crash bug now  when closed,
 	//so not closed temporarily.here will lead gralloc device 
 	//memory leak everytime when cameraservice restart
+	   mGrallocAllocDev = NULL;
 #else
 	   ret = gralloc_close(mGrallocAllocDev);
 	   if (ret < 0)
@@ -552,7 +553,7 @@ void AppMsgNotifier::grallocVideoBufFree()
 {
 	int ret,i;
 
-	LOG_FUNCTION_NAME	
+	LOG_FUNCTION_NAME
 	if (mGrallocAllocDev == NULL)
 		LOGE("%s: No gralloc alloc device, cannot free buffer", __func__);
 	else {
@@ -1701,7 +1702,8 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 
 	    mVideoBufferProvider->setBufferStatus(buf_index, 1);
 	    if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
-	        #if 0
+	        #if 1
+		buf_vir = mGrallocVideoBuf[buf_index]->vir_addr;
 	        arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
 	            (char*)buf_vir,frame->frame_width, frame->frame_height,
 	            mRecordW, mRecordH,false,frame->zoom_value);
@@ -1739,7 +1741,8 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 		mGrallocVideoBuf[buf_index]->buf_state = 1;
 
 		if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
-        #if 0
+        #if 1
+        buf_vir = mGrallocVideoBuf[buf_index]->vir_addr;
         arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
             (char*)buf_vir,frame->frame_width, frame->frame_height,
             mRecordW, mRecordH,false,frame->zoom_value);

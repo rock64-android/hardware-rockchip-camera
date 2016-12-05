@@ -980,7 +980,14 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 			if(max_w >= 1920 && max_h >= 1080){
 				parameterString.append(",1920x1080,1920x1088");
 			}
-		}
+		} else {
+            		if(max_w >= 1280 && max_h >= 720) {
+				parameterString.append(",1280x720");
+			}
+			if(max_w >= 1920 && max_h >= 1080){
+				parameterString.append(",1920x1080");
+			}
+        	}
 		if(uvnr_enable) {
 			if(max_w >= 4096 && max_h >= 3072)
 			{

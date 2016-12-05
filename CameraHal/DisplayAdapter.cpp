@@ -731,7 +731,7 @@ display_receive_cmd:
                 						(char*)(frame->vir_addr), (short int*)mDisplayBufInfo[queue_display_index].vir_addr,
                                          mDisplayWidth);
                     }else if((frame->frame_fmt == V4L2_PIX_FMT_NV12) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0)){
-                    #if 0
+                    #if 1
                         arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, 
 							(char*)(frame->vir_addr), (char*)mDisplayBufInfo[queue_display_index].vir_addr,
 							frame->frame_width, frame->frame_height,
