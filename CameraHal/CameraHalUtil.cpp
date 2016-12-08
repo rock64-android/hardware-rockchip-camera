@@ -453,8 +453,10 @@ extern "C" int util_get_gralloc_buf_fd(buffer_handle_t handle,int* fd){
 #if defined(RK_DRM_GRALLOC)
 #include <RockchipRga.h>
 
-extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src_fd, short int *dst_fd, 
-										int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21)
+extern "C" int rga_nv12_scale_crop(
+		int src_width, int src_height, char *src_fd, short int *dst_fd, 
+		int dst_width,int dst_height,int zoom_val,bool mirror,
+		bool isNeedCrop,bool isDstNV21,bool vir_addr)
 {
     int ret = 0;
 	rga_info_t src,dst;
@@ -465,10 +467,18 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src_fd, 
 	RockchipRga& rkRga(RockchipRga::get());
 	
 	memset(&src, 0, sizeof(rga_info_t));
-	src.fd = (unsigned long)src_fd;
+	if (vir_addr) {
+		src.fd = -1;
+		src.virAddr = (void*)src_fd;
+	} else
+		src.fd = (unsigned long)src_fd;
 	src.mmuFlag = ((2 & 0x3) << 4) | 1 | (1 << 8) | (1 << 10);
 	memset(&dst, 0, sizeof(rga_info_t));
-	dst.fd = (unsigned long)dst_fd;
+	if (vir_addr) {
+		dst.fd = -1;
+		dst.virAddr = (void*)dst_fd;
+	} else
+		dst.fd = (unsigned long)dst_fd;
 	dst.mmuFlag = ((2 & 0x3) << 4) | 1 | (1 << 8) | (1 << 10);
 	
 	//src.hnd = NULL;

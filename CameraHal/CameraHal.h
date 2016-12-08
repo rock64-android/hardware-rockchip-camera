@@ -121,7 +121,14 @@ extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 							int dst_w, int dst_h, int dstbuf_w,
 							bool mirror);
 							
-extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst,int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21);
+extern "C" int rga_nv12_scale_crop(
+		int src_width, int src_height, char *src, short int *dst,
+		int dst_width,int dst_height,int zoom_val,
+		bool mirror,bool isNeedCrop,bool isDstNV21
+#if defined(RK_DRM_GRALLOC) 
+		,bool vir_addr = false
+#endif
+		);
 extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int src_h,int dstbuf,int zoom_value);
 extern "C" void generateJPEG(uint8_t* data,int w, int h,char* outbuf,int* outSize);
 extern "C" int util_get_gralloc_buf_fd(buffer_handle_t handle,int* fd);
@@ -632,10 +639,12 @@ v1.0x48.0:
 v1.0x49.0:
   1) support drm rga
 
+v1.0x49.1:
+  1) enable drm rga,support virtual address
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 1)
 
 
 /*  */

@@ -1639,10 +1639,10 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
         }else{
         	
 			#if defined(RK_DRM_GRALLOC)
-			#if 0
+			#if 1
 			rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
-					(char*)(frame->phy_addr), (short int *)(mHeap->getHeapID()), 
-					mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p);
+					(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
+					mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p,true);
 			#else
 			arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, pixFmt, (char*)(frame->vir_addr),
 					(char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,
@@ -1702,7 +1702,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 
 	    mVideoBufferProvider->setBufferStatus(buf_index, 1);
 	    if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
-	        #if 1
+	        #if 0
 		buf_vir = mGrallocVideoBuf[buf_index]->vir_addr;
 	        arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
 	            (char*)buf_vir,frame->frame_width, frame->frame_height,
@@ -1741,7 +1741,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 		mGrallocVideoBuf[buf_index]->buf_state = 1;
 
 		if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
-        #if 1
+        #if 0
         buf_vir = mGrallocVideoBuf[buf_index]->vir_addr;
         arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
             (char*)buf_vir,frame->frame_width, frame->frame_height,
