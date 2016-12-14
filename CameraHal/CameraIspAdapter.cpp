@@ -988,14 +988,15 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 				parameterString.append(",1920x1080");
 			}
         	}
-		if(uvnr_enable) {
-			if(max_w >= 4096 && max_h >= 3072)
-			{
-				parameterString.removeAll(",4208x3120");
-				ALOGD("PICSIZE: %s", parameterString.string());
-				sprintf(string,"%dx%d", 4096, 3096);
-			}
+
+		if(max_w >= 4096 && max_h >= 3072)
+		{
+			parameterString.removeAll(",4208x3120");
+			parameterString.removeAll("4208x3120,");
+			ALOGD("PICSIZE: %s", parameterString.string());
+			sprintf(string,"%dx%d", 4096, 3096);
 		}
+
         params.set(CameraParameters::KEY_PICTURE_SIZE, string);
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, parameterString.string());
 	}

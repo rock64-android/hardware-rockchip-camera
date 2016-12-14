@@ -641,10 +641,12 @@ v1.0x49.0:
 
 v1.0x49.1:
   1) enable drm rga,support virtual address
+v1.0x49.2:
+  1) change 13M resolution to 12.5M because the rga only support max 4096 vir_width.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 2)
 
 
 /*  */
