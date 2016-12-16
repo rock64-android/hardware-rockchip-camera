@@ -3,12 +3,17 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := libisp_silicomimageisp_api
 
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 7.0)))
+LOCAL_SRC_FILES_arm := $(LOCAL_MODULE)_7x_32bit.so
+LOCAL_SRC_FILES_arm64 := $(LOCAL_MODULE)_7x_64bit.so
+else
 ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 6.0)))
 LOCAL_SRC_FILES_arm := $(LOCAL_MODULE)_6x_32bit.so
 LOCAL_SRC_FILES_arm64 := $(LOCAL_MODULE)_6x_64bit.so
 else
 LOCAL_SRC_FILES_arm := $(LOCAL_MODULE)_5x_32bit.so
 LOCAL_SRC_FILES_arm64 := $(LOCAL_MODULE)_5x_64bit.so
+endif
 endif
 
 ifneq ($(filter rk3366 rk3399 rk3328, $(strip $(TARGET_BOARD_PLATFORM))), )
