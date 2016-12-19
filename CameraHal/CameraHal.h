@@ -84,7 +84,7 @@
 #elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
 #include <hardware/hal_public.h>
 #include <hardware/rga.h>
-#elif defined(TARGET_RK3368)
+#elif defined(TARGET_RK3368) || defined(TARGET_RK3328)
 #include <hardware/img_gralloc_public.h>
 #include <hardware/rga.h>
 #elif defined(TARGET_RK29)
@@ -130,7 +130,7 @@ extern "C" int rga_nv12_scale_crop(
 #endif
 		);
 extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int src_h,int dstbuf,int zoom_value);
-extern "C" void generateJPEG(uint8_t* data,int w, int h,char* outbuf,int* outSize);
+extern "C" void generateJPEG(uint8_t* data,int w, int h,unsigned char* outbuf,int* outSize);
 extern "C" int util_get_gralloc_buf_fd(buffer_handle_t handle,int* fd);
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 extern bool g_ctsV_flag;
@@ -643,10 +643,13 @@ v1.0x49.1:
   1) enable drm rga,support virtual address
 v1.0x49.2:
   1) change 13M resolution to 12.5M because the rga only support max 4096 vir_width.
+v1.0x49.3:
+  1) Support software jpeg encode at rk3328 platform on android Nougat.
+  2) Fix bug of getting a frame after stream off.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 2)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 3)
 
 
 /*  */
@@ -765,7 +768,7 @@ v1.0x49.2:
     #define NATIVE_HANDLE_TYPE             private_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)    
-#elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368)
+#elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368) || defined(TARGET_RK3328)
     #define NATIVE_HANDLE_TYPE             IMG_native_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->iWidth)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->iHeight)    

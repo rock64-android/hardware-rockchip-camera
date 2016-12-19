@@ -82,7 +82,7 @@ void nv21_to_yuv(uint8_t* dst, uint8_t* y, uint8_t* uv, int width) {
  * @param h
  * @param outfilename
  */
-extern "C" void generateJPEG(uint8_t* data,int w, int h,char* outbuf,int* outSize)
+extern "C" void generateJPEG(uint8_t* data,int w, int h,unsigned char* outbuf,int* outSize)
 {
     int nComponent;
     struct jpeg_compress_struct jcs;
@@ -93,7 +93,7 @@ extern "C" void generateJPEG(uint8_t* data,int w, int h,char* outbuf,int* outSiz
     memset(row_tmp,0,w*3);
     jcs.err = jpeg_std_error(&jem);
     jpeg_create_compress(&jcs);
-    jpeg_stdio_buf(&jcs,outbuf,outSize);
+    jpeg_stdio_buf(&jcs,(char*)outbuf,(size_t*)outSize);
     jcs.image_width = w;
     jcs.image_height = h;
 

@@ -79,6 +79,7 @@ LOCAL_C_INCLUDES += \
 	frameworks/native/include \
 	frameworks/native/include/media/hardware \
 	frameworks/native/include/media/openmax \
+	external/libjpeg-turbo \
 	external/jpeg \
 	external/jhead \
 	hardware/rockchip/hwcomposer \
@@ -267,12 +268,13 @@ LOCAL_CFLAGS += -DHAVE_ARM_NEON
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3328)
-LOCAL_CFLAGS += -DTARGET_BOARD_PLATFORM_RK30XX
+#LOCAL_CFLAGS += -DTARGET_BOARD_PLATFORM_RK30XX
 LOCAL_CFLAGS += -DTARGET_RK32
+LOCAL_CFLAGS += -DTARGET_RK3328
 LOCAL_CFLAGS += -DHAL_MOCKUP
 endif
 
-ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk322x)
+ifneq ($(filter rk322x rk3328 , $(strip $(TARGET_BOARD_PLATFORM))), )
 LOCAL_CFLAGS += -DTARGET_RK322x
 LOCAL_SRC_FILES += Jpeg_soft_encode.cpp
 endif

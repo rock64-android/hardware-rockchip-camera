@@ -502,6 +502,8 @@ int CameraAdapter::cameraStream(bool on)
     cmd = (on)?VIDIOC_STREAMON:VIDIOC_STREAMOFF;
 
     mCamDriverStreamLock.lock();
+    if(!on)
+        mCamDriverStream = on;
     err = ioctl(mCamFd, cmd, &type);
     if (err < 0) {
         LOGE("%s(%d): %s Failed",__FUNCTION__,__LINE__,((on)?"VIDIOC_STREAMON":"VIDIOC_STREAMOFF"));
@@ -754,6 +756,9 @@ void CameraAdapter::previewThread(){
             mCamDriverStreamLock.unlock();
             
             ret = getFrame(&tmpFrame);
+            if(!mCamDriverStream){
+                break;
+            }
 
 //            LOG2("%s(%d),frame addr = %p,%dx%d,index(%d)",__FUNCTION__,__LINE__,tmpFrame,tmpFrame->frame_width,tmpFrame->frame_height,tmpFrame->frame_index);
             if((ret!=-1) && (!camera_device_error)){

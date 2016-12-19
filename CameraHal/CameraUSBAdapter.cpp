@@ -934,6 +934,10 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
         output_len = 0;
         input_len = frame->frame_size;
 
+        if(input_len <= 0){
+          LOGE("frame size is invalid !!!");
+          return -1;
+        }
         ret = mMjpegDecoder.decode(mMjpegDecoder.decoder,
                                     (unsigned char*)&outbuf, &output_len, 
     		                          (unsigned char*)frame->vir_addr, &input_len,
