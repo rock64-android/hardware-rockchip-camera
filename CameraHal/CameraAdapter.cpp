@@ -614,7 +614,8 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
 
    struct v4l2_buffer cfilledbuffer1;
    int ret = 0;
-    
+
+    memset(&cfilledbuffer1, 0, sizeof(struct v4l2_buffer));
     cfilledbuffer1.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     cfilledbuffer1.memory = mCamDriverV4l2MemType;
     cfilledbuffer1.reserved = 0;
@@ -706,6 +707,7 @@ int CameraAdapter::adapterReturnFrame(long index,int cmd){
     buf_state = mPreviewBufProvider->getBufferStatus(index);
     LOG2("%s(%d):index(%d),cmd(%d),buf_state(%d)",__FUNCTION__,__LINE__,index,cmd,buf_state);
     if (buf_state == 0) {
+        memset(&vb, 0, sizeof(struct v4l2_buffer));
         vb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         vb.memory = mCamDriverV4l2MemType;
         vb.index = index;                        

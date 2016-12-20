@@ -646,10 +646,12 @@ v1.0x49.2:
 v1.0x49.3:
   1) Support software jpeg encode at rk3328 platform on android Nougat.
   2) Fix bug of getting a frame after stream off.
+v1.0x49.4:
+  1) fix the bug that usb camera throw out error in probabilistic when taking pictures
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 3)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 4)
 
 
 /*  */
