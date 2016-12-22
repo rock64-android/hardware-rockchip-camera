@@ -126,6 +126,7 @@ extern "C" int rga_nv12_scale_crop(
 		int dst_width,int dst_height,int zoom_val,
 		bool mirror,bool isNeedCrop,bool isDstNV21
 #if defined(RK_DRM_GRALLOC) 
+		,int dst_stride = 0
 		,bool vir_addr = false
 #endif
 		);
@@ -648,10 +649,13 @@ v1.0x49.3:
   2) Fix bug of getting a frame after stream off.
 v1.0x49.4:
   1) fix the bug that usb camera throw out error in probabilistic when taking pictures
+v1.0x49.5:
+  1) use virAddr instead of fd for drm RGA, cause the fd manner has performance issue now.
+  2) display window virtual width should be 32 bytes aligned,which is GPU required. 
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 4)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 5)
 
 
 /*  */

@@ -456,7 +456,7 @@ extern "C" int util_get_gralloc_buf_fd(buffer_handle_t handle,int* fd){
 extern "C" int rga_nv12_scale_crop(
 		int src_width, int src_height, char *src_fd, short int *dst_fd, 
 		int dst_width,int dst_height,int zoom_val,bool mirror,
-		bool isNeedCrop,bool isDstNV21,bool vir_addr)
+		bool isNeedCrop,bool isDstNV21,int dst_stride,bool vir_addr)
 {
     int ret = 0;
 	rga_info_t src,dst;
@@ -534,9 +534,13 @@ extern "C" int rga_nv12_scale_crop(
 	rga_set_rect(&src.rect, zoom_left_offset,zoom_top_offset,
 		zoom_cropW,zoom_cropH,src_width,src_height,HAL_PIXEL_FORMAT_YCrCb_NV12);
 	if (isDstNV21)
-		rga_set_rect(&dst.rect, 0,0,dst_width,dst_height,dst_width,dst_height,HAL_PIXEL_FORMAT_YCrCb_420_SP);
+		rga_set_rect(&dst.rect, 0,0,dst_width,dst_height,
+				dst_stride ? dst_stride : dst_width,
+				dst_height,HAL_PIXEL_FORMAT_YCrCb_420_SP);
 	else
-		rga_set_rect(&dst.rect, 0,0,dst_width,dst_height,dst_width,dst_height,HAL_PIXEL_FORMAT_YCrCb_NV12);
+		rga_set_rect(&dst.rect, 0,0,dst_width,dst_height,
+				dst_stride ? dst_stride : dst_width,
+				dst_height,HAL_PIXEL_FORMAT_YCrCb_NV12);
 	if (mirror)
 		src.rotation = DRM_RGA_TRANSFORM_FLIP_H;
 	//TODO:sina,cosa,scale_mode,render_mode

@@ -1416,9 +1416,14 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
                   mIs_Verifier = false;
                 }
 				#if defined(RK_DRM_GRALLOC)
+				/*
 				rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 		                            (char*)(frame->phy_addr), (short int *)rawbuf_phy, 
 		                            jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false);
+				*/
+				rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+									(char*)(frame->vir_addr), (short int *)rawbuf_vir,
+									jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false,0,true);
 				#else
 				rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 		                            (char*)(frame->vir_addr), (short int *)rawbuf_vir, 
@@ -1639,15 +1644,9 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
         }else{
         	
 			#if defined(RK_DRM_GRALLOC)
-			#if 1
 			rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 					(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
-					mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p,true);
-			#else
-			arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, pixFmt, (char*)(frame->vir_addr),
-					(char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,
-					mPreviewDataW, mPreviewDataH,false,frame->zoom_value);
-			#endif
+					mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p,0,true);
 			#else
             rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 					(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
@@ -1714,10 +1713,16 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 	                                        mRecordW, mRecordH,false,frame->zoom_value);
 	        }else{
 				#if defined(RK_DRM_GRALLOC)
+				/*
 				long fd = mVideoBufferProvider->getBufShareFd(buf_index);
 	            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                                (char*)(frame->phy_addr), (short int *)fd,
 	                                mRecordW,mRecordH,frame->zoom_value,false,true,false);
+				*/
+				buf_vir = mGrallocVideoBuf[buf_index]->vir_addr;
+	            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+	                                (char*)(frame->vir_addr), (short int *)buf_vir,
+	                                mRecordW,mRecordH,frame->zoom_value,false,true,false,0,true);
 				#else
 	            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                                (char*)(frame->vir_addr), (short int *)buf_vir,
@@ -1749,9 +1754,14 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
         #else
 		
 		#if defined(RK_DRM_GRALLOC)
+		/*
 	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                (char*)(frame->phy_addr), (short int*)(mGrallocVideoBuf[buf_index]->phy_addr),
 	                mRecordW,mRecordH,frame->zoom_value,false,true,false);
+        */
+	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+	                (char*)(frame->vir_addr), (short int*)(mGrallocVideoBuf[buf_index]->vir_addr),
+	                mRecordW,mRecordH,frame->zoom_value,false,true,false,0,true);
 		#else
 	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                (char*)(frame->vir_addr), (short int*)(mGrallocVideoBuf[buf_index]->vir_addr),
