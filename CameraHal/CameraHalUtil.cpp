@@ -81,6 +81,7 @@ extern "C" char* getCallingProcess()
 	if (fp < 0) {
 		memset(cameraCallProcess,0x00,sizeof(cameraCallProcess));
 		LOGE("Obtain calling process info failed");
+		strcpy(cameraCallProcess, "null");
 	} 
 	else {
 		memset(cameraCallProcess,0x00,sizeof(cameraCallProcess));

@@ -94,11 +94,17 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 	mCamDriverFrmHeightMax = 0;
     while ((ret = ioctl(mCamFd, VIDIOC_ENUM_FRAMESIZES, &fsize)) == 0) {
         if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {  
-//			if(fsize.discrete.width%16 || fsize.discrete.height%16)
-//			{
-//				fsize.index++;
-//				continue;
-//			}
+			if(fsize.discrete.width%16 || fsize.discrete.height%16)
+			{
+				fsize.index++;
+				continue;
+			}
+#ifdef LAPTOP
+            if (fsize.discrete.width == 320 && fsize.discrete.height == 240) {
+                fsize.index++;
+                continue;
+            }
+#endif
             memset(str_element,0x00,sizeof(str_element));
             if (parameterString.size() != 0) 
                 str_element[0]=',';

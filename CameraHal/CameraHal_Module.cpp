@@ -38,6 +38,9 @@ static sp<CameraFpsDetectThread> gCameraFpsDetectThread;
 #endif
 static unsigned int gCamerasOpen = 0;
 static signed int gCamerasNumber = -1;
+#ifdef LAPTOP
+static signed int gCamerasUnavailabled = 0;
+#endif
 static android::Mutex gCameraHalDeviceLock;
 
 static int camera_device_open(const hw_module_t* module, const char* name,
@@ -502,6 +505,15 @@ int camera_device_open(const hw_module_t* module, const char* name,
     if (name != NULL) {
         cameraid = atoi(name);
 
+#ifdef LAPTOP
+        char sys_device_lock[PROPERTY_VALUE_MAX];
+        property_get("sys.device_locked.status",sys_device_lock,NULL);
+        if (!strcmp(sys_device_lock, "1")) {
+            LOGD("facelock switch camera to open HP IR camera!!!");
+            cameraid = cameraid == 0 ? 1 : cameraid;
+        }
+#endif
+
         if(cameraid > gCamerasNumber) {
             LOGE("camera service provided cameraid out of bounds, "
                     "cameraid = %d, num supported = %d",
@@ -770,9 +782,16 @@ int camera_get_number_of_cameras(void)
                 camInfoTmp[cam_cnt&0x01].version = capability.version;
                 if (strstr((char*)&capability.card[0], "front") != NULL) {
                     camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_FRONT;
+#ifdef LAPTOP
+                } else if (strstr((char*)&capability.card[0], "HP HD") != NULL
+                    || strstr((char*)&capability.card[0], "HP IR")) {
+                    camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_FRONT;
+                    if (strstr((char*)&capability.card[0], "HP IR"))
+                        gCamerasUnavailabled++;
+#endif
                 } else {
                     camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_BACK;
-                }  
+                }
                 ptr = strstr((char*)&capability.card[0],"-");
                 if (ptr != NULL) {
                     ptr++;
@@ -1117,6 +1136,9 @@ camera_get_number_of_cameras_end:
 	::gettimeofday(&t1, NULL);
 	LOGD("meida_profiles_xml_control time (%ld)us\n", (t1.tv_sec*1000000 + t1.tv_usec) - (t0.tv_sec*1000000 + t0.tv_usec));
     return gCamerasNumber;
+#ifdef LAPTOP
+    return gCamerasNumber > 0 ? gCamerasNumber - gCamerasUnavailabled : gCamerasNumber;
+#endif
 }
 
 #if 0
@@ -1276,7 +1298,15 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
     int face_value = CAMERA_FACING_BACK;
     int orientation = 0;
     char process_name[30];
-        
+#ifdef LAPTOP
+    char sys_device_lock[PROPERTY_VALUE_MAX];
+    property_get("sys.device_locked.status",sys_device_lock,NULL);
+    if (!strcmp(sys_device_lock, "1")) {
+        LOGD("facelock switch camera to open HP IR camera!!!");
+        camera_id = camera_id == 0 ? 1 : camera_id;
+    }
+#endif
+
     if(camera_id > gCamerasNumber) {
         LOGE("%s camera_id out of bounds, camera_id = %d, num supported = %d",__FUNCTION__,
                 camera_id, gCamerasNumber);
