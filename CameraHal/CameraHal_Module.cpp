@@ -1135,10 +1135,10 @@ camera_get_number_of_cameras_end:
 
 	::gettimeofday(&t1, NULL);
 	LOGD("meida_profiles_xml_control time (%ld)us\n", (t1.tv_sec*1000000 + t1.tv_usec) - (t0.tv_sec*1000000 + t0.tv_usec));
-    return gCamerasNumber;
 #ifdef LAPTOP
     return gCamerasNumber > 0 ? gCamerasNumber - gCamerasUnavailabled : gCamerasNumber;
 #endif
+    return gCamerasNumber;
 }
 
 #if 0
