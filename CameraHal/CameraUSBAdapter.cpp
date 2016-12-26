@@ -426,7 +426,7 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 
        params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"1");
     }else{
-		params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"0");
+		params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"2");
 	}	
  	 
     /*Exposure setting*/
@@ -994,6 +994,4 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
     return ret;
     
 }
-
-
 }

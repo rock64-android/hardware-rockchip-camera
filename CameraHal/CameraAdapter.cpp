@@ -788,6 +788,9 @@ void CameraAdapter::previewThread(){
                 
                 mPreviewBufProvider->setBufferStatus(tmpFrame->frame_index,1,buffer_log);
 
+                if(mRefEventNotifier->isNeedSendToFaceDetect()){
+                	mRefEventNotifier->notifyNewFaceDecFrame(tmpFrame);
+                }
                 if(buffer_log & PreviewBufferProvider::CMD_PREVIEWBUF_DISPING){
                       tmpFrame->used_flag = PreviewBufferProvider::CMD_PREVIEWBUF_DISPING;
                       mRefDisplayAdapter->notifyNewFrame(tmpFrame);

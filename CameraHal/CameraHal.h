@@ -655,8 +655,7 @@ v1.0x49.5:
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 5)
-
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 6)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -1492,7 +1491,7 @@ public:
 	void callback_notify_raw_image();
 	void callback_compressed_image(camera_memory_t* frame);
 	void callback_notify_error();
-	void callback_preview_metadata(camera_frame_metadata_t *facedata, struct RectFace *faces);
+	void callback_preview_metadata(camera_memory_t* datacbFrameMem, camera_frame_metadata_t *facedata, struct RectFace *faces);
 	void callback_video_frame(camera_memory_t* video_frame);
     int enableMsgType(int32_t msgtype);
     int disableMsgType(int32_t msgtype);

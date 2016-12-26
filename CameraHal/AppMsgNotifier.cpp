@@ -205,15 +205,26 @@ void AppMsgNotifier::stopFaceDection()
     LOG_FUNCTION_NAME_EXIT
 }
 int AppMsgNotifier::initializeFaceDetec(int width,int height){
-	return 0;
     if(!mFaceDetecInit){
         //load face detection lib 
-        mFaceDetectorFun.mLibFaceDetectLibHandle = dlopen("libFFTEm.so", RTLD_NOW);    
+        dlerror();
+        mFaceDetectorFun.mLibFaceDetectLibHandle = dlopen("libcam_facedetection.so", RTLD_NOW);    
         if (mFaceDetectorFun.mLibFaceDetectLibHandle == NULL) {
-            LOGE("%s(%d): open libFFTEm.so fail",__FUNCTION__,__LINE__);
+            LOGE("%s(%d): open libcam_facedetection.so fail",__FUNCTION__,__LINE__);
             return -1;
         } else {
+            LOGE("%s(%d): open libcam_facedetection.so success",__FUNCTION__,__LINE__);
             mFaceDetectorFun.mFaceDectStartFunc = (FaceDetector_start_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_start"); 
+
+            if (mFaceDetectorFun.mFaceDectStartFunc == NULL) {
+                LOGE("FaceDetector_start not found");
+                const char *errmsg;
+                if ((errmsg = dlerror()) != NULL) {
+                    LOGE("dlsym FaceDetector_start fail errmsg: %s", errmsg);
+                }
+                return -1;
+            }
+
             mFaceDetectorFun.mFaceDectStopFunc = (FaceDetector_stop_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_stop"); 
             mFaceDetectorFun.mFaceDectFindFaceFun = (FaceDetector_findFaces_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_findFaces"); 
             mFaceDetectorFun.mFaceDetector_initizlize_func = (FaceDetector_initizlize_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_initizlize");
@@ -917,13 +928,14 @@ void AppMsgNotifier::callback_notify_error()
     callbackThreadCommandQ.put(&msg);
 }
 
-void AppMsgNotifier::callback_preview_metadata(camera_frame_metadata_t *facedata, struct RectFace *faces)
+void AppMsgNotifier::callback_preview_metadata(camera_memory_t* datacbFrameMem, camera_frame_metadata_t *facedata, struct RectFace *faces)
 {
 	//send to callbackthread
     Message_cam msg;
     msg.command = CameraAppCallbackThread::CMD_MSG_PREVIEW_METADATA;
     msg.arg2 = (void *)facedata;
     msg.arg3 = (void *)faces;
+    msg.arg4 = (void*)(datacbFrameMem);
     callbackThreadCommandQ.put(&msg);
 }
 
@@ -1847,7 +1859,7 @@ int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
                 {
                     Mutex::Autolock lock(mFaceDecLock);
                     if(mMsgTypeEnabled & CAMERA_MSG_PREVIEW_METADATA){
-                        callback_preview_metadata(pMetadata, faces);
+                        callback_preview_metadata(NULL, pMetadata, faces);
                     }
                 }
             }else{
@@ -1855,7 +1867,7 @@ int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
 				pMetadata->faces = NULL;
 				Mutex::Autolock lock(mFaceDecLock);
                 if(mMsgTypeEnabled & CAMERA_MSG_PREVIEW_METADATA){
-                 callback_preview_metadata(pMetadata, faces);
+                 callback_preview_metadata(NULL, pMetadata, faces);
                 }
             }
         }
@@ -2188,10 +2200,11 @@ void AppMsgNotifier::callbackThread()
 
 				tempMetaData = (camera_frame_metadata_t *)msg.arg2;
 				struct RectFace *faces = (struct RectFace *)msg.arg3;
+                frame = (camera_memory_t*)msg.arg4;
 				LOG1("send facedetect data, number_of_faces=%d.",tempMetaData->number_of_faces);
 				if(tempMetaData->number_of_faces>0){
 					if(mMsgTypeEnabled & CAMERA_MSG_PREVIEW_METADATA){
-						mDataCb(CAMERA_MSG_PREVIEW_METADATA, NULL,0,tempMetaData,mCallbackCookie); 
+						mDataCb(CAMERA_MSG_PREVIEW_METADATA, frame ,0,tempMetaData,mCallbackCookie);
 					}
 				 	mCamAdp->faceNotify(faces, &tempMetaData->number_of_faces);
               		free(tempMetaData->faces);
