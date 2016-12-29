@@ -251,7 +251,7 @@
 				<PreviewSize width="1920" height="1080"></PreviewSize>
 				<Preview_Minimum_FrameRate framerate="20"></Preview_Minimum_FrameRate>
 				<Touch_AE support="0"></Touch_AE>
-				<FaceDetect support="0" MaxNum="1"></FaceDetect>
+				<FaceDetect support="1" MaxNum="1"></FaceDetect>
 				<DV>
 					<DV_QCIF name="qcif" width="176" height="144" fps="10" support="1"></DV_QCIF>
 					<DV_QVGA name="qvga" width="320" height="240" fps="10" support="1"></DV_QVGA>
@@ -1032,7 +1032,7 @@
 				<Continue_SnapShot support="1"></Continue_SnapShot>
 				<InterpolationRes resolution="0"></InterpolationRes>
 				<PreviewSize width="800" height="600"></PreviewSize>
-				<FaceDetect support="0" MaxNum="0"></FaceDetect>
+				<FaceDetect support="1" MaxNum="1"></FaceDetect>
 				<DV>
 					<DV_QCIF name="qcif" width="176" height="144" fps="10" support="1"></DV_QCIF>
 					<DV_QVGA name="qvga" width="320" height="240" fps="10" support="1"></DV_QVGA>
