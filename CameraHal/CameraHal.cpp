@@ -708,12 +708,13 @@ int CameraHal::sendCommand(int32_t cmd, int32_t arg1, int32_t arg2)
             ret = BAD_VALUE;
             return ret;
         }
-        LOGD("sendCommand start face detection ");
+        LOGD("sendCommand start face detection");
         enableMsgType(CAMERA_MSG_PREVIEW_METADATA);
         Message_cam msg;    
         if ((mCommandThread != NULL)) {
             msg.command = CMD_START_FACE_DETECTION;
             msg.arg1 = (void*)(NULL);
+            msg.arg2 = (void*)szFace;
             commandThreadCommandQ.put(&msg);
         }
     }else if(cmd == CAMERA_CMD_STOP_FACE_DETECTION){
@@ -901,7 +902,7 @@ get_command:
                         if(mEventNotifier->msgEnabled(CAMERA_MSG_PREVIEW_FRAME))
                             mEventNotifier->startReceiveFrame();
                         if(mEventNotifier->msgEnabled(CAMERA_MSG_PREVIEW_METADATA))
-                            mEventNotifier->startFaceDection(drv_w,drv_h);
+                            mEventNotifier->startFaceDection(drv_w,drv_h, -1);
 						if(err != 0)
 							goto PREVIEW_START_OUT;
                     }
@@ -1128,7 +1129,7 @@ get_command:
             case CMD_START_FACE_DETECTION:
             LOGD("%s(%d): receive CMD_AF_CANCEL", __FUNCTION__,__LINE__);
             if(mCameraAdapter->getCurPreviewState(&drv_w,&drv_h) > 0)
-                mEventNotifier->startFaceDection(drv_w,drv_h);
+                mEventNotifier->startFaceDection(drv_w,drv_h,atoi((const char*)msg.arg2));
                 break;
             case CMD_EXIT:
             {

@@ -1472,7 +1472,7 @@ public:
 	int storeMetadataInBuffer(bool meta);
     void notifyCbMsg(int msg,int ret);
     
-    int startFaceDection(int width,int height);
+    int startFaceDection(int width,int height, int faceNum);
     void stopFaceDection();
     void onOrientationChanged(uint32_t new_orien,int cam_orien,int face);
     bool isNeedSendToFaceDetect();
@@ -1558,6 +1558,7 @@ private:
     float mCurBiasAngle;
     int mFaceDetecW;
     int mFaceDetectH;
+    int32_t mFaceNum;
     int32_t mFaceFrameNum;
     bool mFaceDetecInit;
     void* mFaceContext;

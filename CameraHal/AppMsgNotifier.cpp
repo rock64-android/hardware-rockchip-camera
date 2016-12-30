@@ -59,6 +59,7 @@ AppMsgNotifier::AppMsgNotifier(CameraAdapter *camAdp)
     mFaceDetecW = 0;
     mFaceDetectH = 0;
     mFaceFrameNum = 0;
+    mFaceNum = 0;
     mCurBiasAngle = FACEDETECT_INIT_BIAS;
     mFaceContext = NULL;
     mRecPrevCbDataEn = true;
@@ -166,7 +167,7 @@ AppMsgNotifier::~AppMsgNotifier()
     LOG_FUNCTION_NAME_EXIT
 }
 
-int AppMsgNotifier::startFaceDection(int width,int height)
+int AppMsgNotifier::startFaceDection(int width,int height, int faceNum)
 {
     int ret = 0;
     Mutex::Autolock lock(mFaceDecLock);
@@ -174,6 +175,7 @@ int AppMsgNotifier::startFaceDection(int width,int height)
         if((ret = initializeFaceDetec(width, height)) == 0){
         	mRunningState |= STA_RECEIVE_FACEDEC_FRAME;
             mFaceFrameNum = 0;
+            mFaceNum = faceNum < 0 ? 1 : faceNum;
             LOG1("start face detection !!");
         }
         mRecMetaDataEn = true;
@@ -211,6 +213,10 @@ int AppMsgNotifier::initializeFaceDetec(int width,int height){
         mFaceDetectorFun.mLibFaceDetectLibHandle = dlopen("libcam_facedetection.so", RTLD_NOW);    
         if (mFaceDetectorFun.mLibFaceDetectLibHandle == NULL) {
             LOGE("%s(%d): open libcam_facedetection.so fail",__FUNCTION__,__LINE__);
+            const char *errmsg;
+            if ((errmsg = dlerror()) != NULL) {
+            	LOGE("dlopen fail errmsg: %s", errmsg);
+            }
             return -1;
         } else {
             LOGE("%s(%d): open libcam_facedetection.so success",__FUNCTION__,__LINE__);
@@ -1808,16 +1814,17 @@ int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
 			camera_frame_metadata_t *pMetadata = (camera_frame_metadata_t *)malloc(sizeof(camera_frame_metadata_t));
 
             if(num > 0){
-                num = 1 ;//just report one face to app
+                num = MIN(num, mFaceNum);
                 pMetadata->number_of_faces = num;
                 camera_face_t* pFace = (camera_face_t*)malloc(sizeof(camera_face_t)*num);
                 pMetadata->faces = pFace;
                 int tmpX,tmpY,tmpW,tempH;
-                tmpX = faces[i].x;
-                tmpY = faces[i].y;
-                tmpW = faces[i].width;
-                tempH = faces[i].height;
                 for(i = 0;i < num;i++){
+                    tmpX = faces[i].x;
+                    tmpY = faces[i].y;
+                    tmpW = faces[i].width;
+                    tempH = faces[i].height;
+
                     switch(mCurOrintation){
                         case 1://90 degree
                             tmpY += tempH;
