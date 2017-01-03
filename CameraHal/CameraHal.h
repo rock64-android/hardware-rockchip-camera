@@ -651,11 +651,15 @@ v1.0x49.4:
   1) fix the bug that usb camera throw out error in probabilistic when taking pictures
 v1.0x49.5:
   1) use virAddr instead of fd for drm RGA, cause the fd manner has performance issue now.
-  2) display window virtual width should be 32 bytes aligned,which is GPU required. 
+  2) display window virtual width should be 32 bytes aligned,which is GPU required.
+v1.0x49.6:
+  1) camera usb adapter support face detection.
+v1.0x49.7:
+  1) fix face detection ratation error. 
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 6)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 7)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
