@@ -1,4 +1,4 @@
-ifeq ($(filter box vr, $(strip $(TARGET_BOARD_PLATFORM_PRODUCT))), )
+ifeq ($(filter box vr stbvr, $(strip $(TARGET_BOARD_PLATFORM_PRODUCT))), )
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)), rk3399)
 PRODUCT_PACKAGES += \
