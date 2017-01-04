@@ -263,12 +263,14 @@ void AppMsgNotifier::onOrientationChanged(uint32_t new_orien,int cam_orien,int f
 
     //correct source orientation by clockwise
 #if 1
-    new_orien = 360 - new_orien;
+    //new_orien = 360 - new_orien;
 
     if (face == CAMERA_FACING_FRONT) {
-        result = (cam_orien + new_orien) % 360;
-        result = (360 - result) % 360;  // compensate the mirror
+        result = (cam_orien - new_orien + 360) % 360;
+        //result = (cam_orien + new_orien) % 360;
+        //result = (360 - result) % 360;  // compensate the mirror
     } else {  // back-facing
+        new_orien = 360 - new_orien;
         result = (cam_orien - new_orien + 360) % 360;
     }  
  #else
