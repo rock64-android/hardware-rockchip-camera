@@ -655,11 +655,13 @@ v1.0x49.5:
 v1.0x49.6:
   1) camera usb adapter support face detection.
 v1.0x49.7:
-  1) fix face detection ratation error. 
+  1) fix face detection ratation error.
+v1.0x49.8:
+  1) enable torch mode when camera supports. 
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 7)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 8)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

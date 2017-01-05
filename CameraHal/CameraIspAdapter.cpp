@@ -1082,10 +1082,10 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             parameterString.append(CameraParameters::FLASH_MODE_AUTO);
 
             //only external flash support torch now,zyc
-            if((strcmp(pCamInfo->mHardInfo.mFlashInfo.mFlashName,"Internal")!=0)){
+            //if((strcmp(pCamInfo->mHardInfo.mFlashInfo.mFlashName,"Internal")!=0)){
                 parameterString.append(",");
                 parameterString.append(CameraParameters::FLASH_MODE_TORCH);
-            }
+            //}
             
             //must FLASH_MODE_OFF when initial,forced by cts
             params.set(CameraParameters::KEY_FLASH_MODE,CameraParameters::FLASH_MODE_OFF);
