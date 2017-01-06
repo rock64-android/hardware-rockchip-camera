@@ -4311,6 +4311,8 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
 
         0,                      /**< IsiSensor_t.pIsiActivateTestPattern */
         0,
+		0,						/**< IsiSensor_t.pIsiGetColorIss */ 
+
     },
     OV14825_IsiGetSensorI2cInfo,
 };

@@ -950,14 +950,22 @@ void camera_board_profiles::StartElementHandler(void *userData, const char *name
         support = atoi(atts[1]);
         pCamInfo->mSoftInfo.mZoomConfig= support;
         ALOGD("%s(%d): zoom(%d)! \n", __FUNCTION__,__LINE__,support);
-    } else if (strstr(name,"Cproc")){
-        pCamInfo->mSoftInfo.mCprocConfig.mSupported = (atoi(atts[1]) == 1) ? true:false;
-        pCamInfo->mSoftInfo.mCprocConfig.mContrast = atof(atts[3]);
-        pCamInfo->mSoftInfo.mCprocConfig.mSaturation = atof(atts[5]);
-        pCamInfo->mSoftInfo.mCprocConfig.mHue= atof(atts[7]);
-        pCamInfo->mSoftInfo.mCprocConfig.mBrightness = atoi(atts[9]);
-        ALOGD("%s(%d): cproc support %d(contrast:%f,saturation:%f,hue:%f,brightness:%d)! \n", 
+    } else if (strstr(name,"PreCproc")){
+        pCamInfo->mSoftInfo.mPreCprocConfig.mSupported = (atoi(atts[1]) == 1) ? true:false;
+        pCamInfo->mSoftInfo.mPreCprocConfig.mContrast = atof(atts[3]);
+        pCamInfo->mSoftInfo.mPreCprocConfig.mSaturation = atof(atts[5]);
+        pCamInfo->mSoftInfo.mPreCprocConfig.mHue= atof(atts[7]);
+        pCamInfo->mSoftInfo.mPreCprocConfig.mBrightness = atoi(atts[9]);
+        ALOGD("%s(%d): PreCproc support %d(contrast:%f,saturation:%f,hue:%f,brightness:%d)! \n", 
                 __FUNCTION__,__LINE__,atoi(atts[1]),atof(atts[3]),atof(atts[5]),atof(atts[7]),atoi(atts[9]));
+	} else if (strstr(name,"CapCproc")){
+		pCamInfo->mSoftInfo.mCapCprocConfig.mSupported = (atoi(atts[1]) == 1) ? true:false;
+		pCamInfo->mSoftInfo.mCapCprocConfig.mContrast = atof(atts[3]);
+		pCamInfo->mSoftInfo.mCapCprocConfig.mSaturation = atof(atts[5]);
+		pCamInfo->mSoftInfo.mCapCprocConfig.mHue= atof(atts[7]);
+		pCamInfo->mSoftInfo.mCapCprocConfig.mBrightness = atoi(atts[9]);
+		ALOGD("%s(%d): CapCproc support %d(contrast:%f,saturation:%f,hue:%f,brightness:%d)! \n", 
+				__FUNCTION__,__LINE__,atoi(atts[1]),atof(atts[3]),atof(atts[5]),atof(atts[7]),atoi(atts[9]));
     } else if (strstr(name,"Gammaout")){
         pCamInfo->mSoftInfo.mGammaOutConfig.mSupported = (atoi(atts[1]) == 1) ? true:false;
         pCamInfo->mSoftInfo.mGammaOutConfig.mGamma= atof(atts[3]);

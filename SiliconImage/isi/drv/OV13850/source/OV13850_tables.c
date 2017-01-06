@@ -840,7 +840,6 @@ const IsiRegDescription_t OV13850_g_aRegDescription_twolane_r2a[] =
 	{0x5e10, 0x1c, "0x0100",eReadWrite},
 	{0x0100, 0x01, "0x0100",eReadWrite},
 	{0x0000 ,0x00,"eTableEnd",eTableEnd}
-	
 };
 
 const IsiRegDescription_t OV13850_g_twolane_resolution_4224_3136[] =

@@ -54,9 +54,11 @@ extern "C"
 *   2). change VPol from ISI_VPOL_NEG to ISI_VPOL_POS
 *v0.4.0
 *   1). support isi v0.0xd.0
+*v0.5.0
+*   1). remove streamon register from initial table.
 */
 
-#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 4, 0x00) 
+#define CONFIG_SENSOR_DRV_VERSION KERNEL_VERSION(0, 5, 0x00) 
 
 
 #define Sensor_CHIP_ID_HIGH_BYTE            (0x300a) // r - 

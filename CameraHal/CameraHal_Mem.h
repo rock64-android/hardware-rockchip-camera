@@ -19,6 +19,7 @@
 #else
 #define CONFIG_CAMERA_MEM               CAMERA_MEM_PMEM
 #endif
+
 #if (CONFIG_CAMERA_MEM == CAMERA_MEM_ION)
 #include <ion/IonAlloc.h>
 #elif (CONFIG_CAMERA_MEM == CAMERA_MEM_PMEM)
