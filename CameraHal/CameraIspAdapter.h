@@ -1,11 +1,14 @@
 #ifndef ANDROID_HARDWARE_CAMERA_ISP_HARDWARE_H
 #define ANDROID_HARDWARE_CAMERA_ISP_HARDWARE_H
 
-//usb camera adapter#include "CameraHal.h"
+//usb camera adapter
+#include "CameraHal.h"
 #include "cam_api/camdevice.h"
-#include "oslayer/oslayer.h"#include <string>#include <utils/KeyedVector.h>
+#include "oslayer/oslayer.h"
+#include <string>
+#include <utils/KeyedVector.h>
 #include "CameraGL.h"
-
+#include "MutliFrameDenoise.h"
 
 namespace android{
 
@@ -28,11 +31,22 @@ typedef struct manExpConfig{
 	float clmtolerance;
 }manExpConfig_s;
 
+typedef struct uvnrprocess{
+	bool enable;
+}uvnrprocess_s;
+
+typedef struct mfdprocess{
+	bool enable;
+	bool buffer_full;
+	int	 process_frames;//3<= mfd_frames <= 6
+	int  frame_cnt;
+}mfdprocess_s;
+
 class CameraIspTunning;
 class CameraIspAdapter: public CameraAdapter,public BufferCb
 {
 private:
-    float mISO;
+    float mISO,mfdISO;
 public:
     enum GPUProcessCommands {
                // Comands
@@ -40,6 +54,7 @@ public:
         CMD_GPU_PROCESS_UPDATE,
         CMD_GPU_PROCESS_RENDER,
         CMD_GPU_PROCESS_GETRESULT,
+        CMD_GPU_PROCESS_SETFRAMES,
         CMD_GPU_PROCESS_DEINIT
     };
 	static int preview_frame_inval;
@@ -71,6 +86,25 @@ public:
         STA_GPUCMD_RUNNING,
         STA_GPUCMD_STOP,
     };
+
+    int mMFDCommandThreadState;
+    class MFDCommandThread : public Thread {
+        CameraIspAdapter* mCameraIspAdapter;
+    public:
+        MFDCommandThread(CameraIspAdapter* disadap)
+            : Thread(false), mCameraIspAdapter(disadap){}
+
+        virtual bool threadLoop() {
+            mCameraIspAdapter->mfdCommandThread();
+
+            return false;
+        }
+    };
+
+       void mfdsendBlockedMsg(int message);
+       MutliFrameDenoise* mMutliFrameDenoise;
+       struct cv_fimc_buffer* mfd_buffers_capture;
+
 
     int mGPUCommandThreadState;
     class GPUCommandThread : public Thread {
@@ -120,6 +154,15 @@ private:
     bool isNeedToEnableFlash();
 	void setMwb(const char *white_balance);
 	void setMe(const char *exposure);
+    Mutex mMfdOPLock;
+    Condition mMfdOPCond;
+
+	int mMfdFBOWidth, mMfdFBOHeight;
+    sp<MFDCommandThread> mMFDCommandThread;
+    MessageQueue mfdCmdThreadCommandQ;
+    void mfdCommandThread();
+	uvnrprocess uvnr;
+
     Mutex mGpuOPLock;
     Condition mGpuOPCond;
 
@@ -127,7 +170,8 @@ private:
     sp<GPUCommandThread> mGPUCommandThread;
     MessageQueue gpuCmdThreadCommandQ;
     void gpuCommandThread();
-	
+	mfdprocess mfd;
+
 protected:
     CamDevice       *m_camDevice;
     KeyedVector<void *, void *> mFrameInfoArray;

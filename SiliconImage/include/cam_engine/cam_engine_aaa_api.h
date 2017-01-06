@@ -679,6 +679,47 @@ RESULT CamEngineAdpfStop
     CamEngineHandle_t hCamEngine
 );
 
+/*****************************************************************************/
+/**
+ * @brief   This function stops the Adaptive-MFD-Control.
+ *
+ * @param   mfd_gain0 mfd_gain1 mfd_gain2   to the CamEngine instance.
+ *
+ * @return  Return the result of the function call.
+ * @retval  RET_SUCCESS         function succeed
+ * @retval  RET_WRONG_HANDLE    invalid instance handle
+ *
+ *****************************************************************************/
+RESULT CamEnginegetMfdgain
+(
+    CamEngineHandle_t           hCamEngine,
+	char						*mfd_enable,
+	float						mfd_gain[],
+	float						mfd_frames[]
+
+);
+
+/*****************************************************************************/
+/**
+ * @brief   This function stops the Adaptive-UVNR-Control.
+ *
+ * @param   mfd_gain0 mfd_gain1 mfd_gain2   to the CamEngine instance.
+ *
+ * @return  Return the result of the function call.
+ * @retval  RET_SUCCESS         function succeed
+ * @retval  RET_WRONG_HANDLE    invalid instance handle
+ *
+ *****************************************************************************/
+
+RESULT CamEnginegetUvnrpara
+(
+    CamEngineHandle_t           hCamEngine,
+	char						*uvnr_enable,
+	float						uvnr_gain[],
+	float						uvnr_ratio[],
+	float						uvnr_distances[]
+
+);
 
 
 /*****************************************************************************/

@@ -600,6 +600,28 @@ RESULT IsiGetGainIss
 
 /*****************************************************************************/
 /**
+ *          IsiGetColorIss
+ *
+ * @brief   Reads gain values from the image sensor module.
+ *
+ * @param   handle                  sensor instance handle
+ * @param   pGetColor                get color
+ *
+ * @return  Return the result of the function call.
+ * @retval  RET_SUCCESS
+ * @retval  RET_WRONG_HANDLE
+ * @retval  RET_NULL_POINTER
+ *
+ *****************************************************************************/
+RESULT IsiGetColorIss
+(
+    IsiSensorHandle_t   handle,
+    char               *pGetColor
+);
+
+
+/*****************************************************************************/
+/**
  *          IsiGetGainIncrementIss
  *
  * @brief   Get smalles possible gain increment.

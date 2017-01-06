@@ -602,7 +602,7 @@ int IonDmaMemManager::createIonBuffer(struct bufferinfo_s* ionbuf)
             --tmpalloc;
             --tmp_buf;
             munmap((void *)tmpalloc->vir_addr, tmpalloc->size);
-            temp_handle = (long)tmpalloc->ion_hdl;
+			temp_handle = (long)tmpalloc->ion_hdl;
             ion_free(client_fd, (ion_user_handle_t)temp_handle);
         }
         free(tmpalloc);
@@ -652,7 +652,7 @@ void IonDmaMemManager::destroyIonBuffer(buffer_type_enum buftype)
             }
 
             close(tmpalloc->map_fd);
-            temp_handle = (long)tmpalloc->ion_hdl;
+			temp_handle = (long)tmpalloc->ion_hdl;
             err = ion_free(client_fd, (ion_user_handle_t)temp_handle);
         }
         tmpalloc++;
