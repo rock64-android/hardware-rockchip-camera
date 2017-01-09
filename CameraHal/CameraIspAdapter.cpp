@@ -3326,22 +3326,36 @@ PROCESS_CMD:
     }
     return 0;
  }
+
 /* ddl@rock-chips.com: v1.0xb.0 */
 int CameraIspAdapter::faceNotify(struct RectFace* faces, int* num)
 {
     CamEngineWindow_t curWin,curGrid;
-    unsigned int cur_size, face_size,diff;
+    unsigned int cur_size, face_size, diff;
+    int face_width = 0, face_height = 0, focus_id = 0;
     short int x,y;
     unsigned short int width,height;
     bool setWin;
     
-    if (*num == 1) {
+    if (*num > 0) {
+		{
+            for (int i=0; i<*num; i++) {
+           	    if (faces[i].width > face_width
+                        && faces[i].height > face_height) {
+                    face_width = faces[i].width;
+                    face_height = faces[i].height;
+                    focus_id = i;
+                }
+            }
+			//ALOGD("find face focus id: %d", focus_id);
+		}
+
         // AF
         {
             m_camDevice->getAfMeasureWindow(&curWin);
             
             cur_size = curWin.width*curWin.height;
-            face_size = faces[0].width*faces[0].height;
+            face_size = faces[focus_id].width*faces[focus_id].height;
             cur_size = cur_size*10/face_size;
             if ((cur_size>13) || (cur_size<7)) {
                 setWin = true;
@@ -3350,25 +3364,25 @@ int CameraIspAdapter::faceNotify(struct RectFace* faces, int* num)
             }
 
             if (setWin == false) {
-                diff = abs(curWin.hOffset - faces[0].x)*10/curWin.width;
+                diff = abs(curWin.hOffset - faces[focus_id].x)*10/curWin.width;
                 if (diff >= 5) {
                     setWin = true;
                 }
 
-                diff = abs(curWin.vOffset - faces[0].y)*10/curWin.height;
+                diff = abs(curWin.vOffset - faces[focus_id].y)*10/curWin.height;
                 if  (diff >= 5) {
                     setWin = true;
                 }
             }
 
             if (setWin == true) {
-                x = faces[0].x*2000/mCamPreviewW - 1000;
-                y = faces[0].y*2000/mCamPreviewH - 1000;
-                width = faces[0].width*2000/mCamPreviewW;
-                height = faces[0].height*2000/mCamPreviewH;
+                x = faces[focus_id].x*2000/mCamPreviewW - 1000;
+                y = faces[focus_id].y*2000/mCamPreviewH - 1000;
+                width = faces[focus_id].width*2000/mCamPreviewW;
+                height = faces[focus_id].height*2000/mCamPreviewH;
                 
                 LOG1("faceWin: (%d, %d, %d, %d) ---> afWin: (%d, %d, %d, %d)",
-                    faces[0].x, faces[0].y, faces[0].width, faces[0].height,
+                    faces[focus_id].x, faces[focus_id].y, faces[focus_id].width, faces[focus_id].height,
                     curWin.hOffset, curWin.vOffset,curWin.width,curWin.height);
                 
                 m_camDevice->setAfMeasureWindow(x,y,width,height);
