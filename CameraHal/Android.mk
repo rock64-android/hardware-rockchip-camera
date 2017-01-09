@@ -5,30 +5,6 @@ LOCAL_PATH:= $(call my-dir)
 include $(call all-subdir-makefiles)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE := libMFDenoise
-LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE_CLASS := SHARED_LIBRARIES
-LOCAL_MODULE_STEM := $(LOCAL_MODULE)
-LOCAL_MODULE_SUFFIX := .so
-ifneq ($(strip $(TARGET_2ND_ARCH)), )
-LOCAL_MULTILIB := both
-ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \> 7.0)))
-LOCAL_SRC_FILES_$(TARGET_ARCH) := lib/$(TARGET_ARCH)/$(LOCAL_MODULE)_android7.1$(LOCAL_MODULE_SUFFIX)
-LOCAL_SRC_FILES_$(TARGET_2ND_ARCH) := lib/$(TARGET_2ND_ARCH)/$(LOCAL_MODULE)_android7.1$(LOCAL_MODULE_SUFFIX)
-else
-LOCAL_SRC_FILES_$(TARGET_ARCH) := lib/$(TARGET_ARCH)/$(LOCAL_MODULE)$(LOCAL_MODULE_SUFFIX)
-LOCAL_SRC_FILES_$(TARGET_2ND_ARCH) := lib/$(TARGET_2ND_ARCH)/$(LOCAL_MODULE)$(LOCAL_MODULE_SUFFIX)
-endif
-else
-ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \> 7.0)))
-LOCAL_SRC_FILES := lib/$(TARGET_ARCH)/$(LOCAL_MODULE)_android7.1$(LOCAL_MODULE_SUFFIX)
-else
-LOCAL_SRC_FILES := lib/$(TARGET_ARCH)/$(LOCAL_MODULE)$(LOCAL_MODULE_SUFFIX)
-endif
-endif
-include $(BUILD_PREBUILT)
-
-include $(CLEAR_VARS)
 LOCAL_MODULE := libcameragl
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
@@ -150,8 +126,8 @@ LOCAL_SHARED_LIBRARIES:= \
     libskia \
     libhardware \
     libcameragl \
-    libopencv_java3 \
-    libMFDenoise
+    libopencv_java3
+
 #has no "external/stlport" from Android 6.0 on                         
 ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \< 6.0)))
 LOCAL_SHARED_LIBRARIES += \

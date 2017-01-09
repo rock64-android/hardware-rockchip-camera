@@ -409,8 +409,7 @@ struct rk_camera_softinfo_config{
     rk_focus_config mFocusConfig;
     rk_flash_config mFlashConfig;
     rk_face_detect_info mFaceDetctConfig;
-    rk_cproc_config mPreCprocConfig;
-    rk_cproc_config mCapCprocConfig;
+    rk_cproc_config mCprocConfig;
     rk_gamma_out_config mGammaOutConfig;
     
     int mZSLConfig;

@@ -133,7 +133,6 @@ extern "C" int rga_nv12_scale_crop(
 extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int src_h,int dstbuf,int zoom_value);
 extern "C" void generateJPEG(uint8_t* data,int w, int h,unsigned char* outbuf,int* outSize);
 extern "C" int util_get_gralloc_buf_fd(buffer_handle_t handle,int* fd);
-
 extern rk_cam_info_t gCamInfos[CAMERAS_SUPPORT_MAX];
 extern bool g_ctsV_flag;
 
@@ -620,51 +619,49 @@ V1.0x44.0:
    1) support UVNR.
    2) Touch AE support cam_board switch off/on.
    3) support isLowIllumin set.
-V1.0x44.1:
-  1) atuo ae CentreWeightMetering.
-V1.0x45.0:
+*v1.0x44.1:
+   1) support rk322x jpeg software encode,add a new file Jpeg_soft_encode.cpp.
+   2) board_xml_parse: modify ioctl lose cifio value.
+*v1.0x44.2:
+   remove 4208*3120 from support preview size.and suggust preview size chose 2104*1560.
+*v1.0x45.0:
+  include from 69 server:V1.0x44.1:  1) atuo ae CentreWeightMetering.
   1) support android Nougat.
 V1.0x46.0:
   1) gammaout curve configuration moved to IQ xml.
 V1.0x47.0:
   1) update cameragl library(support android nougat).
-V1.0x48.0:
-  1) support 3DNR. 
-v1.0x49.0:
+V1.0x47.1:
+  1) fix get support picture sizes error.
+V1.0x47.2
+  1) support rk3328, compile ok now.
+v1.0x48.0:
   1) support gralloc drm buffer allocation 
-v1.0x4a.0:
+v1.0x49.0:
   1) support drm rga
-V1.0x4b.0:
-  1) support CprocConfig and ConvRange distinguish between preview and capture. 
-v1.0x4c.0:
-  1) usb camera support face detection. 
-v1.0x4d.0:
-  1) enable drm rga, drm rga support virtual addr
-v1.0x4e.0:
-  1)merge from 29 server:
-    v1.0x49.1:
-       1) enable drm rga,support virtual address
-    v1.0x49.2:
-       1) change 13M resolution to 12.5M because the rga only support max 4096 vir_width.
-    v1.0x49.3:
-       1) Support software jpeg encode at rk3328 platform on android Nougat.
-       2) Fix bug of getting a frame after stream off.
-    v1.0x49.4:
-       1) fix the bug that usb camera throw out error in probabilistic when taking pictures
-    v1.0x49.5:
-       1) use virAddr instead of fd for drm RGA, cause the fd manner has performance issue now.
-       2) display window virtual width should be 32 bytes aligned,which is GPU required.
-    v1.0x49.6:
-       1) camera usb adapter support face detection.
-    v1.0x49.7:
-       1) fix face detection ratation error.
-    v1.0x49.8:
-       1) enable torch mode when camera supports. 
+
+v1.0x49.1:
+  1) enable drm rga,support virtual address
+v1.0x49.2:
+  1) change 13M resolution to 12.5M because the rga only support max 4096 vir_width.
+v1.0x49.3:
+  1) Support software jpeg encode at rk3328 platform on android Nougat.
+  2) Fix bug of getting a frame after stream off.
+v1.0x49.4:
+  1) fix the bug that usb camera throw out error in probabilistic when taking pictures
+v1.0x49.5:
+  1) use virAddr instead of fd for drm RGA, cause the fd manner has performance issue now.
+  2) display window virtual width should be 32 bytes aligned,which is GPU required.
+v1.0x49.6:
+  1) camera usb adapter support face detection.
+v1.0x49.7:
+  1) fix face detection ratation error.
+v1.0x49.8:
+  1) enable torch mode when camera supports. 
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4e, 0)
-
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 8)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P
@@ -691,7 +688,7 @@ v1.0x4e.0:
 #define CONFIG_CAMERA_DISPLAY_BUF_CNT		4
 #define CONFIG_CAMERA_VIDEO_BUF_CNT 4
 #define CONFIG_CAMERA_VIDEOENC_BUF_CNT		3
-#define CONFIG_CAMERA_ISP_BUF_REQ_CNT		8
+#define CONFIG_CAMERA_ISP_BUF_REQ_CNT		6
 
 #define CONFIG_CAMERA_UVC_MJPEG_SUPPORT 1
 #define CONFIG_CAMERA_UVC_MANEXP 1

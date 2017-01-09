@@ -1,6 +1,4 @@
 #include "CameraHal.h"
-#include "CameraIspTunning.h"
-
 namespace android{
 
 #define DISPLAY_FORMAT CAMERA_DISPLAY_FORMAT_YUV420SP/*CAMERA_DISPLAY_FORMAT_YUV420P*/
@@ -234,7 +232,7 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
     mDislayBufNum = CONFIG_CAMERA_DISPLAY_BUF_CNT;
 
     // Set gralloc usage bits for window.
-    err = mANativeWindow->set_usage(mANativeWindow, CAMHAL_GRALLOC_USAGE | CAMERIC_ISP_CCONV_RANGE_LIMITED_RANGE);
+    err = mANativeWindow->set_usage(mANativeWindow, CAMHAL_GRALLOC_USAGE);
     if (err != 0) {
         LOGE("%s(%d): %s(err:%d) native_window_set_usage failed", __FUNCTION__,__LINE__, strerror(-err), -err);
 
@@ -752,11 +750,16 @@ display_receive_cmd:
                             }else{
 								#if defined(RK_DRM_GRALLOC)
 								int dst_stride = mDisplayBufInfo[queue_display_index].stride;
+								/*
 								int mem_fd = -1;
 								util_get_gralloc_buf_fd(*(mDisplayBufInfo[queue_display_index].buffer_hnd),&mem_fd);
                                 rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
                                         (char*)(frame->phy_addr), (short int *)((long)(mem_fd)),
-                                        mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,dst_stride,false);
+                                        mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false,dst_stride);
+								*/		
+                                rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+                                        (char*)(frame->vir_addr), (short int *)(mDisplayBufInfo[queue_display_index].vir_addr),
+                                        mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false,dst_stride,true);
 								#else
                                 rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
                                         (char*)(frame->vir_addr), (short int *)(mDisplayBufInfo[queue_display_index].vir_addr),

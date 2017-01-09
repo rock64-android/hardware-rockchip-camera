@@ -885,44 +885,6 @@ RESULT IsiGetGainIss
     return ( result );
 }
 
-/*****************************************************************************/
-/**
- *          IsiGetColorIss
- *
- *****************************************************************************/
-RESULT IsiGetColorIss
-(
-    IsiSensorHandle_t   handle,
-    char               *pGetColor
-)
-{
-    IsiSensorContext_t *pSensorCtx = (IsiSensorContext_t *)handle;
-
-    RESULT result = RET_SUCCESS;
-
-    TRACE( ISI_INFO, "%s: (enter)\n", __FUNCTION__);
-
-    if ( pSensorCtx == NULL )
-    {
-        return ( RET_WRONG_HANDLE );
-    }
-
-    if ( pGetColor == NULL )
-    {
-        return ( RET_NULL_POINTER );
-    }
-
-    if ( pSensorCtx->pSensor->pIsiGetColorIss == NULL )
-    {
-        return ( RET_NOTSUPP );
-    }
-
-    result = pSensorCtx->pSensor->pIsiGetColorIss( pSensorCtx, pGetColor );
-
-    TRACE( ISI_INFO, "%s: (exit)\n", __FUNCTION__);
-
-    return ( result );
-}
 
 
 /*****************************************************************************/
@@ -2235,20 +2197,6 @@ RESULT IsiGetResolutionParam
         case ISI_RES_2592_1944P20:
         case ISI_RES_2592_1944P25:
         case ISI_RES_2592_1944P30:
-
-		case ISI_RES_2688_1520P30:
-		case ISI_RES_2688_1520P25:
-		case ISI_RES_2688_1520P20:
-		case ISI_RES_2688_1520P15:
-		case ISI_RES_2688_1520P10:
-		case ISI_RES_2688_1520P7:
-
-		case ISI_RES_672_376P60:
-		case ISI_RES_672_376P30:
-		case ISI_RES_672_376P25:
-		case ISI_RES_672_376P20:
-		case ISI_RES_672_376P15:
-		case ISI_RES_672_376P10:
 
 		case ISI_RES_2104_1184P40:
 		case ISI_RES_1396_788P40:
