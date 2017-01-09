@@ -75,6 +75,7 @@ CameraIspAdapter::CameraIspAdapter(int cameraId)
 	mCameraGL = NULL;
 	m_buffers_capture = NULL;
 	m_buffers_capture = new cv_fimc_buffer();
+        memset(m_buffers_capture,0x0,sizeof(cv_fimc_buffer));
 	mCameraGL = new CameraGL();
     mGPUCommandThread = new GPUCommandThread(this);
     mGPUCommandThread->run("GPUCommandThread",ANDROID_PRIORITY_DISPLAY);
@@ -84,6 +85,8 @@ CameraIspAdapter::CameraIspAdapter(int cameraId)
 	mMutliFrameDenoise = NULL;
 	mfd_buffers_capture = NULL;
     mfd_buffers_capture = new cv_fimc_buffer();
+    memset(mfd_buffers_capture,0x0,sizeof(cv_fimc_buffer));
+    memset(&mfd,0x0,sizeof(mfdprocess));
     mMutliFrameDenoise = new MutliFrameDenoise();
     mMFDCommandThread = new MFDCommandThread(this);
     mMFDCommandThread->run("MFDCommandThread",ANDROID_PRIORITY_DISPLAY);
@@ -2644,7 +2647,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 							sendBlockedMsg(CMD_GPU_PROCESS_INIT);
 						}
 
-						m_buffers_capture->start = tmpFrame->vir_addr;
+						m_buffers_capture->start = (void *)tmpFrame->vir_addr;
 						m_buffers_capture->share_fd = phy_addr;
 						m_buffers_capture->length = width * height * 3 / 2;
 						m_buffers_capture->handle = NULL;

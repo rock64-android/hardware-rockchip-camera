@@ -1761,7 +1761,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 				long fd = mVideoBufferProvider->getBufShareFd(buf_index);
 	            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                                (char*)(frame->phy_addr), (short int *)fd,
-	                                mRecordW,mRecordH,frame->zoom_value,false,true,0,false);
+	                                mRecordW,mRecordH,frame->zoom_value,false,true,false,0,false);
 				#else
 	            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                                (char*)(frame->vir_addr), (short int *)buf_vir,
@@ -1795,7 +1795,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 		#if defined(RK_DRM_GRALLOC)
 	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                (char*)(frame->phy_addr), (short int*)(mGrallocVideoBuf[buf_index]->phy_addr),
-	                mRecordW,mRecordH,frame->zoom_value,false,true,0,false);
+	                mRecordW,mRecordH,frame->zoom_value,false,true,false,0,false);
 		#else
 	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                (char*)(frame->vir_addr), (short int*)(mGrallocVideoBuf[buf_index]->vir_addr),
