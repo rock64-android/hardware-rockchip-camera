@@ -613,7 +613,7 @@ fail:
 }
 
 static uint MediaProfile_Resolution[][2] = {{176,144},{240,160},{320,240},{352,288},
-                     {640,480},{720,480},{800,600}, {1280,720},{1920,1080},
+                     {640,480},{720,480},/*{800,600}, */{1280,720},{1920,1080},
                      {0,0}};
 
 int find_DV_resolution_index(int w, int h)
@@ -943,27 +943,33 @@ int camera_get_number_of_cameras(void)
 	            		}
 	            		//LOGE("index = %d, pixel_format = %d, width = %d, height = %d", 
 	            		//    fival.index, fival.pixel_format, fival.width,  fival.height);
-						while ((ret = ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) {
+                        if ((ret = ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) {
 							if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
 								pDVResolution->mFps = fival.discrete.denominator/fival.discrete.numerator;
 								pDVResolution->mIsSupport = 1;
 								if (pDVResolution->mFps > maxfps)
 									maxfps = pDVResolution->mFps;
 								LOG1("%dx%d : %d	%d/%d",fival.width,fival.height, pDVResolution->mFps,fival.discrete.denominator,fival.discrete.numerator);
-							}else if (fival.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
+                            }else{
+                                pDVResolution->mIsSupport = 0;
+                                LOGE("find frame intervals failed ret(%d)\n", ret);
+                            }/*else if (fival.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
 			                    break;
 			                } else if (fival.type == V4L2_FRMIVAL_TYPE_STEPWISE) {
 			                    break;
 			                }
-							fival.index++;
-						}
+							fival.index++;*/
+                        }else{
+                            pDVResolution->mIsSupport = 0;
+                            LOGE("find frame intervals failed ret(%d)\n", ret);
+                        }/*
 						if(ret){
 							pDVResolution->mIsSupport = 1;
 							if(maxfps > 0)
 								pDVResolution->mFps = maxfps;
 							else
 								pDVResolution->mFps = 10;
-				 		}
+                        }*/
 						pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);	        
 					}
 				}

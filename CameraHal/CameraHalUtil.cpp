@@ -58,7 +58,6 @@ extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 						 bool mirror);
 
 
-static char cameraCallProcess[30];
 extern "C" int getCallingPid() {
     return android::IPCThreadState::self()->getCallingPid();
 }
@@ -73,7 +72,8 @@ extern "C" void callStack(){
 extern "C" char* getCallingProcess()
 {
     int fp = -1;
-	cameraCallProcess[0] = 0x00; 
+    char cameraCallProcess[100];
+    memset(cameraCallProcess,0x00,sizeof(cameraCallProcess));
 	sprintf(cameraCallProcess,"/proc/%d/cmdline",getCallingPid());
 
 	fp = open(cameraCallProcess, O_RDONLY);
@@ -85,7 +85,7 @@ extern "C" char* getCallingProcess()
 	} 
 	else {
 		memset(cameraCallProcess,0x00,sizeof(cameraCallProcess));
-		read(fp, cameraCallProcess, 29);
+		read(fp, cameraCallProcess, 99);
 		close(fp);
 		fp = -1;
 		LOGD("Calling process is: %s",cameraCallProcess);

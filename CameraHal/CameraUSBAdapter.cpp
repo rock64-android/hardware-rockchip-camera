@@ -94,7 +94,7 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 	mCamDriverFrmHeightMax = 0;
     while ((ret = ioctl(mCamFd, VIDIOC_ENUM_FRAMESIZES, &fsize)) == 0) {
         if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {  
-			if(fsize.discrete.width%16 || fsize.discrete.height%16)
+			if((fsize.discrete.width%16 || fsize.discrete.height%16) && fsize.discrete.height != 1080)
 			{
 				fsize.index++;
 				continue;
@@ -420,14 +420,19 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 	}
 	#endif
 	//hardware face detect settings
-	struct v4l2_queryctrl facedetect;
+	/*struct v4l2_queryctrl facedetect;
 	facedetect.id = V4L2_CID_FACEDETECT;
 	    if (!ioctl(mCamFd, VIDIOC_QUERYCTRL, &facedetect)) {
 
        params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"1");
     }else{
 		params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"2");
-	}	
+    }*/
+    #if defined(TARGET_RK322x) || defined(TARGET_RK312x)
+        params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"0");
+    #else
+        params.set(CameraParameters::KEY_MAX_NUM_DETECTED_FACES_HW,"2");
+    #endif
  	 
     /*Exposure setting*/
     char str_exposure[16], exposure_failed;

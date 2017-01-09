@@ -2113,7 +2113,7 @@ int CameraIspAdapter::selectPreferedDrvSize(int *width,int * height,bool is_capt
 
     return 0;
 }
-
+/*
 static void debugShowFPS()
 {
     static int mFrameCount = 0;
@@ -2130,7 +2130,7 @@ static void debugShowFPS()
         LOGD("Camera %d Frames, %2.3f FPS", mFrameCount, mFps);
     }
     // XXX: mFPS has the value we want
-}
+}*/
 void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 {
     static int writeoneframe = 0;
@@ -2147,9 +2147,8 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     PicBufMetaData_t *pPicBufMetaData = (PicBufMetaData_t *)(pMediaBuffer->pMetaData);
     HalHandle_t  tmpHandle = m_camDevice->getHalHandle();
 
-    //debugShowFPS();
-    
-    //
+    debugShowFPS();
+
     if(pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr420 || pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr422){        
         if(pPicBufMetaData->Type == PIC_BUF_TYPE_YCbCr420){
             fmt = V4L2_PIX_FMT_NV12;
