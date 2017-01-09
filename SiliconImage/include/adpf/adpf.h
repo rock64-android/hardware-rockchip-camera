@@ -376,60 +376,6 @@ RESULT AdpfProcessFrame
 );
 
 
-/*****************************************************************************/
-/**
- *          AdpfGetMfdGain()
- *
- * @brief   The function calculates and adjusts a new DPF-setup regarding
- *          the current sensor-gain
- *
- * @param     handle  Handle to ADPFM
- *			mfd_gain0  mfd_gain1 mfd_gain2 to Mfd
- *
- * @return  Return the result of the function call.
- * @retval  RET_SUCCESS
- * @retval  RET_FAILURE
- *
- *****************************************************************************/
-
-RESULT AdpfGetMfdGain
-(
-    AdpfHandle_t    handle,
-
-    char			*mfd_enable,
-    float			mfd_gain[],
-    float			mfd_frames[]
-
-);
-
-/*****************************************************************************/
-/**
- *          AdpfGetUvnrPara()
- *
- * @brief   The function calculates and adjusts a new DPF-setup regarding
- *          the current sensor-gain
- *
- * @param     handle  Handle to ADPFM
- *			enable gain ratio distances to Uvnr
- *
- * @return  Return the result of the function call.
- * @retval  RET_SUCCESS
- * @retval  RET_FAILURE
- *
- *****************************************************************************/
-
-RESULT AdpfGetUvnrPara
-(
-    AdpfHandle_t    handle,
-
-    char			*uvnr_enable,
-    float			uvnr_gain[],
-    float			uvnr_ratio[],
-    float			uvnr_distances[]
-
-);
-
-
 
 #ifdef __cplusplus
 }

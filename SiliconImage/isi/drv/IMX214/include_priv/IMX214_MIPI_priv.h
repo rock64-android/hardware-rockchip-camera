@@ -1,12 +1,8 @@
 //IMX214_MIPI_priv.h
-/*****************************************************************************/
-/*!
- *  \file        IMX214_priv.h \n
- *  \version     1.0 \n
+/*****************************************************************************//*!
+ *  \file        IMX214_priv.h \n *  \version     1.0 \n
  *  \author      Meinicke \n
- *  \brief       Private header file for sensor specific code of the OV13850. \n
- *
- *  \revision    $Revision: 432 $ \n
+ *  \brief       Private header file for sensor specific code of the OV13850. \n * *  \revision    $Revision: 432 $ \n
  *               $Author: neugebaa $ \n
  *               $Date: 2009-06-30 11:48:59 +0200 (Di, 30 Jun 2009) $ \n
  *               $Id: OV13850_priv.h 432 2009-06-30 09:48:59Z neugebaa $ \n

@@ -1843,7 +1843,7 @@ static RESULT Sensor_IsiChangeSensorResolutionIss
         uint8_t NumberOfFramesToSkip;
         float   DummySetGain;
         float   DummySetIntegrationTime;
-        //if(!res_no_chg){
+        if(!res_no_chg){
             result = Sensor_IsiExposureControlIss( handle, OldGain, OldIntegrationTime, &NumberOfFramesToSkip, &DummySetGain, &DummySetIntegrationTime );
             if ( result != RET_SUCCESS )
             {
@@ -1853,9 +1853,9 @@ static RESULT Sensor_IsiChangeSensorResolutionIss
 
             // return number of frames that aren't exposed correctly
             *pNumberOfFramesToSkip = NumberOfFramesToSkip + 1;
-       // }else{
-        //    *pNumberOfFramesToSkip = 1;
-       // }
+        }else{
+            *pNumberOfFramesToSkip = 1;
+        }
         //	*pNumberOfFramesToSkip = 0;
     }
 
@@ -4446,7 +4446,6 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
 
         0,                      /**< IsiSensor_t.pIsiActivateTestPattern */
         0,
-        0,						/**< IsiSensor_t.pIsiGetColorIss */
     },
     Sensor_IsiGetSensorI2cInfo,
 };

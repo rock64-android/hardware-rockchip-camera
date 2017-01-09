@@ -2,6 +2,7 @@
 #include "cam_api/halholder.h"
 #include "CameraIspTunning.h"
 #include "cutils/properties.h"
+static bool uvnr_enable = true;
 
 namespace android{
 
@@ -80,22 +81,9 @@ CameraIspAdapter::CameraIspAdapter(int cameraId)
     mGPUCommandThread->run("GPUCommandThread",ANDROID_PRIORITY_DISPLAY);
     mGPUCommandThreadState = STA_GPUCMD_IDLE;
 
-	mfdISO = 2;
-	mMutliFrameDenoise = NULL;
-	mfd_buffers_capture = NULL;
-    mfd_buffers_capture = new cv_fimc_buffer();
-    mMutliFrameDenoise = new MutliFrameDenoise();
-    mMFDCommandThread = new MFDCommandThread(this);
-    mMFDCommandThread->run("MFDCommandThread",ANDROID_PRIORITY_DISPLAY);
-    mMFDCommandThreadState = STA_GPUCMD_IDLE;
-
-	system("/data/local/performance.sh");
 	LOG_FUNCTION_NAME_EXIT
 	if(mCameraGL == NULL){
         LOGE("ERROR in CameraIspAdapter: can not new mCameraGL!");
-	}
-	if(mMutliFrameDenoise == NULL){
-        LOGE("ERROR in CameraIspAdapter: can not new MutliFrameDenoise!");
     }
 }
 CameraIspAdapter::~CameraIspAdapter()
@@ -115,21 +103,7 @@ CameraIspAdapter::~CameraIspAdapter()
         delete m_buffers_capture;
         m_buffers_capture = NULL;
     }
-    if (mMutliFrameDenoise != NULL){
-        if (mMFDCommandThread != NULL) {
-	    	mfdsendBlockedMsg(CMD_GPU_PROCESS_DEINIT);
-            mMFDCommandThread->requestExitAndWait();
-            mMFDCommandThread.clear();
-            mMFDCommandThread = NULL;
-        }
-	delete mMutliFrameDenoise;
-	mMutliFrameDenoise = NULL;
-    }
 
-    if (mfd_buffers_capture != NULL){
-        delete mfd_buffers_capture;
-        mfd_buffers_capture = NULL;
-    }
     cameraDestroy();
     if(mDispFrameLeak != 0){
         LOGE("\n\n\n\nmay have disp frame mem leak,count is %d\n\n\n\n",mDispFrameLeak);
@@ -372,7 +346,6 @@ status_t CameraIspAdapter::startPreview(int preview_w,int preview_h,int w, int h
         m_camDevice->lock3a((CamEngine3aLock_t)(Lock_awb|Lock_aec)); 
     }
     low_illumin = isLowIllumin(15);
-	m_camDevice->pre2capparameter(is_capture,pCamInfo);
 
     //need to change resolution ?
     if((preview_w != mCamPreviewW) ||(preview_h != mCamPreviewH)
@@ -590,25 +563,6 @@ int CameraIspAdapter::setParameters(const CameraParameters &params_set,bool &isR
         LOGE("FpsRange(%s) is invalidate",params_set.get(CameraParameters::KEY_PREVIEW_FPS_RANGE));
         return BAD_VALUE;
     }
-	{
-		if(params_set.get("3dnr_enabled")!= NULL)
-		{
-			if (strcmp(params_set.get("3dnr_enabled"),mParameters.get("3dnr_enabled"))) {
-				if(!strcmp(params_set.get("3dnr_enabled"),"true")){
-					mfd.enable = true;
-					mfd.buffer_full = false;
-
-				} else {
-					mfd.enable = false;
-					mfd.buffer_full = true;
-
-				}
-			}
-		}
-		else {
-			LOGE("3dnr_enabled is null!");
-		}
-	}
 
 
     {/* ddl@rock-chips.com: v1.5.0 */
@@ -947,8 +901,8 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         pixels = max_w*max_h;
         if (max_w*10/max_h == 40/3) {          //  4:3 Sensor
             if (pixels > 12800000) {
-                if ((max_w != 4128)&&(max_h != 3096))
-                    parameterString.append(",2064x1548");                
+                //if ((max_w != 4128)&&(max_h != 3096))
+                    //parameterString.append(",2064x1548");  
             } else if (pixels > 7900000) {
                 if ((max_w != 3264)&&(max_h != 2448))
                     parameterString.append(",1632x1224");                
@@ -961,10 +915,11 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 		char prop_val[PROPERTY_VALUE_MAX];
 		property_get("sys.camera.uvnr", prop_val, "1");
 		if (!strcmp(prop_val, "1")) {
-			uvnr.enable = true;
+			uvnr_enable = true;
 		} else {
-			uvnr.enable = false;
+			uvnr_enable = false;
 		}
+		LOGD("uvnr_enable : %d hcc 0930", uvnr_enable);
 
         params.set(CameraParameters::KEY_PREVIEW_SIZE,string);
         params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES, parameterString.string());        
@@ -1026,31 +981,22 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 				parameterString.append(",1920x1080,1920x1088");
 			}
 		} else {
-        		if(max_w >= 1280 && max_h >= 720) {
+            		if(max_w >= 1280 && max_h >= 720) {
 				parameterString.append(",1280x720");
 			}
 			if(max_w >= 1920 && max_h >= 1080){
 				parameterString.append(",1920x1080");
 			}
-        }
+        	}
 
+		if(max_w >= 4096 && max_h >= 3072)
+		{
+			parameterString.removeAll(",4208x3120");
+			parameterString.removeAll("4208x3120,");
+			ALOGD("PICSIZE: %s", parameterString.string());
+			sprintf(string,"%dx%d", 4096, 3096);
+		}
 
-		if(uvnr.enable) {
-			if(max_w >= 4096 && max_h >= 3072)
-			{
-				parameterString.removeAll("4208x3120,");
-				ALOGD("PICSIZE: %s", parameterString.string());
-				sprintf(string,"%dx%d", 4096, 3096);
-			}
-		}
-		if(mfd.enable == true) {
-			if(max_w >= 4096 && max_h >= 3072)
-			{
-				parameterString.removeAll("4208x3120,");
-				ALOGD("PICSIZE: %s", parameterString.string());
-				sprintf(string,"%dx%d", 4096, 3096);
-			}
-		}
         params.set(CameraParameters::KEY_PICTURE_SIZE, string);
         params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, parameterString.string());
 	}
@@ -1339,7 +1285,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     params.setPreviewFrameRate(30);
 
     params.set(KEY_CONTINUOUS_PIC_NUM,"1");
-	params.set("3dnr_enabled","false");
+
     if((pCamInfo->mSoftInfo.mContinue_snapshot_config)
         && (pCamInfo->mHardInfo.mSensorInfo.mPhy.type == CamSys_Phy_Mipi)
         && (pCamInfo->mHardInfo.mSensorInfo.laneNum > 1)){
@@ -1358,7 +1304,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
         pCamInfo->mSoftInfo.mPreviewWidth, pCamInfo->mSoftInfo.mPreviewHeight);
     LOGD ("Support Preview FPS range: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE));
     LOGD ("Support Preview framerate: %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES));
-LOGD ("Support Picture sizes: %s    %s(default)",params.get(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES),params.get(CameraParameters::KEY_PICTURE_SIZE));
+    LOGD ("Support Picture sizes: %s    %s(default)",params.get(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES),params.get(CameraParameters::KEY_PICTURE_SIZE));
     LOGD ("Support Focus: %s  Focus zone: %s",params.get(CameraParameters::KEY_SUPPORTED_FOCUS_MODES),params.get(CameraParameters::KEY_MAX_NUM_FOCUS_AREAS));
     if (params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES) && params.get(CameraParameters::KEY_FLASH_MODE))
         LOGD ("Support Flash: %s  Flash: %s",params.get(CameraParameters::KEY_SUPPORTED_FLASH_MODES),params.get(CameraParameters::KEY_FLASH_MODE));
@@ -1865,11 +1811,11 @@ bool CameraIspAdapter::connectCamera(){
             1.0,      //saturation 0-1.992
             0,      //hue   -90 - 87.188
         };
-        if(pCamInfo->mSoftInfo.mPreCprocConfig.mSupported == true){
-            cproc_config.contrast = pCamInfo->mSoftInfo.mPreCprocConfig.mContrast;
-            cproc_config.saturation= pCamInfo->mSoftInfo.mPreCprocConfig.mSaturation;
-            cproc_config.hue= pCamInfo->mSoftInfo.mPreCprocConfig.mHue;
-            cproc_config.brightness= pCamInfo->mSoftInfo.mPreCprocConfig.mBrightness;
+        if(pCamInfo->mSoftInfo.mCprocConfig.mSupported == true){
+            cproc_config.contrast = pCamInfo->mSoftInfo.mCprocConfig.mContrast;
+            cproc_config.saturation= pCamInfo->mSoftInfo.mCprocConfig.mSaturation;
+            cproc_config.hue= pCamInfo->mSoftInfo.mCprocConfig.mHue;
+            cproc_config.brightness= pCamInfo->mSoftInfo.mCprocConfig.mBrightness;
             m_camDevice->cProcEnable( &cproc_config);
         }
     }
@@ -1901,7 +1847,7 @@ void CameraIspAdapter::disconnectCamera()
     }
 
 	rk_cam_total_info *pCamInfo = gCamInfos[mCamId].pcam_total_info;
-    if((pCamInfo->mSoftInfo.mPreCprocConfig.mSupported == true) || (pCamInfo->mSoftInfo.mCapCprocConfig.mSupported == true)){
+    if(pCamInfo->mSoftInfo.mCprocConfig.mSupported == true){
         bool running = false;
         CamEngineCprocConfig_t cproc_config;
         if((m_camDevice->state() == CamEngineItf::Running) ||
@@ -2070,13 +2016,6 @@ int CameraIspAdapter::getCurPreviewState(int *drv_w,int *drv_h)
 void CameraIspAdapter::gpuCommandThread()
 {
     Message_cam msg;
-	float uvnr_set_ratio;
-	float uvnr_set_distances;
-	char  uvnr_set_enable;
-	float uvnr_ISO[3];
-	float uvnr_ratio[3];
-	float uvnr_distances[3];
-
     while (mGPUCommandThreadState != STA_GPUCMD_STOP) {
     gpu_receive_cmd:
         if (gpuCmdThreadCommandQ.isEmpty() == false ) {
@@ -2109,28 +2048,9 @@ void CameraIspAdapter::gpuCommandThread()
                 case CMD_GPU_PROCESS_RENDER:
                 {
                     if (mCameraGL->initialized) {
-						m_camDevice->getUvnrPara(&uvnr_set_enable, uvnr_ISO, uvnr_ratio,uvnr_distances);
                         m_camDevice->getGain(mISO);
-
-						if(uvnr_set_enable == true) {
-							if(mISO > uvnr_ISO[2]) {
-								uvnr_set_ratio = uvnr_ratio[2];
-								uvnr_set_distances = uvnr_distances[2];
-							}
-							else if(mISO > uvnr_ISO[1]){
-								uvnr_set_ratio = uvnr_ratio[1];
-								uvnr_set_distances = uvnr_distances[1];
-							}
-							else {
-								uvnr_set_ratio = uvnr_ratio[0];
-								uvnr_set_distances = uvnr_distances[0];
-							}
-						} else {
-							uvnr_set_ratio = 15;
-							uvnr_set_distances = 5;
-						}
-
-                        mCameraGL->process(NULL,OUTPUT_NONE,uvnr_set_ratio,uvnr_set_distances);
+                        mCameraGL->process(NULL);
+                        LOGD("CameraIspAdapter::gpuCommandThread mISO = %f",mISO);
                     }
                     if(msg.arg1)
                         ((Semaphore*)msg.arg1)->Signal();
@@ -2182,126 +2102,6 @@ void CameraIspAdapter::sendBlockedMsg(int message) {
     gpuCmdThreadCommandQ.put(&msg);
     mGpuOPCond.signal();
     mGpuOPLock.unlock();
-    if(msg.arg1){
-        sem.Wait();
-    }
-
-}
-
-void CameraIspAdapter::mfdCommandThread()
-{
-    Message_cam msg;
-	float mfdsetISO;
-	char mfd_set_enable;
-	float get_mfdISO[3];
-	float mfdFrames[3];
-    while (mMFDCommandThreadState != STA_GPUCMD_STOP) {
-    gpu_receive_cmd:
-        if (mfdCmdThreadCommandQ.isEmpty() == false ) {
-            mfdCmdThreadCommandQ.get(&msg);
-
-            //ALOGD("isp-msg,command thread receive message: %d", msg.command);
-            switch (msg.command)
-            {
-                case CMD_GPU_PROCESS_INIT:
-                {
-                    //ALOGD("check init, w-h: %d-%d, tid: %d", width, height, gettid());
-                    if (!mMutliFrameDenoise->initialized) {
-                        mMutliFrameDenoise->initOpenGLES(NULL, mMfdFBOWidth, mMfdFBOHeight);
-                    }
-                    mMFDCommandThreadState = STA_GPUCMD_RUNNING;
-                    if(msg.arg1)
-                        ((Semaphore*)msg.arg1)->Signal();
-                    break;
-                }
-                case CMD_GPU_PROCESS_UPDATE:
-                {
-                    if (mMutliFrameDenoise->initialized) {
-                        //ALOGD("fill buffer capture, start: %.8x, dat0: %d, fd: %d, length: %d", mfd_buffers_capture->start, (void*)(mfd_buffers_capture->start),             mfd_buffers_capture->share_fd, mfd_buffers_capture->length);
-					// m_camDevice->getGain(mfdISO);
-                        mMutliFrameDenoise->updateImageData(mfd_buffers_capture);
-                    }
-                    if(msg.arg1)
-                        ((Semaphore*)msg.arg1)->Signal();
-
-                    break;
-                }
-                case CMD_GPU_PROCESS_RENDER:
-                {
-                    if (mMutliFrameDenoise->initialized) {
-                        m_camDevice->getGain(mfdISO);
-                        mMutliFrameDenoise->processing(NULL,mfdISO);
-                        LOGD("CameraIspAdapter::mfdCommandThread mfdISO = %f",mfdISO);
-                    }
-                    if(msg.arg1)
-                        ((Semaphore*)msg.arg1)->Signal();
-
-                    break;
-                }
-                case CMD_GPU_PROCESS_SETFRAMES:
-                {
-					m_camDevice->getGain(mfdISO);
-
-					m_camDevice->getMfdGain(&mfd_set_enable, get_mfdISO, mfdFrames);
-					if(mfd_set_enable == 1) {
-						if(mfdISO > get_mfdISO[2]) {
-							mfd.process_frames = mfdFrames[2];
-						}
-						else if(mfdsetISO > get_mfdISO[1]){
-							mfd.process_frames = mfdFrames[1];
-						}
-						else {
-							mfd.process_frames = mfdFrames[0];
-						}
-					} else {
-						mfd.process_frames = 2;
-					}
-					mMutliFrameDenoise->setFrames(mfd.process_frames);
-                    if(msg.arg1)
-                        ((Semaphore*)msg.arg1)->Signal();
-                    break;
-                }
-                case CMD_GPU_PROCESS_DEINIT:
-                {
-                    if (mMutliFrameDenoise->initialized) {
-                        mMutliFrameDenoise->destroy();
-                    }
-
-                    mMFDCommandThreadState = STA_GPUCMD_STOP;
-
-                    if(msg.arg1)
-                        ((Semaphore*)msg.arg1)->Signal();
-
-                    continue;
-                }
-            }
-        }
-
-        mMfdOPLock.lock();
-        if (mfdCmdThreadCommandQ.isEmpty() == false ) {
-            mMfdOPLock.unlock();
-            goto gpu_receive_cmd;
-        }
-
-        mMfdOPCond.wait(mMfdOPLock);
-        mMfdOPLock.unlock();
-
-        goto gpu_receive_cmd;
-    }
-}
-void CameraIspAdapter::mfdsendBlockedMsg(int message) {
-    //ALOGD("isp-msg, receive message: %d", message);
-    Message_cam msg;
-    Semaphore sem;
-
-    mMfdOPLock.lock();
-
-    msg.command = message;
-    sem.Create();
-    msg.arg1 = (void*)(&sem);
-    mfdCmdThreadCommandQ.put(&msg);
-    mMfdOPCond.signal();
-    mMfdOPLock.unlock();
     if(msg.arg1){
         sem.Wait();
     }
@@ -2580,110 +2380,63 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     	//picture ?
     	if(mRefEventNotifier->isNeedSendToPicture()){
             bool send_to_pic = true;
-			MediaBufLockBuffer( pMediaBuffer );
-            //new frames
-            FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
-            if(!tmpFrame){
-				MediaBufUnlockBuffer( pMediaBuffer );
-				return;
+            if(mFlashStatus && ((ulong_t)(pPicBufMetaData->priv) != 1)){
+                pPicBufMetaData->priv = NULL;
+                send_to_pic = false;
+                LOG1("not the desired flash pic,skip it,mFlashStatus %d!",mFlashStatus);
             }
+            if (send_to_pic) { 
+                MediaBufLockBuffer( pMediaBuffer );
+                //new frames
+                FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
+                if(!tmpFrame){
+                	MediaBufUnlockBuffer( pMediaBuffer );
+                	return;
+                }
 
-			{
-				if (mfd.enable) {
-					mfd_buffers_capture->start = y_addr_vir;
-					mfd_buffers_capture->share_fd = phy_addr;
-					mfd_buffers_capture->length = width * height * 3 / 2;
-					mfd_buffers_capture->handle = NULL;
-					if (!mMutliFrameDenoise->initialized) {
-						mMfdFBOWidth = width;
-						mMfdFBOHeight = height;
-						mfdsendBlockedMsg(CMD_GPU_PROCESS_INIT);
-					}
-					if((mfd.frame_cnt == 0) && (mMutliFrameDenoise->initialized)) {
-						LOGE("mMutliFrameDenoise->initialized:%d,mfd.frame_cnt:%d	hcc101802!",mMutliFrameDenoise->initialized,mfd.frame_cnt);
-						mfdsendBlockedMsg(CMD_GPU_PROCESS_SETFRAMES);
-						LOGE("CMD_GPU_PROCESS_SETFRAMES finish!");
-					}
-					if(mfd.frame_cnt < mfd.process_frames) {
-						mfdsendBlockedMsg(CMD_GPU_PROCESS_UPDATE);
-						mfd.buffer_full = false;
-						mfd.frame_cnt++ ;
-					} else {
-						mfd.frame_cnt = 0;
-						mfd.buffer_full = true;
-					}
-				} else {
-				mfd.frame_cnt = 0;
-				mfd.buffer_full = true;
-				}
-			}
-
-			if(mfd.buffer_full == true) {
-				#if 0
-	             if(mFlashStatus && ((ulong_t)(pPicBufMetaData->priv) != 1)){
-	                pPicBufMetaData->priv = NULL;
-	                send_to_pic = false;
-	                LOG1("not the desired flash pic,skip it,mFlashStatus %d!",mFlashStatus);
-	            }
-	            #endif
-				if (send_to_pic) {
-					float flash_luminance = 0;
-					tmpFrame->vir_addr = (ulong_t)y_addr_vir;
-	                if ((mMutliFrameDenoise->initialized) && (mfd.enable)) {
-						mfdsendBlockedMsg(CMD_GPU_PROCESS_RENDER);
-	                    mMutliFrameDenoise->getResult(tmpFrame->vir_addr);
-	                }
-
-					if( tmpFrame->vir_addr == NULL) {
-						LOGE("mfd tmpFrame->vir_addr is NULL!");
-					}
-
-					if (uvnr.enable) {
-						if (!mCameraGL->initialized) {
-							mGpuFBOWidth = width;
-							mGpuFBOHeight = height;
-							sendBlockedMsg(CMD_GPU_PROCESS_INIT);
-						}
-
-						m_buffers_capture->start = tmpFrame->vir_addr;
-						m_buffers_capture->share_fd = phy_addr;
-						m_buffers_capture->length = width * height * 3 / 2;
-						m_buffers_capture->handle = NULL;
-
-						sendBlockedMsg(CMD_GPU_PROCESS_UPDATE);
-						sendBlockedMsg(CMD_GPU_PROCESS_RENDER);
-						mCameraGL->getResult(tmpFrame->vir_addr);
-					}
-					if( tmpFrame->vir_addr == NULL) {
-						LOGE("uvnr tmpFrame->vir_addr is NULL!");
-					}
-	                //add to vector
-	                tmpFrame->frame_index = (ulong_t)tmpFrame; 
-	                tmpFrame->phy_addr = (ulong_t)phy_addr;
-	                tmpFrame->frame_width = width;
-	                tmpFrame->frame_height= height;
-	                //tmpFrame->vir_addr = (ulong_t)y_addr_vir;
-	                tmpFrame->frame_fmt = fmt;
-	                tmpFrame->used_flag = 2;
-	                tmpFrame->res = &mImgAllFovReq;
+                //add to vector
+                tmpFrame->frame_index = (ulong_t)tmpFrame; 
+                tmpFrame->phy_addr = (ulong_t)phy_addr;
+                tmpFrame->frame_width = width;
+                tmpFrame->frame_height= height;
+                tmpFrame->vir_addr = (ulong_t)y_addr_vir;
+                tmpFrame->frame_fmt = fmt;
+                tmpFrame->used_flag = 2;
+                tmpFrame->res = &mImgAllFovReq;
 #if (USE_RGA_TODO_ZOOM == 1)  
-	                tmpFrame->zoom_value = mZoomVal;
+                tmpFrame->zoom_value = mZoomVal;
 #else
-	                if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
-	                    tmpFrame->zoom_value = mZoomVal;
-	                } else {
-	                    tmpFrame->zoom_value = 100;
-	                }
+                if((tmpFrame->frame_width > 2592) && (tmpFrame->frame_height > 1944) && (mZoomVal != 100) ){
+                    tmpFrame->zoom_value = mZoomVal;
+                } else {
+                    tmpFrame->zoom_value = 100;
+                }
 #endif
-	                {
-	                    Mutex::Autolock lock(mFrameArrayLock);
-	                    mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
-	                    mPicEncFrameLeak++;
-	                }
-	                picture_info_s &picinfo = mRefEventNotifier->getPictureInfoRef();
-	                getCameraParamInfo(picinfo.cameraparam);
-	                mRefEventNotifier->notifyNewPicFrame(tmpFrame);
-	            }
+
+                {
+                    Mutex::Autolock lock(mFrameArrayLock);
+                    mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
+                    mPicEncFrameLeak++;
+                }
+                picture_info_s &picinfo = mRefEventNotifier->getPictureInfoRef();
+                getCameraParamInfo(picinfo.cameraparam);
+
+                if (!mCameraGL->initialized) {
+                    mGpuFBOWidth = width;
+                    mGpuFBOHeight = height;
+                    sendBlockedMsg(CMD_GPU_PROCESS_INIT);
+                }
+
+                m_buffers_capture->start = y_addr_vir;
+                m_buffers_capture->share_fd = phy_addr;
+                m_buffers_capture->length = width * height * 3 / 2;
+                m_buffers_capture->handle = NULL;
+				if (uvnr_enable) {
+					sendBlockedMsg(CMD_GPU_PROCESS_UPDATE);
+					sendBlockedMsg(CMD_GPU_PROCESS_RENDER);
+					mCameraGL->getResult((long)y_addr_vir);
+				}
+                mRefEventNotifier->notifyNewPicFrame(tmpFrame);	
             }
     	}
 

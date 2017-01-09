@@ -126,6 +126,7 @@ const IsiRegDescription_t Sensor_g_aRegDescription[] =
 	{0x5002, 0x30, "eReadWrite",eReadWrite},//
 	{0x5080, 0x00, "eReadWrite",eReadWrite},// test pattern off
 	{0x5081, 0x41, "eReadWrite",eReadWrite},// window cut enable, random seed = 0x01
+	{0x0100, 0x01, "eReadWrite",eReadWrite},// wake up from sleep
 #else
 	{0x0103, 0x01, "eReadWrite",eReadWrite}, // software reset
 	{0x3002, 0x00, "eReadWrite",eReadWrite}, // gpio0 input, vsync input, fsin input
@@ -199,6 +200,7 @@ const IsiRegDescription_t Sensor_g_aRegDescription[] =
 	{0x5002, 0x30, "eReadWrite",eReadWrite},
 	{0x5080, 0x00, "eReadWrite",eReadWrite}, // test pattern off
 	{0x5081, 0x41, "eReadWrite",eReadWrite}, // window cut enable, random seed = 0x01
+	{0x0100, 0x01, "eReadWrite",eReadWrite}, // wake up from sleep
 
 #endif
     {0x0000 ,0x00, "eReadWrite",eTableEnd}

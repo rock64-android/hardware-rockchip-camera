@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
 <matfile>
    <header size="[1 1]" type="struct">
-      <creation_date index="1" size="[1 11]" type="char">2016-10-27</creation_date>
-      <creator index="1" size="[1 2]" type="char">sandy</creator>
+      <creation_date index="1" size="[1 11]" type="char">2016-07-19</creation_date>
+      <creator index="1" size="[1 2]" type="char">ethan</creator>
       <sensor_name index="1" size="[1 7]" type="char">IMX214</sensor_name>
       <sample_name index="1" size="[1 9]" type="char">50013A7</sample_name>
-      <generator_version index="1" size="[1 4]" type="char">v0.1.0</generator_version>
+      <generator_version index="1" size="[1 4]" type="char">v0.1.7</generator_version>
       <resolution index="1" size="[1 2]" type="cell">
          <cell index="1" size="[1 1]" type="struct">
             <name index="1" size="[1 9]" type="char">2104x1560</name>
@@ -80,18 +80,7 @@
                <afCbMinRegionMin index="1" size="[1 6]" type="double">[128 126 124 122 120 120]</afCbMinRegionMin>
                <afCrMinRegionMin index="1" size="[1 6]" type="double">[93 100 110 116 123 126]</afCrMinRegionMin>
                <afMaxCSumRegionMin index="1" size="[1 6]" type="double">[16 14 12 12 12 12]</afMaxCSumRegionMin>
-	      <afMinCRegionMax index="1" size="[1 6]" type="double">[20 17 15 15 14 13]</afMinCRegionMax>
-               <afMaxYRegionMax index="1" size="[1 6]" type="double">[230 230 230 230 230 230]</afMaxYRegionMax>
-               <afMinYMaxGRegionMax index="1" size="[1 6]" type="double">[30 30 30 30 30 30]</afMinYMaxGRegionMax>
-                <afMinCRegionMin index="1" size="[1 6]" type="double">[16 14 13 12 12 12]</afMinCRegionMin>
-                <afMaxYRegionMin index="1" size="[1 6]" type="double">[230 230 230 230 230 230]</afMaxYRegionMin>
-               <afMinYMaxGRegionMin index="1" size="[1 6]" type="double">[30 30 30 30 30 30]</afMinYMaxGRegionMin>
-	      <afRefCb index="1" size="[1 6]" type="double">[128 128 128 128 128 128]</afRefCb>
-               <afRefCr index="1" size="[1 6]" type="double">[128 128 128 128 128 128]</afRefCr>
-	       <afRegionAdjustEnable index="1" size="[1 1]" type="ushort">[ 0]</afRegionAdjustEnable>
-               <awbMeasWinWidthScale index="1" size="[1 1]" type="double">[ 1]</awbMeasWinWidthScale>
-               <awbMeasWinHeigthScale index="1" size="[1 1]" type="double">[ 1]</awbMeasWinHeigthScale>
-	      <RegionSize index="1" size="[1 1]" type="double">[1]</RegionSize>
+               <RegionSize index="1" size="[1 1]" type="double">[1]</RegionSize>
                <RegionSizeInc index="1" size="[1 1]" type="double">[0.3]</RegionSizeInc>
                <RegionSizeDec index="1" size="[1 1]" type="double">[0.02]</RegionSizeDec>
                <fRgProjIndoorMin index="1" size="[1 1]" type="double">
@@ -168,17 +157,6 @@
                <afCbMinRegionMin index="1" size="[1 6]" type="double">[128 126 124 122 120 120]</afCbMinRegionMin>
                <afCrMinRegionMin index="1" size="[1 6]" type="double">[93 100 110 116 123 126]</afCrMinRegionMin>
                <afMaxCSumRegionMin index="1" size="[1 6]" type="double">[16 14 12 12 12 12]</afMaxCSumRegionMin>
-	      <afMinCRegionMax index="1" size="[1 6]" type="double">[20 17 15 15 14 13]</afMinCRegionMax>
-               <afMaxYRegionMax index="1" size="[1 6]" type="double">[230 230 230 230 230 230]</afMaxYRegionMax>
-               <afMinYMaxGRegionMax index="1" size="[1 6]" type="double">[30 30 30 30 30 30]</afMinYMaxGRegionMax>
-                <afMinCRegionMin index="1" size="[1 6]" type="double">[16 14 13 12 12 12]</afMinCRegionMin>
-                <afMaxYRegionMin index="1" size="[1 6]" type="double">[230 230 230 230 230 230]</afMaxYRegionMin>
-               <afMinYMaxGRegionMin index="1" size="[1 6]" type="double">[30 30 30 30 30 30]</afMinYMaxGRegionMin>
-	      <afRefCb index="1" size="[1 6]" type="double">[128 128 128 128 128 128]</afRefCb>
-               <afRefCr index="1" size="[1 6]" type="double">[128 128 128 128 128 128]</afRefCr>
-	       <afRegionAdjustEnable index="1" size="[1 1]" type="ushort">[ 0]</afRegionAdjustEnable>
-               <awbMeasWinWidthScale index="1" size="[1 1]" type="double">[ 1]</awbMeasWinWidthScale>
-               <awbMeasWinHeigthScale index="1" size="[1 1]" type="double">[ 1]</awbMeasWinHeigthScale>
                <RegionSize index="1" size="[1 1]" type="double">[1]</RegionSize>
                <RegionSizeInc index="1" size="[1 1]" type="double">[0.3]</RegionSizeInc>
                <RegionSizeDec index="1" size="[1 1]" type="double">[0.02]</RegionSizeDec>
@@ -240,11 +218,12 @@
                   </cell>
                </aLSC>
                <manualWB index="1" size="[1 4]" type="double">[1.0353307158735312 1.0000000000000000 1.0000000000000000 2.6382282320301802]</manualWB>
-               <manualccMatrix index="1" type="double" size="[3 3]">[1.65476590726905 -0.111942670644085 -0.542823236624962 -0.536942861352446 1.99930267250014 -0.462359811147697 -0.165809555728093 -1.14841091706821 2.3142204727963]</manualccMatrix>               <manualccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</manualccOffsets>
+               <manualccMatrix index="1" size="[3 3]" type="double">[ 1.6679855342260930 -0.2882156290232127 -0.3797699052028803 -0.4160237968394643 1.7169702913296969 -0.3009464944902327 -0.0559756443818800 -0.9760389542029183 2.0320145985847984]</manualccMatrix>
+               <manualccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</manualccOffsets>
                <awbType index="1" size="[1 4]" type="char">AUTO</awbType>
                <sat_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
-                  <sat index="1" size="[1 4]" type="double">[100 100 90 80]</sat>
+                  <sat index="1" size="[1 4]" type="double">[100 100 100 100]</sat>
                </sat_CT>
                <vig_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
@@ -280,7 +259,8 @@
                   </cell>
                </aLSC>
                <manualWB index="1" size="[1 4]" type="double">[1.8560487064810074 1.0000000000000000 1.0000000000000000 1.3287694153951244]</manualWB>
-               <manualccMatrix index="1" type="double" size="[3 3]">[2.02691122109997 -0.710190621411921 -0.316720599688051 -0.37741245109944 1.94136034253204 -0.563947891432598 -0.0775696501442423 -0.57485917440897 1.65242882455321]</manualccMatrix>               <manualccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</manualccOffsets>
+               <manualccMatrix index="1" size="[3 3]" type="double">[ 1.7490247490854505 -0.6594471309846859 -0.0895776181007646 -0.2199882512218715 1.5294654849967815 -0.3094772337749099 -0.0024499183633960 -0.5018927983523578 1.5043427167157537]</manualccMatrix>
+               <manualccOffsets index="1" size="[1 3]" type="double">[-150 -150 -150]</manualccOffsets>
                <awbType index="1" size="[1 4]" type="char">AUTO</awbType>
                <sat_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
@@ -320,7 +300,8 @@
                   </cell>
                </aLSC>
                <manualWB index="1" size="[1 4]" type="double">[1.5757636657477421 1.0000000000000000 1.0000000000000000 2.1624668949522272]</manualWB>
-               <manualccMatrix index="1" type="double" size="[3 3]">[2.02691122109997 -0.710190621411921 -0.316720599688051 -0.37741245109944 1.94136034253204 -0.563947891432598 -0.0775696501442423 -0.57485917440897 1.65242882455321]</manualccMatrix>               <manualccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</manualccOffsets>
+               <manualccMatrix index="1" size="[3 3]" type="double">[ 1.9696214640262737 -0.8371798880082277 -0.1324415760180460 -0.3922676046835431 1.5074413287500796 -0.1151737240665365 -0.0244134758038502 -0.5851161031452270 1.6095295789490773]</manualccMatrix>
+               <manualccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</manualccOffsets>
                <awbType index="1" size="[1 4]" type="char">AUTO</awbType>
                <sat_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
@@ -360,11 +341,12 @@
                   </cell>
                </aLSC>
                <manualWB index="1" size="[1 4]" type="double">[1.3815678960768827 1.0000000000000000 1.0000000000000000 2.1042998418255658]</manualWB>
-               <manualccMatrix index="1" type="double" size="[3 3]">[2.02691122109997 -0.710190621411921 -0.316720599688051 -0.37741245109944 1.94136034253204 -0.563947891432598 -0.0775696501442423 -0.57485917440897 1.65242882455321]</manualccMatrix>               <manualccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</manualccOffsets>
+               <manualccMatrix index="1" size="[3 3]" type="double">[ 1.6151482052178285 -0.3703736953477082 -0.2447745098701203 -0.3756946711154879 1.5914369273706099 -0.2157422562551221 -0.0255542314170048 -0.5995554604547781 1.6251096918717829]</manualccMatrix>
+               <manualccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</manualccOffsets>
                <awbType index="1" size="[1 4]" type="char">AUTO</awbType>
                <sat_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
-                  <sat index="1" size="[1 4]" type="double">[100 100 90 80]</sat>
+                  <sat index="1" size="[1 4]" type="double">[100 100 100 100]</sat>
                </sat_CT>
                <vig_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
@@ -394,15 +376,16 @@
                   </cell>
                </aLSC>
                <manualWB index="1" size="[1 4]" type="double">[1.86658307380168 1 1 1.6022474818321]</manualWB>
-               <manualccMatrix index="1" type="double" size="[3 3]">[2.02691122109997 -0.710190621411921 -0.316720599688051 -0.37741245109944 1.94136034253204 -0.563947891432598 -0.0775696501442423 -0.57485917440897 1.65242882455321]</manualccMatrix>               <manualccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</manualccOffsets>
+               <manualccMatrix index="1" size="[3 3]" type="double">[1.66020697382607 -0.594497665365302 -0.0657093084607654 -0.243451731451948 1.43706231831322 -0.193610586861274 -0.0220193922475713 -0.458968071507423 1.48098746375499]</manualccMatrix>
+               <manualccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</manualccOffsets>
                <awbType index="1" size="[1 4]" type="char">AUTO</awbType>
                <sat_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
-                  <sat index="1" size="[1 4]" type="double">[100 100 90 80]</sat>
+                  <sat index="1" size="[1 4]" type="double">[100 100 100 100]</sat>
                </sat_CT>
                <vig_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
-                  <vig index="1" size="[1 4]" type="double">[100 100 100 100]</vig>
+                  <vig index="1" size="[1 4]" type="double">[90 90 90 80]</vig>
                </vig_CT>
                <aCC index="1" size="[1 1]" type="struct">
                   <CC_PROFILE_LIST index="1" size="[1 14]" type="char">D75_100 D75_74</CC_PROFILE_LIST>
@@ -428,11 +411,12 @@
                   </cell>
                </aLSC>
                <manualWB index="1" size="[1 4]" type="double">[1.55067730803674 1 1 1.64249994274446]</manualWB>
-               <manualccMatrix index="1" type="double" size="[3 3]">[2.02691122109997 -0.710190621411921 -0.316720599688051 -0.37741245109944 1.94136034253204 -0.563947891432598 -0.0775696501442423 -0.57485917440897 1.65242882455321]</manualccMatrix>               <manualccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</manualccOffsets>
+               <manualccMatrix index="1" size="[3 3]" type="double">[1.63466519509769 -0.438772721632903 -0.205892473464783 -0.307600953966494 1.65186711152498 -0.344266157558485 -0.0273556831673685 -0.490271151672587 1.51762683483996]</manualccMatrix>
+               <manualccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</manualccOffsets>
                <awbType index="1" size="[1 4]" type="char">AUTO</awbType>
                <sat_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
-                  <sat index="1" size="[1 4]" type="double">[100 100 90 80]</sat>
+                  <sat index="1" size="[1 4]" type="double">[100 100 100 100]</sat>
                </sat_CT>
                <vig_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
@@ -467,7 +451,7 @@
                <awbType index="1" size="[1 4]" type="char">AUTO</awbType>
                <sat_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
-                  <sat index="1" size="[1 4]" type="double">[100 100 90 80]</sat>
+                  <sat index="1" size="[1 4]" type="double">[100 100 100 100]</sat>
                </sat_CT>
                <vig_CT index="1" size="[1 1]" type="struct">
                   <gains index="1" size="[1 4]" type="double">[1 2 4 8]</gains>
@@ -933,13 +917,15 @@
          <cell index="1" size="[1 5]" type="struct">
             <name index="1" size="[1 4]" type="char">A_74</name>
             <saturation index="1" size="[1 1]" type="double">[74]</saturation>
-            <ccMatrix index="1" type="double" size="[3 3]">[1.14836735213849 -0.0581077620843173 -0.0902595900541757 -0.0652215939258145 1.11063239053935 -0.0454107966135382 0.216939695252883 -0.53857408734424 1.32163439209136]</ccMatrix>            <ccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</ccOffsets>
+            <ccMatrix index="1" size="[3 3]" type="double">[ 1.1080498621268278 -0.1288842262085856 0.0208343640817578 -0.0605600996519393 1.0396079488219598 0.0209521508299795 0.1796524967761675 -0.6153487716133826 1.4356962748372153]</ccMatrix>
+            <ccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</ccOffsets>
             <wb index="1" size="[1 4]" type="double">[1.0353316944885771 1.0000000000000000 1.0000000000000000 2.6382329895213417]</wb>
          </cell>
          <cell index="2" size="[1 5]" type="struct">
             <name index="1" size="[1 5]" type="char">A_100</name>
             <saturation index="1" size="[1 1]" type="double">[100]</saturation>
-            <ccMatrix index="1" type="double" size="[3 3]">[1.65476590726905 -0.111942670644085 -0.542823236624962 -0.536942861352446 1.99930267250014 -0.462359811147697 -0.165809555728093 -1.14841091706821 2.3142204727963]</ccMatrix>            <ccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</ccOffsets>
+            <ccMatrix index="1" size="[3 3]" type="double">[ 1.6679855342260930 -0.2882156290232127 -0.3797699052028803 -0.4160237968394643 1.7169702913296969 -0.3009464944902327 -0.0559756443818800 -0.9760389542029183 2.0320145985847984]</ccMatrix>
+            <ccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</ccOffsets>
             <wb index="1" size="[1 4]" type="double">[1.0353307158735312 1.0000000000000000 1.0000000000000000 2.6382282320301802]</wb>
          </cell>
          <cell index="3" size="[1 1]" type="struct">
@@ -952,56 +938,64 @@
          <cell index="4" size="[1 1]" type="struct">
             <name index="1" size="[1 7]" type="char">D50_100</name>
             <saturation index="1" size="[1 1]" type="double">[100]</saturation>
-            <ccMatrix index="1" type="double" size="[3 3]">[2.02691122109997 -0.710190621411921 -0.316720599688051 -0.37741245109944 1.94136034253204 -0.563947891432598 -0.0775696501442423 -0.57485917440897 1.65242882455321]</ccMatrix>            <ccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</ccOffsets>
+            <ccMatrix index="1" size="[3 3]" type="double">[1.63466519509769 -0.438772721632903 -0.205892473464783 -0.307600953966494 1.65186711152498 -0.344266157558485 -0.0273556831673685 -0.490271151672587 1.51762683483996]</ccMatrix>
+            <ccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</ccOffsets>
             <wb index="1" size="[1 4]" type="double">[1.55067730803674 1 1 1.64249994274446]</wb>
          </cell>
          <cell index="5" size="[1 5]" type="struct">
             <name index="1" size="[1 6]" type="char">D65_74</name>
             <saturation index="1" size="[1 1]" type="double">[74]</saturation>
-            <ccMatrix index="1" type="double" size="[3 3]">[1.49497010875306 -0.428927276455498 -0.0660428322975637 0.0940003830844106 1.09897501628128 -0.192975399365689 0.265299647556786 -0.366851145926043 1.10155149836926]</ccMatrix>            <ccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</ccOffsets>
+            <ccMatrix index="1" size="[3 3]" type="double">[1.2445486203877647 -0.3677284388936546 0.1231798185058899 0.1413304235551314 0.8565633007675775 0.0021062756772912 0.3205295043835994 -0.4365801476427182 1.1160506432591188]</ccMatrix>
+            <ccOffsets index="1" size="[1 3]" type="double">[-150 -150 -150]</ccOffsets>
             <wb index="1" size="[1 4]" type="double">[1.8560526582504706 1.0000000000000000 1.0000000000000000 1.3287718018952139]</wb>
          </cell>
          <cell index="6" size="[1 5]" type="struct">
             <name index="1" size="[1 7]" type="char">D65_100</name>
             <saturation index="1" size="[1 1]" type="double">[100]</saturation>
-            <ccMatrix index="1" type="double" size="[3 3]">[2.02691122109997 -0.710190621411921 -0.316720599688051 -0.37741245109944 1.94136034253204 -0.563947891432598 -0.0775696501442423 -0.57485917440897 1.65242882455321]</ccMatrix>            <ccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</ccOffsets>
+            <ccMatrix index="1" size="[3 3]" type="double">[ 1.7490247490854505 -0.6594471309846859 -0.0895776181007646 -0.2199882512218715 1.5294654849967815 -0.3094772337749099 -0.0024499183633960 -0.5018927983523578 1.5043427167157537]</ccMatrix>
+            <ccOffsets index="1" size="[1 3]" type="double">[-150 -150 -150]</ccOffsets>
             <wb index="1" size="[1 4]" type="double">[1.8560487064810074 1.0000000000000000 1.0000000000000000 1.3287694153951244]</wb>
          </cell>
          <cell index="7" size="[1 5]" type="struct">
             <name index="1" size="[1 6]" type="char">D75_74</name>
             <saturation index="1" size="[1 1]" type="double">[74]</saturation>
             <ccMatrix index="1" size="[3 3]" type="double">[1.17664867049611 -0.479514544995974 0.30286587449986 0.15292278111859 0.59931026553366 0.247766953347751 0.271066663726638 -0.415590231738952 1.14452356801231]</ccMatrix>
-            <ccOffsets index="1" size="[1 3]" type="double">[-50 -50 -50]</ccOffsets>
+            <ccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</ccOffsets>
             <wb index="1" size="[1 4]" type="double">[1.86658620567798 1 1 1.60225070341948]</wb>
          </cell>
          <cell index="8" size="[1 5]" type="struct">
             <name index="1" size="[1 7]" type="char">D75_100</name>
             <saturation index="1" size="[1 1]" type="double">[100]</saturation>
-            <ccMatrix index="1" type="double" size="[3 3]">[2.02691122109997 -0.710190621411921 -0.316720599688051 -0.37741245109944 1.94136034253204 -0.563947891432598 -0.0775696501442423 -0.57485917440897 1.65242882455321]</ccMatrix>            <ccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</ccOffsets>
+            <ccMatrix index="1" size="[3 3]" type="double">[1.66020697382607 -0.594497665365302 -0.0657093084607654 -0.243451731451948 1.43706231831322 -0.193610586861274 -0.0220193922475713 -0.458968071507423 1.48098746375499]</ccMatrix>
+            <ccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</ccOffsets>
             <wb index="1" size="[1 4]" type="double">[1.86658307380168 1 1 1.6022474818321]</wb>
          </cell>
          <cell index="9" size="[1 5]" type="struct">
             <name index="1" size="[1 11]" type="char">F11_TL84_74</name>
             <saturation index="1" size="[1 1]" type="double">[74]</saturation>
-            <ccMatrix index="1" type="double" size="[3 3]">[1.48111924749023 -0.288728684768242 -0.192390562721986 0.0033677876376773 1.1433220303701 -0.146689818007773 0.231344666971522 -0.478552673612103 1.24720800664058]</ccMatrix>            <ccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</ccOffsets>
+            <ccMatrix index="1" size="[3 3]" type="double">[1.2738062110088260 -0.3473875750696980 0.0735813640608720 0.0573616585448642 0.8895416226412358 0.0530967188139000 0.2522482567664246 -0.4225007757784600 1.1702525190120354]</ccMatrix>
+            <ccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</ccOffsets>
             <wb index="1" size="[1 4]" type="double">[1.3815695895830624 1.0000000000000000 1.0000000000000000 2.1043039607885623]</wb>
          </cell>
          <cell index="10" size="[1 5]" type="struct">
             <name index="1" size="[1 12]" type="char">F11_TL84_100</name>
             <saturation index="1" size="[1 1]" type="double">[100]</saturation>
-            <ccMatrix index="1" type="double" size="[3 3]">[2.02691122109997 -0.710190621411921 -0.316720599688051 -0.37741245109944 1.94136034253204 -0.563947891432598 -0.0775696501442423 -0.57485917440897 1.65242882455321]</ccMatrix>            <ccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</ccOffsets>
+            <ccMatrix index="1" size="[3 3]" type="double">[ 1.6151482052178285 -0.3703736953477082 -0.2447745098701203 -0.3756946711154879 1.5914369273706099 -0.2157422562551221 -0.0255542314170048 -0.5995554604547781 1.6251096918717829]</ccMatrix>
+            <ccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</ccOffsets>
             <wb index="1" size="[1 4]" type="double">[1.3815678960768827 1.0000000000000000 1.0000000000000000 2.1042998418255658]</wb>
          </cell>
          <cell index="11" size="[1 5]" type="struct">
             <name index="1" size="[1 9]" type="char">F2_CWF_74</name>
             <saturation index="1" size="[1 1]" type="double">[74]</saturation>
-            <ccMatrix index="1" type="double" size="[3 3]">[1.66376188083818 -0.627322447995481 -0.0364394328427038 -0.0428898881567611 1.07254976080023 -0.0296598726434654 0.249779605542288 -0.494604508052081 1.24482490250979]</ccMatrix>            <ccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</ccOffsets>
+            <ccMatrix index="1" size="[3 3]" type="double">[1.4241232536069790 -0.5785736439645013 0.1544503903575223 0.0414673858897300 0.7739080613224787 0.1846245527877912 0.2727689209785023 -0.4574341238466392 1.1846652028681370]</ccMatrix>
+            <ccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</ccOffsets>
             <wb index="1" size="[1 4]" type="double">[1.5757656093945638 1.0000000000000000 1.0000000000000000 2.1624717207313728]</wb>
          </cell>
          <cell index="12" size="[1 5]" type="struct">
             <name index="1" size="[1 10]" type="char">F2_CWF_100</name>
             <saturation index="1" size="[1 1]" type="double">[100]</saturation>
-            <ccMatrix index="1" type="double" size="[3 3]">[2.02691122109997 -0.710190621411921 -0.316720599688051 -0.37741245109944 1.94136034253204 -0.563947891432598 -0.0775696501442423 -0.57485917440897 1.65242882455321]</ccMatrix>            <ccOffsets index="1" type="double" size="[1 3]">[-50 -50 -50]</ccOffsets>
+            <ccMatrix index="1" size="[3 3]" type="double">[ 1.9696214640262737 -0.8371798880082277 -0.1324415760180460 -0.3922676046835431 1.5074413287500796 -0.1151737240665365 -0.0244134758038502 -0.5851161031452270 1.6095295789490773]</ccMatrix>
+            <ccOffsets index="1" size="[1 3]" type="double">[-120 -120 -120]</ccOffsets>
             <wb index="1" size="[1 4]" type="double">[1.5757636657477421 1.0000000000000000 1.0000000000000000 2.1624668949522272]</wb>
          </cell>
          <cell index="13" size="[1 1]" type="struct">
@@ -1023,20 +1017,7 @@
          <tbd index="1" size="[1 1]" type="double">[-1]</tbd>
       </AF>
       <AEC index="1" size="[1 1]" type="struct">
-         <SetPoint index="1" size="[1 1]" type="double">[60]</SetPoint>
-         <GridWeights index="1" size="[5 5]" type="unsigned char">
-                  [0  1   2   1   0 
-		 1  2   4   2   1
-	 	 1  4   9   4   1
-		 1  2   4   2   1
-		 0  2   3   2   0]
-         </GridWeights>
-         <MeasuringWindowWidthScale index="1" size="[1 1]" type="double">
-            [1]
-         </MeasuringWindowWidthScale>
-         <MeasuringWindowHeightScale index="1" size="[1 1]" type="double">
-            [1]
-         </MeasuringWindowHeightScale>
+         <SetPoint index="1" size="[1 1]" type="double">[65]</SetPoint>
          <ClmTolerance index="1" size="[1 1]" type="double">[12]</ClmTolerance>
          <DampOver index="1" size="[1 1]" type="double">[0.55]</DampOver>
          <DampUnder index="1" size="[1 1]" type="double">[0.62]</DampUnder>
@@ -1085,26 +1066,17 @@
             </cell>
          </ECM>
          <aFpsMaxGain index="1" size="[1 1]" type="double">[16]</aFpsMaxGain>
-         <EcmDotEnable index="1" size="[1 1]" type="double">
-            [0]
-	</EcmDotEnable>
-         <EcmTimeDot index="1" size="[1 6]" type="double">
-            [0.0 0.03 0.03 0.03 0.03 0.03]
-         </EcmTimeDot>
-         <EcmGainDot index="1" size="[1 6]" type="double">
-            [ 1  1  6   6  7.9 16.0 ]
-         </EcmGainDot>
       </AEC>
       <BLS index="1" size="[1 2]" type="cell">
          <cell index="1" size="[1 1]" type="struct">
             <name index="1" size="[1 9]" type="char">2104x1560</name>
             <resolution index="1" size="[1 9]" type="char">2104x1560</resolution>
-            <blsData index="1" size="[1 4]" type="double">[257 256 257 256]</blsData>
+            <blsData index="1" size="[1 4]" type="double">[256 256 256 256]</blsData>
          </cell>
          <cell index="2" size="[1 1]" type="struct">
             <name index="1" size="[1 9]" type="char">4208x3120</name>
             <resolution index="1" size="[1 9]" type="char">4208x3120</resolution>
-            <blsData index="1" size="[1 4]" type="double">[257 256 257 256]</blsData>
+            <blsData index="1" size="[1 4]" type="double">[256 256 256 256]</blsData>
          </cell>
       </BLS>
       <DEGAMMA index="1" size="[1 1]" type="cell">
@@ -1114,14 +1086,6 @@
             <degamma_y index="1" size="[1 17]" type="double">[0 256 512 768 1024 1280 1536 1792 2048 2304 2560 2816 3072 3328 3584 3840 4095]</degamma_y>
          </cell>
       </DEGAMMA>
-      <GAMMAOUT index="1" type="struct" size="[1 1]">
-            <xScale index="1" type="char" size="[1 3]">
-               LOG
-            </xScale>
-            <gamma_y index="1" type="double" size="[1 17]">
-               [0 16 40 90 130 239 321 392 440 510 570 630 770 910 970 998 1023]
-            </gamma_y>
-      </GAMMAOUT>
       <WDR index="1" size="[1 1]" type="struct">
          <tbd index="1" size="[1 1]" type="double">[-1]</tbd>
          <curve1 index="1" size="[1 1]" type="struct">
@@ -1170,32 +1134,6 @@
             <Gradient index="1" size="[1 1]" type="double">[0.5]</Gradient>
             <Offset index="1" size="[1 1]" type="double">[0]</Offset>
             <NlGains index="1" size="[1 4]" type="double">[1 1 1 1]</NlGains>
-	   <FilterEnable index="1" size="[1 1]" type="double">
-		[1]
-	   </FilterEnable>
-	   <DeNoiseLevel index="1" size="[1 2]" type="struct">
-                  <gains index="1" size="[1 5]" type="double">
-                     [1  2  4  8  16]
-                  </gains>
-                  <dlevel index="1" size="[1 5]" type="double">
-                     [2 2 2 2 2 ]
-                  </dlevel>
-               </DeNoiseLevel>
-               <SharpeningLevel index="1" size="[1 2]" type="struct">
-                  <gains index="1" size="[1 5]" type="double">
-                     [1 2 4 8 16]
-                  </gains>
-                  <slevel index="1" size="[1 5]" type="double">
-                     [8 8 8 8 8]
-                  </slevel>
-	       </SharpeningLevel> 
-	   <MFD_Support index="1" size="[1 1]" type="double">[1]</MFD_Support>
-	   <MFD_Gain index="1" size="[1 3]" type="double">[2 4 6]</MFD_Gain>
-	   <MFD_Frames index="1" size="[1 3]" type="double">[2 4 6]</MFD_Frames>
-	   <UVNR_Support index="1" size="[1 1]" type="double">[1]</UVNR_Support>
-	   <UVNR_Gain index="1" size="[1 3]" type="double">[6 8 10]</UVNR_Gain>
-	   <UVNR_Ratio index="1" size="[1 3]" type="double">[15 12 8]</UVNR_Ratio>
-	   <UVNR_Distance index="1" size="[1 3]" type="double">[8 12 15]</UVNR_Distance>
          </cell>
          <cell index="2" size="[1 1]" type="struct">
             <name index="1" size="[1 9]" type="char">4208x3120</name>
@@ -1207,32 +1145,6 @@
             <Gradient index="1" size="[1 1]" type="double">[0.6]</Gradient>
             <Offset index="1" size="[1 1]" type="double">[0]</Offset>
             <NlGains index="1" size="[1 4]" type="double">[1 1 1 1]</NlGains>
-	   <FilterEnable index="1" size="[1 1]" type="double">
-		[1]
-	   </FilterEnable>
-	   <DeNoiseLevel index="1" size="[1 2]" type="struct">
-                  <gains index="1" size="[1 5]" type="double">
-                     [1  2  4  8  16]
-                  </gains>
-                  <dlevel index="1" size="[1 5]" type="double">
-                     [2 2 2 2 2]
-                  </dlevel>
-            </DeNoiseLevel>
-            <SharpeningLevel index="1" size="[1 2]" type="struct">
-                  <gains index="1" size="[1 5]" type="double">
-                     [1 2 4 8 16]
-                  </gains>
-                  <slevel index="1" size="[1 5]" type="double">
-                     [8 8 8 8 8]
-                  </slevel>
-	    </SharpeningLevel> 
-	   <MFD_Support index="1" size="[1 1]" type="double">[1]</MFD_Support>
-	   <MFD_Gain index="1" size="[1 3]" type="double">[2 4 6]</MFD_Gain>
-	   <MFD_Frames index="1" size="[1 3]" type="double">[2 4 6]</MFD_Frames>
-	   <UVNR_Support index="1" size="[1 1]" type="double">[1]</UVNR_Support>
-	   <UVNR_Gain index="1" size="[1 3]" type="double">[6 8 10]</UVNR_Gain>
-	   <UVNR_Ratio index="1" size="[1 3]" type="double">[15 12 8]</UVNR_Ratio>
-	   <UVNR_Distance index="1" size="[1 3]" type="double">[8 12 15]</UVNR_Distance>
          </cell>
       </DPF>
       <DPCC index="1" size="[1 2]" type="cell">

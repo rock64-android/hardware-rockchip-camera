@@ -2989,7 +2989,6 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
 
         0,                      /**< IsiSensor_t.pIsiActivateTestPattern */
         0,
-        0,						/**< IsiSensor_t.pIsiGetColorIss */
     },
     HM2057_IsiGetSensorI2cInfo,
 };

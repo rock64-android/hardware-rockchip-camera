@@ -780,32 +780,6 @@ typedef struct CamSharpeningLevelCurve_s
     CamerIcIspFltSharpeningLevel_t      *pSlevel;
 } CamSharpeningLevelCurve_t;
 
-/*****************************************************************************/
-/**
- * @brief   MFD calibration structure
- */
-/*****************************************************************************/
-typedef struct CamMfdProfile_s
-{
-	uint8_t					enable;			/**< mfd enable*/
-	float 					gain[3];		/**< mfd gain */
-	float 					frames[3];		/**< mfd frames */
-} CamMfdProfile_t;
-
-/*****************************************************************************/
-/**
- * @brief   UVNR calibration structure
- */
-/*****************************************************************************/
-typedef struct CamUvnrProfile_s
-{
-	uint8_t					enable;			/**< uvnr enable*/
-	float 					gain[3];		/**< uvnr gain */
-	float 					ratio[3];		/**< uvnr ratio */
-	float 					distances[3];	/**< uvnr distances */
-} CamUvnrProfile_t;
-
-
 
 /*****************************************************************************/
 /**
@@ -828,10 +802,8 @@ typedef struct CamDpfProfile_s
     float                   fOffset;            /**< */
     Cam1x4FloatMatrix_t     NfGains;            /**< */
 
-	CamMfdProfile_t			Mfd;			    /**< mfd struct*/
-	CamUvnrProfile_t		Uvnr;			    /**< uvnr struct*/
-    CamDenoiseLevelCurve_t        DenoiseLevelCurve;
-    CamSharpeningLevelCurve_t     SharpeningLevelCurve;
+    CamDenoiseLevelCurve_t        DenoiseLevelCurve;   
+    CamSharpeningLevelCurve_t     SharpeningLevelCurve;    
 	float FilterEnable;
 } CamDpfProfile_t;
 

@@ -227,20 +227,6 @@ extern "C"
 #define ISI_RES_2592_1944P25                   0x32a20798      /**<  2 2592x1944    */
 #define ISI_RES_2592_1944P30                   0x3ca20798      /**<  2 2592x1944    */
 
-#define ISI_RES_2688_1520P30				   0x3ca805f0       /**<  30 2688x1520    */
-#define ISI_RES_2688_1520P25				   0x32a805f0       /**<  25 2688x1520    */
-#define ISI_RES_2688_1520P20				   0x28a805f0       /**<  20 2688x1520    */
-#define ISI_RES_2688_1520P15				   0x1ea805f0       /**<  15 2688x1520    */
-#define ISI_RES_2688_1520P10				   0x14a805f0       /**<  10 2688x1520    */
-#define ISI_RES_2688_1520P7				   	   0x0ea805f0       /**<   7 2688x1520    */
-
-#define ISI_RES_672_376P60				   0x782a0178       /**<  60 672x376    */
-#define ISI_RES_672_376P30				   0x3c2a0178       /**<  30 672x376    */
-#define ISI_RES_672_376P25				   0x322a0178       /**<  25 672x376    */
-#define ISI_RES_672_376P20				   0x282a0178       /**<  20 672x376    */
-#define ISI_RES_672_376P15				   0x1e2a0178       /**<  15 672x376    */
-#define ISI_RES_672_376P10				   0x142a0178       /**<  10 672x376    */
-
 #define ISI_RES_2104_1184P40				   0x508384a0       /**<  40 2104x1184    */
 #define ISI_RES_1396_788P40					   0x50574314		/**<  40 1396x788    */
 
