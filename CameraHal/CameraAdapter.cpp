@@ -502,8 +502,6 @@ int CameraAdapter::cameraStream(bool on)
     cmd = (on)?VIDIOC_STREAMON:VIDIOC_STREAMOFF;
 
     mCamDriverStreamLock.lock();
-    if(!on)
-        mCamDriverStream = on;
     err = ioctl(mCamFd, cmd, &type);
     if (err < 0) {
         LOGE("%s(%d): %s Failed",__FUNCTION__,__LINE__,((on)?"VIDIOC_STREAMON":"VIDIOC_STREAMOFF"));
@@ -609,6 +607,24 @@ int CameraAdapter::cameraAutoFocus(bool auto_trig_only)
     return 0;
 }
 
+void CameraAdapter::debugShowFPS()
+{
+    static int mFrameCount = 0;
+    static int mLastFrameCount = 0;
+    static nsecs_t mLastFpsTime = 0;
+    static float mFps = 0;
+    mFrameCount++;
+    if (!(mFrameCount & 0x1F)) {
+        nsecs_t now = systemTime();
+        nsecs_t diff = now - mLastFpsTime;
+        mFps = ((mFrameCount - mLastFrameCount) * float(s2ns(1))) / diff;
+        mLastFpsTime = now;
+        mLastFrameCount = mFrameCount;
+        LOGD("Camera %d Frames, %2.3f FPS", mFrameCount, mFps);
+    }
+    // XXX: mFPS has the value we want
+}
+
 //dqbuf
 int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
 
@@ -686,8 +702,7 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
         
     *tmpFrame = &(mPreviewFrameInfos[cfilledbuffer1.index]);
     LOG2("%s(%d): fill  frame info success",__FUNCTION__,__LINE__);
- //   if (gLogLevel == 2)
-  //      debugShowFPS();
+    debugShowFPS();
 getFrame_out:
     if(camera_device_error)
         mRefEventNotifier->notifyCbMsg(CAMERA_MSG_ERROR, CAMERA_ERROR_SERVER_DIED);
@@ -758,9 +773,6 @@ void CameraAdapter::previewThread(){
             mCamDriverStreamLock.unlock();
             
             ret = getFrame(&tmpFrame);
-            if(!mCamDriverStream){
-                break;
-            }
 
 //            LOG2("%s(%d),frame addr = %p,%dx%d,index(%d)",__FUNCTION__,__LINE__,tmpFrame,tmpFrame->frame_width,tmpFrame->frame_height,tmpFrame->frame_index);
             if((ret!=-1) && (!camera_device_error)){

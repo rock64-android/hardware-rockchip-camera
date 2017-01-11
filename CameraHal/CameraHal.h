@@ -658,6 +658,11 @@ v1.0x49.7:
   1) fix face detection ratation error.
 v1.0x49.8:
   1) enable torch mode when camera supports. 
+v1.0x49.9:
+  1) Usb camera 1080p priview size should not be filtered.
+  2) Let debugShowFPS to be a member function of CameraAdapter.
+  3) Fix bug of creating uvc camera supported video size.
+  4) rk3328,rk322x and rk312x platform do not support face detection temporary.
 */
 
 
@@ -915,7 +920,7 @@ public:
 	virtual bool getFlashStatus();
     virtual int selectPreferedDrvSize(int *width,int * height,bool is_capture){ return 0;}
     virtual int faceNotify(struct RectFace* faces, int* num);
-	
+    virtual void debugShowFPS();
     virtual int flashcontrol();
 	
 	bool cif_driver_iommu;

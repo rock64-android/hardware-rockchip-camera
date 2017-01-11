@@ -238,7 +238,9 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     // get & check buffer meta data
     PicBufMetaData_t *pPicBufMetaData = (PicBufMetaData_t *)(pMediaBuffer->pMetaData);
     HalHandle_t  tmpHandle = m_camDevice->getHalHandle();
-    //
+
+    debugShowFPS();
+
     if(pPicBufMetaData->Type == PIC_BUF_TYPE_RAW16){
                 //get sensor fmt
                 //convert to yuyv 8 bit
