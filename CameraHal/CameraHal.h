@@ -663,10 +663,12 @@ v1.0x49.9:
   2) Let debugShowFPS to be a member function of CameraAdapter.
   3) Fix bug of creating uvc camera supported video size.
   4) rk3328,rk322x and rk312x platform do not support face detection temporary.
+v1.0x49.a:
+  1) fix cts fail for usb camera.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 8)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x49, 0xa)
 
 /*  */
 #define CAMERA_DISPLAY_FORMAT_YUV420P   CameraParameters::PIXEL_FORMAT_YUV420P

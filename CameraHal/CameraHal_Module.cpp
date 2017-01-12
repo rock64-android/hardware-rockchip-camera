@@ -508,7 +508,9 @@ int camera_device_open(const hw_module_t* module, const char* name,
 #ifdef LAPTOP
         char sys_device_lock[PROPERTY_VALUE_MAX];
         property_get("sys.device_locked.status",sys_device_lock,NULL);
-        if (!strcmp(sys_device_lock, "1")) {
+        const char* cameraCallProcess = getCallingProcess();
+        if (!strcmp(sys_device_lock, "1")
+            && strstr("com.android.facelock",cameraCallProcess)) {
             LOGD("facelock switch camera to open HP IR camera!!!");
             cameraid = cameraid == 0 ? 1 : cameraid;
         }
@@ -613,7 +615,7 @@ fail:
 }
 
 static uint MediaProfile_Resolution[][2] = {{176,144},{240,160},{320,240},{352,288},
-                     {640,480},{720,480},/*{800,600}, */{1280,720},{1920,1080},
+                     {640,480},{720,480},{800,600},{1280,720},{1920,1080},
                      {0,0}};
 
 int find_DV_resolution_index(int w, int h)
@@ -899,6 +901,8 @@ int camera_get_number_of_cameras(void)
 
 					fsize.index = 0;
 					fsize.pixel_format = mCamDriverPreviewFmt;
+					String8 supportPreviewSizes;
+					char mediaProfile_Resolution[32],str_element[32];
 
 					while ((ret = ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &fsize)) == 0) {
 						if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {  
@@ -912,6 +916,13 @@ int camera_get_number_of_cameras(void)
 								sensor_resolution_w = fsize.discrete.width;
 								sensor_resolution_h = fsize.discrete.height;
 							}
+							memset(str_element,0x00,sizeof(str_element));
+							if (supportPreviewSizes.size() != 0) 
+							    str_element[0]=',';
+							sprintf((char*)(&str_element[strlen(str_element)]),"%d",fsize.discrete.width);
+							strcat(str_element, "x");
+							sprintf((char*)(&str_element[strlen(str_element)]),"%d",fsize.discrete.height);
+							supportPreviewSizes.append((const char*)str_element);
 						}
 						fsize.index++;
 					}
@@ -935,7 +946,12 @@ int camera_get_number_of_cameras(void)
 						pDVResolution->mWidth = width;
 		    	    	pDVResolution->mHeight = height;
 		    	    	pDVResolution->mFps = 0;
-		    	    	pDVResolution->mIsSupport =  0;
+		    	    	memset(mediaProfile_Resolution,0x00,sizeof(mediaProfile_Resolution));
+		    	    	sprintf(mediaProfile_Resolution,"%dx%d",width,height);
+		    	    	if (strstr(supportPreviewSizes.string(), mediaProfile_Resolution) != NULL)
+		    	    	    pDVResolution->mIsSupport =  1;
+		    	    	else
+		    	    	    pDVResolution->mIsSupport =  0;
 
 						if ((width>sensor_resolution_w) || (height>sensor_resolution_h)) {
 							pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);
@@ -943,33 +959,27 @@ int camera_get_number_of_cameras(void)
 	            		}
 	            		//LOGE("index = %d, pixel_format = %d, width = %d, height = %d", 
 	            		//    fival.index, fival.pixel_format, fival.width,  fival.height);
-                        if ((ret = ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) {
+						while ((ret = ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) {
 							if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
 								pDVResolution->mFps = fival.discrete.denominator/fival.discrete.numerator;
-								pDVResolution->mIsSupport = 1;
+								//pDVResolution->mIsSupport = 1;
 								if (pDVResolution->mFps > maxfps)
 									maxfps = pDVResolution->mFps;
 								LOG1("%dx%d : %d	%d/%d",fival.width,fival.height, pDVResolution->mFps,fival.discrete.denominator,fival.discrete.numerator);
-                            }else{
-                                pDVResolution->mIsSupport = 0;
-                                LOGE("find frame intervals failed ret(%d)\n", ret);
-                            }/*else if (fival.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
+							}else if (fival.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
 			                    break;
 			                } else if (fival.type == V4L2_FRMIVAL_TYPE_STEPWISE) {
 			                    break;
 			                }
-							fival.index++;*/
-                        }else{
-                            pDVResolution->mIsSupport = 0;
-                            LOGE("find frame intervals failed ret(%d)\n", ret);
-                        }/*
+							fival.index++;
+						}
 						if(ret){
-							pDVResolution->mIsSupport = 1;
+							//pDVResolution->mIsSupport = 1;
 							if(maxfps > 0)
 								pDVResolution->mFps = maxfps;
 							else
 								pDVResolution->mFps = 10;
-                        }*/
+				 		}
 						pNewCamInfo->mSoftInfo.mDV_vector.add(pDVResolution);	        
 					}
 				}
@@ -1307,7 +1317,9 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
 #ifdef LAPTOP
     char sys_device_lock[PROPERTY_VALUE_MAX];
     property_get("sys.device_locked.status",sys_device_lock,NULL);
-    if (!strcmp(sys_device_lock, "1")) {
+    const char* cameraCallProcess = getCallingProcess();
+    if (!strcmp(sys_device_lock, "1")
+        && strstr("com.android.facelock",cameraCallProcess)) {
         LOGD("facelock switch camera to open HP IR camera!!!");
         camera_id = camera_id == 0 ? 1 : camera_id;
     }

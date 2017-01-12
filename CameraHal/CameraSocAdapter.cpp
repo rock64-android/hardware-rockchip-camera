@@ -594,7 +594,7 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 #if (CONFIG_CAMERA_SETVIDEOSIZE == 0)
      property_get("sys.cts_gts.status",prop_value, "false");
      if(!strcmp(prop_value,"true")){
-        if(camFd == 0){
+        if(gCamInfos[camFd].facing_info.facing == CAMERA_FACING_BACK){
              //back camera, may need to manually modify based on media_profiles.xml supported.
              params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"720x480");
              params.set(CameraParameters::KEY_VIDEO_SIZE,"720x480");

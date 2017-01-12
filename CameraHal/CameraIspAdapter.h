@@ -3,7 +3,9 @@
 
 //usb camera adapter#include "CameraHal.h"
 #include "cam_api/camdevice.h"
-#include "oslayer/oslayer.h"#include <string>#include <utils/KeyedVector.h>
+#include "oslayer/oslayer.h"
+#include <string>
+#include <utils/KeyedVector.h>
 #include "CameraGL.h"
 
 

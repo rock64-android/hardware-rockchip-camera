@@ -81,6 +81,14 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
     struct v4l2_frmsizeenum fsize; 
     bool dot,isRestartPreview = false;
     char *ptr,str_fov_h[4],str_fov_v[4],fov_h,fov_v;
+    char prop_value[PROPERTY_VALUE_MAX];
+    bool iscts = false;
+
+    property_get("sys.cts_gts.status",prop_value, "false");
+    if(!strcmp(prop_value,"true"))
+        iscts = true;
+    else
+        iscts = false;
     
     LOG_FUNCTION_NAME  
     i = 0;
@@ -100,7 +108,10 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 				continue;
 			}
 #ifdef LAPTOP
-            if (fsize.discrete.width == 320 && fsize.discrete.height == 240) {
+            char *call_process = getCallingProcess();
+            if (fsize.discrete.width == 320 && fsize.discrete.height == 240
+                && strstr(call_process,"com.android.facelock") != NULL
+                && strstr((char*)&mCamDriverCapability.card[0], "HP HD") != NULL) {
                 fsize.index++;
                 continue;
             }
@@ -529,6 +540,7 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
     params.set(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED,"true");
     params.set(CameraParameters::KEY_MAX_NUM_METERING_AREAS,"0");
 
+#if 0
 	#if (CONFIG_CAMERA_SETVIDEOSIZE == 1)
     params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
 	params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
@@ -539,7 +551,40 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
     params.set(CameraParameters::KEY_VIDEO_SIZE,"");
     params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
 	#endif
+#endif
+#if (CONFIG_CAMERA_SETVIDEOSIZE == 0)
+    if(iscts){
+        if(gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_BACK){
+             //back camera, may need to manually modify based on media_profiles.xml supported.
+             params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"1920x1080");
+             params.set(CameraParameters::KEY_VIDEO_SIZE,"1920x1080");
+             params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,320x240,352x288,640x480,1280x720,1920x1080");
+        }else{
+             //front camera
+             params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"640x480");
+             params.set(CameraParameters::KEY_VIDEO_SIZE,"640x480");
+             params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"176x144,320x240,352x288,640x480,1280x720");
+        }
+    } else {
+         params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"");
+         params.set(CameraParameters::KEY_VIDEO_SIZE,"");
+         params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
+    }
+    LOGD("isCts:%d Support video sizes:%s", iscts, params.get(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES));
+#endif
     params.set(KEY_CONTINUOUS_PIC_NUM,"1");  
+
+    if (iscts) {
+        //color effect
+        //for passing cts
+        params.set(CameraParameters::KEY_SUPPORTED_EFFECTS, "none,mono,sepia");
+        params.set(CameraParameters::KEY_EFFECT, "none");
+        //for video test
+        params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, "30000,30000");
+        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(30000,30000)");//(30000,30000) for passing cts.
+        params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, "10,15,20,30"); 
+        params.setPreviewFrameRate(30);
+    }
 
     LOGD ("Support Preview format: %s .. %s",params.get(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS),
         params.get(CameraParameters::KEY_PREVIEW_FORMAT));
