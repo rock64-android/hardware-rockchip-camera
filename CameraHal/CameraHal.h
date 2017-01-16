@@ -1307,7 +1307,8 @@ struct CamCaptureInfo_s
 
 typedef void (*FaceDetector_start_func)(void *context,int width, int height, int format);
 typedef void (*FaceDetector_stop_func)(void *context);
-typedef int (*FaceDetector_findFaces_func)(void *context,void* src, int orientation, float angle, int isDrawRect, int *smileMode,struct RectFace** faces, int* num);
+typedef int (*FaceDetector_prepare_func)(void *context, void* src);
+typedef int (*FaceDetector_findFaces_func)(void *context, int orientation, float angle, int isDrawRect, int *smileMode,struct RectFace** faces, int* num);
 typedef void* (*FaceDetector_initizlize_func)(int type, float threshold, int smileMode);
 typedef void (*FaceDetector_destory_func)(void *context);
 typedef int (*FaceDector_nofity_func)(struct RectFace* faces, int* num);
@@ -1316,6 +1317,7 @@ struct face_detector_func_s{
     void* mLibFaceDetectLibHandle;
     FaceDetector_start_func  mFaceDectStartFunc;
     FaceDetector_stop_func   mFaceDectStopFunc;
+    FaceDetector_prepare_func   mFaceDectprepareFunc;
     FaceDetector_findFaces_func mFaceDectFindFaceFun;
     FaceDetector_initizlize_func mFaceDetector_initizlize_func;
     FaceDetector_destory_func    mFaceDetector_destory_func;
@@ -1541,7 +1543,7 @@ private:
 	int captureEncProcessPicture(FramInfo_s* frame);
     int processPreviewDataCb(FramInfo_s* frame);
     int processVideoCb(FramInfo_s* frame);
-    int processFaceDetect(FramInfo_s* frame);
+    int processFaceDetect(FramInfo_s* frame, long frame_used_flag);
     
     int copyAndSendRawImage(void *raw_image, int size);
     int copyAndSendCompressedImage(void *compressed_image, int size);
@@ -1575,6 +1577,7 @@ private:
     int32_t mFaceFrameNum;
     bool mFaceDetecInit;
     void* mFaceContext;
+    bool mFaceDetectionDone;
 
     //applied to this situation: msgtype CAMERA_MSG_PREVIEW_FRAME is enabled
     //but hal status isn't allowed to send this msg,

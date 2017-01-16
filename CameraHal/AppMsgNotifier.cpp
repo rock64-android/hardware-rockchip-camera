@@ -18,7 +18,7 @@ static char ExifModel[32];
 static char ExifSelfDefine[640];
 #define FACEDETECT_INIT_BIAS (-20)
 #define FACEDETECT_BIAS_INERVAL (5)
-#define FACEDETECT_FRAME_INTERVAL (2)
+#define FACEDETECT_FRAME_INTERVAL (1)
 /* ddl@rock-chips.com: v1.0xb.0 */
 AppMsgNotifier::AppMsgNotifier(CameraAdapter *camAdp)
                :mCamAdp(camAdp),
@@ -60,6 +60,7 @@ AppMsgNotifier::AppMsgNotifier(CameraAdapter *camAdp)
     mFaceDetectH = 0;
     mFaceFrameNum = 0;
     mFaceNum = 0;
+    mFaceDetectionDone = true;
     mCurBiasAngle = FACEDETECT_INIT_BIAS;
     mFaceContext = NULL;
     mRecPrevCbDataEn = true;
@@ -231,8 +232,31 @@ int AppMsgNotifier::initializeFaceDetec(int width,int height){
                 return -1;
             }
 
-            mFaceDetectorFun.mFaceDectStopFunc = (FaceDetector_stop_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_stop"); 
-            mFaceDetectorFun.mFaceDectFindFaceFun = (FaceDetector_findFaces_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_findFaces"); 
+            mFaceDetectorFun.mFaceDectStopFunc = (FaceDetector_stop_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_stop");
+            mFaceDetectorFun.mFaceDectprepareFunc = (FaceDetector_prepare_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_prepare");
+            if (mFaceDetectorFun.mFaceDectprepareFunc == NULL) {
+                LOGE("FaceDetector_start not found");
+                const char *errmsg;
+                if ((errmsg = dlerror()) != NULL) {
+                    LOGE("dlsym FaceDetector_prepare fail errmsg: %s", errmsg);
+                }
+                return -1;
+            } else {
+                LOGE("dlsym FaceDetector_prepare success");
+            }
+
+            mFaceDetectorFun.mFaceDectFindFaceFun = (FaceDetector_findFaces_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_findFaces");
+            if (mFaceDetectorFun.mFaceDectFindFaceFun == NULL) {
+                LOGE("FaceDetector_start not found");
+                const char *errmsg;
+                if ((errmsg = dlerror()) != NULL) {
+                    LOGE("dlsym FaceDetector_start fail errmsg: %s", errmsg);
+                }
+                return -1;
+            } else {
+                LOGE("dlsym FaceDetector_find success");
+            }
+
             mFaceDetectorFun.mFaceDetector_initizlize_func = (FaceDetector_initizlize_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_initizlize");
             mFaceDetectorFun.mFaceDetector_destory_func = (FaceDetector_destory_func)dlsym(mFaceDetectorFun.mLibFaceDetectLibHandle, "FaceDetector_destory");
             mFaceContext = (*mFaceDetectorFun.mFaceDetector_initizlize_func)(DETECTOR_OPENCL, 15.0f , 1);
@@ -307,17 +331,20 @@ bool AppMsgNotifier::isNeedSendToFaceDetect()
 }
 void AppMsgNotifier::notifyNewFaceDecFrame(FramInfo_s* frame)
 {
-    //send to app msg thread
-    Message_cam msg;
-    Mutex::Autolock lock(mFaceDecLock);
-   if((mRecMetaDataEn) && (mRunningState & STA_RECEIVE_FACEDEC_FRAME)) {
-        msg.command = CameraAppFaceDetThread::CMD_FACEDET_FACE_DETECT ;
-        msg.arg2 = (void*)(frame);
-        msg.arg3 = (void*)(frame->used_flag);
-        LOG2("%s(%d):notify new frame,index(%ld)",__FUNCTION__,__LINE__,frame->frame_index);
-        faceDetThreadCommandQ.put(&msg);
-   }else
-        mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
+   if (mFaceDetectionDone) {
+       //send to app msg thread
+       Message_cam msg;
+       Mutex::Autolock lock(mFaceDecLock);
+       if((mRecMetaDataEn) && (mRunningState & STA_RECEIVE_FACEDEC_FRAME)) {
+            msg.command = CameraAppFaceDetThread::CMD_FACEDET_FACE_DETECT ;
+            msg.arg2 = (void*)(frame);
+            msg.arg3 = (void*)(frame->used_flag);
+            LOG2("%s(%d):notify new frame,index(%ld)",__FUNCTION__,__LINE__,frame->frame_index);
+            faceDetThreadCommandQ.put(&msg);
+            return;
+       }
+   }
+   mFrameProvider->returnFrame(frame->frame_index,frame->used_flag);
 }
 
 void AppMsgNotifier::setPictureRawBufProvider(BufferProvider* bufprovider)
@@ -1797,7 +1824,7 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
     return ret;
 }
 
-int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
+int AppMsgNotifier::processFaceDetect(FramInfo_s* frame, long frame_used_flag)
 {
     int num = 0;
     //Mutex::Autolock lock(mFaceDecLock);
@@ -1805,10 +1832,18 @@ int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
         if((frame->frame_fmt == V4L2_PIX_FMT_NV12)){
             struct RectFace *faces = NULL;
             int i = 0,hasSmileFace = 0;
+            int zoom_value, frame_width, frame_height;
             nsecs_t last = systemTime(SYSTEM_TIME_MONOTONIC);
             if(!mFaceDetecInit)
                 return -1;
-            (*mFaceDetectorFun.mFaceDectFindFaceFun)(mFaceContext,(void*)frame->vir_addr, mCurOrintation,mCurBiasAngle,0, &hasSmileFace, &faces, &num);
+
+            (*mFaceDetectorFun.mFaceDectprepareFunc)(mFaceContext, (void*)frame->vir_addr);
+            zoom_value = frame->zoom_value;
+            frame_width = frame->frame_width;
+            frame_height = frame->frame_height;
+            mFrameProvider->returnFrame(frame->frame_index,frame_used_flag);
+
+            (*mFaceDetectorFun.mFaceDectFindFaceFun)(mFaceContext, mCurOrintation,mCurBiasAngle,0, &hasSmileFace, &faces, &num);
             nsecs_t now = systemTime(SYSTEM_TIME_MONOTONIC);
 
             nsecs_t diff = now - last;
@@ -1830,7 +1865,7 @@ int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
                     switch(mCurOrintation){
                         case 1://90 degree
                             tmpY += tempH;
-                            faces[i].x = frame->frame_width - tmpY;
+                            faces[i].x = frame_width - tmpY;
                             faces[i].y = tmpX;
                             faces[i].width = tempH;
                             faces[i].height = tmpW;
@@ -1838,13 +1873,13 @@ int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
                         case 2://180 degree
                             tmpX += tmpW;
                             tmpY += tempH;
-                            faces[i].x = frame->frame_width - tmpX;
-                            faces[i].y = frame->frame_height - tmpY;
+                            faces[i].x = frame_width - tmpX;
+                            faces[i].y = frame_height - tmpY;
                             break;
                         case 3://270 degree
                             tmpX += tmpW;
                             faces[i].x = tmpY ;
-                            faces[i].y = frame->frame_height - tmpX;
+                            faces[i].y = frame_height - tmpX;
                             faces[i].width = tempH;
                             faces[i].height = tmpW;
                             break;
@@ -1853,13 +1888,13 @@ int AppMsgNotifier::processFaceDetect(FramInfo_s* frame)
                     }
                     LOG2("facerect[%d]: (%d, %d, %d, %d)\n", i, faces[i].x, faces[i].y, faces[i].width, faces[i].height);
                     //map to face rect
-                    int virWidtHig = 2000 * frame->zoom_value / 100;
-                    
-                    pFace[i].rect[0] = faces[i].x * virWidtHig/frame->frame_width - (virWidtHig/2);
-                    pFace[i].rect[1] = faces[i].y * virWidtHig/frame->frame_height - (virWidtHig/2);
-                    pFace[i].rect[2] = pFace[i].rect[0] + (faces[i].width)*virWidtHig/frame->frame_width;
-                    pFace[i].rect[3] = pFace[i].rect[1] + (faces[i].height)*virWidtHig/frame->frame_height;
-                    
+                    int virWidtHig = 2000 * zoom_value / 100;
+
+                    pFace[i].rect[0] = faces[i].x * virWidtHig/frame_width - (virWidtHig/2);
+                    pFace[i].rect[1] = faces[i].y * virWidtHig/frame_height - (virWidtHig/2);
+                    pFace[i].rect[2] = pFace[i].rect[0] + (faces[i].width)*virWidtHig/frame_width;
+                    pFace[i].rect[3] = pFace[i].rect[1] + (faces[i].height)*virWidtHig/frame_height;
+
                     pFace[i].score = (hasSmileFace > 0)? 100:60;
                     pFace[i].id =   0;
 
@@ -2009,13 +2044,14 @@ void AppMsgNotifier::faceDetectThread()
 		switch (msg.command)
 		{
           case CameraAppFaceDetThread::CMD_FACEDET_FACE_DETECT:
+                mFaceDetectionDone = false;
                 frame_used_flag = (long)msg.arg3;
-				frame = (FramInfo_s*)msg.arg2;				
+                frame = (FramInfo_s*)msg.arg2;
                 LOG2("%s(%d):get new frame , index(%ld),useflag(%d)",__FUNCTION__,__LINE__,frame->frame_index,frame_used_flag);
         		mFaceDecLock.lock();
                 if(mFaceFrameNum++ % FACEDETECT_FRAME_INTERVAL == 0){
             		mFaceDecLock.unlock();
-                    if((processFaceDetect(frame) > 0)){
+                    if((processFaceDetect(frame, frame_used_flag) > 0)){
                         face_detected = true;
                     }else
                         face_detected = false;
@@ -2027,10 +2063,12 @@ void AppMsgNotifier::faceDetectThread()
                         }
                     }
             		mFaceDecLock.unlock();
-                    
+                    mFaceDetectionDone = true;
+                    break;
                 }else
             		mFaceDecLock.unlock();
                 //return frame
+                mFaceDetectionDone = true;
                 mFrameProvider->returnFrame(frame->frame_index,frame_used_flag);
                 break;
           case CameraAppFaceDetThread::CMD_FACEDET_PAUSE:
