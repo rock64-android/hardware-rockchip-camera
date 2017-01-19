@@ -179,6 +179,7 @@ typedef RESULT (IsiCheckOTPInfo_t)
 );
 
 typedef RESULT (IsiSetSensorFrameRateLimitIss_t)         ( IsiSensorHandle_t handle, uint32_t minimum_framerate);
+typedef RESULT (IsiGetSensorColorIss_t)         		 ( IsiSensorHandle_t handle, char *sensor_color);
 
 /*****************************************************************************/
 /**
@@ -254,6 +255,7 @@ struct IsiSensor_s
     /* Testpattern */
     IsiActivateTestPattern_t            *pIsiActivateTestPattern;       /**< enable/disable test-pattern */
     IsiSetSensorFrameRateLimitIss_t     *pIsiSetSensorFrameRateLimit;
+	IsiGetSensorColorIss_t				*pIsiGetColorIss;
 };
 
 

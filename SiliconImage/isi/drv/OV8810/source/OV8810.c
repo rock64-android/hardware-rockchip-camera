@@ -3590,6 +3590,7 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
 
         0,                      /**< IsiSensor_t.pIsiActivateTestPattern */
         0,
+        0,						/**< IsiSensor_t.pIsiGetColorIss */
     },
     OV8810_IsiGetSensorI2cInfo,
 };

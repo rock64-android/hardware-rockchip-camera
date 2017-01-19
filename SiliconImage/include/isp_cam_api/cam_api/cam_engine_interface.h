@@ -280,12 +280,24 @@
 *v1.0x43.0:
     1) fix ion handle compile error when compatible with android marshallow and nougat.
 *v1.0x44.0:
-	1) memory allocation interface can be set outside through struct HalPara_s
+    1) fix the bug of AEC\AWB\Denosise\sharpen IQ xml parameter config.
+    2) fix the bug that capture can't get right integral time information.
+    3) support get the sensor color from sensor drive.
+*v1.0x45.0:
+    1) UVNR can config in IQ xml.
+    2) support 3DNR function and can config in IQ xml.
+*v1.0x46.0:
+    1) memory allocation interface can be set outside through struct HalPara_s
+*v1.0x47.0:
+    1) support CprocConfig and ConvRange distinguish between preview and capture.
+    2) IMX214 tuning file.
+    3) cam_board.xml update.
 */
 
 
 
-#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x44, 0)
+
+#define CONFIG_SILICONIMAGE_LIBISP_VERSION KERNEL_VERSION(1, 0x47, 0)
 
 
 class CamEngineItf;
@@ -388,6 +400,8 @@ public:
     //zyc add
     bool getPreferedSensorRes(CamEngineBestSensorResReq_t *req);
     bool previewSetup_ex(CamEngineWindow_t dcWin,int usr_w,int usr_h,CamerIcMiDataMode_t mode,CamerIcMiDataLayout_t layout,bool_t dcEnable);
+	bool pre2capparameter(bool is_capture,rk_cam_total_info *pCamInfo);
+
 
     // open sensor driver
     bool        openSensor( rk_cam_total_info *pCamInfo, int sensorItfIdx );
@@ -531,6 +545,8 @@ public:
     bool chkAwbIllumination( CamIlluminationName_t   name );
 	bool isAwbStable();
     bool startAdpf();
+	bool getMfdGain(	char *mfd_enable,float mfd_gain[],float mfd_frames[]);	
+	bool getUvnrPara( char *uvnr_enable,float uvnr_gain[],float uvnr_ratio[],float uvnr_distances[]);
     bool stopAdpf();
     bool configureAdpf( const float gradient, const float offset, const float min, const float div, const uint8_t sigmaGreen, const uint8_t sigmaRedBlue );
     bool getAdpfStatus( bool &enabled, float &gradient, float &offset, float &min, float &div, uint8_t &sigmaGreen, uint8_t &sigmaRedBlue );

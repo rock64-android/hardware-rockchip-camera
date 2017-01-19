@@ -1416,7 +1416,7 @@ static RESULT OV13850_IsiSetupSensorIss
     }
 	else if(pOV13850Ctx->IsiSensorMipiInfo.ucMipiLanes == SUPPORT_MIPI_TWO_LANE){
 		if (g_sensor_version == OV13850_R1A) {
-        	result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_aRegDescription_twolane_r1a);
+			result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_aRegDescription_twolane_r1a);
 		} else {
 			result = IsiRegDefaultsApply( pOV13850Ctx, OV13850_g_aRegDescription_twolane_r2a);
 		}
@@ -1809,7 +1809,7 @@ static RESULT OV13850_IsiCheckSensorConnectionIss
 	result = IsiI2cReadSensorRegister( handle, CHIP_REVISION_REG, &revison, 1, BOOL_TRUE );
 	if (result != RET_SUCCESS) {
 		g_sensor_version = OV13850_R1A;
-        TRACE( OV13850_ERROR, "%s read chip revision failed, use R1A as default! \n", __FUNCTION__ );		
+        TRACE( OV13850_ERROR, "%s read chip revision failed, use R1A as default! \n", __FUNCTION__ );
 	} else {
 		if ( OV13850_R2A == revison) {
 			g_sensor_version = OV13850_R2A;
@@ -1917,13 +1917,13 @@ static RESULT OV13850_IsiRegReadIss
     else
     {
         uint8_t NrOfBytes;
-		
+
 		if (g_sensor_version == OV13850_R1A) {
 			NrOfBytes = IsiGetNrDatBytesIss( address, OV13850_g_aRegDescription_twolane_r1a);
 		} else {
 			NrOfBytes = IsiGetNrDatBytesIss( address, OV13850_g_aRegDescription_twolane_r2a);
 		}
-		
+
         if ( !NrOfBytes )
         {
             NrOfBytes = 1;
@@ -1975,11 +1975,11 @@ static RESULT OV13850_IsiRegWriteIss
     }
 
 	if (g_sensor_version == OV13850_R1A) {
-    	NrOfBytes = IsiGetNrDatBytesIss( address, OV13850_g_aRegDescription_twolane_r1a);
+		NrOfBytes = IsiGetNrDatBytesIss( address, OV13850_g_aRegDescription_twolane_r1a);
 	} else {
 		NrOfBytes = IsiGetNrDatBytesIss( address, OV13850_g_aRegDescription_twolane_r2a);
 	}
-	
+
     if ( !NrOfBytes )
     {
         NrOfBytes = 1;
@@ -3947,11 +3947,11 @@ RESULT OV13850_IsiGetSensorIss
         pIsiSensor->pszName                             = OV13850_g_acName;
 
 		if (g_sensor_version == OV13850_R1A) {
-        	pIsiSensor->pRegisterTable                  = OV13850_g_aRegDescription_twolane_r1a;
+			pIsiSensor->pRegisterTable                  = OV13850_g_aRegDescription_twolane_r1a;
 		} else {
 			pIsiSensor->pRegisterTable                  = OV13850_g_aRegDescription_twolane_r2a;
 		}
-		
+
         pIsiSensor->pIsiSensorCaps                      = &OV13850_g_IsiSensorDefaultConfig;
 		pIsiSensor->pIsiGetSensorIsiVer					= OV13850_IsiGetSensorIsiVersion;//oyyf
 		pIsiSensor->pIsiGetSensorTuningXmlVersion		= OV13850_IsiGetSensorTuningXmlVersion;//oyyf
@@ -4159,6 +4159,7 @@ IsiCamDrvConfig_t IsiCamDrvConfig =
 
         0,                      /**< IsiSensor_t.pIsiActivateTestPattern */
         0,
+        0,						/**< IsiSensor_t.pIsiGetColorIss */
     },
     OV13850_IsiGetSensorI2cInfo,
 };
