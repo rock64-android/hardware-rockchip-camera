@@ -670,10 +670,13 @@ v1.0x4e.0:
 v1.0x4f.0:
   1) fix compile error.
   2) fix rga_nv12_scale_crop param error caused by merging code.
+  v1.0x4f.1:
+     1) fix read /proc/pid/cmdline fail when selinux of android7.1 is on.
+     2) fix weixin video call orientation problem.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 0)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 1)
 
 
 /*  */

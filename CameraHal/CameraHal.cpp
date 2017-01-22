@@ -32,22 +32,22 @@ extern bool g_ctsV_flag = false;
 namespace android {
 
 /************************
-½Ó¿ÚÊµÏÖÓĞÁ½ÖÖ·½Ê½
-1¡£½Ó¿ÚÓÉcommandÏß³Ì¸ºÔğ¾ßÌåÊµÏÖ
-    ÓĞÁ½ÖÖ·½Ê½£¬Ò»ÖÖÒì²½£¬Ò»ÖÖÍ¬²½
-    1.1  Í¬²½
-        Í¨¹ıSemaphore
-    1.2   Òì²½
-        ÎŞSemaphore
-2. ½Ó¿ÚÓÉÔÚ½Ó¿Úº¯Êı±¾ÉíÖĞÊµÏÖ£¬²»·¢ËÍ¸øcommandÏß³Ì¡£
+æ¥å£å®ç°æœ‰ä¸¤ç§æ–¹å¼
+1ã€‚æ¥å£ç”±commandçº¿ç¨‹è´Ÿè´£å…·ä½“å®ç°
+    æœ‰ä¸¤ç§æ–¹å¼ï¼Œä¸€ç§å¼‚æ­¥ï¼Œä¸€ç§åŒæ­¥
+    1.1  åŒæ­¥
+        é€šè¿‡Semaphore
+    1.2   å¼‚æ­¥
+        æ— Semaphore
+2. æ¥å£ç”±åœ¨æ¥å£å‡½æ•°æœ¬èº«ä¸­å®ç°ï¼Œä¸å‘é€ç»™commandçº¿ç¨‹ã€‚
 
-½Ó¿Ú¼äµÄÍ¬²½Òì²½¹ØÏµ¡£
-1.1 ºÍ2 ĞÍ Îª Í¬²½¹ØÏµ
-1.2 ºÍ2 ĞÍ Îª Òì²½¹ØÏµ
-1.1 ºÍ1.2ĞÍ Îª Í¬²½¹ØÏµ £¬Í¬²½ÓÉÏß³Ì¶ÓÁĞÊµÏÖ¡£
+æ¥å£é—´çš„åŒæ­¥å¼‚æ­¥å…³ç³»ã€‚
+1.1 å’Œ2 å‹ ä¸º åŒæ­¥å…³ç³»
+1.2 å’Œ2 å‹ ä¸º å¼‚æ­¥å…³ç³»
+1.1 å’Œ1.2å‹ ä¸º åŒæ­¥å…³ç³» ï¼ŒåŒæ­¥ç”±çº¿ç¨‹é˜Ÿåˆ—å®ç°ã€‚
 
-1.2ĞÍ½Ó¿Ú¶ÔÓÚcameraserviceÀ´ËµÊÇÒì²½½Ó¿Ú¡£
-1.2 ºÍ 1.2 ÎªÍ¬²½¹ØÏµ£¬¶ÔÓÚcameraserviceÀ´ËµÊÇÒì²½¡£
+1.2å‹æ¥å£å¯¹äºcameraserviceæ¥è¯´æ˜¯å¼‚æ­¥æ¥å£ã€‚
+1.2 å’Œ 1.2 ä¸ºåŒæ­¥å…³ç³»ï¼Œå¯¹äºcameraserviceæ¥è¯´æ˜¯å¼‚æ­¥ã€‚
 
 *********************/
 
@@ -199,12 +199,38 @@ CameraHal::CameraHal(int cameraId)
 #else
 		const char* cameraCallProcess = getCallingProcess();
         if (strstr(CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK,cameraCallProcess)) {
-            dataCbFrontMirror = true; 
+            if (!strcmp("com.tencent.mm", cameraCallProcess)) {
+                /*if device default orientation is portrait, must config front camera orientation = 270
+                 *and back camera orientation = 90.
+                 *if device default orientation is landscap, must config front camera orientation = 0
+                 *and back camera orientation = 0.
+                 *weixin video call not need to mirror if device default orientation is portrait. 
+                 */
+                if (gCamInfos[cameraId].facing_info.orientation == 270)
+                    dataCbFrontMirror = false;
+                else
+                    dataCbFrontMirror = true;
+            } else {
+                dataCbFrontMirror = true;
+            }
         } else {
             dataCbFrontMirror = false;
         }
         if (strstr(CONFIG_CAMERA_FRONT_FLIP_MDATACB_APK,cameraCallProcess)) {
-            dataCbFrontFlip = true; 
+            if (!strcmp("com.tencent.mm", cameraCallProcess)) {
+                /*if device default orientation is portrait, must config front camera orientation = 270
+                 *and back camera orientation = 90.
+                 *if device default orientation is landscap, must config front camera orientation = 0
+                 *and back camera orientation = 0.
+                 *weixin video call not need to flip if device default orientation is portrait. 
+                 */
+                if (gCamInfos[cameraId].facing_info.orientation == 270)
+                    dataCbFrontFlip = false;
+                else
+                    dataCbFrontFlip = true;
+            } else {
+                dataCbFrontFlip = true;
+            }
         } else {
             dataCbFrontFlip = false;
         }

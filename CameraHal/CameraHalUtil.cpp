@@ -79,9 +79,14 @@ extern "C" char* getCallingProcess()
 	fp = open(cameraCallProcess, O_RDONLY);
 
 	if (fp < 0) {
+		char value[PROPERTY_VALUE_MAX];
+		property_get("sys.camera.callprocess", value, "none");
 		memset(cameraCallProcess,0x00,sizeof(cameraCallProcess));
-		LOGE("Obtain calling process info failed");
-		strcpy(cameraCallProcess, "null");
+		strcpy(cameraCallProcess, value);
+		if (!strcmp("none", value))
+			LOGE("Obtain calling process info failed");
+		else
+			LOGD("Calling process from sys.camera.callprocess is: %s", cameraCallProcess);
 	} 
 	else {
 		memset(cameraCallProcess,0x00,sizeof(cameraCallProcess));
