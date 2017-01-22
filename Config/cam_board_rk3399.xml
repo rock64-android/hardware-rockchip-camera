@@ -17,8 +17,8 @@
 					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
 					<SensorGpioPwen ioname="NC" active="1" delay="1000"></SensorGpioPwen>
 					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
-					<SensorGpioPwdn0 ioname="NC" active="0" delay="0"></SensorGpioPwdn>
-					<SensorGpioPwdn1 ioname="NC" active="0" delay="0"></SensorGpioPwdn>
+					<SensorGpioPwdn0 ioname="NC" active="0" delay="0"></SensorGpioPwdn0>
+					<SensorGpioPwdn1 ioname="NC" active="0" delay="0"></SensorGpioPwdn1>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -148,8 +148,8 @@
 					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
 					<SensorGpioPwen ioname="NC" active="1" delay="1000"></SensorGpioPwen>
 					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
-					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="0"></SensorGpioPwdn>
-					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="0"></SensorGpioPwdn>
+					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="0"></SensorGpioPwdn0>
+					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="0"></SensorGpioPwdn1>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -283,8 +283,8 @@
 					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
 					<SensorGpioPwen ioname="NC" active="1" delay="1000"></SensorGpioPwen>				 
 					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
-					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="0"></SensorGpioPwdn>
-					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="0"></SensorGpioPwdn>
+					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="0"></SensorGpioPwdn0>
+					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="0"></SensorGpioPwdn1>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -415,8 +415,8 @@
 					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
 					<SensorGpioPwen ioname="NC" active="1" delay="1000"></SensorGpioPwen>				 
 					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
-					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="0"></SensorGpioPwdn>
-					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="0"></SensorGpioPwdn>
+					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="0"></SensorGpioPwdn0>
+					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="0"></SensorGpioPwdn1>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -546,8 +546,8 @@
 					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
 					<SensorGpioPwen ioname="NC" active="1" delay="1000"></SensorGpioPwen>				 
 					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
-					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="0"></SensorGpioPwdn>
-					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="0"></SensorGpioPwdn>
+					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="0"></SensorGpioPwdn0>
+					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="0"></SensorGpioPwdn1>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -679,8 +679,8 @@
 					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
 					<SensorGpioPwen ioname="NC" active="1" delay="1000"></SensorGpioPwen>				 
 					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
-					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="0"></SensorGpioPwdn>
-					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="0"></SensorGpioPwdn>
+					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="0"></SensorGpioPwdn0>
+					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="0"></SensorGpioPwdn1>
 					<SensorFacing facing="front"></SensorFacing>
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -1068,8 +1068,8 @@
 					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
 					<SensorGpioPwen ioname="NC" active="1" delay="1000"></SensorGpioPwen>
 					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
-					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="2000"></SensorGpioPwdn>
-					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="2000"></SensorGpioPwdn>
+					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="2000"></SensorGpioPwdn0>
+					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="2000"></SensorGpioPwdn1>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface mode="CCIR601"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
@@ -1199,8 +1199,8 @@
 					<SensorMclk mclk="24000000" delay="1000"></SensorMclk>
 					<SensorGpioPwen ioname="NC" active="1" delay="1000"></SensorGpioPwen>				 
 					<SensorGpioRst ioname="NC" active="0" delay="1000"></SensorGpioRst>
-					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="2000"></SensorGpioPwdn>
-					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="2000"></SensorGpioPwdn>
+					<SensorGpioPwdn0 ioname="RK30_PIN1_PC2" active="0" delay="2000"></SensorGpioPwdn0>
+					<SensorGpioPwdn1 ioname="RK30_PIN2_PB4" active="0" delay="2000"></SensorGpioPwdn1>
 					<SensorFacing facing="back"></SensorFacing>
 					<SensorInterface interface="MIPI"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
