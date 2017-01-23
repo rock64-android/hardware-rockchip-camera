@@ -1313,7 +1313,6 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
     int rv = 0,fp;
     int face_value = CAMERA_FACING_BACK;
     int orientation = 0;
-    char process_name[30];
 #ifdef LAPTOP
     char sys_device_lock[PROPERTY_VALUE_MAX];
     property_get("sys.device_locked.status",sys_device_lock,NULL);
@@ -1333,19 +1332,7 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
     }
     
 #if CONFIG_CAMERA_ORIENTATION_SKYPE
-    process_name[0] = 0x00; 
-    sprintf(process_name,"/proc/%d/cmdline",getCallingPid());
-    fp = open(process_name, O_RDONLY);
-    if (fp < 0) {
-        memset(process_name,0x00,sizeof(process_name));
-        LOGE("%s(%d): Obtain calling process info failed",__FUNCTION__,__LINE__);
-    } else {
-        memset(process_name,0x00,sizeof(process_name));
-        read(fp, process_name, 30);
-        close(fp);
-        fp = -1;
-    }
-
+    const char *process_name = getCallingProcess();
     info->facing = gCamInfos[camera_id].facing_info.facing;
     if (strstr(process_name,"com.skype.rover")) {
         info->orientation = (info->facing == CAMERA_FACING_BACK)? CONFIG_CAMERA_BACK_ORIENTATION_SKYPE : CONFIG_CAMERA_FRONT_ORIENTATION_SKYPE;       

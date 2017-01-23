@@ -1031,13 +1031,15 @@ int CameraUSBAdapter::reprocessFrame(FramInfo_s* frame)
 	w = frame->frame_width;
 	h = frame->frame_height;
 	if((w&0x0f) || (h&0x0f)){
-		char *buf = (char*)malloc(w*h*3/2);
+        frame->frame_width = ((w+15)&(~15));
+        frame->frame_height = ((h+15)&(~15));
+		/*char *buf = (char*)malloc(w*h*3/2);
 		if(buf != NULL){
 			memcpy(buf,(void*)frame->vir_addr,w*h);
 			memcpy(buf+w*h,(void*)(frame->vir_addr+((w+15)&0xfff0)*((h+15)&0xfff0)), w*h/2);
 			memcpy((void*)frame->vir_addr,buf,w*h*3/2);
 			free(buf);
-		}
+		}*/
 	}
 
     //do zoom here?

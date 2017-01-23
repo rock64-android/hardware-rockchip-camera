@@ -673,10 +673,13 @@ v1.0x4f.0:
   v1.0x4f.1:
      1) fix read /proc/pid/cmdline fail when selinux of android7.1 is on.
      2) fix weixin video call orientation problem.
+  v1.0x4f.2:
+     1) When width or height is not 16 alignment,no need to memcopy frame.
+     2) Modify some log format for easier to debug code.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 1)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 2)
 
 
 /*  */

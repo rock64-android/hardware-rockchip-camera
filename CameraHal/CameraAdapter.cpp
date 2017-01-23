@@ -359,14 +359,14 @@ int CameraAdapter::cameraCreate(int cameraId)
     cameraDevicePathCur = (char*)&gCamInfos[cameraId].device_path[0];
     iCamFd = open(cameraDevicePathCur, O_RDWR);
     if (iCamFd < 0) {
-        LOGE("%s(%d): open camera%d(%s) is failed",__FUNCTION__,__LINE__,cameraId,cameraDevicePathCur);
+        LOGE("%s(%d): open camera%d(%s) is failed ,err: %s",__FUNCTION__,__LINE__,cameraId,cameraDevicePathCur,strerror(errno));
         goto exit;
     }
 
     memset(&mCamDriverCapability, 0, sizeof(struct v4l2_capability));
     err = ioctl(iCamFd, VIDIOC_QUERYCAP, &mCamDriverCapability);
     if (err < 0) {
-    	LOGE("%s(%d): %s query device's capability failed.\n",__FUNCTION__,__LINE__,cam_path);
+        LOGE("%s(%d): %s query device's capability failed , err: %s \n",__FUNCTION__,__LINE__,cam_path,strerror(errno));
 	    goto exit1;
     }
     
@@ -484,7 +484,7 @@ int CameraAdapter::cameraSetSize(int w, int h, int fmt, bool is_capture)
     
 	err = ioctl(mCamFd, VIDIOC_S_FMT, &format);
 	if ( err < 0 ){
-		LOGE("%s(%d): VIDIOC_S_FMT failed",__FUNCTION__,__LINE__);		
+		LOGE("%s(%d): VIDIOC_S_FMT failed ,err: %s",__FUNCTION__,__LINE__,strerror(errno));
 	} else {
 	    LOG1("%s(%d): VIDIOC_S_FMT %dx%d '%c%c%c%c'",__FUNCTION__,__LINE__,format.fmt.pix.width, format.fmt.pix.height,
 				fmt & 0xFF, (fmt >> 8) & 0xFF,(fmt >> 16) & 0xFF, (fmt >> 24) & 0xFF);
@@ -504,7 +504,7 @@ int CameraAdapter::cameraStream(bool on)
     mCamDriverStreamLock.lock();
     err = ioctl(mCamFd, cmd, &type);
     if (err < 0) {
-        LOGE("%s(%d): %s Failed",__FUNCTION__,__LINE__,((on)?"VIDIOC_STREAMON":"VIDIOC_STREAMOFF"));
+        LOGE("%s(%d): %s Failed ,err: %s",__FUNCTION__,__LINE__,((on)?"VIDIOC_STREAMON":"VIDIOC_STREAMOFF"),strerror(errno));
         goto cameraStream_end;
     }
     mCamDriverStream = on;
@@ -549,7 +549,7 @@ int CameraAdapter::cameraStart()
             buffer.index = i;
 
             if (ioctl(mCamFd, VIDIOC_QUERYBUF, &buffer) < 0) {
-                LOGE("%s(%d): VIDIOC_QUERYBUF Failed",__FUNCTION__,__LINE__);
+                LOGE("%s(%d): VIDIOC_QUERYBUF Failed ,err: %s",__FUNCTION__,__LINE__,strerror(errno));
                 goto fail_bufalloc;
             }
 

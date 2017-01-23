@@ -339,7 +339,7 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
 #ifdef TARGET_RK30
 
     if((rgafd = open("/dev/rga",O_RDWR)) < 0) {
-    	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
+        LOGE("%s(%d):open rga device failed ,err: %s",__FUNCTION__,__LINE__,strerror(errno));
         ret = -1;
     	return ret;
 	}
@@ -417,7 +417,7 @@ extern "C" int rga_nv12torgb565(int src_width, int src_height, char *src, short 
 	}
 
     if(ioctl(rgafd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
-        LOGE("%s(%d):  RGA_BLIT_ASYNC Failed", __FUNCTION__, __LINE__);
+        LOGE("%s(%d):  RGA_BLIT_ASYNC Failed ,err: %s", __FUNCTION__, __LINE__,strerror(errno));
         err = -1;
     }    
     return err;
@@ -629,7 +629,7 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 		scale_times_h = 1;
     }
     if((rgafd = open("/dev/rga",O_RDWR)) < 0) {
-    	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
+        LOGE("%s(%d):open rga device failed ,err: %s",__FUNCTION__,__LINE__,strerror(errno));
         ret = -1;
     	return ret;
 	}
@@ -722,7 +722,7 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 		    
 
 		    if(ioctl(rgafd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
-		        LOGE("%s(%d):  RGA_BLIT_ASYNC Failed", __FUNCTION__, __LINE__);
+		        LOGE("%s(%d):  RGA_BLIT_ASYNC Failed ,err: %s", __FUNCTION__, __LINE__,strerror(errno));
 		        err = -1;
 	    	}
 		}
@@ -922,7 +922,7 @@ extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int s
 
 
     if((ippFd = open("/dev/rk29-ipp",O_RDWR)) < 0) {
-    	LOGE("%s(%d):open rga device failed!!",__FUNCTION__,__LINE__);
+        LOGE("%s(%d):open /dev/rk29-ipp device failed ,err: %s",__FUNCTION__,__LINE__,strerror(errno));
         ret = -1;
     	goto do_ipp_err;
 	}
@@ -983,7 +983,7 @@ extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int s
     		ipp_req.dst0.CbrMst = dstbuf + dst_y_size + dst_uv_offset;
     		while(ipp_times-- > 0) {
                 if (ioctl(ippFd,IPP_BLIT_SYNC,&ipp_req)){
-                    LOGE("ipp do erro,do again,ipp_times = %d!\n",ipp_times);
+                    LOGE("ipp do erro,do again,ipp_times = %d ,err: %s \n",ipp_times,strerror(errno));
                  } else {
                     break;
                  }
@@ -1018,7 +1018,7 @@ extern "C" int rk_camera_yuv_scale_crop_ipp(int v4l2_fmt_src, int v4l2_fmt_dst,
 
 
     if((ippFd = open("/dev/rk29-ipp",O_RDWR)) < 0) {
-    	LOGE("%s(%d):open /dev/rk29-ipp device failed!!",__FUNCTION__,__LINE__);
+        LOGE("%s(%d):open /dev/rk29-ipp device failed ,err: %s",__FUNCTION__,__LINE__,strerror(errno));
         ret = -1;
     	goto do_ipp_err;
 	}
@@ -1112,7 +1112,7 @@ extern "C" int rk_camera_yuv_scale_crop_ipp(int v4l2_fmt_src, int v4l2_fmt_dst,
     		ipp_req.dst0.CbrMst = dstbuf + dst_y_size + dst_uv_offset;
     		while(ipp_times-- > 0) {
                 if (ioctl(ippFd,IPP_BLIT_SYNC,&ipp_req)){
-                    LOGE("ipp do erro,do again,ipp_times = %d!\n",ipp_times);
+                    LOGE("ipp do erro,do again,ipp_times = %d ,err: %s \n",ipp_times,strerror(errno));
                  } else {
                     break;
                  }
