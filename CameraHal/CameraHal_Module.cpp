@@ -40,6 +40,7 @@ static unsigned int gCamerasOpen = 0;
 static signed int gCamerasNumber = -1;
 #ifdef LAPTOP
 static signed int gCamerasUnavailabled = 0;
+static String8 gUsbCameraNames[CAMERAS_SUPPORT_MAX];
 #endif
 static android::Mutex gCameraHalDeviceLock;
 
@@ -479,6 +480,69 @@ done:
     return ret;
 }
 
+#ifdef LAPTOP
+int checkUsbCameraStatus(int cameraid)
+{
+    int fd = -1;
+    bool needRegetCameraNumbers = false;
+    fd = open(gCamInfos[cameraid].device_path, O_RDONLY);
+    if (fd < 0) {
+        LOGE("Open %s failed! strr: %s",gCamInfos[cameraid].device_path,strerror(errno));
+        needRegetCameraNumbers = true;
+        goto camera_get_number_of_cameras_end;
+    }
+    LOGD("checkUsbCameraStatus Open %s success!",gCamInfos[cameraid].device_path);
+    
+    struct v4l2_capability capability;
+    memset(&capability, 0, sizeof(struct v4l2_capability));
+    if (ioctl(fd, VIDIOC_QUERYCAP, &capability) < 0) {
+    	LOGE("Video device(%s): query capability not supported.\n",gCamInfos[cameraid].device_path);
+        close(fd);
+        needRegetCameraNumbers = true;
+        goto camera_get_number_of_cameras_end;
+    }
+    close(fd);
+    if ((capability.capabilities & (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING)) != (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING)) {
+        LOGD("Video device(%s): video capture not supported.\n",gCamInfos[cameraid].device_path);
+        needRegetCameraNumbers = true;
+    } else {
+        if (strcmp(gUsbCameraNames[cameraid].string(), (char*)&capability.card[0])) {
+            LOGE("Current camera %d name(%s) is different from last(%s)", cameraid,
+                (char*)&capability.card[0], gUsbCameraNames[cameraid].string());
+            needRegetCameraNumbers = true;
+        } else if (cameraid == 0 && strstr(gUsbCameraNames[cameraid].string(), "HP IR")) {
+            LOGE("Current camera %d name(%s) is different from HP HD", cameraid,
+                gUsbCameraNames[cameraid].string());
+            cameraid = 1;
+        } else if (cameraid == 1 && strstr(gUsbCameraNames[cameraid].string(), "HP HD")) {
+            LOGE("Current camera %d name(%s) is different from HP IR", cameraid,
+                gUsbCameraNames[cameraid].string());
+            cameraid = 0;
+        }
+    }
+    
+camera_get_number_of_cameras_end:
+    if (needRegetCameraNumbers) {
+        LOGD("%s(%d): Current usb camera has changed and get_number_of_cameras again.",__FUNCTION__, __LINE__);
+        gCamerasNumber = -1;
+        camera_get_number_of_cameras();
+        if (cameraid == 0) {
+            if (!strstr(gUsbCameraNames[cameraid].string(), "HP HD")){
+                if (strstr(gUsbCameraNames[1].string(), "HP HD"))
+                    cameraid = 1;
+            } 
+        } else {
+            if (!strstr(gUsbCameraNames[cameraid].string(), "HP IR")){
+                if (strstr(gUsbCameraNames[0].string(), "HP IR"))
+                    cameraid = 0;
+            }
+        }
+        LOGD("try to open camera %d after reget number_of_cameras", cameraid);
+    }
+    return cameraid;
+}
+#endif
+
 /*******************************************************************
  * implementation of camera_module functions
  *******************************************************************/
@@ -511,12 +575,15 @@ int camera_device_open(const hw_module_t* module, const char* name,
         const char* cameraCallProcess = getCallingProcess();
         if (!strcmp(sys_device_lock, "1")
             && strstr("com.android.facelock",cameraCallProcess)) {
-            LOGD("facelock switch camera to open HP IR camera!!!");
-            cameraid = cameraid == 0 ? 1 : cameraid;
+            if (strstr(gUsbCameraNames[cameraid].string(), "HD HD")) {
+                LOGD("facelock switch camera to open HP IR camera!!!");
+                cameraid = cameraid == 0 ? 1 : cameraid;
+            }
         }
+        cameraid = checkUsbCameraStatus(cameraid);
 #endif
 
-        if(cameraid > gCamerasNumber) {
+        if(cameraid >= gCamerasNumber) {
             LOGE("camera service provided cameraid out of bounds, "
                     "cameraid = %d, num supported = %d",
                     cameraid, gCamerasNumber);
@@ -746,6 +813,11 @@ int camera_get_number_of_cameras(void)
         }
     }
 
+#ifdef LAPTOP
+    for (int i = 0; i < CAMERAS_SUPPORT_MAX; i++)
+        gUsbCameraNames[i].clear();
+#endif
+
    	if(cam_cnt<CAMERAS_SUPPORT_MAX){
 		int i=0;
 		int element_count=0;
@@ -790,6 +862,8 @@ int camera_get_number_of_cameras(void)
                     camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_FRONT;
                     if (strstr((char*)&capability.card[0], "HP IR"))
                         gCamerasUnavailabled++;
+                    gUsbCameraNames[cam_cnt&0x01] = String8((char*)&capability.card[0]);
+                    LOGD("Camera %d name: %s", (cam_cnt&0x01), gUsbCameraNames[cam_cnt&0x01].string());
 #endif
                 } else {
                     camInfoTmp[cam_cnt&0x01].facing_info.facing = CAMERA_FACING_BACK;
@@ -1153,8 +1227,9 @@ camera_get_number_of_cameras_end:
 	LOGD("meida_profiles_xml_control time (%ld)us\n", (t1.tv_sec*1000000 + t1.tv_usec) - (t0.tv_sec*1000000 + t0.tv_usec));
 #ifdef LAPTOP
     return gCamerasNumber > 0 ? gCamerasNumber - gCamerasUnavailabled : gCamerasNumber;
-#endif
+#else
     return gCamerasNumber;
+#endif
 }
 
 #if 0
@@ -1320,12 +1395,15 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
     const char* cameraCallProcess = getCallingProcess();
     if (!strcmp(sys_device_lock, "1")
         && strstr("com.android.facelock",cameraCallProcess)) {
-        LOGD("facelock switch camera to open HP IR camera!!!");
-        camera_id = camera_id == 0 ? 1 : camera_id;
+        if (strstr(gUsbCameraNames[camera_id].string(), "HD HD")) {
+            LOGD("facelock switch camera to open HP IR camera!!!");
+            camera_id = camera_id == 0 ? 1 : camera_id;
+        }
     }
+    camera_id = checkUsbCameraStatus(camera_id);
 #endif
 
-    if(camera_id > gCamerasNumber) {
+    if(camera_id >= gCamerasNumber) {
         LOGE("%s camera_id out of bounds, camera_id = %d, num supported = %d",__FUNCTION__,
                 camera_id, gCamerasNumber);
         rv = -EINVAL;
