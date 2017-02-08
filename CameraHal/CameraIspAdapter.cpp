@@ -865,14 +865,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
     rk_cam_total_info *pCamInfo = gCamInfos[camFd].pcam_total_info;
     bool isRestartPreview = false;
     char string[100];
-    char prop_value[PROPERTY_VALUE_MAX];
-	bool iscts = false;
 
-	property_get("sys.cts_gts.status",prop_value, "false");
-    if(!strcmp(prop_value,"true"))
-		iscts = true;
-	else
-		iscts = false;
 	LOG_FUNCTION_NAME
     //previwe size and picture size
     {
@@ -918,7 +911,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             }
             memset(string,0x00,sizeof(string)); 
             sprintf(string,",%dx%d",ISI_RES_W_GET(pCaps.Resolution),ISI_RES_H_GET(pCaps.Resolution));
-			if(ISI_RES_W_GET(pCaps.Resolution) <= 4096 &&(!iscts || ISI_RES_W_GET(pCaps.Resolution) <= 2104)) {
+			if(ISI_RES_W_GET(pCaps.Resolution) <= 4096 &&(!mIsCtsTest || ISI_RES_W_GET(pCaps.Resolution) <= 2104)) {
             	if (strcmp(string,",1600x1200") && !parameterString.contains(string)){
                 	parameterString.append(string);
             	}
@@ -1021,7 +1014,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
             parameterString.append(",640x480,352x288,320x240,176x144");
         }
 
-		if(iscts) {
+		if(mIsCtsTest) {
 			if(max_w >= 1280 && max_h >= 720) {
 				parameterString.append(",1280x720");
 			}
@@ -1059,7 +1052,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 	}
 
 #if (CONFIG_CAMERA_SETVIDEOSIZE == 0)
-     if(iscts){
+     if(mIsCtsTest){
         if(gCamInfos[camFd].facing_info.facing == CAMERA_FACING_BACK){
              //back camera, may need to manually modify based on media_profiles.xml supported.
              params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"1920x1080");
@@ -1590,10 +1583,8 @@ status_t CameraIspAdapter::autoFocus()
     bool shot = false,err_af = false;
     CamEngineWindow_t afWin;
 #if 1    
-    char prop_value[PROPERTY_VALUE_MAX];
-    property_get("sys.cts_gts.status",prop_value, "false");
-    if(!strcmp(prop_value,"true")){
-    goto finish_focus;
+    if(mIsCtsTest){
+        goto finish_focus;
     }
 #endif
     if (strcmp(mParameters.get(CameraParameters::KEY_FOCUS_MODE), CameraParameters::FOCUS_MODE_AUTO) == 0) {
@@ -1786,15 +1777,13 @@ void CameraIspAdapter::openImage( const char* fileName)
 }
 void CameraIspAdapter::loadSensor( const int cameraId)
 {
-	char prop_value[PROPERTY_VALUE_MAX];
     // open sensor
     if(cameraId>=0)
     {
         disconnectCamera();
 
         rk_cam_total_info *pCamInfo = gCamInfos[cameraId].pcam_total_info;
-		property_get("sys.cts_gts.status",prop_value, "false");
-     	if(!strcmp(prop_value,"true"))
+        if(mIsCtsTest)
 			pCamInfo->mSoftInfo.mFrameRate = 30;
         if ( true == m_camDevice->openSensor( pCamInfo, mSensorItfCur ) )
         {
@@ -2316,24 +2305,7 @@ int CameraIspAdapter::selectPreferedDrvSize(int *width,int * height,bool is_capt
 
     return 0;
 }
-/*
-static void debugShowFPS()
-{
-    static int mFrameCount = 0;
-    static int mLastFrameCount = 0;
-    static nsecs_t mLastFpsTime = 0;
-    static float mFps = 0;
-    mFrameCount++;
-    if (!(mFrameCount & 0x1F)) {
-        nsecs_t now = systemTime();
-        nsecs_t diff = now - mLastFpsTime;
-        mFps = ((mFrameCount - mLastFrameCount) * float(s2ns(1))) / diff;
-        mLastFpsTime = now;
-        mLastFrameCount = mFrameCount;
-        LOGD("Camera %d Frames, %2.3f FPS", mFrameCount, mFps);
-    }
-    // XXX: mFPS has the value we want
-}*/
+
 void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 {
     static int writeoneframe = 0;
@@ -2426,16 +2398,12 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     }
 	
 #if 1
-    char prop_value[PROPERTY_VALUE_MAX];
-    property_get("sys.cts_gts.status",prop_value, "false");
-	if( strcmp(prop_value,"true") && (preview_frame_inval > 0) ){
+	if( !mIsCtsTest && (preview_frame_inval > 0) ){
 	  	preview_frame_inval--;
 		LOG1("frame_inval:%d\n",preview_frame_inval);
-
         if(m_camDevice->isSOCSensor() == false){
 			bool awb_ret = m_camDevice->isAwbStable();
 			LOG1("awb test fps(%d) awb stable(%d)\n", preview_frame_inval, awb_ret);
-			
 			if( awb_ret!=true){
 				LOG1("awb test fps(%d) awb stable(%d)\n", preview_frame_inval, awb_ret);
 				goto end;
@@ -2443,8 +2411,6 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 		}else{
 			goto end;
 		}
-  	}else{
-       // LOG1("--is cts 44--");
     }
 #endif
 

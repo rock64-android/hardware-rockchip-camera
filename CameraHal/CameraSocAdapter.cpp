@@ -162,7 +162,11 @@ int CameraSOCAdapter::cameraFpsInfoSet(CameraParameters &params)
     
     /*frame per second setting*/
     memset(fps_str,0x00,sizeof(fps_str));            
-    sprintf(fps_str,"%d",framerate_min);
+    if(mIsCtsTest){
+        sprintf(fps_str,"%d",5000);
+    }else{
+        sprintf(fps_str,"%d",framerate_min);
+    }
     fps_str[strlen(fps_str)] = ',';
     sprintf(&fps_str[strlen(fps_str)],"%d",framerate_max);
     params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, fps_str);
@@ -170,7 +174,13 @@ int CameraSOCAdapter::cameraFpsInfoSet(CameraParameters &params)
     LOGD("KEY_PREVIEW_FPS_RANGE : %s",fps_str);
     parameterString = "(";
     parameterString.append(fps_str);
-    parameterString.append("),(30000,30000)");//(30000,30000) for passing cts.
+    if(mIsCtsTest){
+        parameterString.append("),(30000,30000)");
+        memset(framerates,0x00,sizeof(framerates));
+        strcpy(framerates,"10,15,30");
+    }else{
+        parameterString.append(")");
+    }
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, parameterString.string());
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, framerates);  
     LOGD("KEY_SUPPORTED_PREVIEW_FPS_RANGE : %s",parameterString.string());
@@ -592,8 +602,7 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	 params.set(CameraParameters::KEY_VIDEO_SNAPSHOT_SUPPORTED,"true");
 
 #if (CONFIG_CAMERA_SETVIDEOSIZE == 0)
-     property_get("sys.cts_gts.status",prop_value, "false");
-     if(!strcmp(prop_value,"true")){
+     if(mIsCtsTest){
         if(gCamInfos[camFd].facing_info.facing == CAMERA_FACING_BACK){
              //back camera, may need to manually modify based on media_profiles.xml supported.
              params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"720x480");

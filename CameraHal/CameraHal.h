@@ -676,10 +676,12 @@ v1.0x4f.0:
   v1.0x4f.2:
      1) When width or height is not 16 alignment,no need to memcopy frame.
      2) Modify some log format for easier to debug code.
+  v1.0x4f.3:
+     1) Modify some cts test code.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 2)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 3)
 
 
 /*  */
@@ -909,6 +911,7 @@ public:
     virtual ~CameraAdapter();
 
     void setImageAllFov(bool sw){mImgAllFovReq=sw;}
+    void setCtsTestFlag(bool isCts){mIsCtsTest = isCts;}
     DisplayAdapter* getDisplayAdapterRef(){return mRefDisplayAdapter;}
     void setDisplayAdapterRef(DisplayAdapter& refDisplayAdap);
     void setEventNotifierRef(AppMsgNotifier& refEventNotify);
@@ -1014,6 +1017,7 @@ protected:
     int mVideoWidth;
     int mVideoHeight;
     bool mImgAllFovReq;
+    bool mIsCtsTest;
 
     unsigned int mCamDriverSupportFmt[CAMERA_DRIVER_SUPPORT_FORMAT_MAX];
     enum v4l2_memory mCamDriverV4l2MemType;

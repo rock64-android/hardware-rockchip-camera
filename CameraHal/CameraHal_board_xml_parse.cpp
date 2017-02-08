@@ -1859,7 +1859,7 @@ int camera_board_profiles::CheckSensorSupportDV(rk_cam_total_info* pCamInfo)
                             if (ISI_RES_W_GET(pCaps->caps.Resolution)*ISI_RES_H_GET(pCaps->caps.Resolution)*10 >=
                                 pDVInfo->mHeight*pDVInfo->mWidth*9) {
                                 if ((unsigned int)(ISI_FPS_GET(pCaps->caps.Resolution)) >= pDVInfo->mFps) {
-                                    pDVInfo->mFps = 30;//ISI_FPS_GET(pCaps->caps.Resolution); //for passing cts,should be ok for now.
+                                    pDVInfo->mFps = ISI_FPS_GET(pCaps->caps.Resolution);
                                     pDVInfo->mAddMask = 0;
                                 }
                             }

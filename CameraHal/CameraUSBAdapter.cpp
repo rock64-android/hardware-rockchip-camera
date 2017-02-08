@@ -81,14 +81,6 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
     struct v4l2_frmsizeenum fsize; 
     bool dot,isRestartPreview = false;
     char *ptr,str_fov_h[4],str_fov_v[4],fov_h,fov_v;
-    char prop_value[PROPERTY_VALUE_MAX];
-    bool iscts = false;
-
-    property_get("sys.cts_gts.status",prop_value, "false");
-    if(!strcmp(prop_value,"true"))
-        iscts = true;
-    else
-        iscts = false;
     
     LOG_FUNCTION_NAME  
     i = 0;
@@ -553,7 +545,7 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
 	#endif
 #endif
 #if (CONFIG_CAMERA_SETVIDEOSIZE == 0)
-    if(iscts){
+    if(mIsCtsTest){
         if(gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_BACK){
              //back camera, may need to manually modify based on media_profiles.xml supported.
              params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"1920x1080");
@@ -570,11 +562,11 @@ void CameraUSBAdapter::initDefaultParameters(int camFd)
          params.set(CameraParameters::KEY_VIDEO_SIZE,"");
          params.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,"");
     }
-    LOGD("isCts:%d Support video sizes:%s", iscts, params.get(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES));
+    LOGD("mIsCtsTest:%d Support video sizes:%s", mIsCtsTest, params.get(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES));
 #endif
     params.set(KEY_CONTINUOUS_PIC_NUM,"1");  
 
-    if (iscts) {
+    if (mIsCtsTest) {
         //color effect
         //for passing cts
         params.set(CameraParameters::KEY_SUPPORTED_EFFECTS, "none,mono,sepia");

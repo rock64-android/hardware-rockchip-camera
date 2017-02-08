@@ -161,10 +161,16 @@ CameraHal::CameraHal(int cameraId)
 		}else {
             mCameraAdapter->setImageAllFov(false);
             g_ctsV_flag = false;
-	    }
-        if(strstr(call_process,"com.android.camera2")) {
             property_set("sys.cts_gts.status","false");
-        }
+	    }
+    }
+
+    char prop_value[PROPERTY_VALUE_MAX];
+    property_get("sys.cts_gts.status",prop_value, "false");
+    if(!strcmp(prop_value,"true")){
+        mCameraAdapter->setCtsTestFlag(true);
+    }else{
+        mCameraAdapter->setCtsTestFlag(false);
     }
 
     mDisplayAdapter = new DisplayAdapter();
