@@ -370,8 +370,8 @@ int CameraAdapter::cameraCreate(int cameraId)
 	    goto exit1;
     }
     
-    LOGD("Camera driver: %s   Driver version: %d.%d.%d  CameraHal version: %d.%d.%d ",mCamDriverCapability.driver,
-        (mCamDriverCapability.version>>16) & 0xff,(mCamDriverCapability.version>>8) & 0xff,
+    LOGD("Camera driver: %s  Card Name:%s  Driver version: %d.%d.%d  CameraHal version: %d.%d.%d ",mCamDriverCapability.driver,
+        mCamDriverCapability.card,(mCamDriverCapability.version>>16) & 0xff,(mCamDriverCapability.version>>8) & 0xff,
         mCamDriverCapability.version & 0xff,(CONFIG_CAMERAHAL_VERSION>>16) & 0xff,(CONFIG_CAMERAHAL_VERSION>>8) & 0xff,
         CONFIG_CAMERAHAL_VERSION & 0xff);
 
@@ -380,7 +380,7 @@ int CameraAdapter::cameraCreate(int cameraId)
 	fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;    
 	while (ioctl(iCamFd, VIDIOC_ENUM_FMT, &fmtdesc) == 0) {
         mCamDriverSupportFmt[fmtdesc.index] = fmtdesc.pixelformat;
-        LOGD("mCamDriverSupportFmt: fmt = %d,index = %d",fmtdesc.pixelformat,fmtdesc.index);
+        LOGD("mCamDriverSupportFmt: fmt = %d(%s),index = %d",fmtdesc.pixelformat,fmtdesc.description,fmtdesc.index);
 
 		fmtdesc.index++;
 	}

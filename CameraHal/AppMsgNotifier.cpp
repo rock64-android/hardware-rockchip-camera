@@ -573,7 +573,7 @@ void AppMsgNotifier::grallocVideoBufAlloc(
 		}
         #if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928)
             pVideoBuf->vir_addr = (long)buffHandle->base;
-        #elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368) || defined(TARGET_RK3328)
+        #elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368) || defined(TARGET_RK3328) || defined(TARGET_RK312x)
             pVideoBuf->vir_addr = (long)virtAddr;
         #endif
 		//get fd

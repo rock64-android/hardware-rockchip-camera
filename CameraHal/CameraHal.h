@@ -84,7 +84,7 @@
 #elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
 #include <hardware/hal_public.h>
 #include <hardware/rga.h>
-#elif defined(TARGET_RK3368) || defined(TARGET_RK3328)
+#elif defined(TARGET_RK3368) || defined(TARGET_RK3328) || defined(TARGET_RK312x)
 #include <hardware/img_gralloc_public.h>
 #include <hardware/rga.h>
 #elif defined(TARGET_RK29)
@@ -678,10 +678,12 @@ v1.0x4f.0:
      2) Modify some log format for easier to debug code.
   v1.0x4f.3:
      1) Modify some cts test code.
+  v1.0x4f.4:
+     1) Fix the bug that camera can not record video at platform rk312x on android nougat.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 3)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 4)
 
 
 /*  */
@@ -800,7 +802,7 @@ v1.0x4f.0:
     #define NATIVE_HANDLE_TYPE             private_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)    
-#elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368) || defined(TARGET_RK3328)
+#elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368) || defined(TARGET_RK3328) || defined(TARGET_RK312x)
     #define NATIVE_HANDLE_TYPE             IMG_native_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->iWidth)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->iHeight)    
