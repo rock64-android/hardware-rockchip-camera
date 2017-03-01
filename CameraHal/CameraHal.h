@@ -704,7 +704,9 @@ v1.0x4f.0:
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB  1
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_ALL  0
 #ifdef LAPTOP
-#define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>"
+#define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>,\
+                                                <com.tencent.mobileqq:peak>,<com.tencent.mobileqq:MSF>,\
+                                                <com.tencent.mm:tools>"
 #define CONFIG_CAMERA_FRONT_FLIP_MDATACB_APK  "<com.tencent.mm>,<com.xiaomi.channel>,<com.tencent.mobileqq:video>"
 #else
 #define CONFIG_CAMERA_FRONT_MIRROR_MDATACB_APK  "<com.skype.raider>,<com.yahoo.mobile.client.andro>"

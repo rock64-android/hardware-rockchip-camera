@@ -1422,6 +1422,18 @@ int camera_get_camera_info(int camera_id, struct camera_info *info)
     info->orientation = gCamInfos[camera_id].facing_info.orientation;       
 #endif
 end:
+
+#ifdef LAPTOP
+    // if only front camera, qq/weixin self captrue can't work.
+    const char* callProcess = getCallingProcess();
+    if ((!strcmp("com.tencent.mm:tools",callProcess)
+        || !strcmp("com.tencent.mobileqq:MSF",callProcess)
+        || !strcmp("com.tencent.mobileqq:peak",callProcess))
+        && (gCamerasNumber - gCamerasUnavailabled) == 1
+        && info->facing == CAMERA_FACING_FRONT) {
+        info->facing = CAMERA_FACING_BACK;
+    }
+#endif
     LOGD("%s(%d): camera_%d facing(%d), orientation(%d)",__FUNCTION__,__LINE__,camera_id,info->facing,info->orientation);
     return rv;
 }
