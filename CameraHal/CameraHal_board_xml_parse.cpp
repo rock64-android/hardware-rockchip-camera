@@ -2097,7 +2097,7 @@ int camera_board_profiles::FindResolution(camera_board_profiles* profiles, xml_v
         nDVNum = profiles->mDevideConnectVector[find_element->n_cameraId]->mSoftInfo.mDV_vector.size();
         for(j=0; j<nDVNum; j++){	
             rk_DV_info* DVInfo = profiles->mDevideConnectVector[find_element->n_cameraId]->mSoftInfo.mDV_vector[j];
-    		if(DVInfo->mWidth==find_element->n_width)
+            if(DVInfo->mWidth==find_element->n_width && DVInfo->mHeight==find_element->n_height)
     		{
     			find_element->n_height = DVInfo->mHeight;
     			find_element->n_frameRate = DVInfo->mFps;
@@ -2254,6 +2254,10 @@ int camera_board_profiles::ModifyMediaProfileXML( camera_board_profiles* profile
 				leave_line1 = strstr(one_line_buf, "frameRate"); 
 				if(leave_line1 == NULL) //no "framRate"
 				{ 
+                    leave_line1 = strstr(one_line_buf,"height");
+                    if(leave_line1){
+                        sscanf(leave_line, "%*[^1-9]%d\"", &(find_element.n_height));
+                    }
 					fputs(one_line_buf, dst_fp);
 					continue; 
 				} 
@@ -2281,7 +2285,8 @@ int camera_board_profiles::ModifyMediaProfileXML( camera_board_profiles* profile
 						ALOGD("XML modify: camID(%d) resolution:%s(%dx%d) fps(%d) isaddmark(%d)\n",find_element.n_cameraId,find_element.str_quality, 
 							find_element.n_width, find_element.n_height, find_element.n_frameRate, find_element.isAddMark);
 					}else{
-						ALOGD("WARNING: can't find camID(%d) resolution:%s(%dx), addmark!!!\n", find_element.n_cameraId,find_element.str_quality, find_element.n_width);
+						ALOGD("WARNING: can't find camID(%d) resolution:%s(%dx%d), addmark!!!\n",find_element.n_cameraId,
+                            find_element.str_quality, find_element.n_width,find_element.n_height);
 						find_element.isAddMark=1;
 						find_fmt_sign = 3;
 						fputs(one_line_buf, dst_fp);

@@ -174,13 +174,7 @@ int CameraSOCAdapter::cameraFpsInfoSet(CameraParameters &params)
     LOGD("KEY_PREVIEW_FPS_RANGE : %s",fps_str);
     parameterString = "(";
     parameterString.append(fps_str);
-    if(mIsCtsTest){
-        parameterString.append("),(30000,30000)");
-        memset(framerates,0x00,sizeof(framerates));
-        strcpy(framerates,"10,15,30");
-    }else{
-        parameterString.append(")");
-    }
+    parameterString.append(")");
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, parameterString.string());
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, framerates);  
     LOGD("KEY_SUPPORTED_PREVIEW_FPS_RANGE : %s",parameterString.string());
@@ -304,6 +298,15 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 		sprintf(str_picturesize, "%dx%d", mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
 		params.setPictureSize(mCamDriverFrmWidthMax,mCamDriverFrmHeightMax);
 	}
+
+    if(mIsCtsTest) {
+        if(mCamDriverFrmWidthMax >= 1280 && mCamDriverFrmHeightMax >= 720) {
+            strcat(str_picturesize,",1280x720");
+        }
+        if(mCamDriverFrmWidthMax >= 1920 && mCamDriverFrmHeightMax >= 1080){
+            strcat(str_picturesize,",1920x1080");
+        }
+    }
 
 	params.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES, str_picturesize);
 
