@@ -680,10 +680,12 @@ v1.0x4f.0:
      1) Modify some cts test code.
   v1.0x4f.4:
      1) Fix the bug that camera can not record video at platform rk312x on android nougat.
+  v1.0x4f.5:
+     1) Update camera cts test property from sys.cts_gts.status to sys.cts_camera.status .
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 4)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 5)
 
 
 /*  */

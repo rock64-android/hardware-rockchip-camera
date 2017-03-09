@@ -154,19 +154,19 @@ CameraHal::CameraHal(int cameraId)
 	    if(strstr(call_process,"com.android.cts.verifier")) {
             mCameraAdapter->setImageAllFov(true);
             g_ctsV_flag = true;
-            property_set("sys.cts_gts.status","false");
+            property_set("sys.cts_camera.status","false");
 	    }else if(strstr(call_process,"android.camera.cts")) {
 			g_ctsV_flag = false;
-			property_set("sys.cts_gts.status","true");
+			property_set("sys.cts_camera.status","true");
 		}else {
             mCameraAdapter->setImageAllFov(false);
             g_ctsV_flag = false;
-            property_set("sys.cts_gts.status","false");
+            property_set("sys.cts_camera.status","false");
 	    }
     }
 
     char prop_value[PROPERTY_VALUE_MAX];
-    property_get("sys.cts_gts.status",prop_value, "false");
+    property_get("sys.cts_camera.status",prop_value, "false");
     if(!strcmp(prop_value,"true")){
         mCameraAdapter->setCtsTestFlag(true);
     }else{
@@ -913,7 +913,7 @@ get_command:
                 
                 if(prevStatus){                    
                     //get preview size
-                    property_get("sys.cts_gts.status",prop_value, "false");
+                    property_get("sys.cts_camera.status",prop_value, "false");
                     if(strcmp(prop_value,"true") && ((prefered_w != drv_w) || (prefered_h != drv_h))){
                         if (mDisplayAdapter->getDisplayStatus() == DisplayAdapter::STA_DISPLAY_RUNNING) {
                             err=mDisplayAdapter->pauseDisplay();
@@ -1082,7 +1082,7 @@ get_command:
                 if(prevStatus){
 				    //get preview size
 				    //if(mRecordRunning){
-                    property_get("sys.cts_gts.status",prop_value, "false");
+                    property_get("sys.cts_camera.status",prop_value, "false");
                     if(mCameraStatus&STA_RECORD_RUNNING){
                        LOGE("%s(%d):not support set picture size when recording.",__FUNCTION__,__LINE__);
                     } else if(strcmp(prop_value,"true") && ((prefered_w != drv_w) || (prefered_h != drv_h))){

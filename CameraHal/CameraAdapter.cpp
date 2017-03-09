@@ -145,8 +145,7 @@ bool CameraAdapter::isNeedToRestartPreview()
     LOGD("mCamPreviewW (%dx%d)",mCamPreviewW,mCamPreviewH);
     LOGD("video width (%dx%d)",mVideoWidth,mVideoHeight);
 
-    property_get("sys.cts_gts.status",prop_value, "false");
-    if(mPreviewRunning && ((preferPreviewW != mCamPreviewW) || (preferPreviewH != mCamPreviewH)) && (mVideoWidth != -1) && strcmp(prop_value,"true"))
+    if(mPreviewRunning && ((preferPreviewW != mCamPreviewW) || (preferPreviewH != mCamPreviewH)) && (mVideoWidth != -1) && (!mIsCtsTest))
 	{
       ret = true;
 	}
