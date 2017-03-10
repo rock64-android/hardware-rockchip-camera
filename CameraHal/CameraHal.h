@@ -681,7 +681,10 @@ v1.0x4f.0:
   v1.0x4f.4:
      1) Fix the bug that camera can not record video at platform rk312x on android nougat.
   v1.0x4f.5:
-     1) Update camera cts test property from sys.cts_gts.status to sys.cts_camera.status .
+     1) Update camera cts test property from sys.cts_gts.status to sys.cts_camera.status.
+  v1.0x4f.6:
+     1) walkround fix qq self camera record problem with rga,replace 
+        rga with arm when this callingprocess.
 */
 
 
@@ -1581,6 +1584,7 @@ private:
 
     CameraAdapter *mCamAdp;
     int32_t mMsgTypeEnabled;
+    char mCallingProcess[100];
     
     picture_info_s mPictureInfo;
    // bool mReceivePictureFrame;

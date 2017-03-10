@@ -49,6 +49,7 @@ AppMsgNotifier::AppMsgNotifier(CameraAdapter *camAdp)
     mDataCbTimestamp = NULL;
     mRequestMemory = NULL;
     mCallbackCookie = NULL;
+    strcpy(mCallingProcess, getCallingProcess());
 
     mPreviewDataW = 0;
     mPreviewDataH = 0;
@@ -1683,14 +1684,19 @@ int AppMsgNotifier::processPreviewDataCb(FramInfo_s* frame){
 					(char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,mDataCbFrontMirror,frame->zoom_value);
 #else
         if(g_ctsV_flag &&((mPreviewDataW==176&&mPreviewDataH==144)||(mPreviewDataW==352&&mPreviewDataH==288))) {
-            char *call_process = getCallingProcess();
             arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, pixFmt, (char*)(frame->vir_addr),
                                         (char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,
                                         mPreviewDataW, mPreviewDataH,false,frame->zoom_value);
         }else{
-        	
 			#if defined(RK_DRM_GRALLOC)
-			rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+            if (!strcmp("com.tencent.mobileqq:MSF",mCallingProcess)
+                || !strcmp("com.tencent.mobileqq:peak",mCallingProcess))
+                //workround fix qq self capture little video problem.
+                arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21, (char*)(frame->vir_addr),
+					(char*)tmpPreviewMemory->data,frame->frame_width, frame->frame_height,mPreviewDataW, mPreviewDataH,
+                    mDataCbFrontMirror,frame->zoom_value);
+            else
+			    rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
 					(char*)(frame->vir_addr), (short int *)(tmpPreviewMemory->data), 
 					mPreviewDataW,mPreviewDataH,frame->zoom_value,mDataCbFrontMirror,true,!isYUV420p,0,true);
 			#else
