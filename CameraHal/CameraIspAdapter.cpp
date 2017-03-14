@@ -78,8 +78,8 @@ CameraIspAdapter::CameraIspAdapter(int cameraId)
         memset(m_buffers_capture,0x0,sizeof(cv_fimc_buffer));
 	mCameraGL = new CameraGL();
     mGPUCommandThread = new GPUCommandThread(this);
-    mGPUCommandThread->run("GPUCommandThread",ANDROID_PRIORITY_DISPLAY);
     mGPUCommandThreadState = STA_GPUCMD_IDLE;
+    mGPUCommandThread->run("GPUCommandThread",ANDROID_PRIORITY_DISPLAY);
 
 	mfdISO = 2;
 	mMutliFrameDenoise = NULL;
@@ -89,10 +89,9 @@ CameraIspAdapter::CameraIspAdapter(int cameraId)
     memset(&mfd,0x0,sizeof(mfdprocess));
     mMutliFrameDenoise = new MutliFrameDenoise();
     mMFDCommandThread = new MFDCommandThread(this);
-    mMFDCommandThread->run("MFDCommandThread",ANDROID_PRIORITY_DISPLAY);
     mMFDCommandThreadState = STA_GPUCMD_IDLE;
+    mMFDCommandThread->run("MFDCommandThread",ANDROID_PRIORITY_DISPLAY);
 
-	system("/data/local/performance.sh");
 	LOG_FUNCTION_NAME_EXIT
 	if(mCameraGL == NULL){
         LOGE("ERROR in CameraIspAdapter: can not new mCameraGL!");
