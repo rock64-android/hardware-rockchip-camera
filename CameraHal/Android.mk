@@ -90,13 +90,15 @@ LOCAL_SRC_FILES:=\
 	SensorListener.cpp\
 
 ifeq ($(strip $(BOARD_USE_DRM)), true)
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3399)
 LOCAL_SRC_FILES += \
 	camera_mem_gralloc.cpp\
 	camera_mem.cpp
-endif	
+endif
+endif
 	
   
-ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board)	 
+ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board) 
 LOCAL_C_INCLUDES += \
 	frameworks/base/include/ui \
 	frameworks/av/include \
@@ -344,7 +346,9 @@ LOCAL_CFLAGS += -DANDROID_7_X
 endif
 
 ifeq ($(strip $(BOARD_USE_DRM)), true)
-LOCAL_CFLAGS +=-DRK_DRM_GRALLOC=1	
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3399)
+LOCAL_CFLAGS +=-DRK_DRM_GRALLOC=1
+endif
 endif	
 
 
