@@ -90,14 +90,13 @@ LOCAL_SRC_FILES:=\
 	SensorListener.cpp\
 
 ifeq ($(strip $(BOARD_USE_DRM)), true)
-ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3399)
+ifneq ($(filter rk3368 rk3399, $(strip $(TARGET_BOARD_PLATFORM))), )
 LOCAL_SRC_FILES += \
 	camera_mem_gralloc.cpp\
 	camera_mem.cpp
 endif
 endif
-	
-  
+
 ifeq ($(strip $(TARGET_BOARD_HARDWARE)),rk30board) 
 LOCAL_C_INCLUDES += \
 	frameworks/base/include/ui \
@@ -346,11 +345,10 @@ LOCAL_CFLAGS += -DANDROID_7_X
 endif
 
 ifeq ($(strip $(BOARD_USE_DRM)), true)
-ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3399)
+ifneq ($(filter rk3368 rk3399, $(strip $(TARGET_BOARD_PLATFORM))), )
 LOCAL_CFLAGS +=-DRK_DRM_GRALLOC=1
 endif
-endif	
-
+endif
 
 #LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 ifneq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 5.0)))

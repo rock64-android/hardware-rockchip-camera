@@ -281,7 +281,11 @@ static int cam_mem_gralloc_ops_deInit(cam_mem_handle_t* handle)
 #include <ui/GraphicBufferMapper.h>
 #include <ui/GraphicBuffer.h>
 #if defined(RK_DRM_GRALLOC)
+#if defined(TARGET_RK3368)
+#include <hardware/gralloc.h>
+#else
 #include <gralloc_drm.h>
+#endif
 #endif
 
 static cam_mem_handle_t*  cam_mem_gralloc_ops_init(int iommu_enabled,unsigned int mem_flag,int phy_continuos)
@@ -300,15 +304,22 @@ static cam_mem_handle_t*  cam_mem_gralloc_ops_init(int iommu_enabled,unsigned in
         TRACE_E("%s:can't alloc handle!",__FUNCTION__);
         goto init_error;
     }
-    handle->mem_type = CAM_MEM_TYPE_GRALLOC;
+    memset(handle, 0x0, sizeof(*handle));
+
+	handle->mem_type = CAM_MEM_TYPE_GRALLOC;
     handle->iommu_enabled = iommu_enabled;
     handle->phy_continuos = phy_continuos;
-	handle->flag =  (mem_flag & CAM_MEM_FLAG_HW_WRITE) ? handle->flag |= GRALLOC_USAGE_HW_CAMERA_WRITE :
-					(mem_flag & CAM_MEM_FLAG_HW_READ) ? handle->flag |= GRALLOC_USAGE_HW_CAMERA_READ :
-					(mem_flag & CAM_MEM_FLAG_SW_WRITE) ? handle->flag |= GRALLOC_USAGE_SW_WRITE_OFTEN :
-					(mem_flag & CAM_MEM_FLAG_SW_READ) ? handle->flag |= GRALLOC_USAGE_SW_READ_OFTEN : 0;
     handle->priv = (void*)gm;
-    
+
+	if (mem_flag & CAM_MEM_FLAG_HW_WRITE)
+		handle->flag |= GRALLOC_USAGE_HW_CAMERA_WRITE;
+	if (mem_flag & CAM_MEM_FLAG_HW_READ)
+		handle->flag |= GRALLOC_USAGE_HW_CAMERA_READ;
+	if (mem_flag & CAM_MEM_FLAG_SW_WRITE)
+		handle->flag |= GRALLOC_USAGE_SW_WRITE_OFTEN;
+	if (mem_flag & CAM_MEM_FLAG_SW_READ)
+		handle->flag |= GRALLOC_USAGE_SW_READ_OFTEN;
+
     return handle;
 init_error:
     if (!handle)
@@ -351,7 +362,6 @@ static cam_mem_info_t* cam_mem_gralloc_ops_alloc(cam_mem_handle_t* handle,size_t
 	} 
 
 	ret = mgraphicbuf->lock(grallocFlags, (void**)&mem_addr);
-
 	if (ret) {
 		TRACE_E("lock buffer error : %s\n",strerror(errno));
 		goto lock_error;

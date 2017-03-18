@@ -581,7 +581,8 @@ void AppMsgNotifier::grallocVideoBufAlloc(
 		#if defined(RK_DRM_GRALLOC)
 		util_get_gralloc_buf_fd((buffer_handle_t)buffHandle,(int*)(&pVideoBuf->phy_addr));
 		#endif
-        LOG1("pVideoBuf->vir_addr= %p,buffer_hnd=0x%x,priv_hnd=0x%x",pVideoBuf->vir_addr,pVideoBuf->buffer_hnd,pVideoBuf->priv_hnd);
+        LOG1("pVideoBuf->phy_addr=0x%x,pVideoBuf->vir_addr=0x%x,buffer_hnd=0x%x,priv_hnd=0x%x",
+        	pVideoBuf->phy_addr,pVideoBuf->vir_addr,pVideoBuf->buffer_hnd,pVideoBuf->priv_hnd);
  	}
 	return;
 FAIL:
@@ -1432,7 +1433,7 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     input_vir_addr = frame->vir_addr;
     output_phy_addr = jpegbuf_phy;
     output_vir_addr = jpegbuf_vir;
-	LOG1("rawbuf_phy:%x,rawbuf_vir:%x;jpegbuf_phy = %x,jpegbuf_vir = %x",rawbuf_phy,rawbuf_vir,jpegbuf_phy,jpegbuf_vir);
+	LOG1("input_phy_addr:%x,rawbuf_phy:%x,rawbuf_vir:%x;jpegbuf_phy = %x,jpegbuf_vir = %x",input_phy_addr,rawbuf_phy,rawbuf_vir,jpegbuf_phy,jpegbuf_vir);
 
 	if (mMsgTypeEnabled & CAMERA_MSG_SHUTTER)
 		callback_notify_shutter();
@@ -1463,9 +1464,15 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
                   mIs_Verifier = false;
                 }
 				#if defined(RK_DRM_GRALLOC)
-				err = rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
-		                            (char*)(frame->phy_addr), (short int *)rawbuf_phy, 
-		                            jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false,0,false);
+				if (frame->vir_addr_valid) {
+					err = rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+			                            (char*)(frame->vir_addr), (short int *)rawbuf_vir, 
+			                            jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false,0,frame->vir_addr_valid);
+		        } else {
+					err = rga_nv12_scale_crop(frame->frame_width, frame->frame_height, 
+			                            (char*)(frame->phy_addr), (short int *)rawbuf_phy, 
+			                            jpeg_w,jpeg_h,frame->zoom_value,false,!mIs_Verifier,false,0,frame->vir_addr_valid);
+			    }
 				if (err < 0)
 					arm_camera_yuv420_scale_arm(V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV12, (char*)(frame->vir_addr),
 						(char*)rawbuf_vir,frame->frame_width, frame->frame_height,
@@ -1608,6 +1615,27 @@ int AppMsgNotifier::captureEncProcessPicture(FramInfo_s* frame){
     generateJPEG((uint8_t*)input_vir_addr,jpeg_w,jpeg_h,JpegOutInfo.outBufVirAddr,&(JpegOutInfo.jpegFileLen));
     copyAndSendCompressedImage((void*)JpegOutInfo.outBufVirAddr,JpegOutInfo.jpegFileLen);
 #else
+
+LOG2("\nJpegInInfo.y_rgb_addr=0x%x\n"
+	  "JpegInInfo.uv_addr=0x%x\n"
+	  "JpegInInfo.inputW=0x%x\n"
+	  "JpegInInfo.inputH=0x%x\n"
+	  "JpegInInfo.pool=0x%x\n"
+	  "JpegInInfo.qLvl=0x%x\n"
+	  "\n"
+	  "JpegOutInfo.outBufPhyAddr=0x%x\n"
+	  "JpegOutInfo.outBufVirAddr=0x%x\n"
+	  "JpegOutInfo.outBuflen=0x%x\n",
+	  JpegInInfo.y_rgb_addr,
+	  JpegInInfo.uv_addr,
+	  JpegInInfo.inputW,
+	  JpegInInfo.inputH,
+	  JpegInInfo.pool,
+	  JpegInInfo.qLvl,
+	  JpegOutInfo.outBufPhyAddr,
+	  JpegOutInfo.outBufVirAddr,
+	  JpegOutInfo.outBuflen);
+
 	err = hw_jpeg_encode(&JpegInInfo, &JpegOutInfo);
 	
 	if ((err < 0) || (JpegOutInfo.jpegFileLen <=0x00)) {
@@ -1765,10 +1793,17 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 	                                        mRecordW, mRecordH,false,frame->zoom_value);
 	        }else{
 				#if defined(RK_DRM_GRALLOC)
-				long fd = mVideoBufferProvider->getBufShareFd(buf_index);
-	            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
-	                                (char*)(frame->phy_addr), (short int *)fd,
-	                                mRecordW,mRecordH,frame->zoom_value,false,true,false,0,false);
+				if (frame->vir_addr_valid){
+		            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+		                                (char*)(frame->vir_addr), (short int *)buf_vir,
+		                                mRecordW,mRecordH,frame->zoom_value,false,true,false,0,frame->vir_addr_valid);
+	            } else{
+					long fd = mVideoBufferProvider->getBufShareFd(buf_index);
+					LOGD(">>>ZYL>>fd:0x%x",fd);
+					rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+										(char*)(frame->phy_addr), (short int *)fd,
+										mRecordW,mRecordH,frame->zoom_value,false,true,false,0,frame->vir_addr_valid);
+	            }
 				#else
 	            rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                                (char*)(frame->vir_addr), (short int *)buf_vir,
@@ -1800,9 +1835,15 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
         #else
 		
 		#if defined(RK_DRM_GRALLOC)
-	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
-	                (char*)(frame->phy_addr), (short int*)(mGrallocVideoBuf[buf_index]->phy_addr),
-	                mRecordW,mRecordH,frame->zoom_value,false,true,false,0,false);
+		if (frame->vir_addr_valid){
+		    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+		                (char*)(frame->vir_addr), (short int*)(mGrallocVideoBuf[buf_index]->vir_addr),
+		                mRecordW,mRecordH,frame->zoom_value,false,true,false,0,frame->vir_addr_valid);
+	    } else{
+    	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+                (char*)(frame->phy_addr), (short int*)(mGrallocVideoBuf[buf_index]->phy_addr),
+                mRecordW,mRecordH,frame->zoom_value,false,true,false,0,frame->vir_addr_valid);
+	    }
 		#else
 	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 	                (char*)(frame->vir_addr), (short int*)(mGrallocVideoBuf[buf_index]->vir_addr),

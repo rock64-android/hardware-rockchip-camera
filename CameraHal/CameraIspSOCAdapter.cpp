@@ -252,8 +252,15 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                 m_camDevice->getYCSequence();
                 arm_isp_yuyv_12bit_to_8bit(width,height,(char*)y_addr_vir,m_camDevice->getYCSequence(),mIs10bit0To0);
                 y_addr += width*height*2;
-#if defined(RK_DRM_GRALLOC) // should use fd
+#if defined(RK_DRM_GRALLOC)
 				phy_addr = -1;
+				/* 
+				* !!!!!!WARNNING!!!!!
+				* If you want to use fd, you should copy data to the buffer based on offset zero,like below code, because fd cannot get offset.
+				*
+				* HalGetMemoryMapFd(tmpHandle, y_addr,(int*)&phy_addr);
+				* memcpy((void*)((unsigned long)y_addr_vir - width*height*2), y_addr_vir, width*height*3/2);
+				*/
 #else
                 if(gCamInfos[mCamId].pcam_total_info->mIsIommuEnabled)
                     phy_addr = -1; //fd mode can't get offset,so must be copied when pic taken,ugly now
@@ -261,8 +268,6 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
                     phy_addr = y_addr;
 #endif				
                 y_addr_vir= (void*)((unsigned long)y_addr_vir + width*height*2);
-                
-
     }else{
            LOGE("not support this type(%dx%d)  ,just support  yuv20 now",width,height);
            return;
@@ -284,17 +289,15 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 			return;
       }
       //add to vector
+      memset(tmpFrame, 0x0, sizeof(*tmpFrame));
       tmpFrame->frame_index = (long)tmpFrame; 
       tmpFrame->phy_addr = (long)phy_addr;
       tmpFrame->frame_width = width;
       tmpFrame->frame_height= height;
       tmpFrame->vir_addr = (long)y_addr_vir;
       tmpFrame->frame_fmt = fmt;
-	  
       tmpFrame->used_flag = 4;
-
       tmpFrame->zoom_value = mZoomVal;
-    
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
@@ -312,6 +315,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 			return;
       }
       //add to vector
+      memset(tmpFrame, 0x0, sizeof(*tmpFrame));
       tmpFrame->frame_index = (long)tmpFrame; 
       tmpFrame->phy_addr = (long)(phy_addr);
       tmpFrame->frame_width = width;
@@ -320,6 +324,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
       tmpFrame->used_flag = 0;
+      tmpFrame->vir_addr_valid = true;
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
@@ -338,6 +343,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 			return;
       }
       //add to vector
+      memset(tmpFrame, 0x0, sizeof(*tmpFrame));
       tmpFrame->frame_index = (long)tmpFrame; 
       tmpFrame->phy_addr = (long)(phy_addr);
       tmpFrame->frame_width = width;
@@ -346,6 +352,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
       tmpFrame->used_flag = 1;
+      tmpFrame->vir_addr_valid = true;
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
@@ -363,6 +370,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 			return;
 		}
 	  //add to vector
+	  memset(tmpFrame, 0x0, sizeof(*tmpFrame));
 	  //fmt = V4L2_PIX_FMT_NV12;
 	  tmpFrame->frame_index = (long)tmpFrame; 
 	  tmpFrame->phy_addr = (long)(phy_addr);
@@ -373,6 +381,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
       tmpFrame->zoom_value = mZoomVal;
       tmpFrame->used_flag = 2;
       tmpFrame->res = &mImgAllFovReq;
+      tmpFrame->vir_addr_valid = true;
 	  {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);
@@ -391,6 +400,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 			return;
 		}
 	  //add to vector
+	  memset(tmpFrame, 0x0, sizeof(*tmpFrame));
 	  tmpFrame->frame_index = (long)tmpFrame; 
 	  tmpFrame->phy_addr = (long)(phy_addr);
 	  tmpFrame->frame_width = width;
@@ -399,6 +409,7 @@ void CameraIspSOCAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 	  tmpFrame->frame_fmt = fmt;
       tmpFrame->zoom_value = mZoomVal;
       tmpFrame->used_flag = 3;
+      tmpFrame->vir_addr_valid = true;
       {
         Mutex::Autolock lock(mFrameArrayLock);
         mFrameInfoArray.add((void*)tmpFrame,(void*)pMediaBuffer);

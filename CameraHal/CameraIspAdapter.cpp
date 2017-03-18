@@ -2423,6 +2423,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
             return;
         }
         //add to vector
+        memset(tmpFrame, 0x0, sizeof(*tmpFrame));
         tmpFrame->frame_index = (ulong_t)tmpFrame; 
         tmpFrame->phy_addr = (ulong_t)phy_addr;
         tmpFrame->frame_width = width;
@@ -2452,6 +2453,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     			return;
           }
           //add to vector
+          memset(tmpFrame, 0x0, sizeof(*tmpFrame));
           tmpFrame->frame_index = (ulong_t)tmpFrame; 
           tmpFrame->phy_addr = (ulong_t)phy_addr;
           tmpFrame->frame_width = width;
@@ -2472,7 +2474,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
         }
     	//need to display ?
     	if(mRefDisplayAdapter->isNeedSendToDisplay()){  
-	    property_set("sys.hdmiin.display", "1");//just used by hdmi-in
+	    	property_set("sys.hdmiin.display", "1");//just used by hdmi-in
     	    MediaBufLockBuffer( pMediaBuffer );
     		//new frames
     		FramInfo_s *tmpFrame=(FramInfo_s *)malloc(sizeof(FramInfo_s));
@@ -2481,6 +2483,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
     			return;
           }
           //add to vector
+          memset(tmpFrame, 0x0, sizeof(*tmpFrame));
           tmpFrame->frame_index = (ulong_t)tmpFrame; 
           tmpFrame->phy_addr = (ulong_t)phy_addr;
           tmpFrame->frame_width = width;
@@ -2519,6 +2522,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
             	return;
             }          
             //add to vector
+            memset(tmpFrame, 0x0, sizeof(*tmpFrame));
             tmpFrame->frame_index = (ulong_t)tmpFrame; 
             tmpFrame->phy_addr = (ulong_t)phy_addr;
             tmpFrame->frame_width = width;
@@ -2554,7 +2558,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
 				MediaBufUnlockBuffer( pMediaBuffer );
 				return;
             }
-
+			memset(tmpFrame, 0x0, sizeof(*tmpFrame));
 			{
 				if (mfd.enable) {
 					mfd_buffers_capture->start = y_addr_vir;
@@ -2664,6 +2668,7 @@ void CameraIspAdapter::bufferCb( MediaBuffer_t* pMediaBuffer )
             	return;
             }
             //add to vector
+            memset(tmpFrame, 0x0, sizeof(*tmpFrame));
             tmpFrame->frame_index = (ulong_t)tmpFrame; 
             tmpFrame->phy_addr = (ulong_t)phy_addr;
             tmpFrame->frame_width = width;

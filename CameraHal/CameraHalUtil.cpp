@@ -29,7 +29,11 @@
 #include "../jpeghw/release/encode_release/rk29-ipp.h"
 #include <utils/CallStack.h> 
 #if defined(RK_DRM_GRALLOC)
+#if defined(TARGET_RK3368)
+#include <hardware/gralloc.h>
+#else
 #include <gralloc_drm.h>
+#endif
 #endif
 
 #define MIN(x,y)   ((x<y) ? x: y)

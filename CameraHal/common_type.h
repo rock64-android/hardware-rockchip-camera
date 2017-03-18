@@ -17,6 +17,7 @@ typedef struct FramInfo
     ulong_t used_flag;
     int frame_size;
     void* res;
+    bool vir_addr_valid;
 }FramInfo_s;
 
 typedef int (*func_displayCBForIsp)(void* frameinfo,void* cookie);

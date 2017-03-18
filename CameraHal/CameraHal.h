@@ -685,10 +685,12 @@ v1.0x4f.0:
   v1.0x4f.6:
      1) walkround fix qq self camera record problem with rga,replace 
         rga with arm when this callingprocess.
+  v1.0x4f.7:
+     1) android7.1 compatible with 3368h.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 5)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 7)
 
 
 /*  */
