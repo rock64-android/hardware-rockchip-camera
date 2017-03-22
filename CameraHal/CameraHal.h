@@ -84,7 +84,7 @@
 #elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
 #include <hardware/hal_public.h>
 #include <hardware/rga.h>
-#elif defined(TARGET_RK3368) || defined(TARGET_RK3328) || defined(TARGET_RK312x)
+#elif defined(TARGET_RK3368) || defined(TARGET_RK3328) || defined(TARGET_RK312x) || defined(TARGET_RK3288)
 #include <hardware/img_gralloc_public.h>
 #include <hardware/rga.h>
 #elif defined(TARGET_RK29)
@@ -816,7 +816,7 @@ v1.0x4f.0:
     #define NATIVE_HANDLE_TYPE             private_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)    
-#elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368) || defined(TARGET_RK3328) || defined(TARGET_RK312x)
+#elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368) || defined(TARGET_RK3328) || defined(TARGET_RK312x) || defined(TARGET_RK3288)
     #define NATIVE_HANDLE_TYPE             IMG_native_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->iWidth)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->iHeight)    

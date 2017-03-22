@@ -19,7 +19,7 @@
 #elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
 #include <hardware/hal_public.h>
 #include <hardware/rga.h>
-#elif defined(TARGET_RK3368)
+#elif defined(TARGET_RK3368) || defined(TARGET_RK3288)
 #include <hardware/img_gralloc_public.h>
 #include <hardware/rga.h>
 #elif defined(TARGET_RK29)
