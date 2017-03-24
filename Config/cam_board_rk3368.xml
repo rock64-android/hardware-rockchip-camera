@@ -547,7 +547,7 @@
 					<SensorFacing facing="front"></SensorFacing>
 					<SensorInterface mode="CCIR601"></SensorInterface>
 					<SensorMirrorFlip mirror="0"></SensorMirrorFlip>
-					<SensorOrientation orientation="0"></SensorOrientation>
+					<SensorOrientation orientation="180"></SensorOrientation>
 					<SensorPowerupSequence seq="1234"></SensorPowerupSequence>					
 					<SensorFovParemeter h="60.0" v="60.0"></SensorFovParemeter>
 					<SensorAWB_Frame_Skip fps="15"></SensorAWB_Frame_Skip>					
