@@ -535,8 +535,8 @@ extern "C" int rga_nv12_scale_crop(
 	}
 
 	if(zoom_val > 100){
-		zoom_cropW = zoom_cropW*100/zoom_val;
-		zoom_cropH = zoom_cropH*100/zoom_val;
+		zoom_cropW = zoom_cropW*100/zoom_val & (~0x01);
+		zoom_cropH = zoom_cropH*100/zoom_val & (~0x01);
 		zoom_left_offset = ((src_width-zoom_cropW)>>1) & (~0x01);
 		zoom_top_offset= ((src_height-zoom_cropH)>>1) & (~0x01);
 	}

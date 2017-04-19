@@ -390,9 +390,12 @@ static cam_mem_info_t* cam_mem_gralloc_ops_alloc(cam_mem_handle_t* handle,size_t
 lock_error:
 	//delete mgraphicbuf;
 	mgraphicbuf->decStrong(mgraphicbuf);
+	mgraphicbuf = NULL;
 error_alloc:
-    if (!mem)
+    if (mem)
         free(mem);
+    if (mgraphicbuf)
+        delete mgraphicbuf;
     return NULL;
 }
 

@@ -687,10 +687,21 @@ v1.0x4f.0:
         rga with arm when this callingprocess.
   v1.0x4f.7:
      1) android7.1 compatible with 3368h.
+  v1.0x4f.8:
+     1) if(!mem) -> if(mem).
+     2) add mgraphicbuf delete in some case.
+     3) src offset&size should be 2 aligned,otherwise, below error will be throwed:
+            E librga-mix: err wstride is not align to 8 or yuv not align to 2
+            D rockchiprga: f-blend-size-rotation-col-log-mmu[0, 0, 0, 0, 0, 0, 1313]
+            D rockchiprga: fd-vir-phy-hnd-format[-1, 0xe0da6000, 0x0, 0x0, 0]
+            D rockchiprga: rect[0, 0, 640, 480, 640, 480, 21, 0]
+            D rockchiprga: f-blend-size-rotation-col-log-mmu[0, 0, 0, 0, 0, 0, 1313]
+            E rockchiprga: This output the user patamaters when rga call blit fail
+            E librga-mix: [int RgaBlit(rga_info *, rga_info *, rga_info *),510]Error src rect for rga blit
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 7)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 8)
 
 
 /*  */
