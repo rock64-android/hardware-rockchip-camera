@@ -698,10 +698,12 @@ v1.0x4f.0:
             D rockchiprga: f-blend-size-rotation-col-log-mmu[0, 0, 0, 0, 0, 0, 1313]
             E rockchiprga: This output the user patamaters when rga call blit fail
             E librga-mix: [int RgaBlit(rga_info *, rga_info *, rga_info *),510]Error src rect for rga blit
+  v1.0x4f.9:
+     1) GraphicBuffer's destroy function is private, it will be called by decStrong() automaticly,so remove mgraphicbuf delete added in last commit.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 8)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 9)
 
 
 /*  */

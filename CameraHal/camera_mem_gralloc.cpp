@@ -394,8 +394,6 @@ lock_error:
 error_alloc:
     if (mem)
         free(mem);
-    if (mgraphicbuf)
-        delete mgraphicbuf;
     return NULL;
 }
 
