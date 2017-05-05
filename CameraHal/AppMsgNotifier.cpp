@@ -580,6 +580,8 @@ void AppMsgNotifier::grallocVideoBufAlloc(
 		//get fd
 		#if defined(RK_DRM_GRALLOC)
 		util_get_gralloc_buf_fd((buffer_handle_t)buffHandle,(int*)(&pVideoBuf->phy_addr));
+        #elif (defined(TARGET_RK312x) || defined(TARGET_RK3328)) && defined(ANDROID_7_X)
+        pVideoBuf->phy_addr = (long)pVideoBuf->priv_hnd->share_fd;
 		#endif
         LOG1("pVideoBuf->phy_addr=0x%x,pVideoBuf->vir_addr=0x%x,buffer_hnd=0x%x,priv_hnd=0x%x",
         	pVideoBuf->phy_addr,pVideoBuf->vir_addr,pVideoBuf->buffer_hnd,pVideoBuf->priv_hnd);
@@ -705,8 +707,13 @@ int AppMsgNotifier::startRecording(int w,int h)
 
 			addr = (long*)mVideoBufs[i]->data;
 			#if defined(ANDROID_7_X)
-			addr[0] = kMetadataBufferTypeNativeHandleSource;
-			addr[1] = (long)&mGrallocVideoBuf[i]->priv_hnd->base;
+            	#if defined(TARGET_RK3368)
+					addr[0] = kMetadataBufferTypeNativeHandleSource;
+					addr[1] = (long)&mGrallocVideoBuf[i]->priv_hnd->base;
+                #else
+					addr[0] = kMetadataBufferTypeNativeHandleSource;
+					addr[1] = (long)mGrallocVideoBuf[i]->priv_hnd;
+            	#endif
 			#endif
 		}
 		#endif
@@ -1799,7 +1806,6 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
 		                                mRecordW,mRecordH,frame->zoom_value,false,true,false,0,frame->vir_addr_valid);
 	            } else{
 					long fd = mVideoBufferProvider->getBufShareFd(buf_index);
-					LOGD(">>>ZYL>>fd:0x%x",fd);
 					rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
 										(char*)(frame->phy_addr), (short int *)fd,
 										mRecordW,mRecordH,frame->zoom_value,false,true,false,0,frame->vir_addr_valid);
@@ -1845,9 +1851,15 @@ int AppMsgNotifier::processVideoCb(FramInfo_s* frame){
                 mRecordW,mRecordH,frame->zoom_value,false,true,false,0,frame->vir_addr_valid);
 	    }
 		#else
-	    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
-	                (char*)(frame->vir_addr), (short int*)(mGrallocVideoBuf[buf_index]->vir_addr),
-	                mRecordW,mRecordH,frame->zoom_value,false,true,false);
+        	#if (defined(TARGET_RK312x) || defined(TARGET_RK3328)) && defined(ANDROID_7_X)
+			    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+			                (char*)(frame->phy_addr), (short int*)(mGrallocVideoBuf[buf_index]->phy_addr),
+			                mRecordW,mRecordH,frame->zoom_value,false,true,false,false);
+            #else
+			    rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+			                (char*)(frame->vir_addr), (short int*)(mGrallocVideoBuf[buf_index]->vir_addr),
+			                mRecordW,mRecordH,frame->zoom_value,false,true,false,true);
+            #endif
 		#endif
         #endif
 

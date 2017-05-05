@@ -466,7 +466,7 @@ extern "C" int util_get_gralloc_buf_fd(buffer_handle_t handle,int* fd){
 extern "C" int rga_nv12_scale_crop(
 		int src_width, int src_height, char *src_fd, short int *dst_fd, 
 		int dst_width,int dst_height,int zoom_val,bool mirror,
-		bool isNeedCrop,bool isDstNV21,int dst_stride,bool vir_addr)
+		bool isNeedCrop,bool isDstNV21,int dst_stride,bool is_viraddr_valid)
 {
     int ret = 0;
 	rga_info_t src,dst;
@@ -477,14 +477,14 @@ extern "C" int rga_nv12_scale_crop(
 	RockchipRga& rkRga(RockchipRga::get());
 	
 	memset(&src, 0, sizeof(rga_info_t));
-	if (vir_addr) {
+	if (is_viraddr_valid) {
 		src.fd = -1;
 		src.virAddr = (void*)src_fd;
 	} else
 		src.fd = (unsigned long)src_fd;
 	src.mmuFlag = ((2 & 0x3) << 4) | 1 | (1 << 8) | (1 << 10);
 	memset(&dst, 0, sizeof(rga_info_t));
-	if (vir_addr) {
+	if (is_viraddr_valid) {
 		dst.fd = -1;
 		dst.virAddr = (void*)dst_fd;
 	} else
@@ -566,7 +566,7 @@ failed:
 }
 #else
 extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, short int *dst, 
-										int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21)
+										int dst_width,int dst_height,int zoom_val,bool mirror,bool isNeedCrop,bool isDstNV21,bool is_viraddr_valid)
 {
     int rgafd = -1,ret = -1;
 	int scale_times_w = 0,scale_times_h = 0,h = 0,w = 0;
@@ -660,8 +660,18 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 			Rga_Request.src.yrgb_addr =  (long)psY;
 		    Rga_Request.src.uv_addr  = (long)psY + src_width * src_height;
 		#else
-			Rga_Request.src.yrgb_addr =  0;
+        	#if (defined(TARGET_RK312x) || defined(TARGET_RK3328)) && defined(ANDROID_7_X)
+            if (is_viraddr_valid) {
+				Rga_Request.src.yrgb_addr =  0;
+	            Rga_Request.src.uv_addr  = (long)psY;
+            } else {
+            	Rga_Request.src.yrgb_addr =  (long)psY;
+                Rga_Request.src.uv_addr  = 0;
+            }
+            #else
+            Rga_Request.src.yrgb_addr =  0;
             Rga_Request.src.uv_addr  = (long)psY;
+            #endif
 		#endif
 		    Rga_Request.src.v_addr   =  0;
 		    Rga_Request.src.vir_w =  src_width;
@@ -680,8 +690,18 @@ extern "C" int rga_nv12_scale_crop(int src_width, int src_height, char *src, sho
 		    Rga_Request.dst.yrgb_addr = (long)dst;
 		    Rga_Request.dst.uv_addr  = (long)dst + dst_width*dst_height;
 		#else
+        	#if (defined(TARGET_RK312x) || defined(TARGET_RK3328)) && defined(ANDROID_7_X)
+            	if (is_viraddr_valid) {
+					Rga_Request.dst.yrgb_addr = 0;
+		            Rga_Request.dst.uv_addr  = (long)dst;
+                } else {
+                	Rga_Request.dst.yrgb_addr = (long)dst;
+                    Rga_Request.dst.uv_addr  = 0;
+                }
+            #else
 			Rga_Request.dst.yrgb_addr = 0;
             Rga_Request.dst.uv_addr  = (long)dst;
+            #endif
 		#endif
 		    Rga_Request.dst.v_addr   = 0;
 		    Rga_Request.dst.vir_w = dst_width;
