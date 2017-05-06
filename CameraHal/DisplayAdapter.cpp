@@ -320,7 +320,7 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
         }
         mDisplayBufInfo[i].lock = new Mutex();
         mDisplayBufInfo[i].buffer_hnd = hnd;
-        mDisplayBufInfo[i].priv_hnd= (NATIVE_HANDLE_TYPE*)(*hnd);
+        mDisplayBufInfo[i].priv_hnd = (NATIVE_HANDLE_TYPE*)(*hnd);
         mDisplayBufInfo[i].stride = stride;
     #if defined(TARGET_RK29) 
         struct pmem_region sub;
@@ -334,7 +334,11 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
     #elif defined(TARGET_RK3188)
 		mDisplayBufInfo[i].phy_addr = mDisplayBufInfo[i].priv_hnd->phy_addr;
 	#else
-		mDisplayBufInfo[i].phy_addr = 0x00;  
+    	#if (defined(TARGET_RK312x) || defined(TARGET_RK3328)) && defined(ANDROID_7_X)
+        mDisplayBufInfo[i].phy_addr = mDisplayBufInfo[i].priv_hnd->share_fd;
+        #else
+		mDisplayBufInfo[i].phy_addr = 0x00;
+        #endif
 	#endif
         
     }
@@ -707,14 +711,7 @@ display_receive_cmd:
                                 }
                             }
                         } 
-                        //fill display buffer
-                   
-#if 1
-                 //   rga_nv12torgb565(frame->frame_width, frame->frame_height, 
-                  //                  (char*)(frame->vir_addr), (short int*)mDisplayBufInfo[queue_display_index].vir_addr, 
-                   //                 mDisplayWidth,mDisplayWidth,mDisplayHeight);
 
-            //        if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) /*&& (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420SP)==0)*/)
                     if((frame->frame_fmt == V4L2_PIX_FMT_YUYV) && (strcmp((mDisplayFormat),CAMERA_DISPLAY_FORMAT_YUV420P)==0))
                     {
                         if((frame->frame_width == mDisplayWidth) && (frame->frame_height== mDisplayHeight))
@@ -765,16 +762,22 @@ display_receive_cmd:
 											mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false,dst_stride,frame->vir_addr_valid);
 								}
 								#else
+                                #if (defined(TARGET_RK312x) || defined(TARGET_RK3328)) && defined(ANDROID_7_X)
+                                rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
+                                        (char*)(frame->phy_addr), (short int *)(mDisplayBufInfo[queue_display_index].phy_addr),/* 'phy_add' is buffer fd here */
+                                        mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false,false);
+                                #else
                                 rga_nv12_scale_crop(frame->frame_width, frame->frame_height,
                                         (char*)(frame->vir_addr), (short int *)(mDisplayBufInfo[queue_display_index].vir_addr),
-                                        mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false);
+                                        mDisplayWidth,mDisplayHeight,frame->zoom_value,false,true,false,true);
+                                #endif
 								#endif
                             }
 						#endif
 
                     #endif
                     }
-#endif
+
                     setBufferState(queue_display_index, 1);
                     mapper.unlock((buffer_handle_t)mDisplayBufInfo[queue_display_index].priv_hnd);
                     err = mANativeWindow->enqueue_buffer(mANativeWindow, (buffer_handle_t*)mDisplayBufInfo[queue_display_index].buffer_hnd);                    

@@ -76,7 +76,8 @@
 #define CONFIG_CAMERA_INVALIDATE_RGA    0
 
 
-#if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) || (defined(TARGET_BOARD_PLATFORM_RK2928)))
+#if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK312x) \
+    || defined(TARGET_RK3328) || defined(TARGET_RK3288) || (defined(TARGET_BOARD_PLATFORM_RK2928)))
 #include "../libgralloc/gralloc_priv.h"
 #if (CONFIG_CAMERA_INVALIDATE_RGA==0)
 #include <hardware/rga.h>
@@ -84,7 +85,7 @@
 #elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
 #include <hardware/hal_public.h>
 #include <hardware/rga.h>
-#elif defined(TARGET_RK3368) || defined(TARGET_RK3328) || defined(TARGET_RK312x) || defined(TARGET_RK3288)
+#elif defined(TARGET_RK3368)
 #include <hardware/img_gralloc_public.h>
 #include <hardware/rga.h>
 #elif defined(TARGET_RK29)
@@ -120,16 +121,24 @@ extern "C" int cameraFormatConvert(int v4l2_fmt_src, int v4l2_fmt_dst, const cha
 							int src_w, int src_h, int srcbuf_w,
 							int dst_w, int dst_h, int dstbuf_w,
 							bool mirror);
-							
+
+#if defined(RK_DRM_GRALLOC) 							
 extern "C" int rga_nv12_scale_crop(
 		int src_width, int src_height, char *src, short int *dst,
 		int dst_width,int dst_height,int zoom_val,
-		bool mirror,bool isNeedCrop,bool isDstNV21
-#if defined(RK_DRM_GRALLOC) 
-		,int dst_stride = 0
-		,bool vir_addr = false
-#endif
+		bool mirror,bool isNeedCrop,bool isDstNV21,
+		int dst_stride = 0,
+		bool is_viraddr_valid = false
 		);
+#else
+extern "C" int rga_nv12_scale_crop(
+		int src_width, int src_height, char *src, short int *dst,
+		int dst_width,int dst_height,int zoom_val,
+		bool mirror,bool isNeedCrop,bool isDstNV21,
+		bool is_viraddr_valid = true
+		);
+#endif
+
 extern "C" int rk_camera_zoom_ipp(int v4l2_fmt_src, int srcbuf, int src_w, int src_h,int dstbuf,int zoom_value);
 extern "C" void generateJPEG(uint8_t* data,int w, int h,unsigned char* outbuf,int* outSize);
 extern "C" int util_get_gralloc_buf_fd(buffer_handle_t handle,int* fd);
@@ -700,10 +709,13 @@ v1.0x4f.0:
             E librga-mix: [int RgaBlit(rga_info *, rga_info *, rga_info *),510]Error src rect for rga blit
   v1.0x4f.9:
      1) GraphicBuffer's destroy function is private, it will be called by decStrong() automaticly,so remove mgraphicbuf delete added in last commit.
+  v1.0x4f.0xa
+     1) gralloc support cacheable when alloc buffer, which result to green display when RGA uses virtual address as destination.
+        this commit use fd as RGA interface source buffer and destinate buffer address to resolve this problem, for rk312x&rk3328 android7.1.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 9)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 0xa)
 
 
 /*  */
@@ -825,11 +837,12 @@ v1.0x4f.0:
 
 
 
-#if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928)                         
+#if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928) \
+    || defined(TARGET_RK3328) || defined(TARGET_RK312x) || defined(TARGET_RK3288)
     #define NATIVE_HANDLE_TYPE             private_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)    
-#elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368) || defined(TARGET_RK3328) || defined(TARGET_RK312x) || defined(TARGET_RK3288)
+#elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368)
     #define NATIVE_HANDLE_TYPE             IMG_native_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->iWidth)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->iHeight)    
