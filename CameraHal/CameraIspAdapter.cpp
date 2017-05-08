@@ -1329,7 +1329,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 
     //for video test
     params.set(CameraParameters::KEY_PREVIEW_FPS_RANGE, "3000,30000");
-    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(3000,30000),(30000,30000)");//(30000,30000) for passing cts.
+    params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE, "(3000,30000),(15000,15000),(30000,30000)");//(30000,30000) for passing cts.
     params.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES, "10,15,20,30"); 
     params.setPreviewFrameRate(30);
 
