@@ -281,7 +281,7 @@ static int cam_mem_gralloc_ops_deInit(cam_mem_handle_t* handle)
 #include <ui/GraphicBufferMapper.h>
 #include <ui/GraphicBuffer.h>
 #if defined(RK_DRM_GRALLOC)
-#if defined(TARGET_RK3368)
+#if defined(TARGET_RK3368) || defined(TARGET_RK3399)
 #include <hardware/gralloc.h>
 #else
 #include <gralloc_drm.h>

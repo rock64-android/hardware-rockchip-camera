@@ -12,7 +12,11 @@ using namespace android;
 #define CAMERA_DEFAULT_PREVIEW_FPS_MAX    15000
 #endif
 #define CAMERAS_SUPPORT_MAX             2
-#define CAMERAS_SUPPORTED_SIMUL_MAX     2
+#if defined(TARGET_RK3399)
+    #define CAMERAS_SUPPORTED_SIMUL_MAX     2
+#else
+    #define CAMERAS_SUPPORTED_SIMUL_MAX     1
+#endif
 #define CAMERA_DEVICE_NAME              "/dev/video"
 #define CAMERA_MODULE_NAME              "RK29_ICS_CameraHal_Module"
 

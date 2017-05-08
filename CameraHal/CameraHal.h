@@ -76,8 +76,9 @@
 #define CONFIG_CAMERA_INVALIDATE_RGA    0
 
 
-#if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK312x) \
-    || defined(TARGET_RK3328) || defined(TARGET_RK3288) || (defined(TARGET_BOARD_PLATFORM_RK2928)))
+#if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK3399) \
+    || defined(TARGET_RK312x) || defined(TARGET_RK3328) || defined(TARGET_RK3288) \
+    || (defined(TARGET_BOARD_PLATFORM_RK2928)))
 #include "../libgralloc/gralloc_priv.h"
 #if (CONFIG_CAMERA_INVALIDATE_RGA==0)
 #include <hardware/rga.h>
@@ -712,10 +713,14 @@ v1.0x4f.0:
   v1.0x4f.0xa
      1) gralloc support cacheable when alloc buffer, which result to green display when RGA uses virtual address as destination.
         this commit use fd as RGA interface source buffer and destinate buffer address to resolve this problem, for rk312x&rk3328 android7.1.
+  v1.0x4f.0xb
+     1) Such as rk3368&3288&312x just has one ISP or CIF(exclusive of UVC), so those don't support two ISP-based or CIF-based cameras open 
+        at the same time. Other cases,such as UVC+ISP or UVC+CIF,you should modify CAMERAS_SUPPORTED_SIMUL_MAX mannuly.
+     2) Correct 3399 GPU header file included.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 0xa)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 0xb)
 
 
 /*  */
@@ -838,7 +843,7 @@ v1.0x4f.0:
 
 
 #if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928) \
-    || defined(TARGET_RK3328) || defined(TARGET_RK312x) || defined(TARGET_RK3288)
+    || defined(TARGET_RK3328) || defined(TARGET_RK312x) || defined(TARGET_RK3288) || defined(TARGET_RK3399)
     #define NATIVE_HANDLE_TYPE             private_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)    
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)    
