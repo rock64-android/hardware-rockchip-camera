@@ -2277,6 +2277,10 @@ int camera_board_profiles::ModifyMediaProfileXML( camera_board_profiles* profile
 						memset(frontpart_line,0,sizeof(frontpart_line)); 
 						strncpy(frontpart_line,one_line_buf,leave_num);  
 						fputs(frontpart_line,dst_fp);
+                                                
+                                                if (find_element.n_width == 320 && find_element.n_height == 240
+                            				&& find_element.n_frameRate < 24)
+                            				find_element.n_frameRate = 30;
 											
 						//ALOGD("new frameRate %d  isaddmark(%d)\n", find_element.n_frameRate, find_element.isAddMark);
 						fprintf(dst_fp,"=\"%d\" /> \n", (find_element.n_frameRate)); 
