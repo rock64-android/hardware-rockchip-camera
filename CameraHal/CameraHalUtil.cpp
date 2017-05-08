@@ -6,30 +6,12 @@
 #include <utils/Log.h>
 #include <linux/videodev2.h> 
 #include <binder/IPCThreadState.h>
-#include "CameraHal.h"
-
-
 #include <camera/CameraParameters.h>
-
-#if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) || (defined(TARGET_BOARD_PLATFORM_RK2928)))
-#include "../libgralloc/gralloc_priv.h"
-#if (CONFIG_CAMERA_INVALIDATE_RGA==0)
-#include <hardware/rga.h>
-#endif
-#elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
-#include <hardware/hal_public.h>
-#include <hardware/rga.h>
-#elif defined(TARGET_RK3368) || defined(TARGET_RK3288)
-#include <hardware/img_gralloc_public.h>
-#include <hardware/rga.h>
-#elif defined(TARGET_RK29)
-#include "../libgralloc/gralloc_priv.h"
-#endif
-
+#include "CameraHal.h"
 #include "../jpeghw/release/encode_release/rk29-ipp.h"
 #include <utils/CallStack.h> 
 #if defined(RK_DRM_GRALLOC)
-#if defined(TARGET_RK3368)
+#if defined(TARGET_RK3368) || defined(TARGET_RK3399)
 #include <hardware/gralloc.h>
 #else
 #include <gralloc_drm.h>

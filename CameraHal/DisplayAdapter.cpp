@@ -354,7 +354,8 @@ int DisplayAdapter::cameraDisplayBufferCreate(int width, int height, const char 
         mapper.lock((buffer_handle_t)mDisplayBufInfo[i].priv_hnd, CAMHAL_GRALLOC_USAGE, bounds, y_uv);
         #if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928)
             mDisplayBufInfo[i].vir_addr = (long)mDisplayBufInfo[i].priv_hnd->base;
-        #elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368) || defined(TARGET_RK3328) || defined(TARGET_RK312x) || defined(TARGET_RK3288)
+        #elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368) || defined(TARGET_RK3328) \
+            || defined(TARGET_RK312x) || defined(TARGET_RK3288) || defined(TARGET_RK3399)
             mDisplayBufInfo[i].vir_addr = (long)y_uv[0];
         #endif
         setBufferState(i,0);
