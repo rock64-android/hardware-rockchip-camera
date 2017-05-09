@@ -133,7 +133,7 @@ SensorListener::~SensorListener() {
 status_t SensorListener::initialize() {
     status_t ret = NO_ERROR;
 
-#if defined(ANDROID_6_X)
+#if defined(ANDROID_6_X) || defined(ANDROID_7_X)
     SensorManager& mgr = SensorManager::getInstanceForPackage(String16("CamHal Sensor"));
 #else
     SensorManager& mgr(SensorManager::getInstance());
@@ -198,7 +198,7 @@ void SensorListener::handleOrientation(uint32_t orientation, uint32_t tilt) {
 void SensorListener::enableSensor(sensor_type_t type) {
     Sensor const* sensor;
 
-#if defined(ANDROID_6_X)
+#if defined(ANDROID_6_X) || defined(ANDROID_7_X)
     SensorManager& mgr = SensorManager::getInstanceForPackage(String16("CamHal Sensor"));
 #else
     SensorManager& mgr(SensorManager::getInstance());
@@ -224,7 +224,7 @@ void SensorListener::enableSensor(sensor_type_t type) {
 void SensorListener::disableSensor(sensor_type_t type) {
     Sensor const* sensor;
 
-#if defined(ANDROID_6_X)
+#if defined(ANDROID_6_X) || defined(ANDROID_7_X)
     SensorManager& mgr = SensorManager::getInstanceForPackage(String16("CamHal Sensor"));
 #else
     SensorManager& mgr(SensorManager::getInstance());

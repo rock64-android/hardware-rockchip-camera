@@ -338,7 +338,9 @@ LOCAL_CFLAGS += -DANDROID_5_X
 endif
 
 ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 6.0)))
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \< 7.0)))
 LOCAL_CFLAGS += -DANDROID_6_X
+endif
 endif
 
 ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 7.0)))
