@@ -504,8 +504,8 @@ extern "C" int rga_nv12_scale_crop(
 	//need crop ? when cts FOV,don't crop
 	if(isNeedCrop && (src_width*100/src_height) != (dst_width*100/dst_height)){
 		ratio = ((src_width*100/dst_width) >= (src_height*100/dst_height))?(src_height*100/dst_height):(src_width*100/dst_width);
-		zoom_cropW = ratio*dst_width/100;
-		zoom_cropH = ratio*dst_height/100;
+		zoom_cropW = (ratio*dst_width/100) & (~0x01);
+		zoom_cropH = (ratio*dst_height/100) & (~0x01);
 		
 		zoom_left_offset=((src_width-zoom_cropW)>>1) & (~0x01);
 		zoom_top_offset=((src_height-zoom_cropH)>>1) & (~0x01);
@@ -522,7 +522,7 @@ extern "C" int rga_nv12_scale_crop(
 		zoom_left_offset = ((src_width-zoom_cropW)>>1) & (~0x01);
 		zoom_top_offset= ((src_height-zoom_cropH)>>1) & (~0x01);
 	}
-	
+
 	rga_set_rect(&src.rect, zoom_left_offset,zoom_top_offset,
 		zoom_cropW,zoom_cropH,src_width,src_height,HAL_PIXEL_FORMAT_YCrCb_NV12);
 	if (isDstNV21)
