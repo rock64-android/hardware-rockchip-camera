@@ -76,13 +76,17 @@
 #define CONFIG_CAMERA_INVALIDATE_RGA    0
 
 
-#if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK3399) \
-    || defined(TARGET_RK312x) || defined(TARGET_RK3328) || defined(TARGET_RK3288) \
-    || (defined(TARGET_BOARD_PLATFORM_RK2928)))
+#if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) \
+    || (defined(TARGET_RK3399) && defined(ANDROID_6_X)) \
+    || defined(TARGET_RK312x) || defined(TARGET_RK3328) \
+    || defined(TARGET_RK3288) || (defined(TARGET_BOARD_PLATFORM_RK2928)))
 #include "../libgralloc/gralloc_priv.h"
 #if (CONFIG_CAMERA_INVALIDATE_RGA==0)
 #include <hardware/rga.h>
 #endif
+#elif defined(TARGET_RK3399) && defined(ANDROID_7_X)
+#include "../libgralloc/gralloc_drm_handle.h"
+#include <hardware/rga.h>
 #elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
 #include <hardware/hal_public.h>
 #include <hardware/rga.h>
@@ -717,10 +721,12 @@ v1.0x4f.0:
      1) Such as rk3368&3288&312x just has one ISP or CIF(exclusive of UVC), so those don't support two ISP-based or CIF-based cameras open 
         at the same time. Other cases,such as UVC+ISP or UVC+CIF,you should modify CAMERAS_SUPPORTED_SIMUL_MAX mannuly.
      2) Correct 3399 GPU header file included.
+  v1.0x4f.0xc
+     1) 3399 android7.1 uses drm, so it's gralloc buffer handle header file is not same as android6.0,distinguish them.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 0xb)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 0xc)
 
 
 /*  */
@@ -843,14 +849,20 @@ v1.0x4f.0:
 
 
 #if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928) \
-    || defined(TARGET_RK3328) || defined(TARGET_RK312x) || defined(TARGET_RK3288) || defined(TARGET_RK3399)
+    || defined(TARGET_RK3328) || defined(TARGET_RK312x) || defined(TARGET_RK3288) \
+    || (defined(TARGET_RK3399) && defined(ANDROID_6_X))
     #define NATIVE_HANDLE_TYPE             private_handle_t
-    #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)    
-    #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)    
+    #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)
+    #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)
+#elif defined(TARGET_RK3399) && defined(ANDROID_7_X)
+    typedef struct gralloc_drm_handle_t    rk_gralloc_drm_handle_t;
+    #define NATIVE_HANDLE_TYPE             rk_gralloc_drm_handle_t
+    #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)
+    #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)
 #elif defined(TARGET_BOARD_PLATFORM_RK30XXB) || defined(TARGET_RK3368)
     #define NATIVE_HANDLE_TYPE             IMG_native_handle_t
-    #define PRIVATE_HANDLE_GET_W(hd)       (hd->iWidth)    
-    #define PRIVATE_HANDLE_GET_H(hd)       (hd->iHeight)    
+    #define PRIVATE_HANDLE_GET_W(hd)       (hd->iWidth)
+    #define PRIVATE_HANDLE_GET_H(hd)       (hd->iHeight)
 #endif
 
 #define RK_VIDEOBUF_CODE_CHK(rk_code)		((rk_code&(('R'<<24)|('K'<<16)))==(('R'<<24)|('K'<<16)))
@@ -896,7 +908,7 @@ protected:
     MemManagerBase* mCamBuffer;
 };
 
-//preview buffer 管理
+//preview buffer 鹿脺脌铆
 class PreviewBufferProvider:public BufferProvider
 {
 public:
@@ -925,7 +937,7 @@ public:
 class DisplayAdapter;
 class AppMsgNotifier;
 typedef struct cameraparam_info cameraparam_info_s;
-//diplay buffer 由display adapter类自行管理。
+//diplay buffer 脫脡display adapter脌脿脳脭脨脨鹿脺脌铆隆拢
 
 /* mjpeg decoder interface in libvpu.*/
 typedef void* (*getMjpegDecoderFun)(void);
@@ -949,7 +961,7 @@ typedef struct mjpeg_interface {
 } mjpeg_interface_t;
 
 /*************************
-CameraAdapter 负责与驱动通信，且为帧数据的提供者，为display及msgcallback提供数据。
+CameraAdapter 赂潞脭冒脫毛脟媒露炉脥篓脨脜拢卢脟脪脦陋脰隆脢媒戮脻碌脛脤谩鹿漏脮脽拢卢脦陋display录掳msgcallback脤谩鹿漏脢媒戮脻隆拢
 ***************************/
 class CameraAdapter:public FrameProvider
 {
@@ -1013,7 +1025,7 @@ protected:
 private:
     class CameraPreviewThread :public Thread
     {
-        //deque 到帧后根据需要分发给DisplayAdapter类及EventNotifier类。
+        //deque 碌陆脰隆潞贸赂霉戮脻脨猫脪陋路脰路垄赂酶DisplayAdapter脌脿录掳EventNotifier脌脿隆拢
         CameraAdapter* mPreivewCameraAdapter;
     public:
         CameraPreviewThread(CameraAdapter* adapter)
@@ -1211,7 +1223,7 @@ private:
 
 };
 /*************************
-DisplayAdapter 为帧数据消费者，从CameraAdapter接收帧数据并显示
+DisplayAdapter 脦陋脰隆脢媒戮脻脧没路脩脮脽拢卢麓脫CameraAdapter陆脫脢脮脰隆脢媒戮脻虏垄脧脭脢戮
 ***************************/
 class DisplayAdapter//:public CameraHal_Tracer
 {
@@ -1387,7 +1399,7 @@ struct face_detector_func_s{
 };
 
 /**************************************
-EventNotifier   负责处理msg 的回调，拍照或者录影时也作为帧数据的消费者。
+EventNotifier   赂潞脭冒麓娄脌铆msg 碌脛禄脴碌梅拢卢脜脛脮脮禄貌脮脽脗录脫掳脢卤脪虏脳梅脦陋脰隆脢媒戮脻碌脛脧没路脩脮脽隆拢
 **************************************/
 class AppMsgNotifier
 {
@@ -1437,7 +1449,7 @@ private:
     } rk_videobuf_info_t;
 
 	
-    //处理preview data cb及video enc
+    //麓娄脌铆preview data cb录掳video enc
     class CameraAppMsgThread :public Thread
     {
     public:
@@ -1460,7 +1472,7 @@ private:
 		}
     };
 
-    //处理 face detection
+    //麓娄脌铆 face detection
     class CameraAppFaceDetThread :public Thread
     {
     public:
@@ -1482,7 +1494,7 @@ private:
 		}
     };
 
-    //处理picture
+    //麓娄脌铆picture
 	class EncProcessThread : public Thread {
 	public:
 	    enum ENC_THREAD_CMD{
@@ -1689,8 +1701,8 @@ private:
 
 
 /***********************
-CameraHal类负责与cameraservice联系，实现
-cameraservice要求实现的接口。此类只负责公共资源的申请，以及任务的分发。
+CameraHal脌脿赂潞脭冒脫毛cameraservice脕陋脧碌拢卢脢碌脧脰
+cameraservice脪陋脟贸脢碌脧脰碌脛陆脫驴脷隆拢麓脣脌脿脰禄赂潞脭冒鹿芦鹿虏脳脢脭麓碌脛脡锚脟毛拢卢脪脭录掳脠脦脦帽碌脛路脰路垄隆拢
 ***********************/
 class CameraHal
 {

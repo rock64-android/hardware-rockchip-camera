@@ -1086,7 +1086,6 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
        }else{ 
 		if (strcmp(pCamInfo->mHardInfo.mVcmInfo.mVcmDrvName,"NC")!=0) {
           //if(0){
-              LOGD("------mHardInfo.mVcmInfo.mVcmDrvName is %s-----\n",pCamInfo->mHardInfo.mVcmInfo.mVcmDrvName);
             err_af = m_camDevice->isAfAvailable(avail);
             if ((err_af == true) && (avail == true)) {
                 parameterString.append(",");
