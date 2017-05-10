@@ -79,12 +79,12 @@
 #if defined(TARGET_RK30) && (defined(TARGET_BOARD_PLATFORM_RK30XX) \
     || (defined(TARGET_RK3399) && defined(ANDROID_6_X)) \
     || defined(TARGET_RK312x) || defined(TARGET_RK3328) \
-    || defined(TARGET_RK3288) || (defined(TARGET_BOARD_PLATFORM_RK2928)))
+    || (defined(TARGET_RK3288) && defined(ANDROID_6_X)) || (defined(TARGET_BOARD_PLATFORM_RK2928)))
 #include "../libgralloc/gralloc_priv.h"
 #if (CONFIG_CAMERA_INVALIDATE_RGA==0)
 #include <hardware/rga.h>
 #endif
-#elif defined(TARGET_RK3399) && defined(ANDROID_7_X)
+#elif (defined(TARGET_RK3399) || defined(TARGET_RK3288)) && defined(ANDROID_7_X)
 #include "../libgralloc/gralloc_drm_handle.h"
 #include <hardware/rga.h>
 #elif defined(TARGET_RK30) && defined(TARGET_BOARD_PLATFORM_RK30XXB)
@@ -723,10 +723,12 @@ v1.0x4f.0:
      2) Correct 3399 GPU header file included.
   v1.0x4f.0xc
      1) 3399 android7.1 uses drm, so it's gralloc buffer handle header file is not same as android6.0,distinguish them.
+  v1.0x4f.0xd
+     1) 3288 android7.1 uses drm, so it's gralloc buffer handle header file is not same as android6.0,distinguish them.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 0xc)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 0xd)
 
 
 /*  */
@@ -849,12 +851,12 @@ v1.0x4f.0:
 
 
 #if defined(TARGET_BOARD_PLATFORM_RK30XX) || defined(TARGET_RK29) || defined(TARGET_BOARD_PLATFORM_RK2928) \
-    || defined(TARGET_RK3328) || defined(TARGET_RK312x) || defined(TARGET_RK3288) \
+    || defined(TARGET_RK3328) || defined(TARGET_RK312x) || (defined(TARGET_RK3288) && defined(ANDROID_6_X)) \
     || (defined(TARGET_RK3399) && defined(ANDROID_6_X))
     #define NATIVE_HANDLE_TYPE             private_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)
     #define PRIVATE_HANDLE_GET_H(hd)       (hd->height)
-#elif defined(TARGET_RK3399) && defined(ANDROID_7_X)
+#elif (defined(TARGET_RK3399) || defined(TARGET_RK3288)) && defined(ANDROID_7_X)
     typedef struct gralloc_drm_handle_t    rk_gralloc_drm_handle_t;
     #define NATIVE_HANDLE_TYPE             rk_gralloc_drm_handle_t
     #define PRIVATE_HANDLE_GET_W(hd)       (hd->width)
