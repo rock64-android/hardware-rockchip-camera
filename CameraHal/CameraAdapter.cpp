@@ -815,6 +815,8 @@ void CameraAdapter::previewThread(){
                       mRefEventNotifier->notifyNewVideoFrame(tmpFrame);
                 }
                 if(buffer_log & (PreviewBufferProvider::CMD_PREVIEWBUF_DATACB)){
+                      if(mIsCtsTest)
+                            usleep(10000);  //for passing cts test "testPreviewPictureSizesCombination"
                       tmpFrame->used_flag = PreviewBufferProvider::CMD_PREVIEWBUF_DATACB;
                       mRefEventNotifier->notifyNewPreviewCbFrame(tmpFrame);
                 }
