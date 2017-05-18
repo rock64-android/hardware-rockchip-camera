@@ -924,6 +924,8 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
                 max_h = ISI_RES_H_GET(pCaps.Resolution);
             pCaps.Index++;
 	    };
+        if(max_w >= 1280 && max_h >= 720)
+            parameterString.append(",960x540");
         
         if (pCamInfo->mSoftInfo.mPreviewWidth && pCamInfo->mSoftInfo.mPreviewHeight) {
             memset(string,0x00,sizeof(string));    
