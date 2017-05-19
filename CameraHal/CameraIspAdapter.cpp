@@ -160,7 +160,12 @@ int CameraIspAdapter::cameraCreate(int cameraId)
 	int i =0;
 
 	preview_frame_inval = pCamInfo->mHardInfo.mSensorInfo.awb_frame_skip;
-	
+
+    //fix weixin capture switch fastly bug.
+    const char* cameraCallProcess = getCallingProcess();
+    if (strstr("com.tencent.mm,com.tencent.mm:tools", cameraCallProcess))
+        preview_frame_inval = 0;
+
     pCamInfo->mLibIspVersion = CONFIG_SILICONIMAGE_LIBISP_VERSION;
 	
 	for(i=0; i<4; i++){
