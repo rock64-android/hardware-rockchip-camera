@@ -1058,7 +1058,7 @@ void CameraIspAdapter::initDefaultParameters(int camFd)
 	}
 
 #if (CONFIG_CAMERA_SETVIDEOSIZE == 0)
-     if(mIsCtsTest){
+     if(false/*mIsCtsTest*/){
         if(gCamInfos[camFd].facing_info.facing == CAMERA_FACING_BACK){
              //back camera, may need to manually modify based on media_profiles.xml supported.
              params.set(CameraParameters::KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO,"1920x1080");

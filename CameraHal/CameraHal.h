@@ -725,10 +725,13 @@ v1.0x4f.0:
      1) 3399 android7.1 uses drm, so it's gralloc buffer handle header file is not same as android6.0,distinguish them.
   v1.0x4f.0xd
      1) 3288 android7.1 uses drm, so it's gralloc buffer handle header file is not same as android6.0,distinguish them.
+  v1.0x4f.0xe
+     1) soc camera no need frames filter for cts test.
+     2) cts test case support getSupportedVideoSize return null.
 */
 
 
-#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 0xd)
+#define CONFIG_CAMERAHAL_VERSION KERNEL_VERSION(1, 0x4f, 0xe)
 
 
 /*  */
