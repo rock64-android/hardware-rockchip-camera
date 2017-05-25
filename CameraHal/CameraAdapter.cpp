@@ -671,7 +671,7 @@ int CameraAdapter::getFrame(FramInfo_s** tmpFrame){
     }
     LOG2("%s(%d): deque a  frame %d success",__FUNCTION__,__LINE__,cfilledbuffer1.index);
 
-    if(mPreviewFrameIndex++ < FILTER_FRAME_NUMBER)
+    if((mPreviewFrameIndex++ < FILTER_FRAME_NUMBER) && (!mIsCtsTest))
     {
         LOG2("%s:filter frame %d",__FUNCTION__,mPreviewFrameIndex);
     	mCamDriverStreamLock.lock();

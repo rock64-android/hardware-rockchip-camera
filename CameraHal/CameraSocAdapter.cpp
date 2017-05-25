@@ -587,13 +587,21 @@ void CameraSOCAdapter::initDefaultParameters(int camFd)
 	 /*focus length setting ,no much meaning ,only for passing cts */
 	 parameterString = "35";
 	 params.set(CameraParameters::KEY_FOCAL_LENGTH, parameterString.string());
-	/*horizontal angle of view setting ,no much meaning ,only for passing cts */
-	 parameterString = "60";
-	 params.set(CameraParameters::KEY_HORIZONTAL_VIEW_ANGLE, parameterString.string());
-	 /*vertical angle of view setting ,no much meaning ,only for passing cts */
-	 parameterString = "28.9";
-	 params.set(CameraParameters::KEY_VERTICAL_VIEW_ANGLE, parameterString.string());
-
+    if(gCamInfos[mCamId].facing_info.facing == CAMERA_FACING_FRONT){
+        /* horizontal angle of view setting ,no much meaning ,only for passing fov test */
+        parameterString = "40";
+        params.set(CameraParameters::KEY_HORIZONTAL_VIEW_ANGLE, parameterString.string());
+        /* vertical angle of view setting ,no use for fov test */
+        parameterString = "28.9";
+        params.set(CameraParameters::KEY_VERTICAL_VIEW_ANGLE, parameterString.string());
+     }else{
+        /* horizontal angle of view setting ,no much meaning ,only for passing fov test */
+        parameterString = "51";
+        params.set(CameraParameters::KEY_HORIZONTAL_VIEW_ANGLE, parameterString.string());
+        /* vertical angle of view setting ,no use for fov test */
+        parameterString = "28.9";
+        params.set(CameraParameters::KEY_VERTICAL_VIEW_ANGLE, parameterString.string());
+    }
 	/*quality of the EXIF thumbnail in Jpeg picture setting */
 	 parameterString = "50";
 	 params.set(CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY, parameterString.string());
