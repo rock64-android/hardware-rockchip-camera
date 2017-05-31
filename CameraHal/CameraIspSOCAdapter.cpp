@@ -195,7 +195,15 @@ extern "C" void arm_isp_yuyv_12bit_to_8bit (int src_w, int src_h,char *srcbuf,ui
 #if defined(TARGET_RK3368)
 		for(i=0;i<(y_size>>1);i++) {
 
-		   //dst : YUYV
+		  /**********************************************
+			note: @-means dirty data,one character means one byte(8bit):
+
+			   |U|@|Y|@|V|@|Y|@|U|@|Y|@|V|@|Y|@|....
+
+			   ---->
+
+			   |U|Y|V|Y|U|Y|V|Y|....
+		   ************************************************/
 			*dst_buf++= (((*(srcint+1) >> 8) & 0x000000ff ) << 0)|
 						((((*(srcint+1) >> 24) & 0x000000ff)) << 8) |
 						(((*(srcint) >> 8) & 0x000000ff) << 16) |
