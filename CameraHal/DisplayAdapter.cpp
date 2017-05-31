@@ -468,6 +468,16 @@ extern "C" void arm_yuyv_to_nv12(int src_w, int src_h,char *srcbuf, char *dstbuf
 	  * C code YUYV to YUV420
 	  */
 #else
+	/**********************************
+		note: one character means one byte(8bit):
+
+		|U|Y|V|Y|U|Y|V|Y|....
+
+		---->
+
+		|Y|Y|Y|Y|.....|U|V|U|V|....
+	***********************************/
+
     for(i=0;i<src_h; i++) {
 		for (j=0; j<(src_w>>2); j++) {
 			if(i%2 == 0){
