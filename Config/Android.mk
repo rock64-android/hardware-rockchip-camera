@@ -68,7 +68,7 @@ LOCAL_MODULE_SUFFIX := .so
 include $(BUILD_PREBUILT)
 endif
 
-ifneq ($(filter rk322x rk312x rk3126c rk3128, $(strip $(TARGET_BOARD_PLATFORM))), )
+ifneq ($(filter rk322x rk312x rk3126c rk3128 px3se, $(strip $(TARGET_BOARD_PLATFORM))), )
 #include $(CLEAR_VARS)
 #LOCAL_MODULE := libisp_silicomimageisp_api
 LOCAL_MODULE_TAGS := optional
